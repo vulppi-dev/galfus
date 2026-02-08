@@ -1,17 +1,17 @@
-# CmdRenderGraphSet
+# CmdRenderGraph3DSet
 
-Sets a host-defined render graph for a window. The core validates the graph and compiles an execution plan. If invalid and `fallback=true`, the core uses the default fallback graph.
+Sets a host-defined render graph for a 3D realm. The core validates the graph and compiles an execution plan. If invalid and `fallback=true`, the core uses the default fallback graph.
 
 ## Arguments
 
-| Field    | Type            | Description       |
-| -------- | --------------- | ----------------- |
-| windowId | u32             | ID of the window  |
-| graph    | RenderGraphDesc | Graph description |
+| Field   | Type            | Description          |
+| ------- | --------------- | -------------------- |
+| realmId | u32             | ID of the 3D realm   |
+| graph   | RenderGraphDesc | Graph description    |
 
 ## Response
 
-Returns `CmdResultRenderGraphSet`:
+Returns `CmdResultRenderGraph3DSet`:
 
 | Field        | Type   | Description                            |
 | ------------ | ------ | -------------------------------------- |

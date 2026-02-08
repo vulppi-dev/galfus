@@ -94,6 +94,10 @@ The core is responsible for:
 
 - Tracking **resources** (materials, textures, geometries…)
 - Tracking **component instances** (cameras, models, lights) per host ID
+- Managing **Realm/Surface/RealmGraph**:
+  - `Realm` owns a render graph and outputs to a `Surface`.
+  - `Present` maps a `Surface` to a window.
+  - `Connector` composes one realm into another.
 - Managing GPU buffers and pipelines
 - Collecting input and window events via platform proxies
 - Executing the render pipeline in `vulfram_tick`
@@ -178,6 +182,10 @@ They are split into two categories:
 The host generates and owns:
 
 - `WindowId` — identifies a window
+- `RealmId` — identifies a render realm
+- `SurfaceId` — identifies a renderable/sampleable surface
+- `ConnectorId` — identifies inter-realm composition links
+- `PresentId` — identifies a window-to-surface present
 - `CameraId` — identifies a camera
 - `ModelId` — identifies a model instance
 - `LightId` — identifies a light
@@ -185,6 +193,20 @@ The host generates and owns:
 - `MaterialId` — material asset
 - `TextureId` — texture asset
 - `BufferId` — upload blob identifier
+
+---
+
+## 4.2 RealmGraph and Composition
+
+Vulfram composes multiple realms through a `RealmGraph`:
+
+- `Presents` anchor surfaces to windows (roots of the graph).
+- `Connectors` define edges between realms (3D Plane or 2D Viewport connectors).
+- Cycles are broken deterministically with cached `LastGoodSurface`/`FallbackSurface`.
+- The compositor resolves format/size conversions and MSAA resolves automatically.
+
+Input routing uses the same connector graph to emit `eventTrace` metadata
+(`windowId`, `realmId`, `connectorId`, `sourceRealmId`, and UV coordinates when available).
 
 ---
 

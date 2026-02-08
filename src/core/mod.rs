@@ -9,6 +9,7 @@ pub mod platform;
 pub mod platforms;
 pub mod profiling;
 mod queue;
+pub mod realm;
 pub mod render;
 pub mod resources;
 mod singleton;

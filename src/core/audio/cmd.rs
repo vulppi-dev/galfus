@@ -17,7 +17,7 @@ pub struct CmdAudioListenerUpdateArgs {
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CmdAudioListenerCreateArgs {
-    pub window_id: u32,
+    pub realm_id: u32,
     pub model_id: u32,
 }
 
@@ -31,7 +31,7 @@ pub struct CmdResultAudioListenerCreate {
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CmdAudioListenerDisposeArgs {
-    pub window_id: u32,
+    pub realm_id: u32,
 }
 
 #[derive(Debug, Default, Deserialize, Serialize, Clone)]
@@ -86,7 +86,7 @@ pub struct CmdResultAudioResourcePush {
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CmdAudioSourceCreateArgs {
-    pub window_id: u32,
+    pub realm_id: u32,
     pub source_id: u32,
     pub model_id: u32,
     pub position: Vec3,
@@ -339,14 +339,15 @@ pub fn engine_cmd_audio_listener_create(
     engine: &mut EngineState,
     args: &CmdAudioListenerCreateArgs,
 ) -> CmdResultAudioListenerCreate {
-    if !engine.window.states.contains_key(&args.window_id) {
+    let realm_id = crate::core::realm::RealmId(args.realm_id);
+    if engine.universal_state.realms.get(realm_id).is_none() {
         return CmdResultAudioListenerCreate {
             success: false,
-            message: format!("Window {} not found", args.window_id),
+            message: format!("Realm {} not found", args.realm_id),
         };
     }
-    engine.audio_listener_binding = Some(crate::core::audio::AudioListenerBinding {
-        window_id: args.window_id,
+    engine.universal_state.audio.listener_binding = Some(crate::core::audio::AudioListenerBinding {
+        realm_id: args.realm_id,
         model_id: args.model_id,
     });
     CmdResultAudioListenerCreate {
@@ -359,12 +360,12 @@ pub fn engine_cmd_audio_listener_dispose(
     engine: &mut EngineState,
     args: &CmdAudioListenerDisposeArgs,
 ) -> CmdResultAudioListenerDispose {
-    let should_clear = match engine.audio_listener_binding {
-        Some(binding) => binding.window_id == args.window_id,
+    let should_clear = match engine.universal_state.audio.listener_binding {
+        Some(binding) => binding.realm_id == args.realm_id,
         None => false,
     };
     if should_clear {
-        engine.audio_listener_binding = None;
+        engine.universal_state.audio.listener_binding = None;
         CmdResultAudioListenerDispose {
             success: true,
             message: "Listener disposed".into(),
@@ -378,11 +379,15 @@ pub fn engine_cmd_audio_listener_dispose(
 }
 
 pub fn process_audio_listener_binding(engine: &mut EngineState) {
-    let binding = match engine.audio_listener_binding {
+    let binding = match engine.universal_state.audio.listener_binding {
         Some(binding) => binding,
         None => return,
     };
-    let window_state = match engine.window.states.get(&binding.window_id) {
+    let window_id = match resolve_window_id_for_realm(engine, binding.realm_id) {
+        Some(window_id) => window_id,
+        None => return,
+    };
+    let window_state = match engine.window.states.get(&window_id) {
         Some(state) => state,
         None => return,
     };
@@ -435,7 +440,7 @@ pub fn engine_cmd_audio_buffer_create_from_buffer(
 
     if let Some(total_bytes) = args.total_bytes {
         let offset = args.offset_bytes.unwrap_or(0);
-        let stream = match engine.audio_streams.entry(args.resource_id) {
+        let stream = match engine.universal_state.audio.streams.entry(args.resource_id) {
             std::collections::hash_map::Entry::Vacant(entry) => {
                 match AudioStreamState::new(total_bytes) {
                     Ok(state) => entry.insert(state),
@@ -467,7 +472,7 @@ pub fn engine_cmd_audio_buffer_create_from_buffer(
             },
         ));
         if complete {
-            let stream = engine.audio_streams.remove(&args.resource_id).unwrap();
+            let stream = engine.universal_state.audio.streams.remove(&args.resource_id).unwrap();
             match engine.audio.buffer_create_from_bytes(args.resource_id, stream.data) {
                 Ok(()) => CmdResultAudioResourceCreate {
                     success: true,
@@ -535,7 +540,7 @@ pub fn engine_cmd_audio_resource_push(
         };
     }
     let (received_bytes, total_bytes, complete) = {
-        let stream = match engine.audio_streams.get_mut(&args.resource_id) {
+        let stream = match engine.universal_state.audio.streams.get_mut(&args.resource_id) {
             Some(stream) => stream,
             None => {
                 return CmdResultAudioResourcePush {
@@ -567,7 +572,7 @@ pub fn engine_cmd_audio_resource_push(
         },
     ));
     if complete {
-        let stream = engine.audio_streams.remove(&args.resource_id).unwrap();
+        let stream = engine.universal_state.audio.streams.remove(&args.resource_id).unwrap();
         if let Err(message) = engine.audio.buffer_create_from_bytes(args.resource_id, stream.data) {
             return CmdResultAudioResourcePush {
                 success: false,
@@ -595,10 +600,11 @@ pub fn engine_cmd_audio_source_create(
     engine: &mut EngineState,
     args: &CmdAudioSourceCreateArgs,
 ) -> CmdResultAudioSourceCreate {
-    if !engine.window.states.contains_key(&args.window_id) {
+    let realm_id = crate::core::realm::RealmId(args.realm_id);
+    if engine.universal_state.realms.get(realm_id).is_none() {
         return CmdResultAudioSourceCreate {
             success: false,
-            message: format!("Window {} not found", args.window_id),
+            message: format!("Realm {} not found", args.realm_id),
         };
     }
     let params = AudioSourceParams {
@@ -610,11 +616,15 @@ pub fn engine_cmd_audio_source_create(
         spatial: args.spatial.clone().into(),
     };
 
-    engine.audio_source_params.insert(args.source_id, params);
-    engine.audio_source_bindings.insert(
+    engine
+        .universal_state
+        .audio
+        .source_params
+        .insert(args.source_id, params);
+    engine.universal_state.audio.source_bindings.insert(
         args.source_id,
         crate::core::audio::AudioListenerBinding {
-            window_id: args.window_id,
+            realm_id: args.realm_id,
             model_id: args.model_id,
         },
     );
@@ -642,7 +652,11 @@ pub fn engine_cmd_audio_source_update(
         pitch: args.pitch,
         spatial: args.spatial.clone().into(),
     };
-    engine.audio_source_params.insert(args.source_id, params);
+    engine
+        .universal_state
+        .audio
+        .source_params
+        .insert(args.source_id, params);
     match engine.audio.source_update(args.source_id, params) {
         Ok(()) => CmdResultAudioSourceUpdate {
             success: true,
@@ -716,8 +730,16 @@ pub fn engine_cmd_audio_source_dispose(
     engine: &mut EngineState,
     args: &CmdAudioSourceDisposeArgs,
 ) -> CmdResultAudioSourceDispose {
-    engine.audio_source_bindings.remove(&args.source_id);
-    engine.audio_source_params.remove(&args.source_id);
+    engine
+        .universal_state
+        .audio
+        .source_bindings
+        .remove(&args.source_id);
+    engine
+        .universal_state
+        .audio
+        .source_params
+        .remove(&args.source_id);
     match engine.audio.source_dispose(args.source_id) {
         Ok(()) => CmdResultAudioSourceDispose {
             success: true,
@@ -734,7 +756,11 @@ pub fn engine_cmd_audio_resource_dispose(
     engine: &mut EngineState,
     args: &CmdAudioResourceDisposeArgs,
 ) -> CmdResultAudioResourceDispose {
-    engine.audio_streams.remove(&args.resource_id);
+    engine
+        .universal_state
+        .audio
+        .streams
+        .remove(&args.resource_id);
     match engine.audio.buffer_dispose(args.resource_id) {
         Ok(()) => CmdResultAudioResourceDispose {
             success: true,
@@ -748,11 +774,15 @@ pub fn engine_cmd_audio_resource_dispose(
 }
 
 pub fn process_audio_source_bindings(engine: &mut EngineState) {
-    let listener_binding = engine.audio_listener_binding;
+    let listener_binding = engine.universal_state.audio.listener_binding;
     let Some(listener_binding) = listener_binding else {
         return;
     };
-    let window_state = match engine.window.states.get(&listener_binding.window_id) {
+    let window_id = match resolve_window_id_for_realm(engine, listener_binding.realm_id) {
+        Some(window_id) => window_id,
+        None => return,
+    };
+    let window_state = match engine.window.states.get(&window_id) {
         Some(state) => state,
         None => return,
     };
@@ -769,8 +799,8 @@ pub fn process_audio_source_bindings(engine: &mut EngineState) {
         .data
         .transform
         .to_scale_rotation_translation();
-    for (source_id, binding) in engine.audio_source_bindings.iter() {
-        if binding.window_id != listener_binding.window_id {
+    for (source_id, binding) in engine.universal_state.audio.source_bindings.iter() {
+        if binding.realm_id != listener_binding.realm_id {
             continue;
         }
         let record = match window_state
@@ -783,7 +813,7 @@ pub fn process_audio_source_bindings(engine: &mut EngineState) {
             None => continue,
         };
         let (_, rotation, translation) = record.data.transform.to_scale_rotation_translation();
-        let mut params = match engine.audio_source_params.get(source_id) {
+        let mut params = match engine.universal_state.audio.source_params.get(source_id) {
             Some(params) => *params,
             None => continue,
         };
@@ -798,4 +828,19 @@ pub fn process_audio_source_bindings(engine: &mut EngineState) {
         }
         let _ = engine.audio.source_update(*source_id, params);
     }
+}
+
+fn resolve_window_id_for_realm(engine: &EngineState, realm_id: u32) -> Option<u32> {
+    let realm = engine
+        .universal_state
+        .realms
+        .get(crate::core::realm::RealmId(realm_id))?;
+    let output_surface = realm.value.output_surface?;
+    engine
+        .universal_state
+        .presents
+        .entries
+        .values()
+        .find(|present| present.value.surface == output_surface)
+        .map(|present| present.value.window_id)
 }

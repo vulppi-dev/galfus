@@ -6,7 +6,7 @@ Disposes the current listener binding for the given window.
 
 | Field    | Type | Description            |
 | -------- | ---- | ---------------------- |
-| windowId | u32  | Window owning listener |
+| realmId  | u32  | Realm owning listener  |
 
 ## Response
 

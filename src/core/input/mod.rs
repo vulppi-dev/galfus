@@ -1,6 +1,7 @@
 #[cfg(not(feature = "wasm"))]
 pub mod cache;
 pub mod events;
+pub mod routing;
 #[cfg(not(feature = "wasm"))]
 pub mod state;
 
@@ -14,3 +15,5 @@ pub use events::{
 };
 #[cfg(not(feature = "wasm"))]
 pub use state::InputState;
+
+pub use routing::route_pointer_events;

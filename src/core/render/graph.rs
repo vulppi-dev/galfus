@@ -234,11 +234,26 @@ pub fn validate_graph(desc: &RenderGraphDesc) -> Result<RenderGraphPlan, String>
     }
 
     for node in &desc.nodes {
+        let mut node_inputs: HashSet<&LogicalId> = HashSet::new();
         for input in &node.inputs {
-            res_ids.insert(input.clone());
+            if !node_inputs.insert(input) {
+                return Err(format!("Duplicate input '{}' in node '{}'", input, node.node_id));
+            }
+            if !res_ids.contains(input) {
+                return Err(format!("Input resource '{}' not declared", input));
+            }
         }
+        let mut node_outputs: HashSet<&LogicalId> = HashSet::new();
         for output in &node.outputs {
-            res_ids.insert(output.clone());
+            if !node_outputs.insert(output) {
+                return Err(format!(
+                    "Duplicate output '{}' in node '{}'",
+                    output, node.node_id
+                ));
+            }
+            if !res_ids.contains(output) {
+                return Err(format!("Output resource '{}' not declared", output));
+            }
         }
     }
 

@@ -54,6 +54,10 @@ Core responsibilities:
   - Geometries, materials, textures (and shadows).
 - Keep track of **instances** (components) per host ID:
   - Cameras, models, lights.
+- Maintain **Realm/Surface/RealmGraph** state:
+  - `Realm` owns a render graph and outputs to a `Surface`.
+  - `Present` maps a `Surface` to a window.
+  - `Connector` composes one realm into another.
 - Manage GPU buffers, textures, pipelines, and render passes.
 - Collect and expose input/window events via platform proxies.
 - Perform rendering in `vulfram_tick`.
@@ -97,6 +101,19 @@ the host payloads.
 These internal instances are indexed by host IDs and are not visible to the host.
 The host always refers to entities by their logical IDs, and the core resolves that to
 its internal instance structures.
+
+### 2.4 Realm, Surface and RealmGraph (Current)
+
+The render architecture is split into three layers:
+
+- **Realm**: execution scope with a `RenderGraph` (3D or 2D) and an output `Surface`.
+- **Surface**: renderable + sampleable target (virtual swapchain). The core handles
+  format, size, alpha conversions and MSAA resolve when needed.
+- **RealmGraph**: a DAG generated from `Connectors` + `Presents` that defines
+  cross-realm composition order and cycle breaking.
+
+Each window creates a default `Realm` and `Surface`. `Present` links the window to the
+surface, and `Connector` layers control how realms compose (zIndex, blendMode, rect, clip).
 
 ---
 
@@ -202,6 +219,13 @@ Once the initial state is ready, the host enters its main loop, where:
 
 - `vulfram_tick` drives the core each frame and consumes queued commands.
 - The host sends updates and receives events/responses.
+
+Inside each tick, the core:
+
+- Builds a `RealmGraphPlan` from `Connectors` + `Presents`.
+- Executes render graphs per realm (3D/2D).
+- Composes inter-realm surfaces in zIndex order.
+- Routes input events through connectors and emits `eventTrace`.
 
 ### 5.4 Shutdown
 

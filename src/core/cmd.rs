@@ -78,7 +78,8 @@ pub enum EngineCmd {
     CmdEnvironmentUpdate(res::CmdEnvironmentUpdateArgs),
     CmdEnvironmentDispose(res::CmdEnvironmentDisposeArgs),
     CmdShadowConfigure(res::shadow::CmdShadowConfigureArgs),
-    CmdRenderGraphSet(render::CmdRenderGraphSetArgs),
+    CmdRenderGraph3DSet(render::CmdRenderGraph3DSetArgs),
+    CmdRenderGraph2DSet(render::CmdRenderGraph2DSetArgs),
     CmdModelList(res::CmdModelListArgs),
     CmdMaterialList(res::CmdMaterialListArgs),
     CmdTextureList(res::CmdTextureListArgs),
@@ -163,7 +164,8 @@ pub enum CommandResponse {
     EnvironmentUpdate(res::CmdResultEnvironment),
     EnvironmentDispose(res::CmdResultEnvironment),
     ShadowConfigure(res::shadow::CmdResultShadowConfigure),
-    RenderGraphSet(render::CmdResultRenderGraphSet),
+    RenderGraph3DSet(render::CmdResultRenderGraph3DSet),
+    RenderGraph2DSet(render::CmdResultRenderGraph2DSet),
     ModelList(res::CmdResultModelList),
     MaterialList(res::CmdResultMaterialList),
     TextureList(res::CmdResultTextureList),
@@ -621,11 +623,18 @@ pub fn engine_process_batch(
                     response: CommandResponse::ShadowConfigure(result),
                 });
             }
-            EngineCmd::CmdRenderGraphSet(args) => {
-                let result = render::engine_cmd_render_graph_set(engine, &args);
+            EngineCmd::CmdRenderGraph3DSet(args) => {
+                let result = render::engine_cmd_render_graph_3d_set(engine, &args);
                 engine.response_queue.push(CommandResponseEnvelope {
                     id: pack.id,
-                    response: CommandResponse::RenderGraphSet(result),
+                    response: CommandResponse::RenderGraph3DSet(result),
+                });
+            }
+            EngineCmd::CmdRenderGraph2DSet(args) => {
+                let result = render::engine_cmd_render_graph_2d_set(engine, &args);
+                engine.response_queue.push(CommandResponseEnvelope {
+                    id: pack.id,
+                    response: CommandResponse::RenderGraph2DSet(result),
                 });
             }
             EngineCmd::CmdModelList(args) => {

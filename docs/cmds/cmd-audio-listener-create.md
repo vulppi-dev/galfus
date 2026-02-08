@@ -6,7 +6,7 @@ Creates (binds) the listener to a model so its transform drives the listener eac
 
 | Field    | Type | Description               |
 | -------- | ---- | ------------------------- |
-| windowId | u32  | Window owning the model   |
+| realmId  | u32  | Realm owning the model    |
 | modelId  | u32  | Model to bind as listener |
 
 ## Response
