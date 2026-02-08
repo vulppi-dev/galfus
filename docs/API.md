@@ -64,6 +64,9 @@ pub struct EngineState {
     pub queue: Option<wgpu::Queue>,
 
     pub buffers: BufferStorage,
+    pub texture_async: TextureAsyncManager,
+    pub audio: Box<dyn AudioProxy>,
+    pub universal_state: UniversalState,
 
     pub cmd_queue: EngineBatchCmds,
     pub event_queue: EngineBatchEvents,
@@ -78,11 +81,18 @@ pub struct EngineState {
     pub(crate) gamepad: GamepadState,
 
     pub(crate) profiling: TickProfiling,
+    pub(crate) gpu_profiler: Option<GpuProfiler>,
 }
 ```
 
 `EngineSingleton` owns the `EngineState` plus a platform proxy
 (`DesktopProxy` or `BrowserProxy`) that handles window/input integration.
+
+`UniversalState` is the realm-centric runtime table set:
+
+- `realms`, `surfaces`, `connectors`, `presents`
+- `surface_cache` for cycle-breaking (`LastGoodSurface`/`FallbackSurface`)
+- `frame_report` for RealmGraph diagnostics
 
 ---
 
@@ -289,6 +299,12 @@ buffers: HashMap<u64, UploadBuffer>  // BufferId -> UploadBuffer
 The `RenderState` is responsible for managing WGPU objects and executing
 the draw passes.
 
+Rendering is Realm-based:
+
+- Each `Realm` owns a `RenderGraphState` (3D or 2D).
+- The `RealmGraphPlanner` orders realms and determines cut edges for cycles.
+- Composition uses connector overlays after per-realm rendering.
+
 ### 7.1 Buffers
 
 Current GPU buffers:
@@ -355,6 +371,11 @@ The input layer aggregates events via the active platform proxy:
 These are translated into internal `EngineEvent` enums and pushed into
 `event_queue`.
 
+Pointer events now include optional routing metadata via `trace`, which
+provides the resolved `windowId`, `realmId`, `connectorId`, `sourceRealmId`,
+and UV coordinates when a connector hit-test succeeds. This metadata is
+optional and omitted when routing is not available.
+
 On `vulfram_receive_events`, the core:
 
 1. Serializes `event_queue` into MessagePack (using `rmp-serde`).
@@ -384,6 +405,8 @@ On `vulfram_receive_events`, the core:
 - Counters:
   - `totalEventsDispatched`
   - `totalEventsCached`
+- `frameReport` with the RealmGraph execution order, cut edges, cached surface
+  entries, and any throttled/no-progress realms detected during the frame.
 
 On `vulfram_get_profiling`, the core:
 

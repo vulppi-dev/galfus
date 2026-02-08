@@ -15,6 +15,7 @@ use web_sys::Event;
 #[cfg(not(feature = "wasm"))]
 use crate::core::input::InputCacheManager;
 use crate::core::render::RenderState;
+use crate::core::resources::RenderTarget;
 
 #[cfg(not(feature = "wasm"))]
 use super::cache::WindowCacheManager;
@@ -25,6 +26,7 @@ pub struct WindowState {
     pub surface: wgpu::Surface<'static>,
     pub config: wgpu::SurfaceConfiguration,
     pub render_state: RenderState,
+    pub surface_target: Option<RenderTarget>,
     #[cfg(not(feature = "wasm"))]
     pub inner_position: IVec2,
     #[cfg(not(feature = "wasm"))]

@@ -45,12 +45,19 @@ If you're building a language binding (Node.js, Lua, Python, etc.) or integratin
    - Host responsibilities
    - Upload system
 
-4. **[cmds/](cmds/)** - _Command Reference_
+4. **[REALM-ARCH.md](REALM-ARCH.md)** - _Realm/Surface/RealmGraph base plan_
+   - Contratos e lifecycle
+   - IDs lógicos e generation
+   - Buffering e `PreviousFrame`
+   - Composição multi-janela
+   - Regras de `rect` e profiling
+
+5. **[cmds/](cmds/)** - _Command Reference_
    - Detailed documentation for every engine command (Window, Camera, Model, Light, etc.)
 
-5. **[RENDER-GRAPH.md](RENDER-GRAPH.md)** - _Host-defined render graph_
+6. **[RENDER-GRAPH.md](RENDER-GRAPH.md)** - _Host-defined render graph_
 
-6. **[GLOSSARY.md](GLOSSARY.md)** - _Terminology reference_
+7. **[GLOSSARY.md](GLOSSARY.md)** - _Terminology reference_
    - Core concepts (Host, Core, ABI)
    - Components vs Resources
    - IDs and handles

@@ -24,6 +24,7 @@ pub enum PointerEvent {
         pointer_type: u32,
         pointer_id: u64,
         position: Vec2,
+        trace: Option<PointerEventTrace>,
     },
 
     /// Pointer entered window area
@@ -32,6 +33,7 @@ pub enum PointerEvent {
         window_id: u32,
         pointer_type: u32,
         pointer_id: u64,
+        trace: Option<PointerEventTrace>,
     },
 
     /// Pointer left window area
@@ -40,6 +42,7 @@ pub enum PointerEvent {
         window_id: u32,
         pointer_type: u32,
         pointer_id: u64,
+        trace: Option<PointerEventTrace>,
     },
 
     /// Pointer button pressed/released (mouse) or touch started/ended
@@ -51,6 +54,7 @@ pub enum PointerEvent {
         button: u32,
         state: ElementState,
         position: Vec2,
+        trace: Option<PointerEventTrace>,
     },
 
     /// Mouse wheel/touchpad scroll
@@ -59,6 +63,7 @@ pub enum PointerEvent {
         window_id: u32,
         delta: ScrollDelta,
         phase: TouchPhase,
+        trace: Option<PointerEventTrace>,
     },
 
     /// Touch event with pressure and additional info
@@ -69,6 +74,7 @@ pub enum PointerEvent {
         phase: TouchPhase,
         position: Vec2,
         pressure: Option<f32>,
+        trace: Option<PointerEventTrace>,
     },
 
     /// Pinch gesture (zoom)
@@ -77,6 +83,7 @@ pub enum PointerEvent {
         window_id: u32,
         delta: f64,
         phase: TouchPhase,
+        trace: Option<PointerEventTrace>,
     },
 
     /// Pan gesture
@@ -85,6 +92,7 @@ pub enum PointerEvent {
         window_id: u32,
         delta: Vec2,
         phase: TouchPhase,
+        trace: Option<PointerEventTrace>,
     },
 
     /// Rotation gesture
@@ -93,9 +101,23 @@ pub enum PointerEvent {
         window_id: u32,
         delta: f32,
         phase: TouchPhase,
+        trace: Option<PointerEventTrace>,
     },
 
     /// Double tap gesture
     #[serde(rename_all = "camelCase")]
-    OnDoubleTapGesture { window_id: u32 },
+    OnDoubleTapGesture {
+        window_id: u32,
+        trace: Option<PointerEventTrace>,
+    },
+}
+
+#[derive(Debug, Clone, Copy, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PointerEventTrace {
+    pub window_id: u32,
+    pub realm_id: u32,
+    pub connector_id: Option<u32>,
+    pub source_realm_id: Option<u32>,
+    pub uv: Option<Vec2>,
 }

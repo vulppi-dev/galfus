@@ -65,7 +65,7 @@ pub enum AudioPlayMode {
 
 #[derive(Debug, Clone, Copy)]
 pub struct AudioListenerBinding {
-    pub window_id: u32,
+    pub realm_id: u32,
     pub model_id: u32,
 }
 

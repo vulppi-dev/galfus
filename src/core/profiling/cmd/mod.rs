@@ -26,6 +26,7 @@ pub struct ProfilingData {
     pub window_fps: Vec<WindowFps>,
     pub total_events_dispatched: usize,
     pub total_events_cached: usize,
+    pub frame_report: crate::core::realm::FrameReport,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -71,6 +72,7 @@ pub fn vulfram_get_profiling(out_ptr: *mut *const u8, out_length: *mut usize) ->
             window_fps,
             total_events_dispatched: engine.profiling.total_events_dispatched,
             total_events_cached: engine.profiling.total_events_cached,
+            frame_report: engine.universal_state.frame_report.clone(),
         };
 
         // Serialize profiling data

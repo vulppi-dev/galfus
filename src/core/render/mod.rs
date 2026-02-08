@@ -3,11 +3,17 @@ pub mod cmd;
 pub mod gizmos;
 pub mod graph;
 mod passes;
+mod realm_graph;
 pub mod state;
 
+use crate::core::realm::{FrameReport, RealmGraphPlanner};
 use crate::core::render::graph::RenderGraphPlan;
 use crate::core::state::EngineState;
 pub use state::RenderState;
+use realm_graph::{
+    collect_cut_connectors, collect_surface_views, compose_realm_connectors, ensure_surface_target,
+    map_realms_to_windows, resolve_realm_surface, update_surface_cache,
+};
 
 pub fn bloom_chain_size(base: u32, level: usize) -> u32 {
     passes::bloom_chain_size(base, level)
@@ -56,14 +62,14 @@ pub fn render_frames(engine_state: &mut EngineState) {
     #[cfg(feature = "wasm")]
     let total_start = now_ns();
 
-    // 1. Update Shadows (Global for all windows - using first window's state as proxy)
-    let shadow_enabled = engine_state.window.states.values().any(|window_state| {
-        window_state
-            .render_state
-            .render_graph
-            .plan()
-            .has_pass("shadow")
-    });
+    // 1. Update Shadows (Global for all realms with a shadow pass)
+    let shadow_enabled = engine_state
+        .universal_state
+        .realms
+        .entries
+        .values()
+        .filter_map(|entry| entry.value.render_graph.as_ref())
+        .any(|graph| graph.plan().has_pass("shadow"));
 
     if shadow_enabled {
         if let Some((_, window_state)) = engine_state.window.states.iter_mut().next() {
@@ -118,97 +124,204 @@ pub fn render_frames(engine_state: &mut EngineState) {
         }
     }
 
-    // 2. Render all windows
+    // 2. Render all realms (RealmGraph order)
     let mut windows_ns: u64 = 0;
-    for (window_index, (_window_id, window_state)) in
-        engine_state.window.states.iter_mut().enumerate()
-    {
-        #[cfg(not(feature = "wasm"))]
-        let window_start = std::time::Instant::now();
-        #[cfg(feature = "wasm")]
-        let window_start = now_ns();
-        let surface_texture = match window_state.surface.get_current_texture() {
-            Ok(texture) => texture,
-            Err(e) => {
-                log::error!("Failed to get surface texture: {:?}", e);
+    let realm_plan = RealmGraphPlanner::default().build_plan(&engine_state.universal_state);
+    let cut_connectors = collect_cut_connectors(&realm_plan);
+    update_surface_cache(&mut engine_state.universal_state, &cut_connectors);
+    let mut frame_report =
+        FrameReport::from_plan(&realm_plan, &engine_state.universal_state.surface_cache);
+    let realm_windows = map_realms_to_windows(&engine_state.universal_state);
+    let surface_views = collect_surface_views(
+        device,
+        &mut engine_state.window.states,
+        &engine_state.universal_state,
+    );
+    const MAX_REALM_ITERATIONS: u32 = 1;
+    let mut iteration = 0;
+    loop {
+        frame_report.no_progress_realms.clear();
+        let mut window_counter = 0;
+
+        for realm_id in &realm_plan.order {
+            let Some(window_id) = realm_windows.get(realm_id) else {
+                continue;
+            };
+            let Some(window_state) = engine_state.window.states.get_mut(window_id) else {
+                continue;
+            };
+            let Some(surface_id) = resolve_realm_surface(&engine_state.universal_state, *realm_id)
+            else {
+                continue;
+            };
+            let Some(realm_entry) = engine_state.universal_state.realms.get_mut(*realm_id) else {
+                continue;
+            };
+            if !should_render_realm(realm_entry, engine_state.frame_index) {
+                FrameReport::push_unique(&mut frame_report.throttled_realms, realm_id.0);
                 continue;
             }
-        };
 
-        let render_state = &mut window_state.render_state;
-        render_state.prepare_render(device, frame_spec, true);
+            let target_size = engine_state
+                .universal_state
+                .surfaces
+                .entries
+                .get(&surface_id)
+                .map(|entry| entry.value.size)
+                .unwrap_or(window_state.inner_size);
+            let target_format = engine_state
+                .universal_state
+                .surfaces
+                .entries
+                .get(&surface_id)
+                .and_then(|entry| entry.value.format_policy)
+                .unwrap_or(wgpu::TextureFormat::Rgba16Float);
 
-        let mut encoder =
-            device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
+            ensure_surface_target(
+                device,
+                &mut window_state.surface_target,
+                target_size,
+                target_format,
+            );
+            let surface_target = match window_state.surface_target.as_ref() {
+                Some(target) => target,
+                None => continue,
+            };
 
-        let gpu_base = engine_state.gpu_profiler.as_ref().and_then(|gpu_profiler| {
-            let base = 2 + (window_index as u32) * 6;
-            if gpu_profiler.query_count() >= base + 6 {
-                Some(base)
-            } else {
-                None
+            #[cfg(not(feature = "wasm"))]
+            let window_start = std::time::Instant::now();
+            #[cfg(feature = "wasm")]
+            let window_start = now_ns();
+
+            let surface_texture = match window_state.surface.get_current_texture() {
+                Ok(texture) => texture,
+                Err(e) => {
+                    log::error!("Failed to get surface texture: {:?}", e);
+                    continue;
+                }
+            };
+
+            let render_state = &mut window_state.render_state;
+            render_state.prepare_render(device, frame_spec, true);
+
+            let mut encoder =
+                device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
+
+            let gpu_base = engine_state.gpu_profiler.as_ref().and_then(|gpu_profiler| {
+                let base = 2 + (window_counter as u32) * 6;
+                if gpu_profiler.query_count() >= base + 6 {
+                    Some(base)
+                } else {
+                    None
+                }
+            });
+            window_counter = window_counter.saturating_add(1);
+
+            let plan = match realm_entry.value.render_graph.as_ref() {
+                Some(graph) => graph.plan().clone(),
+                None => {
+                    log::error!("Realm {} is missing a render graph", realm_id.0);
+                    FrameReport::push_unique(&mut frame_report.no_progress_realms, realm_id.0);
+                    continue;
+                }
+            };
+            gpu_written |= execute_graph_to_view(
+                &plan,
+                render_state,
+                device,
+                queue,
+                &mut encoder,
+                &surface_target.view,
+                surface_target.format,
+                target_size,
+                engine_state.frame_index,
+                engine_state.gpu_profiler.as_ref(),
+                gpu_base,
+            );
+
+            compose_realm_connectors(
+                render_state,
+                device,
+                &mut encoder,
+                &engine_state.universal_state,
+                *realm_id,
+                surface_id,
+                &cut_connectors,
+                &surface_views,
+                &surface_target.view,
+                surface_target.format,
+                target_size,
+                engine_state.frame_index,
+                &mut frame_report,
+            );
+
+            let surface_view = surface_texture
+                .texture
+                .create_view(&wgpu::TextureViewDescriptor::default());
+            passes::pass_compose_surface(
+                render_state,
+                device,
+                &mut encoder,
+                &surface_view,
+                window_state.config.format,
+                glam::UVec2::new(window_state.config.width, window_state.config.height),
+                &surface_target.view,
+                engine_state.frame_index,
+            );
+
+            queue.submit(Some(encoder.finish()));
+            surface_texture.present();
+            #[cfg(not(feature = "wasm"))]
+            {
+                let now = std::time::Instant::now();
+                let delta_ns = window_state
+                    .last_present_instant
+                    .map(|prev| now.duration_since(prev).as_nanos() as u64)
+                    .unwrap_or(0);
+                window_state.last_present_instant = Some(now);
+                window_state.last_frame_delta_ns = delta_ns;
+                window_state.fps_instant = if delta_ns > 0 {
+                    1_000_000_000.0 / delta_ns as f64
+                } else {
+                    0.0
+                };
             }
-        });
+            #[cfg(feature = "wasm")]
+            {
+                let now = now_ns();
+                let delta_ns = if window_state.last_present_ns > 0 {
+                    now.saturating_sub(window_state.last_present_ns)
+                } else {
+                    0
+                };
+                window_state.last_present_ns = now;
+                window_state.last_frame_delta_ns = delta_ns;
+                window_state.fps_instant = if delta_ns > 0 {
+                    1_000_000_000.0 / delta_ns as f64
+                } else {
+                    0.0
+                };
+            }
+            #[cfg(not(feature = "wasm"))]
+            {
+                windows_ns = windows_ns.saturating_add(window_start.elapsed().as_nanos() as u64);
+            }
+            #[cfg(feature = "wasm")]
+            {
+                windows_ns = windows_ns.saturating_add(now_ns().saturating_sub(window_start));
+            }
+        }
 
-        let plan = render_state.render_graph.plan().clone();
-        gpu_written |= execute_window_graph(
-            &plan,
-            render_state,
-            device,
-            queue,
-            &mut encoder,
-            &surface_texture,
-            &window_state.config,
-            engine_state.frame_index,
-            engine_state.gpu_profiler.as_ref(),
-            gpu_base,
-        );
-
-        queue.submit(Some(encoder.finish()));
-        surface_texture.present();
-        #[cfg(not(feature = "wasm"))]
-        {
-            let now = std::time::Instant::now();
-            let delta_ns = window_state
-                .last_present_instant
-                .map(|prev| now.duration_since(prev).as_nanos() as u64)
-                .unwrap_or(0);
-            window_state.last_present_instant = Some(now);
-            window_state.last_frame_delta_ns = delta_ns;
-            window_state.fps_instant = if delta_ns > 0 {
-                1_000_000_000.0 / delta_ns as f64
-            } else {
-                0.0
-            };
-        }
-        #[cfg(feature = "wasm")]
-        {
-            let now = now_ns();
-            let delta_ns = if window_state.last_present_ns > 0 {
-                now.saturating_sub(window_state.last_present_ns)
-            } else {
-                0
-            };
-            window_state.last_present_ns = now;
-            window_state.last_frame_delta_ns = delta_ns;
-            window_state.fps_instant = if delta_ns > 0 {
-                1_000_000_000.0 / delta_ns as f64
-            } else {
-                0.0
-            };
-        }
-        #[cfg(not(feature = "wasm"))]
-        {
-            windows_ns = windows_ns.saturating_add(window_start.elapsed().as_nanos() as u64);
-        }
-        #[cfg(feature = "wasm")]
-        {
-            windows_ns = windows_ns.saturating_add(now_ns().saturating_sub(window_start));
+        iteration = iteration.saturating_add(1);
+        if frame_report.no_progress_realms.is_empty() || iteration >= MAX_REALM_ITERATIONS {
+            break;
         }
     }
 
+    engine_state.universal_state.frame_report = frame_report;
+
     if gpu_written {
-        if let Some(gpu_profiler) = engine_state.gpu_profiler.as_ref() {
+        if let Some(gpu_profiler) = engine_state.gpu_profiler.as_mut() {
             if gpu_profiler.query_count() > 0 {
                 let mut resolve_encoder =
                     device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
@@ -243,20 +356,20 @@ pub fn render_frames(engine_state: &mut EngineState) {
     }
 }
 
-fn execute_window_graph(
+fn execute_graph_to_view(
     plan: &RenderGraphPlan,
     render_state: &mut RenderState,
     device: &wgpu::Device,
     queue: &wgpu::Queue,
     encoder: &mut wgpu::CommandEncoder,
-    surface_texture: &wgpu::SurfaceTexture,
-    config: &wgpu::SurfaceConfiguration,
+    target_view: &wgpu::TextureView,
+    target_format: wgpu::TextureFormat,
+    target_size: glam::UVec2,
     frame_index: u64,
     gpu_profiler: Option<&crate::core::profiling::gpu::GpuProfiler>,
     gpu_base: Option<u32>,
 ) -> bool {
     let mut gpu_written = false;
-
     let mut skybox_done = false;
 
     for &node_idx in &plan.order {
@@ -313,13 +426,15 @@ fn execute_window_graph(
                 if let Some(base) = gpu_base {
                     write_gpu_timestamp(encoder, gpu_profiler, base + 4, &mut gpu_written);
                 }
-                passes::pass_compose(
+                passes::pass_compose_to_view(
                     render_state,
                     device,
                     queue,
                     encoder,
-                    surface_texture,
-                    config,
+                    target_view,
+                    target_format,
+                    target_size.x,
+                    target_size.y,
                     frame_index,
                 );
                 if let Some(base) = gpu_base {
@@ -331,6 +446,34 @@ fn execute_window_graph(
     }
 
     gpu_written
+}
+
+fn should_render_realm(
+    entry: &mut crate::core::realm::TableEntry<crate::core::realm::RealmState>,
+    frame_index: u64,
+) -> bool {
+    let importance = entry.value.importance;
+    if importance == 0 {
+        return false;
+    }
+    let base_interval = match importance {
+        1 => 1,
+        2 => 2,
+        3 => 4,
+        _ => 1,
+    };
+    let cache_multiplier = match entry.value.cache_policy {
+        0 => 1,
+        1 => 2,
+        2 => 4,
+        _ => 1,
+    };
+    let interval = base_interval.saturating_mul(cache_multiplier);
+    let should_render = frame_index.saturating_sub(entry.value.last_render_frame) >= interval;
+    if should_render {
+        entry.value.last_render_frame = frame_index;
+    }
+    should_render
 }
 
 fn write_gpu_timestamp(

@@ -25,7 +25,10 @@ Initial State mapping: "minimized", "maximized", "windowed", "fullscreen", "wind
 
 Returns `CmdResultWindowCreate`:
 
-| Field   | Type   | Description                    |
-| ------- | ------ | ------------------------------ |
-| success | bool   | Whether the window was created |
-| message | String | Status or error message        |
+| Field     | Type        | Description                                               |
+| --------- | ----------- | --------------------------------------------------------- |
+| success   | bool        | Whether the window was created                            |
+| message   | String      | Status or error message                                   |
+| realmId   | Option<u32> | Default Realm ID created for this window (when successful) |
+| surfaceId | Option<u32> | Surface ID bound to the window present                     |
+| presentId | Option<u32> | Present ID linking the window to the surface               |

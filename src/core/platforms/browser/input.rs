@@ -33,10 +33,31 @@ pub fn attach_canvas_listeners(
                 if let Some(device) = engine.device.as_ref() {
                     window_state.surface.configure(device, &window_state.config);
                     window_state.render_state.on_resize(device, width, height);
+                    crate::core::resources::ensure_render_target(
+                        device,
+                        &mut window_state.surface_target,
+                        width.max(1),
+                        height.max(1),
+                        wgpu::TextureFormat::Rgba16Float,
+                    );
                 }
                 window_state.inner_size = glam::UVec2::new(width, height);
                 window_state.outer_size = glam::UVec2::new(width, height);
                 window_state.is_dirty = true;
+            }
+            if let Some(surface_id) = engine
+                .universal_state
+                .presents
+                .entries
+                .values()
+                .find(|present| present.value.window_id == window_id)
+                .map(|present| present.value.surface)
+            {
+                if let Some(surface_entry) =
+                    engine.universal_state.surfaces.entries.get_mut(&surface_id)
+                {
+                    surface_entry.value.size = glam::UVec2::new(width, height);
+                }
             }
             engine
                 .event_queue
@@ -171,6 +192,7 @@ pub fn attach_canvas_listeners(
                     pointer_type,
                     pointer_id,
                     position,
+                    trace: None,
                 }));
         });
     }) as Box<dyn FnMut(Event)>);
@@ -199,6 +221,7 @@ pub fn attach_canvas_listeners(
                     button,
                     state: ElementState::Pressed,
                     position,
+                    trace: None,
                 }));
         });
     }) as Box<dyn FnMut(Event)>);
@@ -227,6 +250,7 @@ pub fn attach_canvas_listeners(
                     button,
                     state: ElementState::Released,
                     position,
+                    trace: None,
                 }));
         });
     }) as Box<dyn FnMut(Event)>);
@@ -248,6 +272,7 @@ pub fn attach_canvas_listeners(
                     window_id,
                     pointer_type,
                     pointer_id,
+                    trace: None,
                 }));
         });
     }) as Box<dyn FnMut(Event)>);
@@ -269,6 +294,7 @@ pub fn attach_canvas_listeners(
                     window_id,
                     pointer_type,
                     pointer_id,
+                    trace: None,
                 }));
         });
     }) as Box<dyn FnMut(Event)>);
@@ -298,6 +324,7 @@ pub fn attach_canvas_listeners(
                     window_id,
                     delta,
                     phase,
+                    trace: None,
                 }));
         });
     }) as Box<dyn FnMut(Event)>);

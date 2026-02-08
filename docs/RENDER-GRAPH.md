@@ -1,6 +1,6 @@
 # Render Graph (Host-Defined)
 
-This document describes the host-facing render graph format. The host builds a graph using logical IDs; the core validates, maps, and executes it. If the graph is missing or invalid, the core executes a safe fallback graph.
+This document describes the host-facing render graph format. The host builds a graph using logical IDs; the core validates, maps, and executes it. If the graph is missing or invalid, the core executes a safe fallback graph. Render graphs are defined per Realm (3D or 2D), not per window.
 
 The core infers any missing resources from node inputs/outputs using default values (texture + frame lifetime).
 

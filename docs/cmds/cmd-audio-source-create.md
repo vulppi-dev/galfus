@@ -7,7 +7,7 @@ Creates an audio source bound to a model. The resource to play is provided when 
 
 | Field       | Type               | Description                 |
 | ----------- | ------------------ | --------------------------- |
-| windowId    | u32                | Window owning the model     |
+| realmId     | u32                | Realm owning the model      |
 | sourceId    | u32                | Logical source ID           |
 | modelId     | u32                | Model to bind as emitter    |
 | position    | Vec3               | Initial position (fallback) |
