@@ -149,12 +149,6 @@ impl RenderGraphPlan {
 }
 
 #[derive(Debug, Clone)]
-pub enum RenderGraphApplyResult {
-    Applied,
-    FallbackUsed(String),
-}
-
-#[derive(Debug, Clone)]
 pub struct RenderGraphState {
     fallback: RenderGraphPlan,
     active: RenderGraphPlan,
@@ -169,25 +163,6 @@ impl RenderGraphState {
             active: fallback.clone(),
             fallback,
             uses_fallback: true,
-        }
-    }
-
-    pub fn apply_graph(&mut self, desc: RenderGraphDesc) -> Result<RenderGraphApplyResult, String> {
-        match validate_graph(&desc) {
-            Ok(plan) => {
-                self.active = plan;
-                self.uses_fallback = false;
-                Ok(RenderGraphApplyResult::Applied)
-            }
-            Err(err) => {
-                if desc.fallback {
-                    self.active = self.fallback.clone();
-                    self.uses_fallback = true;
-                    Ok(RenderGraphApplyResult::FallbackUsed(err))
-                } else {
-                    Err(err)
-                }
-            }
         }
     }
 

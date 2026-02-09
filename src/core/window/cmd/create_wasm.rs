@@ -6,7 +6,6 @@ use crate::core::platform::ActiveEventLoop;
 use crate::core::singleton::with_engine_singleton;
 #[cfg(all(feature = "wasm", target_arch = "wasm32"))]
 use crate::core::window::WindowEvent;
-use glam::UVec2;
 #[cfg(all(feature = "wasm", target_arch = "wasm32"))]
 use wasm_bindgen::JsCast;
 #[cfg(all(feature = "wasm", target_arch = "wasm32"))]
@@ -16,6 +15,7 @@ use web_sys::HtmlCanvasElement;
 
 #[cfg(all(feature = "wasm", target_arch = "wasm32"))]
 use super::create_shared::register_window_realm;
+#[cfg(all(feature = "wasm", target_arch = "wasm32"))]
 use super::{CmdResultWindowCreate, CmdWindowCreateArgs};
 #[cfg(all(feature = "wasm", target_arch = "wasm32"))]
 use crate::core::platform::Window;

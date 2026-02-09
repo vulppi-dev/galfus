@@ -16,15 +16,6 @@ pub struct ConnectorId(pub u32);
 pub struct PresentId(pub u32);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Generation(pub u32);
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum RealmKind {
-    ThreeD,
-    TwoD,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SurfaceKind {
     Onscreen,
     Offscreen,
@@ -32,11 +23,9 @@ pub enum SurfaceKind {
 
 #[derive(Debug, Clone)]
 pub struct RealmState {
-    pub kind: RealmKind,
     pub host_window_id: Option<u32>,
     pub output_surface: Option<SurfaceId>,
     pub render_graph: Option<crate::core::render::graph::RenderGraphState>,
-    pub flags: u32,
     pub importance: u8,
     pub cache_policy: u8,
     pub last_render_frame: u64,
@@ -70,13 +59,12 @@ pub struct PresentState {
 
 #[derive(Debug, Clone)]
 pub struct TableEntry<T> {
-    pub generation: Generation,
     pub value: T,
 }
 
 impl<T> TableEntry<T> {
-    pub fn new(generation: Generation, value: T) -> Self {
-        Self { generation, value }
+    pub fn new(value: T) -> Self {
+        Self { value }
     }
 }
 
@@ -90,16 +78,12 @@ impl RealmTable {
     pub fn alloc(&mut self, state: RealmState) -> RealmId {
         let id = RealmId(self.next_id);
         self.next_id = self.next_id.saturating_add(1);
-        self.entries.insert(id, TableEntry::new(Generation(0), state));
+        self.entries.insert(id, TableEntry::new(state));
         id
     }
 
     pub fn get(&self, id: RealmId) -> Option<&TableEntry<RealmState>> {
         self.entries.get(&id)
-    }
-
-    pub fn get_mut(&mut self, id: RealmId) -> Option<&mut TableEntry<RealmState>> {
-        self.entries.get_mut(&id)
     }
 
     pub fn remove(&mut self, id: RealmId) -> Option<TableEntry<RealmState>> {
@@ -117,17 +101,12 @@ impl SurfaceTable {
     pub fn alloc(&mut self, state: SurfaceState) -> SurfaceId {
         let id = SurfaceId(self.next_id);
         self.next_id = self.next_id.saturating_add(1);
-        self.entries
-            .insert(id, TableEntry::new(Generation(0), state));
+        self.entries.insert(id, TableEntry::new(state));
         id
     }
 
     pub fn get(&self, id: SurfaceId) -> Option<&TableEntry<SurfaceState>> {
         self.entries.get(&id)
-    }
-
-    pub fn get_mut(&mut self, id: SurfaceId) -> Option<&mut TableEntry<SurfaceState>> {
-        self.entries.get_mut(&id)
     }
 
     pub fn remove(&mut self, id: SurfaceId) -> Option<TableEntry<SurfaceState>> {
@@ -145,13 +124,8 @@ impl ConnectorTable {
     pub fn alloc(&mut self, state: ConnectorState) -> ConnectorId {
         let id = ConnectorId(self.next_id);
         self.next_id = self.next_id.saturating_add(1);
-        self.entries
-            .insert(id, TableEntry::new(Generation(0), state));
+        self.entries.insert(id, TableEntry::new(state));
         id
-    }
-
-    pub fn get(&self, id: ConnectorId) -> Option<&TableEntry<ConnectorState>> {
-        self.entries.get(&id)
     }
 
     pub fn get_mut(&mut self, id: ConnectorId) -> Option<&mut TableEntry<ConnectorState>> {
@@ -173,17 +147,8 @@ impl PresentTable {
     pub fn alloc(&mut self, state: PresentState) -> PresentId {
         let id = PresentId(self.next_id);
         self.next_id = self.next_id.saturating_add(1);
-        self.entries
-            .insert(id, TableEntry::new(Generation(0), state));
+        self.entries.insert(id, TableEntry::new(state));
         id
-    }
-
-    pub fn get(&self, id: PresentId) -> Option<&TableEntry<PresentState>> {
-        self.entries.get(&id)
-    }
-
-    pub fn get_mut(&mut self, id: PresentId) -> Option<&mut TableEntry<PresentState>> {
-        self.entries.get_mut(&id)
     }
 
     pub fn remove(&mut self, id: PresentId) -> Option<TableEntry<PresentState>> {

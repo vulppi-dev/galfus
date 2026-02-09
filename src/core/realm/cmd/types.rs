@@ -1,21 +1,12 @@
 use serde::{Deserialize, Serialize};
 
-use crate::core::realm::{RealmKind, SurfaceKind};
+use crate::core::realm::SurfaceKind;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum RealmKindDto {
     ThreeD,
     TwoD,
-}
-
-impl From<RealmKindDto> for RealmKind {
-    fn from(value: RealmKindDto) -> Self {
-        match value {
-            RealmKindDto::ThreeD => RealmKind::ThreeD,
-            RealmKindDto::TwoD => RealmKind::TwoD,
-        }
-    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]

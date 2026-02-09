@@ -7,12 +7,12 @@ pub mod state;
 pub use cmd::*;
 #[allow(unused_imports)]
 pub use state::{
-    AudioState, AutoLink, ConnectorId, ConnectorState, ConnectorTable, Generation, InputCapture,
-    InputRoutingState, PresentId, PresentState, PresentTable, RealmId, RealmKind, RealmState,
+    AudioState, AutoLink, ConnectorId, ConnectorState, ConnectorTable, InputCapture,
+    InputRoutingState, PresentId, PresentState, PresentTable, RealmId, RealmState,
     RealmTable, SurfaceCache, SurfaceId, SurfaceKind, SurfaceState, SurfaceTable, TableEntry,
     UniversalState,
 };
 #[allow(unused_imports)]
-pub use graph::{RealmGraphEdge, RealmGraphEdgeKind, RealmGraphPlan, RealmGraphPlanner};
+pub use graph::{RealmGraphEdge, RealmGraphPlan, RealmGraphPlanner};
 #[allow(unused_imports)]
 pub use report::{FrameReport, FrameCutEdge, SurfaceCacheEntry};

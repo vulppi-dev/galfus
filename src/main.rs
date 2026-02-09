@@ -24,7 +24,6 @@ fn main() {
         DemoContext {
             window_id,
             realm_id: binding.realm_id,
-            surface_id: binding.surface_id,
         },
     );
 

@@ -48,7 +48,6 @@ impl DemoKind {
 pub struct DemoContext {
     pub window_id: u32,
     pub realm_id: u32,
-    pub surface_id: u32,
 }
 
 pub fn select_demo() -> DemoKind {
@@ -85,9 +84,9 @@ pub use assets::{
 pub use commands::{
     create_ambient_light_cmd, create_camera_cmd, create_floor_cmd, create_instanced_cubes,
     create_point_light_cmd, create_shadow_config_cmd, create_standard_material_cmd,
-    create_texture_cmd, draw_axes_gizmos, default_camera_transform, CubeData,
+    create_texture_cmd, draw_axes_gizmos, default_camera_transform,
 };
 pub use geometry::build_skinned_plane;
-pub use io::{receive_events, receive_responses, send_commands};
-pub use loop_utils::{run_loop, run_loop_with_events};
+pub use io::send_commands;
+pub use loop_utils::run_loop_with_events;
 pub use session::create_window;

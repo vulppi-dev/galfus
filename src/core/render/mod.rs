@@ -13,6 +13,7 @@ use realm_graph::{
     collect_cut_connectors, collect_surface_views, compose_realm_connectors, ensure_surface_target,
     map_realms_to_windows, resolve_realm_surface, update_surface_cache,
 };
+use std::collections::HashSet;
 
 pub fn bloom_chain_size(base: u32, level: usize) -> u32 {
     passes::bloom_chain_size(base, level)
@@ -152,6 +153,7 @@ pub fn render_frames(engine_state: &mut EngineState) {
         &engine_state.universal_state,
         &mut engine_state.surface_targets,
     );
+    let mut updated_surfaces: HashSet<crate::core::realm::SurfaceId> = HashSet::new();
     const MAX_REALM_ITERATIONS: u32 = 1;
     let mut iteration: u32 = 0;
     loop {
@@ -169,7 +171,12 @@ pub fn render_frames(engine_state: &mut EngineState) {
             else {
                 continue;
             };
-            let Some(realm_entry) = engine_state.universal_state.realms.get_mut(*realm_id) else {
+            let Some(realm_entry) = engine_state
+                .universal_state
+                .realms
+                .entries
+                .get_mut(realm_id)
+            else {
                 continue;
             };
             if !should_render_realm(realm_entry, engine_state.frame_index) {
@@ -222,7 +229,7 @@ pub fn render_frames(engine_state: &mut EngineState) {
             window_counter = window_counter.saturating_add(1);
 
             let plan = match realm_entry.value.render_graph.as_ref() {
-                Some(graph) => graph.plan().clone(),
+                Some(graph) => graph.plan(),
                 None => {
                     log::error!("Realm {} is missing a render graph", realm_id.0);
                     FrameReport::push_unique(&mut frame_report.no_progress_realms, realm_id.0);
@@ -259,6 +266,8 @@ pub fn render_frames(engine_state: &mut EngineState) {
                 &mut frame_report,
             );
 
+            updated_surfaces.insert(surface_id);
+
             queue.submit(Some(encoder.finish()));
             #[cfg(not(feature = "wasm"))]
             {
@@ -271,6 +280,9 @@ pub fn render_frames(engine_state: &mut EngineState) {
         }
 
         for present in engine_state.universal_state.presents.entries.values() {
+            if !updated_surfaces.contains(&present.value.surface) {
+                continue;
+            }
             let window_id = present.value.window_id;
             let Some(window_state) = engine_state.window.states.get_mut(&window_id) else {
                 continue;

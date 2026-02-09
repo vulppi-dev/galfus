@@ -2,24 +2,16 @@ use std::collections::{HashMap, HashSet, VecDeque};
 
 use super::{ConnectorId, RealmId, UniversalState};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum RealmGraphEdgeKind {
-    Hard,
-    Soft,
-}
-
 #[derive(Debug, Clone)]
 pub struct RealmGraphEdge {
     pub from: RealmId,
     pub to: RealmId,
-    pub kind: RealmGraphEdgeKind,
     pub connector_id: Option<ConnectorId>,
 }
 
 #[derive(Debug, Default)]
 pub struct RealmGraphPlan {
     pub order: Vec<RealmId>,
-    pub edges: Vec<RealmGraphEdge>,
     pub cut_edges: Vec<RealmGraphEdge>,
 }
 
@@ -43,7 +35,6 @@ impl RealmGraphPlanner {
                 edges.push(RealmGraphEdge {
                     from: source_realm,
                     to: connector.value.target_realm,
-                    kind: RealmGraphEdgeKind::Soft,
                     connector_id: Some(*connector_id),
                 });
             }
@@ -52,14 +43,12 @@ impl RealmGraphPlanner {
         let mut all_realms: HashSet<RealmId> = universal.realms.entries.keys().copied().collect();
         all_realms.extend(hard_targets.iter().copied());
 
-        let mut plan_edges = Vec::new();
-        plan_edges.extend(edges.into_iter());
+        let plan_edges: Vec<_> = edges.into_iter().collect();
 
         let (order, cut_edges) = topo_with_soft_cuts(&all_realms, &plan_edges);
 
         RealmGraphPlan {
             order,
-            edges: plan_edges,
             cut_edges,
         }
     }
@@ -111,11 +100,7 @@ fn topo_with_soft_cuts(
         let mut pruned = Vec::new();
         for edge in remaining_edges.into_iter() {
             if remaining_realms.contains(&edge.from) && remaining_realms.contains(&edge.to) {
-                if edge.kind == RealmGraphEdgeKind::Soft {
-                    cut_edges.push(edge);
-                } else {
-                    pruned.push(edge);
-                }
+                cut_edges.push(edge);
             } else {
                 pruned.push(edge);
             }

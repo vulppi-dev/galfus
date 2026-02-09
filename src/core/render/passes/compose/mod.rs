@@ -47,31 +47,6 @@ pub(super) fn build_compose_bind_group(
     })
 }
 
-pub fn pass_compose(
-    render_state: &mut RenderState,
-    device: &wgpu::Device,
-    queue: &wgpu::Queue,
-    encoder: &mut wgpu::CommandEncoder,
-    surface_texture: &wgpu::SurfaceTexture,
-    config: &wgpu::SurfaceConfiguration,
-    frame_index: u64,
-) {
-    let view = surface_texture
-        .texture
-        .create_view(&wgpu::TextureViewDescriptor::default());
-    pass_compose_to_view(
-        render_state,
-        device,
-        queue,
-        encoder,
-        &view,
-        config.format,
-        config.width,
-        config.height,
-        frame_index,
-    );
-}
-
 pub fn pass_compose_to_view(
     render_state: &mut RenderState,
     device: &wgpu::Device,
@@ -97,8 +72,6 @@ pub fn pass_compose_to_view(
     update_post_uniform_buffer(&post_config, uniform_buffer, queue, frame_index);
 
     // 1. Sort cameras by order
-    let mut sorted_cameras: Vec<_> = render_state.scene.cameras.iter().collect();
-    sorted_cameras.sort_by_key(|(id, record)| (record.order, *id));
 
     let cache = &mut render_state.cache;
     let key = PipelineKey {
@@ -169,7 +142,10 @@ pub fn pass_compose_to_view(
 
     render_pass.set_pipeline(pipeline);
 
-    for (_id, record) in sorted_cameras {
+    for camera_id in render_state.camera_order.iter().copied() {
+        let Some(record) = render_state.scene.cameras.get(&camera_id) else {
+            continue;
+        };
         let target = match record
             .post_target
             .as_ref()

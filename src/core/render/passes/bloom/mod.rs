@@ -2,6 +2,7 @@ use bytemuck::{Pod, Zeroable};
 
 use crate::core::render::RenderState;
 use crate::core::render::cache::{PipelineKey, ShaderId};
+use crate::core::render::passes::clear_color_target;
 
 const BLOOM_DOWNSAMPLE_COUNT: usize = 4;
 
@@ -30,28 +31,7 @@ fn update_bloom_uniform(
     queue.write_buffer(buffer, 0, bytemuck::bytes_of(&uniform));
 }
 
-fn clear_target(
-    encoder: &mut wgpu::CommandEncoder,
-    target: &crate::core::resources::RenderTarget,
-    label: &str,
-) {
-    let _ = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-        label: Some(label),
-        color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-            view: &target.view,
-            resolve_target: None,
-            ops: wgpu::Operations {
-                load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
-                store: wgpu::StoreOp::Store,
-            },
-            depth_slice: None,
-        })],
-        depth_stencil_attachment: None,
-        timestamp_writes: None,
-        occlusion_query_set: None,
-        multiview_mask: None,
-    });
-}
+const CLEAR_BLACK: wgpu::Color = wgpu::Color::BLACK;
 
 pub fn pass_bloom(
     render_state: &mut RenderState,
@@ -70,10 +50,10 @@ pub fn pass_bloom(
         None => return,
     };
 
-    let mut sorted_cameras: Vec<_> = render_state.scene.cameras.iter().collect();
-    sorted_cameras.sort_by_key(|(id, record)| (record.order, *id));
-
-    for (_id, record) in sorted_cameras {
+    for camera_id in render_state.camera_order.iter().copied() {
+        let Some(record) = render_state.scene.cameras.get(&camera_id) else {
+            continue;
+        };
         let input_target = match record
             .emissive_target
             .as_ref()
@@ -88,7 +68,7 @@ pub fn pass_bloom(
         };
 
         if !post_config.bloom_enabled {
-            clear_target(encoder, bloom_target, "Bloom Clear");
+            clear_color_target(encoder, bloom_target, CLEAR_BLACK, "Bloom Clear");
             continue;
         }
 
@@ -102,7 +82,7 @@ pub fn pass_bloom(
         );
 
         if record.bloom_chain.iter().any(|target| target.is_none()) {
-            clear_target(encoder, bloom_target, "Bloom Clear (Missing Chain)");
+            clear_color_target(encoder, bloom_target, CLEAR_BLACK, "Bloom Clear (Missing Chain)");
             continue;
         }
         let chain_targets = [

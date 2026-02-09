@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use crate::core::realm::{RealmId, RealmState, SurfaceId};
 use crate::core::render::graph::RenderGraphState;
 use crate::core::state::EngineState;
+use crate::core::target::resolve::remove_auto_link_for_bind;
 
 use super::RealmKindDto;
 
@@ -68,11 +69,9 @@ pub fn engine_cmd_realm_create(
     }
 
     let realm_id = engine.universal_state.realms.alloc(RealmState {
-        kind: args.kind.into(),
         host_window_id: args.host_window_id,
         output_surface,
         render_graph: Some(RenderGraphState::new()),
-        flags: args.flags.unwrap_or(0),
         importance: args.importance.unwrap_or(1),
         cache_policy: args.cache_policy.unwrap_or(0),
         last_render_frame: 0,
@@ -117,6 +116,23 @@ pub fn engine_cmd_realm_dispose(
             .input_routing
             .captures
             .retain(|_, capture| !removed_set.contains(&capture.connector_id));
+    }
+
+    let removed_binds: Vec<_> = engine
+        .universal_state
+        .target_binds
+        .entries
+        .keys()
+        .filter(|(bind_realm, _)| *bind_realm == realm_id.0)
+        .copied()
+        .collect();
+    for (bind_realm, bind_target) in removed_binds {
+        engine
+            .universal_state
+            .target_binds
+            .entries
+            .remove(&(bind_realm, bind_target));
+        remove_auto_link_for_bind(&mut engine.universal_state, bind_realm, bind_target);
     }
 
     if let Some(surface_id) = entry.value.output_surface {

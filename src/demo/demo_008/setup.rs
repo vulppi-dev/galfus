@@ -44,7 +44,6 @@ pub struct Demo008Ids {
 
 #[derive(Debug, Clone, Copy)]
 pub struct Demo008RealmIds {
-    pub window_main: u32,
     pub window_aux: u32,
     pub host_realm_main: u32,
     pub host_realm_aux: u32,
@@ -380,7 +379,6 @@ impl Demo008Setup {
         let _ = receive_responses();
 
         Demo008RealmIds {
-            window_main,
             window_aux,
             host_realm_main,
             host_realm_aux,

@@ -10,8 +10,6 @@ use crate::demo::io::{receive_responses, send_commands};
 #[derive(Debug, Clone, Copy)]
 pub struct WindowBinding {
     pub realm_id: u32,
-    pub surface_id: u32,
-    pub present_id: u32,
 }
 
 pub fn create_window(window_id: u32, title: &str) -> WindowBinding {
@@ -47,8 +45,6 @@ fn wait_for_confirmation(_window_id: u32) -> WindowBinding {
                     if res.success {
                         return WindowBinding {
                             realm_id: res.realm_id.expect("window response missing realm_id"),
-                            surface_id: res.surface_id.expect("window response missing surface_id"),
-                            present_id: res.present_id.expect("window response missing present_id"),
                         };
                     } else {
                         panic!("Window creation failed: {}", res.message);

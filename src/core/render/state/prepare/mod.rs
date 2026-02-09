@@ -12,7 +12,19 @@ impl RenderState {
         frame_spec: FrameComponent,
         with_shadows: bool,
     ) {
-        // 0. Pre-prepare lights
+        // 0. Cache sorted cameras for this tick
+        self.camera_order.clear();
+        self.camera_order
+            .extend(self.scene.cameras.keys().copied());
+        self.camera_order.sort_by_key(|id| {
+            self.scene
+                .cameras
+                .get(id)
+                .map(|record| (record.order, *id))
+                .unwrap_or((0, *id))
+        });
+
+        // 1. Pre-prepare lights
         self.prepare_lights(device);
 
         let bindings = match self.bindings.as_mut() {
@@ -24,7 +36,7 @@ impl RenderState {
             return;
         }
 
-        // 1. Upload global data
+        // 2. Upload global data
         bindings.frame_pool.write(0, &frame_spec);
 
         let mut any_pool_resized = false;
@@ -83,7 +95,7 @@ impl RenderState {
             }
         }
 
-        // 2. Upload camera data
+        // 3. Upload camera data
         for (id, record) in &mut self.scene.cameras {
             if record.is_dirty {
                 bindings.camera_pool.write(*id, &record.data);
@@ -91,7 +103,7 @@ impl RenderState {
             }
         }
 
-        // 3. Upload model data
+        // 4. Upload model data
         for (id, record) in &mut self.scene.models {
             if record.is_dirty {
                 bindings.model_pool.write(*id, &record.data);
@@ -102,10 +114,10 @@ impl RenderState {
             }
         }
 
-        // 4. Update and upload materials
+        // 5. Update and upload materials
         self.prepare_materials(device);
 
-        // 5. Build/Update bind groups
+        // 6. Build/Update bind groups
         self.update_bind_groups(device, with_shadows);
     }
 }
