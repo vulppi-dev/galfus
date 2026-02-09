@@ -20,8 +20,6 @@ pub struct Demo008TargetIds {
 pub struct Demo008BindRealms {
     pub host_main: u32,
     pub host_aux: u32,
-    pub window_main: u32,
-    pub window_aux: u32,
     pub viewport_main: u32,
     pub ui: u32,
     pub texture_main: u32,
@@ -110,12 +108,12 @@ pub fn build_bind_cmds(
 ) -> Vec<EngineCmd> {
     let binds = vec![
         CmdTargetBindUpsertArgs {
-            realm_id: realms.window_main,
+            realm_id: realms.host_main,
             target_id: targets.window_main,
             layout: TargetBindLayout::default(),
         },
         CmdTargetBindUpsertArgs {
-            realm_id: realms.window_aux,
+            realm_id: realms.host_aux,
             target_id: targets.window_aux,
             layout: TargetBindLayout::default(),
         },
@@ -153,12 +151,12 @@ pub fn build_bind_cmds(
         },
         CmdTargetBindUpsertArgs {
             realm_id: realms.conflict,
-            target_id: targets.window_main,
+            target_id: targets.viewport_main,
             layout: TargetBindLayout::default(),
         },
         CmdTargetBindUpsertArgs {
             realm_id: realms.conflict,
-            target_id: targets.window_aux,
+            target_id: targets.texture_shared,
             layout: TargetBindLayout::default(),
         },
         CmdTargetBindUpsertArgs {

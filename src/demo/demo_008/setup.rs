@@ -33,6 +33,10 @@ pub struct Demo008Ids {
     pub listener_model_id: u32,
     pub emitter_model_id: u32,
     pub camera_id: u32,
+    pub camera_aux_id: u32,
+    pub cube_geometry_aux_id: u32,
+    pub material_aux_id: u32,
+    pub model_aux_id: u32,
     pub audio_id: u32,
     pub audio_source_id: u32,
     pub audio_buffer_id: u64,
@@ -44,8 +48,6 @@ pub struct Demo008RealmIds {
     pub window_aux: u32,
     pub host_realm_main: u32,
     pub host_realm_aux: u32,
-    pub realm_window_main: u32,
-    pub realm_window_aux: u32,
     pub realm_viewport_main: u32,
     pub realm_ui: u32,
     pub realm_texture_main: u32,
@@ -79,6 +81,10 @@ impl Demo008Setup {
             listener_model_id: 820,
             emitter_model_id: 821,
             camera_id: 1,
+            camera_aux_id: 2,
+            cube_geometry_aux_id: 850,
+            material_aux_id: 851,
+            model_aux_id: 852,
             audio_id: 830,
             audio_source_id: 831,
             audio_buffer_id: 8300,
@@ -111,8 +117,6 @@ impl Demo008Setup {
         let aux_binding = create_window(window_aux, "Vulfram Demo 008 Aux");
         let host_realm_aux = aux_binding.realm_id;
 
-        let realm_window_main = create_realm(RealmKindDto::ThreeD, Some(window_main));
-        let realm_window_aux = create_realm(RealmKindDto::ThreeD, Some(window_aux));
         let realm_viewport_main = create_realm(RealmKindDto::ThreeD, Some(window_main));
         let realm_ui = create_realm(RealmKindDto::TwoD, Some(window_main));
         let realm_texture_main = create_realm(RealmKindDto::ThreeD, Some(window_main));
@@ -125,8 +129,6 @@ impl Demo008Setup {
             Demo008BindRealms {
                 host_main: host_realm_main,
                 host_aux: host_realm_aux,
-                window_main: realm_window_main,
-                window_aux: realm_window_aux,
                 viewport_main: realm_viewport_main,
                 ui: realm_ui,
                 texture_main: realm_texture_main,
@@ -139,7 +141,7 @@ impl Demo008Setup {
         assert_eq!(send_commands(map_cmds), VulframResult::Success);
 
         let window_id = window_main;
-        let realm_id = realm_window_main;
+        let realm_id = host_realm_main;
 
         let setup_cmds = vec![
             EngineCmd::CmdEnvironmentUpdate(CmdEnvironmentUpdateArgs {
@@ -305,7 +307,64 @@ impl Demo008Setup {
             }),
         ];
 
+        let aux_cmds = vec![
+            EngineCmd::CmdEnvironmentUpdate(CmdEnvironmentUpdateArgs {
+                window_id: window_aux,
+                config: EnvironmentConfig {
+                    msaa: MsaaConfig {
+                        enabled: true,
+                        sample_count: 4,
+                    },
+                    skybox: SkyboxConfig {
+                        mode: SkyboxMode::Procedural,
+                        intensity: 0.7,
+                        rotation: 0.0,
+                        ground_color: Vec3::new(0.05, 0.05, 0.08),
+                        horizon_color: Vec3::new(0.15, 0.2, 0.35),
+                        sky_color: Vec3::new(0.12, 0.22, 0.4),
+                        cubemap_texture_id: None,
+                    },
+                    post: self.post_config.clone(),
+                },
+            }),
+            EngineCmd::CmdPrimitiveGeometryCreate(CmdPrimitiveGeometryCreateArgs {
+                window_id: window_aux,
+                geometry_id: self.ids.cube_geometry_aux_id,
+                label: Some("Demo 008 Aux Cube".into()),
+                shape: PrimitiveShape::Cube,
+                options: None,
+            }),
+            create_standard_material_cmd(
+                window_aux,
+                self.ids.material_aux_id,
+                "Demo 008 Aux Material",
+                Vec4::new(0.15, 0.5, 0.25, 1.0),
+                None,
+                None,
+            ),
+            create_camera_cmd(
+                self.ids.camera_aux_id,
+                "Demo 008 Aux Camera",
+                Mat4::look_at_rh(Vec3::new(0.0, 2.5, 6.0), Vec3::ZERO, Vec3::Y).inverse(),
+            ),
+            EngineCmd::CmdModelCreate(CmdModelCreateArgs {
+                window_id: window_aux,
+                model_id: self.ids.model_aux_id,
+                label: Some("Demo 008 Aux Model".into()),
+                geometry_id: self.ids.cube_geometry_aux_id,
+                material_id: Some(self.ids.material_aux_id),
+                transform: Mat4::from_translation(Vec3::new(0.0, 0.0, 0.0))
+                    * Mat4::from_scale(Vec3::splat(1.4)),
+                layer_mask: 0xFFFFFFFF,
+                cast_shadow: true,
+                receive_shadow: true,
+                cast_outline: true,
+                outline_color: Vec4::new(0.1, 0.9, 0.4, 1.0),
+            }),
+        ];
+
         assert_eq!(send_commands(setup_cmds), VulframResult::Success);
+        assert_eq!(send_commands(aux_cmds), VulframResult::Success);
         if self.audio_chunk_ids.len() > 1 {
             let mut chunk_cmds = Vec::new();
             for (buffer_id, offset_bytes) in self.audio_chunk_ids.iter().skip(1) {
@@ -325,8 +384,6 @@ impl Demo008Setup {
             window_aux,
             host_realm_main,
             host_realm_aux,
-            realm_window_main,
-            realm_window_aux,
             realm_viewport_main,
             realm_ui,
             realm_texture_main,
@@ -344,7 +401,7 @@ impl Demo008Setup {
 
 fn build_demo_008_post_config() -> PostProcessConfig {
     PostProcessConfig {
-        filter_enabled: true,
+        filter_enabled: false,
         filter_exposure: 1.0,
         filter_gamma: 2.2,
         filter_saturation: 1.05,

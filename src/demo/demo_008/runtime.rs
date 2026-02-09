@@ -195,11 +195,9 @@ pub fn run(ctx: DemoContext, setup: &Demo008Setup, realms: &Demo008RealmIds) -> 
                 }) if id == window_id => {
                     if key_code == 36 {
                         println!(
-                            "KeyR pressed: host_main={} host_aux={} window_main={} window_aux={} viewport_main={} ui={} texture_main={} texture_aux={} conflict={}",
+                            "KeyR pressed: host_main={} host_aux={} viewport_main={} ui={} texture_main={} texture_aux={} conflict={}",
                             realms.host_realm_main,
                             realms.host_realm_aux,
-                            realms.realm_window_main,
-                            realms.realm_window_aux,
                             realms.realm_viewport_main,
                             realms.realm_ui,
                             realms.realm_texture_main,
