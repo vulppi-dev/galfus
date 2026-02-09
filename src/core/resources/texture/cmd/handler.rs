@@ -3,7 +3,7 @@ use super::utils::*;
 use crate::core::buffers::state::UploadType;
 use crate::core::image::{ImageBuffer, ImagePixels};
 use crate::core::resources::texture::{
-    ForwardAtlasDesc, ForwardAtlasEntry, TextureDecodeJob, TextureRecord,
+    ForwardAtlasDesc, ForwardAtlasEntry, TextureAsyncEvent, TextureDecodeJob, TextureRecord,
 };
 use crate::core::state::EngineState;
 use crate::core::system::SystemEvent;
@@ -381,48 +381,103 @@ fn create_texture_from_image(
 pub fn process_async_texture_results(engine: &mut EngineState) {
     let results = engine.texture_async.drain_results();
     for result in results {
-        if engine.texture_async.was_canceled(result.texture_id) {
-            engine
-                .event_queue
-                .push(crate::core::cmd::EngineEvent::System(
-                    SystemEvent::TextureReady {
-                        window_id: result.window_id,
-                        texture_id: result.texture_id,
-                        success: false,
-                        message: "Texture decode canceled".into(),
-                    },
-                ));
-            continue;
-        }
-        let args = CmdTextureCreateFromBufferArgs {
-            window_id: result.window_id,
-            texture_id: result.texture_id,
-            label: result.label.clone(),
-            buffer_id: 0,
-            srgb: result.srgb,
-            mode: result.mode,
-            atlas_options: result.atlas_options.clone(),
-        };
-
-        let response = match result.image {
-            Some(image) => create_texture_from_image(engine, &args, image),
-            None => CmdResultTextureCreateFromBuffer {
-                success: false,
-                message: result.message.clone(),
-                pending: false,
-            },
-        };
-
-        engine
-            .event_queue
-            .push(crate::core::cmd::EngineEvent::System(
-                SystemEvent::TextureReady {
+        match result {
+            TextureAsyncEvent::Started {
+                window_id,
+                texture_id,
+                total_bytes,
+            } => {
+                engine
+                    .event_queue
+                    .push(crate::core::cmd::EngineEvent::System(
+                        SystemEvent::TextureProcessingStarted {
+                            window_id,
+                            texture_id,
+                            total_bytes,
+                        },
+                    ));
+            }
+            TextureAsyncEvent::Progress {
+                window_id,
+                texture_id,
+                processed_bytes,
+                total_bytes,
+            } => {
+                engine
+                    .event_queue
+                    .push(crate::core::cmd::EngineEvent::System(
+                        SystemEvent::TextureProcessingProgress {
+                            window_id,
+                            texture_id,
+                            processed_bytes,
+                            total_bytes,
+                        },
+                    ));
+            }
+            TextureAsyncEvent::Finished {
+                window_id,
+                texture_id,
+                success,
+                message,
+                total_bytes,
+            } => {
+                engine
+                    .event_queue
+                    .push(crate::core::cmd::EngineEvent::System(
+                        SystemEvent::TextureProcessingFinished {
+                            window_id,
+                            texture_id,
+                            success,
+                            message,
+                            total_bytes,
+                        },
+                    ));
+            }
+            TextureAsyncEvent::Result(result) => {
+                if engine.texture_async.was_canceled(result.texture_id) {
+                    engine
+                        .event_queue
+                        .push(crate::core::cmd::EngineEvent::System(
+                            SystemEvent::TextureReady {
+                                window_id: result.window_id,
+                                texture_id: result.texture_id,
+                                success: false,
+                                message: "Texture decode canceled".into(),
+                            },
+                        ));
+                    continue;
+                }
+                let args = CmdTextureCreateFromBufferArgs {
                     window_id: result.window_id,
                     texture_id: result.texture_id,
-                    success: response.success,
-                    message: response.message,
-                },
-            ));
+                    label: result.label.clone(),
+                    buffer_id: 0,
+                    srgb: result.srgb,
+                    mode: result.mode,
+                    atlas_options: result.atlas_options.clone(),
+                };
+
+                let response = match result.image {
+                    Some(image) => create_texture_from_image(engine, &args, image),
+                    None => CmdResultTextureCreateFromBuffer {
+                        success: false,
+                        message: result.message.clone(),
+                        pending: false,
+                    },
+                };
+
+                engine
+                    .event_queue
+                    .push(crate::core::cmd::EngineEvent::System(
+                        SystemEvent::TextureReady {
+                            window_id: result.window_id,
+                            texture_id: result.texture_id,
+                            success: response.success,
+                            message: response.message,
+                        },
+                    ));
+            }
+        }
     }
 }
 

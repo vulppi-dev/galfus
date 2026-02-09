@@ -320,6 +320,13 @@ pub fn fallback_graph() -> RenderGraphDesc {
                 params: HashMap::new(),
             },
             RenderGraphNode {
+                node_id: LogicalId::Str("skybox_pass".into()),
+                pass_id: "skybox".into(),
+                inputs: Vec::new(),
+                outputs: vec![LogicalId::Str("hdr_color".into())],
+                params: HashMap::new(),
+            },
+            RenderGraphNode {
                 node_id: LogicalId::Str("forward_pass".into()),
                 pass_id: "forward".into(),
                 inputs: vec![LogicalId::Str("shadow_atlas".into())],
@@ -383,6 +390,16 @@ pub fn fallback_graph() -> RenderGraphDesc {
         edges: vec![
             RenderGraphEdge {
                 from_node_id: LogicalId::Str("shadow_pass".into()),
+                to_node_id: LogicalId::Str("forward_pass".into()),
+                reason: Some(RenderGraphEdgeReason::ReadAfterWrite),
+            },
+            RenderGraphEdge {
+                from_node_id: LogicalId::Str("light_cull_pass".into()),
+                to_node_id: LogicalId::Str("skybox_pass".into()),
+                reason: Some(RenderGraphEdgeReason::ReadAfterWrite),
+            },
+            RenderGraphEdge {
+                from_node_id: LogicalId::Str("skybox_pass".into()),
                 to_node_id: LogicalId::Str("forward_pass".into()),
                 reason: Some(RenderGraphEdgeReason::ReadAfterWrite),
             },

@@ -18,7 +18,7 @@ pub enum DemoKind {
     Demo002,
     Demo003,
     Demo004,
-    Demo008,
+    Demo005,
 }
 
 impl DemoKind {
@@ -28,7 +28,7 @@ impl DemoKind {
             "demo_002" | "demo002" | "2" => Some(Self::Demo002),
             "demo_003" | "demo003" | "3" => Some(Self::Demo003),
             "demo_004" | "demo004" | "4" => Some(Self::Demo004),
-            "demo_008" | "demo008" | "8" => Some(Self::Demo008),
+            "demo_005" | "demo005" | "5" => Some(Self::Demo005),
             _ => None,
         }
     }
@@ -39,7 +39,7 @@ impl DemoKind {
             Self::Demo002 => "Vulfram Demo 002",
             Self::Demo003 => "Vulfram Demo 003",
             Self::Demo004 => "Vulfram Demo 004",
-            Self::Demo008 => "Vulfram Demo 008",
+            Self::Demo005 => "Vulfram Demo 005",
         }
     }
 }
@@ -74,7 +74,7 @@ pub fn run_demo(demo: DemoKind, ctx: DemoContext) -> bool {
         DemoKind::Demo002 => demo_002::run(ctx),
         DemoKind::Demo003 => demo_003::run(ctx),
         DemoKind::Demo004 => demo_004::run(ctx),
-        DemoKind::Demo008 => demo_008::run(ctx),
+        DemoKind::Demo005 => demo_008::run(ctx),
     }
 }
 

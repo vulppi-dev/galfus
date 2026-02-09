@@ -2,7 +2,6 @@ use crate::core::render::RenderState;
 use crate::core::render::cache::{PipelineKey, ShaderId};
 use crate::core::resources::SkyboxMode;
 use bytemuck::{Pod, Zeroable};
-
 #[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable)]
 struct SkyboxUniform {
@@ -179,6 +178,7 @@ pub fn pass_skybox(
                 .unwrap_or(&library.fallback_view),
             _ => &library.fallback_view,
         };
+
 
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("Skybox Bind Group"),

@@ -27,9 +27,32 @@ pub struct TextureDecodeResult {
     pub message: String,
 }
 
+#[derive(Debug)]
+pub enum TextureAsyncEvent {
+    Started {
+        window_id: u32,
+        texture_id: u32,
+        total_bytes: u64,
+    },
+    Progress {
+        window_id: u32,
+        texture_id: u32,
+        processed_bytes: u64,
+        total_bytes: u64,
+    },
+    Finished {
+        window_id: u32,
+        texture_id: u32,
+        success: bool,
+        message: String,
+        total_bytes: u64,
+    },
+    Result(TextureDecodeResult),
+}
+
 pub struct TextureAsyncManager {
-    sender: Sender<TextureDecodeResult>,
-    receiver: Receiver<TextureDecodeResult>,
+    sender: Sender<TextureAsyncEvent>,
+    receiver: Receiver<TextureAsyncEvent>,
     pending: HashSet<u32>,
     canceled: HashSet<u32>,
 }
@@ -68,10 +91,12 @@ impl TextureAsyncManager {
         self.canceled.remove(&texture_id)
     }
 
-    pub fn drain_results(&mut self) -> Vec<TextureDecodeResult> {
+    pub fn drain_results(&mut self) -> Vec<TextureAsyncEvent> {
         let mut results = Vec::new();
         while let Ok(result) = self.receiver.try_recv() {
-            self.pending.remove(&result.texture_id);
+            if let TextureAsyncEvent::Result(decoded) = &result {
+                self.pending.remove(&decoded.texture_id);
+            }
             results.push(result);
         }
         results
@@ -79,15 +104,40 @@ impl TextureAsyncManager {
 }
 
 #[cfg(not(feature = "wasm"))]
-fn spawn_decode(job: TextureDecodeJob, sender: Sender<TextureDecodeResult>) {
+fn spawn_decode(job: TextureDecodeJob, sender: Sender<TextureAsyncEvent>) {
     std::thread::spawn(move || {
+        let total_bytes = job.bytes.len() as u64;
+        let _ = sender.send(TextureAsyncEvent::Started {
+            window_id: job.window_id,
+            texture_id: job.texture_id,
+            total_bytes,
+        });
+        let _ = sender.send(TextureAsyncEvent::Progress {
+            window_id: job.window_id,
+            texture_id: job.texture_id,
+            processed_bytes: 0,
+            total_bytes,
+        });
         let image = ImageDecoder::try_decode(&job.bytes);
         let message = if image.is_some() {
             "Texture decoded".to_string()
         } else {
             "Failed to decode image".to_string()
         };
-        let _ = sender.send(TextureDecodeResult {
+        let _ = sender.send(TextureAsyncEvent::Progress {
+            window_id: job.window_id,
+            texture_id: job.texture_id,
+            processed_bytes: total_bytes,
+            total_bytes,
+        });
+        let _ = sender.send(TextureAsyncEvent::Finished {
+            window_id: job.window_id,
+            texture_id: job.texture_id,
+            success: image.is_some(),
+            message: message.clone(),
+            total_bytes,
+        });
+        let _ = sender.send(TextureAsyncEvent::Result(TextureDecodeResult {
             window_id: job.window_id,
             texture_id: job.texture_id,
             label: job.label,
@@ -96,20 +146,45 @@ fn spawn_decode(job: TextureDecodeJob, sender: Sender<TextureDecodeResult>) {
             atlas_options: job.atlas_options,
             image,
             message,
-        });
+        }));
     });
 }
 
 #[cfg(feature = "wasm")]
-fn spawn_decode(job: TextureDecodeJob, sender: Sender<TextureDecodeResult>) {
+fn spawn_decode(job: TextureDecodeJob, sender: Sender<TextureAsyncEvent>) {
     wasm_bindgen_futures::spawn_local(async move {
+        let total_bytes = job.bytes.len() as u64;
+        let _ = sender.send(TextureAsyncEvent::Started {
+            window_id: job.window_id,
+            texture_id: job.texture_id,
+            total_bytes,
+        });
+        let _ = sender.send(TextureAsyncEvent::Progress {
+            window_id: job.window_id,
+            texture_id: job.texture_id,
+            processed_bytes: 0,
+            total_bytes,
+        });
         let image = ImageDecoder::try_decode(&job.bytes);
         let message = if image.is_some() {
             "Texture decoded".to_string()
         } else {
             "Failed to decode image".to_string()
         };
-        let _ = sender.send(TextureDecodeResult {
+        let _ = sender.send(TextureAsyncEvent::Progress {
+            window_id: job.window_id,
+            texture_id: job.texture_id,
+            processed_bytes: total_bytes,
+            total_bytes,
+        });
+        let _ = sender.send(TextureAsyncEvent::Finished {
+            window_id: job.window_id,
+            texture_id: job.texture_id,
+            success: image.is_some(),
+            message: message.clone(),
+            total_bytes,
+        });
+        let _ = sender.send(TextureAsyncEvent::Result(TextureDecodeResult {
             window_id: job.window_id,
             texture_id: job.texture_id,
             label: job.label,
@@ -118,6 +193,6 @@ fn spawn_decode(job: TextureDecodeJob, sender: Sender<TextureDecodeResult>) {
             atlas_options: job.atlas_options,
             image,
             message,
-        });
+        }));
     });
 }
