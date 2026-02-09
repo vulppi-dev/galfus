@@ -11,8 +11,9 @@ use crate::core::input::InputState;
 use crate::core::realm::UniversalState;
 use crate::core::profiling::TickProfiling;
 use crate::core::profiling::gpu::GpuProfiler;
-use crate::core::resources::TextureAsyncManager;
+use crate::core::resources::{RenderTarget, TextureAsyncManager};
 use crate::core::window::WindowManager;
+use std::collections::HashMap;
 
 /// Main engine state holding all runtime data
 pub struct EngineState {
@@ -29,6 +30,7 @@ pub struct EngineState {
     pub texture_async: TextureAsyncManager,
     pub audio: Box<dyn AudioProxy>,
     pub universal_state: UniversalState,
+    pub surface_targets: HashMap<crate::core::realm::SurfaceId, RenderTarget>,
 
     pub cmd_queue: EngineBatchCmds,
     pub event_queue: EngineBatchEvents,
@@ -84,6 +86,7 @@ impl EngineState {
             #[cfg(feature = "wasm")]
             audio: Box::new(WebAudioProxy::default()),
             universal_state: UniversalState::default(),
+            surface_targets: HashMap::new(),
             cmd_queue: Vec::new(),
             event_queue: Vec::new(),
             response_queue: Vec::new(),
@@ -139,6 +142,7 @@ impl EngineState {
                 }
                 for surface_id in &surfaces_to_remove {
                     self.universal_state.surfaces.remove(*surface_id);
+                    self.surface_targets.remove(surface_id);
                 }
                 let mut removed_connectors = Vec::new();
                 self.universal_state

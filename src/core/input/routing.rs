@@ -4,7 +4,7 @@ use glam::Vec2;
 
 use crate::core::cmd::EngineEvent;
 use crate::core::input::events::{ElementState, PointerEvent, PointerEventTrace, TouchPhase};
-use crate::core::realm::{ConnectorId, ConnectorState, RealmId, SurfaceId, UniversalState};
+use crate::core::realm::{ConnectorId, ConnectorState, RealmId, UniversalState};
 use crate::core::state::EngineState;
 
 pub fn route_pointer_events(engine_state: &mut EngineState) {
@@ -22,13 +22,13 @@ pub fn route_pointer_events(engine_state: &mut EngineState) {
         }
     }
 
-    let mut connectors_by_realm: HashMap<RealmId, Vec<(ConnectorId, &ConnectorState)>> =
+    let mut connectors_by_realm: HashMap<RealmId, Vec<(ConnectorId, ConnectorState)>> =
         HashMap::new();
     for (connector_id, entry) in engine_state.universal_state.connectors.entries.iter() {
         connectors_by_realm
             .entry(entry.value.target_realm)
             .or_default()
-            .push((*connector_id, &entry.value));
+            .push((*connector_id, entry.value.clone()));
     }
 
     for connectors in connectors_by_realm.values_mut() {
@@ -183,7 +183,7 @@ fn resolve_captured_connector(
 
 fn resolve_hit_connector(
     universal: &UniversalState,
-    connectors: Option<&Vec<(ConnectorId, &ConnectorState)>>,
+    connectors: Option<&Vec<(ConnectorId, ConnectorState)>>,
     position: Vec2,
 ) -> Option<ConnectorId> {
     let connectors = connectors?;

@@ -1,6 +1,6 @@
 # TODO — Render Architecture Replace (Realm/Surface/RealmGraph)
 
-> Checklist incremental e detalhado para migrar do modelo window-centric para Realm/Surface/RealmGraph mantendo compatibilidade.
+> Checklist incremental e detalhado para migrar do modelo window-centric para Realm/Surface/RealmGraph (projeto experimental, sem retrocompatibilidade por enquanto).
 
 **Fase 0 — Preparacao e alinhamento tecnico**
 - [x] Mapear o fluxo atual de render por window e os pontos de acoplamento (`WindowState.render_state`, `render_frames`, `CmdRenderGraphSet`).
@@ -68,3 +68,41 @@
 - [x] Atualizar `docs/ARCH.md`, `docs/OVERVIEW.md` e `docs/API.md` com a nova arquitetura.
 - [x] Atualizar exemplos/demos para usar os novos comandos quando existirem.
 - [x] Rodar `scripts/check.sh` antes de finalizar a fase.
+
+**Fase F — Auto-Graph (targets/realms por binds, sem graphs no host)**
+- [ ] Definir contrato dos mapas logicos do host: `RealmMap`, `TargetMap`, `BindMap` (binds com `layout`).
+- [ ] Definir tipos de `TargetKind`: `Window`, `ViewportEmbed`, `PanelEmbed`, `Texture`.
+- [ ] Definir estrutura de `BindLayout`: `rect`, `zIndex`, `clip`, `inputFlags`.
+- [ ] Definir regras deterministicas para inferir parent automaticamente (sem map explicito).
+- [ ] Definir politica de desempate para binds conflitantes (multi-window, multi-parent).
+- [ ] Documentar o fluxo: host -> maps -> auto TargetGraph + RealmGraph.
+
+**Fase G — TargetGraph interno (cache + diffs)**
+- [ ] Criar `TargetId`, `TargetState` e `TargetTable` no core.
+- [ ] Criar `TargetGraphPlan` (arvore de targets + ordem de composicao).
+- [ ] Implementar cache `TargetGraphCache` com hash dos binds/targets.
+- [ ] Implementar diff incremental: detectar add/remove/update de bind e aplicar delta.
+- [ ] Implementar invalidação parcial por target afetado (auto-balanceamento).
+- [ ] Expor `FrameReport` com stats do TargetGraph (nodes/edges/updates).
+
+**Fase H — Resolucao automatica de Surface/Present/Connector**
+- [ ] Resolver Surface automaticamente a partir de `Bind(realm -> target)`.
+- [ ] Criar/atualizar `Connector` quando target != root.
+- [ ] Criar/atualizar `Present` quando target == `Window`.
+- [ ] Atualizar layout do connector a partir do `BindLayout`.
+- [ ] Garantir dispose automatico ao remover binds/targets.
+- [ ] Consolidar politicas de tamanho/format/alpha/msaa no target.
+
+**Fase I — Input routing por TargetGraph**
+- [ ] Resolver hit-test pela arvore de targets (zIndex/clip/rect).
+- [ ] Mapear `targetId` no `eventTrace` junto com realm/connector.
+- [ ] Suportar `ViewportEmbed` (2D) e `PanelEmbed` (UI) com regras de layout.
+- [ ] Suportar `PlaneConnector` (3D) com raycast quando aplicavel.
+- [ ] Garantir capture/focus por target (nao apenas connector).
+
+**Fase J — Demos e validacao**
+- [ ] Criar demo que usa apenas binds/logical maps (sem comandos de graph).
+- [ ] Exercitar: Window + ViewportEmbed + PanelEmbed + Texture.
+- [ ] Exercitar multi-window com mesmo target e binds conflitantes.
+- [ ] Exercitar ciclo e self-sample com auto-cut.
+- [ ] Atualizar docs com exemplos do fluxo auto-graph.

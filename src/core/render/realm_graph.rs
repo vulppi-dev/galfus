@@ -48,9 +48,14 @@ pub(crate) fn update_surface_cache(
 
 pub(crate) fn map_realms_to_windows(universal: &UniversalState) -> HashMap<RealmId, u32> {
     let mut map = HashMap::new();
+    for (realm_id, entry) in universal.realms.entries.iter() {
+        if let Some(window_id) = entry.value.host_window_id {
+            map.insert(*realm_id, window_id);
+        }
+    }
     for present in universal.presents.entries.values() {
         if let Some(realm_id) = find_realm_by_surface(universal, present.value.surface) {
-            map.insert(realm_id, present.value.window_id);
+            map.entry(realm_id).or_insert(present.value.window_id);
         }
     }
     map
@@ -58,47 +63,43 @@ pub(crate) fn map_realms_to_windows(universal: &UniversalState) -> HashMap<Realm
 
 pub(crate) fn collect_surface_views(
     device: &wgpu::Device,
-    windows: &mut HashMap<u32, WindowState>,
+    windows: &HashMap<u32, WindowState>,
     universal: &UniversalState,
+    surface_targets: &mut HashMap<SurfaceId, RenderTarget>,
 ) -> HashMap<SurfaceId, SurfaceSnapshot> {
     let mut views = HashMap::new();
+    let mut present_sizes = HashMap::new();
+
     for present in universal.presents.entries.values() {
-        let Some(window_state) = windows.get_mut(&present.value.window_id) else {
-            continue;
-        };
-        let (target_size, target_format) = universal
-            .surfaces
-            .entries
-            .get(&present.value.surface)
-            .map(|entry| {
-                (
-                    entry.value.size,
-                    entry.value
-                        .format_policy
-                        .unwrap_or(wgpu::TextureFormat::Rgba16Float),
-                )
-            })
-            .unwrap_or((window_state.inner_size, wgpu::TextureFormat::Rgba16Float));
-        ensure_surface_target(
-            device,
-            &mut window_state.surface_target,
-            target_size,
-            target_format,
-        );
-        let Some(surface_target) = window_state.surface_target.as_ref() else {
-            continue;
-        };
-        let view = surface_target
-            ._texture
-            .create_view(&wgpu::TextureViewDescriptor::default());
+        if let Some(window_state) = windows.get(&present.value.window_id) {
+            present_sizes.insert(present.value.surface, window_state.inner_size);
+        }
+    }
+
+    for (surface_id, entry) in universal.surfaces.entries.iter() {
+        let mut target_size = entry.value.size;
+        if entry.value.kind == crate::core::realm::SurfaceKind::Onscreen {
+            if let Some(present_size) = present_sizes.get(surface_id) {
+                target_size = *present_size;
+            }
+        }
+        let target_format = entry
+            .value
+            .format_policy
+            .unwrap_or(wgpu::TextureFormat::Rgba16Float);
+
+        let surface_target =
+            ensure_surface_target(device, surface_targets, *surface_id, target_size, target_format);
+
         views.insert(
-            present.value.surface,
+            *surface_id,
             SurfaceSnapshot {
-                view,
+                view: surface_target.view.clone(),
                 size: target_size,
             },
         );
     }
+
     views
 }
 
@@ -113,19 +114,34 @@ pub(crate) fn resolve_realm_surface(
         .and_then(|entry| entry.value.output_surface)
 }
 
-pub(crate) fn ensure_surface_target(
+pub(crate) fn ensure_surface_target<'a>(
     device: &wgpu::Device,
-    surface_target: &mut Option<RenderTarget>,
+    surface_targets: &'a mut HashMap<SurfaceId, RenderTarget>,
+    surface_id: SurfaceId,
     size: glam::UVec2,
     format: wgpu::TextureFormat,
-) {
-    crate::core::resources::ensure_render_target(
-        device,
-        surface_target,
-        size.x.max(1),
-        size.y.max(1),
-        format,
-    );
+) -> &'a RenderTarget {
+    let size = glam::UVec2::new(size.x.max(1), size.y.max(1));
+    let needs_target = match surface_targets.get(&surface_id) {
+        Some(existing) => {
+            let tex_size = existing._texture.size();
+            tex_size.width != size.x || tex_size.height != size.y || existing.format != format
+        }
+        None => true,
+    };
+
+    if needs_target {
+        let extent = wgpu::Extent3d {
+            width: size.x,
+            height: size.y,
+            depth_or_array_layers: 1,
+        };
+        surface_targets.insert(surface_id, RenderTarget::new(device, extent, format));
+    }
+
+    surface_targets
+        .get(&surface_id)
+        .expect("surface target missing after ensure")
 }
 
 pub(crate) fn compose_realm_connectors(

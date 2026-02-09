@@ -32,6 +32,7 @@ pub enum SurfaceKind {
 #[derive(Debug, Clone)]
 pub struct RealmState {
     pub kind: RealmKind,
+    pub host_window_id: Option<u32>,
     pub output_surface: Option<SurfaceId>,
     pub render_graph: Option<crate::core::render::graph::RenderGraphState>,
     pub flags: u32,

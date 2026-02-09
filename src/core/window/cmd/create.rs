@@ -3,8 +3,11 @@ use serde::{Deserialize, Serialize};
 
 use super::{EngineWindowState, window_size_default};
 
+#[path = "create_native.rs"]
 mod create_native;
+#[path = "create_shared.rs"]
 mod create_shared;
+#[path = "create_wasm.rs"]
 mod create_wasm;
 
 // MARK: - Create Window

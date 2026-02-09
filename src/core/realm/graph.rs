@@ -96,7 +96,7 @@ fn topo_with_soft_cuts(
         .collect();
 
     let mut order = Vec::new();
-    let mut remaining_edges: Vec<RealmGraphEdge> = edges.to_vec();
+    let remaining_edges: Vec<RealmGraphEdge> = edges.to_vec();
     let mut cut_edges = Vec::new();
 
     while let Some(node) = queue.pop_front() {

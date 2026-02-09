@@ -1,10 +1,10 @@
 mod core;
 mod demo;
 
+use crate::core::VulframResult;
 use crate::core::cmd::EngineCmd;
 use crate::core::window::CmdWindowCloseArgs;
-use crate::core::VulframResult;
-use crate::demo::{create_window, run_demo, select_demo, DemoContext};
+use crate::demo::{DemoContext, create_window, run_demo, select_demo};
 use std::sync::Mutex;
 
 static ENGINE_GUARD: Mutex<()> = Mutex::new(());
@@ -24,6 +24,7 @@ fn main() {
         DemoContext {
             window_id,
             realm_id: binding.realm_id,
+            surface_id: binding.surface_id,
         },
     );
 

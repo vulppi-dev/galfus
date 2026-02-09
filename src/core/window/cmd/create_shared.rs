@@ -26,6 +26,7 @@ pub fn register_window_realm(
     });
     let realm_id = engine.universal_state.realms.alloc(RealmState {
         kind: RealmKind::ThreeD,
+        host_window_id: Some(window_id),
         output_surface: Some(surface_id),
         render_graph: Some(RenderGraphState::new()),
         flags: 0,

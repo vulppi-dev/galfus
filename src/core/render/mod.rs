@@ -134,14 +134,15 @@ pub fn render_frames(engine_state: &mut EngineState) {
     let realm_windows = map_realms_to_windows(&engine_state.universal_state);
     let surface_views = collect_surface_views(
         device,
-        &mut engine_state.window.states,
+        &engine_state.window.states,
         &engine_state.universal_state,
+        &mut engine_state.surface_targets,
     );
     const MAX_REALM_ITERATIONS: u32 = 1;
-    let mut iteration = 0;
+    let mut iteration: u32 = 0;
     loop {
         frame_report.no_progress_realms.clear();
-        let mut window_counter = 0;
+        let mut window_counter: u32 = 0;
 
         for realm_id in &realm_plan.order {
             let Some(window_id) = realm_windows.get(realm_id) else {
@@ -177,29 +178,18 @@ pub fn render_frames(engine_state: &mut EngineState) {
                 .and_then(|entry| entry.value.format_policy)
                 .unwrap_or(wgpu::TextureFormat::Rgba16Float);
 
-            ensure_surface_target(
+            let surface_target = ensure_surface_target(
                 device,
-                &mut window_state.surface_target,
+                &mut engine_state.surface_targets,
+                surface_id,
                 target_size,
                 target_format,
             );
-            let surface_target = match window_state.surface_target.as_ref() {
-                Some(target) => target,
-                None => continue,
-            };
 
             #[cfg(not(feature = "wasm"))]
             let window_start = std::time::Instant::now();
             #[cfg(feature = "wasm")]
             let window_start = now_ns();
-
-            let surface_texture = match window_state.surface.get_current_texture() {
-                Ok(texture) => texture,
-                Err(e) => {
-                    log::error!("Failed to get surface texture: {:?}", e);
-                    continue;
-                }
-            };
 
             let render_state = &mut window_state.render_state;
             render_state.prepare_render(device, frame_spec, true);
@@ -255,11 +245,42 @@ pub fn render_frames(engine_state: &mut EngineState) {
                 &mut frame_report,
             );
 
+            queue.submit(Some(encoder.finish()));
+            #[cfg(not(feature = "wasm"))]
+            {
+                windows_ns = windows_ns.saturating_add(window_start.elapsed().as_nanos() as u64);
+            }
+            #[cfg(feature = "wasm")]
+            {
+                windows_ns = windows_ns.saturating_add(now_ns().saturating_sub(window_start));
+            }
+        }
+
+        for present in engine_state.universal_state.presents.entries.values() {
+            let window_id = present.value.window_id;
+            let Some(window_state) = engine_state.window.states.get_mut(&window_id) else {
+                continue;
+            };
+            let Some(surface_target) = engine_state.surface_targets.get(&present.value.surface)
+            else {
+                continue;
+            };
+
+            let surface_texture = match window_state.surface.get_current_texture() {
+                Ok(texture) => texture,
+                Err(e) => {
+                    log::error!("Failed to get surface texture: {:?}", e);
+                    continue;
+                }
+            };
+
+            let mut encoder =
+                device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
             let surface_view = surface_texture
                 .texture
                 .create_view(&wgpu::TextureViewDescriptor::default());
             passes::pass_compose_surface(
-                render_state,
+                &mut window_state.render_state,
                 device,
                 &mut encoder,
                 &surface_view,
@@ -301,14 +322,6 @@ pub fn render_frames(engine_state: &mut EngineState) {
                 } else {
                     0.0
                 };
-            }
-            #[cfg(not(feature = "wasm"))]
-            {
-                windows_ns = windows_ns.saturating_add(window_start.elapsed().as_nanos() as u64);
-            }
-            #[cfg(feature = "wasm")]
-            {
-                windows_ns = windows_ns.saturating_add(now_ns().saturating_sub(window_start));
             }
         }
 
@@ -456,13 +469,13 @@ fn should_render_realm(
     if importance == 0 {
         return false;
     }
-    let base_interval = match importance {
+    let base_interval: u64 = match importance {
         1 => 1,
         2 => 2,
         3 => 4,
         _ => 1,
     };
-    let cache_multiplier = match entry.value.cache_policy {
+    let cache_multiplier: u64 = match entry.value.cache_policy {
         0 => 1,
         1 => 2,
         2 => 4,
