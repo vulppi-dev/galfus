@@ -1,11 +1,15 @@
+use std::cmp::Ordering;
 use std::collections::HashMap;
 
-use glam::Vec2;
+use glam::{UVec2, Vec2};
 
 use crate::core::cmd::EngineEvent;
 use crate::core::input::events::{ElementState, PointerEvent, PointerEventTrace, TouchPhase};
-use crate::core::realm::{ConnectorId, ConnectorState, RealmId, UniversalState};
+use crate::core::realm::{ConnectorId, ConnectorState, InputCapture, RealmId, UniversalState};
 use crate::core::state::EngineState;
+use crate::core::target::TargetId;
+
+const INPUT_FLAG_RAYCAST: u32 = 1 << 0;
 
 pub fn route_pointer_events(engine_state: &mut EngineState) {
     let mut realm_by_surface = HashMap::new();
@@ -22,18 +26,51 @@ pub fn route_pointer_events(engine_state: &mut EngineState) {
         }
     }
 
-    let mut connectors_by_realm: HashMap<RealmId, Vec<(ConnectorId, ConnectorState)>> =
-        HashMap::new();
+    let mut target_rank: HashMap<TargetId, i32> = HashMap::new();
+    for (index, target_id) in engine_state
+        .universal_state
+        .target_graph_cache
+        .last_plan
+        .order
+        .iter()
+        .enumerate()
+    {
+        target_rank.insert(*target_id, index as i32);
+    }
+
+    let mut connector_targets: HashMap<ConnectorId, TargetId> = HashMap::new();
+    for ((_, target_id), link) in engine_state.universal_state.auto_links.iter() {
+        if let Some(connector_id) = link.connector_id {
+            connector_targets.insert(connector_id, *target_id);
+        }
+    }
+
+    let mut connectors_by_realm: HashMap<RealmId, Vec<ConnectorHit>> = HashMap::new();
     for (connector_id, entry) in engine_state.universal_state.connectors.entries.iter() {
+        let target_id = connector_targets.get(connector_id).copied();
+        let rank = target_id
+            .and_then(|id| target_rank.get(&id).copied())
+            .unwrap_or(-1);
         connectors_by_realm
             .entry(entry.value.target_realm)
             .or_default()
-            .push((*connector_id, entry.value.clone()));
+            .push(ConnectorHit {
+                id: *connector_id,
+                state: entry.value.clone(),
+                target_id,
+                target_rank: rank,
+            });
     }
 
     for connectors in connectors_by_realm.values_mut() {
-        connectors.sort_by_key(|(_, connector)| connector.z_index);
-        connectors.reverse();
+        connectors.sort_by(|a, b| {
+            let rank_cmp = b.target_rank.cmp(&a.target_rank);
+            if rank_cmp == Ordering::Equal {
+                b.state.z_index.cmp(&a.state.z_index)
+            } else {
+                rank_cmp
+            }
+        });
     }
 
     for event in engine_state.event_queue.iter_mut() {
@@ -46,6 +83,11 @@ pub fn route_pointer_events(engine_state: &mut EngineState) {
             continue;
         };
 
+        let window_size = engine_state
+            .window
+            .states
+            .get(&window_id)
+            .map(|state| state.inner_size);
         let pointer_id = pointer_id(pointer_event);
         let position = pointer_position(pointer_event).or_else(|| {
             engine_state
@@ -56,22 +98,57 @@ pub fn route_pointer_events(engine_state: &mut EngineState) {
         });
 
         let mut connector_id = None;
+        let mut target_id = None;
         let mut source_realm_id = None;
         let mut uv = None;
+        let mut uv_override = None;
 
         if let (Some(pointer_id), Some(position)) = (pointer_id, position) {
-            connector_id = resolve_captured_connector(
+            if let Some(capture) =
+                resolve_captured_connector(&engine_state.universal_state, window_id, pointer_id)
+            {
+                target_id = capture.target_id;
+                connector_id = if engine_state
+                    .universal_state
+                    .connectors
+                    .entries
+                    .contains_key(&capture.connector_id)
+                {
+                    Some(capture.connector_id)
+                } else {
+                    capture
+                        .target_id
+                        .and_then(|target_id| {
+                            resolve_connector_for_target(
+                                connectors_by_realm.get(&realm_id),
+                                target_id,
+                            )
+                        })
+                };
+            } else if let Some(hit) = resolve_hit_connector(
                 &engine_state.universal_state,
-                window_id,
-                pointer_id,
-            )
-            .or_else(|| {
-                resolve_hit_connector(
-                    &engine_state.universal_state,
-                    connectors_by_realm.get(&realm_id),
-                    position,
-                )
-            });
+                connectors_by_realm.get(&realm_id),
+                position,
+                window_size,
+            ) {
+                connector_id = Some(hit.connector_id);
+                uv_override = hit.uv;
+            }
+
+            if connector_id.is_none() {
+                if let Some(focused_target) = resolve_focus_target(&engine_state.universal_state, window_id)
+                {
+                    target_id = Some(focused_target);
+                    connector_id = resolve_connector_for_target(
+                        connectors_by_realm.get(&realm_id),
+                        focused_target,
+                    );
+                }
+            }
+
+            if target_id.is_none() {
+                target_id = connector_id.and_then(|id| connector_targets.get(&id).copied());
+            }
 
             if let Some(connector_id) = connector_id {
                 let connector = engine_state
@@ -82,7 +159,8 @@ pub fn route_pointer_events(engine_state: &mut EngineState) {
                     .map(|entry| &entry.value);
                 if let Some(connector) = connector {
                     source_realm_id = realm_by_surface.get(&connector.source_surface).copied();
-                    uv = resolve_connector_uv(&engine_state.universal_state, connector, position);
+                    uv = uv_override
+                        .or_else(|| resolve_connector_uv(&engine_state.universal_state, connector, position));
                 }
             }
 
@@ -91,6 +169,13 @@ pub fn route_pointer_events(engine_state: &mut EngineState) {
                 window_id,
                 pointer_id,
                 connector_id,
+                target_id,
+                pointer_event,
+            );
+            update_focus_state(
+                &mut engine_state.universal_state,
+                window_id,
+                target_id,
                 pointer_event,
             );
         }
@@ -98,6 +183,7 @@ pub fn route_pointer_events(engine_state: &mut EngineState) {
         let trace = PointerEventTrace {
             window_id,
             realm_id: realm_id.0,
+            target_id: target_id.map(|id| id.0),
             connector_id: connector_id.map(|id| id.0),
             source_realm_id: source_realm_id.map(|id| id.0),
             uv,
@@ -173,7 +259,7 @@ fn resolve_captured_connector(
     universal: &UniversalState,
     window_id: u32,
     pointer_id: u64,
-) -> Option<ConnectorId> {
+) -> Option<InputCapture> {
     universal
         .input_routing
         .captures
@@ -183,21 +269,41 @@ fn resolve_captured_connector(
 
 fn resolve_hit_connector(
     universal: &UniversalState,
-    connectors: Option<&Vec<(ConnectorId, ConnectorState)>>,
+    connectors: Option<&Vec<ConnectorHit>>,
     position: Vec2,
-) -> Option<ConnectorId> {
+    window_size: Option<UVec2>,
+) -> Option<HitResult> {
     let connectors = connectors?;
-    for (connector_id, connector) in connectors {
+    for connector in connectors {
+        if connector.state.input_flags & INPUT_FLAG_RAYCAST != 0 {
+            if let Some(window_size) = window_size {
+                if let Some(uv) = normalize_window_uv(position, window_size) {
+                    return Some(HitResult {
+                        connector_id: connector.id,
+                        uv: Some(uv),
+                    });
+                }
+            }
+            continue;
+        }
         let source_size = universal
             .surfaces
             .entries
-            .get(&connector.source_surface)
+            .get(&connector.state.source_surface)
             .map(|entry| entry.value.size);
         let Some(source_size) = source_size else {
             continue;
         };
-        if hit_test_connector(position, connector.rect, connector.clip, source_size) {
-            return Some(*connector_id);
+        if hit_test_connector(
+            position,
+            connector.state.rect,
+            connector.state.clip,
+            source_size,
+        ) {
+            return Some(HitResult {
+                connector_id: connector.id,
+                uv: None,
+            });
         }
     }
     None
@@ -232,6 +338,7 @@ fn update_capture_state(
     window_id: u32,
     pointer_id: u64,
     connector_id: Option<ConnectorId>,
+    target_id: Option<TargetId>,
     event: &PointerEvent,
 ) {
     match event {
@@ -243,7 +350,13 @@ fn update_capture_state(
                 universal
                     .input_routing
                     .captures
-                    .insert((window_id, pointer_id), connector_id);
+                    .insert(
+                        (window_id, pointer_id),
+                        InputCapture {
+                            connector_id,
+                            target_id,
+                        },
+                    );
             }
         }
         PointerEvent::OnButton {
@@ -258,7 +371,13 @@ fn update_capture_state(
                     universal
                         .input_routing
                         .captures
-                        .insert((window_id, pointer_id), connector_id);
+                        .insert(
+                            (window_id, pointer_id),
+                            InputCapture {
+                                connector_id,
+                                target_id,
+                            },
+                        );
                 }
             }
             TouchPhase::Ended | TouchPhase::Cancelled => {
@@ -267,6 +386,84 @@ fn update_capture_state(
         },
         _ => {}
     }
+}
+
+fn update_focus_state(
+    universal: &mut UniversalState,
+    window_id: u32,
+    target_id: Option<TargetId>,
+    event: &PointerEvent,
+) {
+    match event {
+        PointerEvent::OnButton {
+            state: ElementState::Pressed,
+            ..
+        }
+        | PointerEvent::OnTouch {
+            phase: TouchPhase::Started,
+            ..
+        } => {
+            if let Some(target_id) = target_id {
+                universal
+                    .input_routing
+                    .focus_targets
+                    .insert(window_id, target_id);
+            }
+        }
+        PointerEvent::OnButton {
+            state: ElementState::Released,
+            ..
+        }
+        | PointerEvent::OnTouch {
+            phase: TouchPhase::Ended | TouchPhase::Cancelled,
+            ..
+        } => {
+            universal.input_routing.focus_targets.remove(&window_id);
+        }
+        _ => {}
+    }
+}
+
+fn resolve_focus_target(universal: &UniversalState, window_id: u32) -> Option<TargetId> {
+    universal.input_routing.focus_targets.get(&window_id).copied()
+}
+
+fn resolve_connector_for_target(
+    connectors: Option<&Vec<ConnectorHit>>,
+    target_id: TargetId,
+) -> Option<ConnectorId> {
+    let connectors = connectors?;
+    for connector in connectors {
+        if connector.target_id == Some(target_id) {
+            return Some(connector.id);
+        }
+    }
+    None
+}
+
+#[derive(Debug, Clone)]
+struct ConnectorHit {
+    id: ConnectorId,
+    state: ConnectorState,
+    target_id: Option<TargetId>,
+    target_rank: i32,
+}
+
+#[derive(Debug, Clone, Copy)]
+struct HitResult {
+    connector_id: ConnectorId,
+    uv: Option<Vec2>,
+}
+
+fn normalize_window_uv(position: Vec2, window_size: UVec2) -> Option<Vec2> {
+    let width = window_size.x.max(1) as f32;
+    let height = window_size.y.max(1) as f32;
+    if position.x < 0.0 || position.y < 0.0 || position.x > width || position.y > height {
+        return None;
+    }
+    let u = (position.x / width).clamp(0.0, 1.0);
+    let v = (position.y / height).clamp(0.0, 1.0);
+    Some(Vec2::new(u, v))
 }
 
 fn hit_test_connector(

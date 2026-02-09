@@ -96,7 +96,7 @@ pub fn engine_cmd_connector_dispose(
         .universal_state
         .input_routing
         .captures
-        .retain(|_, captured| *captured != connector_id);
+        .retain(|_, capture| capture.connector_id != connector_id);
 
     CmdResultConnectorDispose {
         success: true,

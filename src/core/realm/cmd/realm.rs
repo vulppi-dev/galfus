@@ -116,7 +116,7 @@ pub fn engine_cmd_realm_dispose(
             .universal_state
             .input_routing
             .captures
-            .retain(|_, connector_id| !removed_set.contains(connector_id));
+            .retain(|_, capture| !removed_set.contains(&capture.connector_id));
     }
 
     if let Some(surface_id) = entry.value.output_surface {

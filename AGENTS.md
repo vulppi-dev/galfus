@@ -20,3 +20,4 @@
 - `unwrap` em fluxo de comandos deve ser tratado com rollback e retorno de erro; fora de comandos deve emitir evento de erro.
 - Propriedades internas em Rust usam `snake_case`; o serde converte para `camelCase` no host.
 - Recursos devem seguir o padrão de: IDs lógicos controlados pelo host, todas as outras necessidades de gerenciamento e controle ficam no core, incluindo geração de IDs físicos, pooling, etc.
+- O host é responsável por garantir que os IDs lógicos sejam únicos e válidos; o core assume que isso é verdade e não faz validação extra.

@@ -8,20 +8,15 @@ use crate::core::audio::{
     CmdAudioSourceCreateArgs,
 };
 use crate::core::cmd::{CommandResponse, EngineCmd};
-use crate::core::realm::cmd::{
-    CmdConnectorCreateArgs, CmdRealmCreateArgs, CmdSurfaceCreateArgs, RealmKindDto,
-    SurfaceKindDto,
-};
-use crate::core::render::cmd::{CmdRenderGraph2DSetArgs, CmdRenderGraph3DSetArgs};
-use crate::core::render::graph::RenderGraphDesc;
+use crate::core::realm::cmd::{CmdRealmCreateArgs, RealmKindDto};
+use super::maps::{build_bind_cmds, build_target_cmds, Demo008BindRealms};
 use crate::core::resources::{
     CmdEnvironmentUpdateArgs, CmdModelCreateArgs, CmdPrimitiveGeometryCreateArgs, EnvironmentConfig,
     MsaaConfig, PostProcessConfig, PrimitiveShape, SkyboxConfig, SkyboxMode,
 };
-use crate::demo::demo_008::graph::build_demo_008_graph;
 use crate::demo::{
     create_ambient_light_cmd, create_camera_cmd, create_floor_cmd, create_point_light_cmd,
-    create_shadow_config_cmd, create_standard_material_cmd, load_texture_bytes,
+    create_shadow_config_cmd, create_standard_material_cmd, create_window, load_texture_bytes,
     upload_binary_bytes, DemoContext,
 };
 use crate::demo::io::{receive_responses, send_commands};
@@ -45,21 +40,27 @@ pub struct Demo008Ids {
 
 #[derive(Debug, Clone, Copy)]
 pub struct Demo008RealmIds {
-    pub realm_a: u32,
-    pub realm_b: u32,
+    pub window_main: u32,
+    pub window_aux: u32,
+    pub host_realm_main: u32,
+    pub host_realm_aux: u32,
+    pub realm_window_main: u32,
+    pub realm_window_aux: u32,
+    pub realm_viewport_main: u32,
     pub realm_ui: u32,
-    pub surface_a: u32,
-    pub surface_b: u32,
-    pub surface_ui: u32,
-    pub connector_a: u32,
-    pub connector_b: u32,
-    pub connector_cycle: u32,
-    pub connector_self: u32,
+    pub realm_texture_main: u32,
+    pub realm_texture_aux: u32,
+    pub realm_conflict: u32,
+    pub target_window_main: u64,
+    pub target_window_aux: u64,
+    pub target_viewport_main: u64,
+    pub target_viewport_aux: u64,
+    pub target_panel_ui: u64,
+    pub target_texture_shared: u64,
 }
 
 pub struct Demo008Setup {
     pub ids: Demo008Ids,
-    pub graph: RenderGraphDesc,
     pub post_config: PostProcessConfig,
     pub audio_chunk_ids: Vec<(u64, u64)>,
     pub audio_total_bytes: u64,
@@ -83,7 +84,6 @@ impl Demo008Setup {
             audio_buffer_id: 8300,
         };
 
-        let graph = build_demo_008_graph();
         let post_config = build_demo_008_post_config();
 
         let audio_bytes = load_texture_bytes("assets/audio.wav");
@@ -97,7 +97,6 @@ impl Demo008Setup {
 
         Self {
             ids,
-            graph,
             post_config,
             audio_chunk_ids,
             audio_total_bytes: audio_bytes.len() as u64,
@@ -105,70 +104,42 @@ impl Demo008Setup {
     }
 
     pub fn apply(&self, ctx: DemoContext) -> Demo008RealmIds {
-        let window_id = ctx.window_id;
-        let realm_id = ctx.realm_id;
+        let window_main = ctx.window_id;
+        let host_realm_main = ctx.realm_id;
 
-        let surface_a = create_surface(
-            SurfaceKindDto::Offscreen,
-            glam::UVec2::new(640, 360),
-        );
-        let surface_b = create_surface(
-            SurfaceKindDto::Offscreen,
-            glam::UVec2::new(320, 240),
-        );
-        let surface_ui = create_surface(
-            SurfaceKindDto::Offscreen,
-            glam::UVec2::new(512, 512),
-        );
+        let window_aux = 2;
+        let aux_binding = create_window(window_aux, "Vulfram Demo 008 Aux");
+        let host_realm_aux = aux_binding.realm_id;
 
-        let realm_a = create_realm(
-            RealmKindDto::ThreeD,
-            surface_a,
-            Some(window_id),
-        );
-        let realm_b = create_realm(
-            RealmKindDto::ThreeD,
-            surface_b,
-            Some(window_id),
-        );
-        let realm_ui = create_realm(
-            RealmKindDto::TwoD,
-            surface_ui,
-            Some(window_id),
-        );
+        let realm_window_main = create_realm(RealmKindDto::ThreeD, Some(window_main));
+        let realm_window_aux = create_realm(RealmKindDto::ThreeD, Some(window_aux));
+        let realm_viewport_main = create_realm(RealmKindDto::ThreeD, Some(window_main));
+        let realm_ui = create_realm(RealmKindDto::TwoD, Some(window_main));
+        let realm_texture_main = create_realm(RealmKindDto::ThreeD, Some(window_main));
+        let realm_texture_aux = create_realm(RealmKindDto::ThreeD, Some(window_aux));
+        let realm_conflict = create_realm(RealmKindDto::ThreeD, Some(window_main));
 
-        let connector_a = create_connector(
-            realm_id,
-            surface_a,
-            Vec4::new(40.0, 40.0, 280.0, 220.0),
-            1,
-            0,
-            None,
+        let (target_ids, mut map_cmds) = build_target_cmds(window_main, window_aux);
+        let bind_cmds = build_bind_cmds(
+            target_ids,
+            Demo008BindRealms {
+                host_main: host_realm_main,
+                host_aux: host_realm_aux,
+                window_main: realm_window_main,
+                window_aux: realm_window_aux,
+                viewport_main: realm_viewport_main,
+                ui: realm_ui,
+                texture_main: realm_texture_main,
+                texture_aux: realm_texture_aux,
+                conflict: realm_conflict,
+            },
         );
-        let connector_b = create_connector(
-            realm_id,
-            surface_b,
-            Vec4::new(720.0, 120.0, 200.0, 180.0),
-            2,
-            1,
-            Some(Vec4::new(720.0, 120.0, 160.0, 140.0)),
-        );
-        let connector_cycle = create_connector(
-            realm_a,
-            ctx.surface_id,
-            Vec4::new(60.0, 360.0, 220.0, 160.0),
-            0,
-            0,
-            None,
-        );
-        let connector_self = create_connector(
-            realm_id,
-            ctx.surface_id,
-            Vec4::new(1020.0, 40.0, 140.0, 100.0),
-            -1,
-            0,
-            None,
-        );
+        map_cmds.extend(bind_cmds);
+
+        assert_eq!(send_commands(map_cmds), VulframResult::Success);
+
+        let window_id = window_main;
+        let realm_id = realm_window_main;
 
         let setup_cmds = vec![
             EngineCmd::CmdEnvironmentUpdate(CmdEnvironmentUpdateArgs {
@@ -189,22 +160,6 @@ impl Demo008Setup {
                     },
                     post: self.post_config.clone(),
                 },
-            }),
-            EngineCmd::CmdRenderGraph3DSet(CmdRenderGraph3DSetArgs {
-                realm_id,
-                graph: self.graph.clone(),
-            }),
-            EngineCmd::CmdRenderGraph3DSet(CmdRenderGraph3DSetArgs {
-                realm_id: realm_a,
-                graph: self.graph.clone(),
-            }),
-            EngineCmd::CmdRenderGraph3DSet(CmdRenderGraph3DSetArgs {
-                realm_id: realm_b,
-                graph: self.graph.clone(),
-            }),
-            EngineCmd::CmdRenderGraph2DSet(CmdRenderGraph2DSetArgs {
-                realm_id: realm_ui,
-                graph: self.graph.clone(),
             }),
             EngineCmd::CmdPrimitiveGeometryCreate(CmdPrimitiveGeometryCreateArgs {
                 window_id,
@@ -363,36 +318,26 @@ impl Demo008Setup {
             assert_eq!(send_commands(chunk_cmds), VulframResult::Success);
         }
 
-        let responses = receive_responses();
-        for response in responses {
-            match response.response {
-                CommandResponse::RenderGraph3DSet(result) => {
-                    println!(
-                        "RenderGraph3DSet: success={} fallback={} message={}",
-                        result.success, result.fallback_used, result.message
-                    );
-                }
-                CommandResponse::RenderGraph2DSet(result) => {
-                    println!(
-                        "RenderGraph2DSet: success={} fallback={} message={}",
-                        result.success, result.fallback_used, result.message
-                    );
-                }
-                _ => {}
-            }
-        }
+        let _ = receive_responses();
 
         Demo008RealmIds {
-            realm_a,
-            realm_b,
+            window_main,
+            window_aux,
+            host_realm_main,
+            host_realm_aux,
+            realm_window_main,
+            realm_window_aux,
+            realm_viewport_main,
             realm_ui,
-            surface_a,
-            surface_b,
-            surface_ui,
-            connector_a,
-            connector_b,
-            connector_cycle,
-            connector_self,
+            realm_texture_main,
+            realm_texture_aux,
+            realm_conflict,
+            target_window_main: target_ids.window_main,
+            target_window_aux: target_ids.window_aux,
+            target_viewport_main: target_ids.viewport_main,
+            target_viewport_aux: target_ids.viewport_aux,
+            target_panel_ui: target_ids.panel_ui,
+            target_texture_shared: target_ids.texture_shared,
         }
     }
 }
@@ -432,29 +377,11 @@ fn build_demo_008_post_config() -> PostProcessConfig {
     }
 }
 
-fn create_surface(kind: SurfaceKindDto, size: glam::UVec2) -> u32 {
-    assert_eq!(
-        send_commands(vec![EngineCmd::CmdSurfaceCreate(CmdSurfaceCreateArgs {
-            kind,
-            size,
-            format_policy: None,
-            alpha_policy: None,
-            msaa_samples: None,
-        })]),
-        VulframResult::Success
-    );
-    wait_for_response(|response| match response {
-        CommandResponse::SurfaceCreate(result) if result.success => result.surface_id,
-        _ => None,
-    })
-    .expect("surface creation failed")
-}
-
-fn create_realm(kind: RealmKindDto, surface_id: u32, host_window_id: Option<u32>) -> u32 {
+fn create_realm(kind: RealmKindDto, host_window_id: Option<u32>) -> u32 {
     assert_eq!(
         send_commands(vec![EngineCmd::CmdRealmCreate(CmdRealmCreateArgs {
             kind,
-            output_surface_id: Some(surface_id),
+            output_surface_id: None,
             host_window_id,
             importance: Some(1),
             cache_policy: Some(0),
@@ -467,33 +394,6 @@ fn create_realm(kind: RealmKindDto, surface_id: u32, host_window_id: Option<u32>
         _ => None,
     })
     .expect("realm creation failed")
-}
-
-fn create_connector(
-    target_realm_id: u32,
-    source_surface_id: u32,
-    rect: Vec4,
-    z_index: i32,
-    blend_mode: u32,
-    clip: Option<Vec4>,
-) -> u32 {
-    assert_eq!(
-        send_commands(vec![EngineCmd::CmdConnectorCreate(CmdConnectorCreateArgs {
-            target_realm_id,
-            source_surface_id,
-            rect,
-            z_index,
-            blend_mode,
-            clip,
-            input_flags: 0,
-        })]),
-        VulframResult::Success
-    );
-    wait_for_response(|response| match response {
-        CommandResponse::ConnectorCreate(result) if result.success => result.connector_id,
-        _ => None,
-    })
-    .expect("connector creation failed")
 }
 
 fn wait_for_response<F, T>(mut pick: F) -> Option<T>

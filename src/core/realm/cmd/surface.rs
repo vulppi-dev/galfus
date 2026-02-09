@@ -93,7 +93,7 @@ pub fn engine_cmd_surface_dispose(
             .universal_state
             .input_routing
             .captures
-            .retain(|_, connector_id| !removed_set.contains(connector_id));
+            .retain(|_, capture| !removed_set.contains(&capture.connector_id));
     }
 
     engine

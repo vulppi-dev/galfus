@@ -203,10 +203,34 @@ Vulfram composes multiple realms through a `RealmGraph`:
 - `Presents` anchor surfaces to windows (roots of the graph).
 - `Connectors` define edges between realms (3D Plane or 2D Viewport connectors).
 - Cycles are broken deterministically with cached `LastGoodSurface`/`FallbackSurface`.
+
+### Auto-Graph (Experimental)
+
+The host does not build graphs. Instead it provides logical maps:
+
+- `RealmMap` (realmId -> kind)
+- `TargetMap` (targetId -> kind)
+- `TargetBindMap` (realmId -> targetId + layout)
+
+The core resolves `TargetGraph` + `RealmGraph` automatically, creating
+`Surface`, `Present`, and `Connector` entries as needed. Parent/child
+relationships between targets are inferred by the core; the bind layout
+defines the composition rectangle, zIndex, clip, and input flags.
 - The compositor resolves format/size conversions and MSAA resolves automatically.
 
+Example flow (host-side):
+
+```text
+CmdTargetUpsert(targetId=9000, kind=window, ownerWindowId=1)
+CmdTargetUpsert(targetId=9002, kind=viewport-embed, ownerWindowId=1, sizeOverride=640x360)
+CmdTargetBindUpsert(realmId=10, targetId=9000, layout=...)
+CmdTargetBindUpsert(realmId=11, targetId=9002, layout=rect/zIndex/clip/inputFlags)
+```
+
 Input routing uses the same connector graph to emit `eventTrace` metadata
-(`windowId`, `realmId`, `connectorId`, `sourceRealmId`, and UV coordinates when available).
+(`windowId`, `realmId`, `targetId`, `connectorId`, `sourceRealmId`, and UV coordinates when available).
+When `inputFlags` includes `RAYCAST` (`1`), routing treats the connector as a plane hit-test,
+using window-space UVs to drive raycast-like interactions in 3D.
 
 ---
 

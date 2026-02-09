@@ -1,8 +1,6 @@
 use crate::core::VulframResult;
 use crate::core::audio::{CmdAudioListenerCreateArgs, CmdAudioResourceCreateArgs, CmdAudioResourcePushArgs, CmdAudioSourceCreateArgs};
-use crate::core::cmd::{CommandResponse, EngineCmd};
-use crate::core::render::cmd::CmdRenderGraph3DSetArgs;
-use crate::core::render::graph::RenderGraphDesc;
+use crate::core::cmd::EngineCmd;
 use crate::core::resources::{
     CmdEnvironmentUpdateArgs, CmdModelCreateArgs, CmdPrimitiveGeometryCreateArgs, EnvironmentConfig,
     MsaaConfig, PostProcessConfig, PrimitiveShape, SkyboxConfig, SkyboxMode,
@@ -13,7 +11,6 @@ use crate::demo::{
     upload_binary_bytes,
 };
 use crate::demo::demo_004::config::build_demo_004_post_config;
-use crate::demo::demo_004::graph::build_demo_004_graph;
 use crate::demo::io::{receive_responses, send_commands};
 use crate::demo::DemoContext;
 use glam::{Mat4, Quat, Vec3, Vec4};
@@ -41,7 +38,6 @@ pub struct Demo004Setup {
     pub ids: Demo004Ids,
     pub cube_models: Vec<(u32, Vec3, Vec4)>,
     pub post_config: PostProcessConfig,
-    pub graph: RenderGraphDesc,
     pub audio_chunk_ids: Vec<(u64, u64)>,
     pub audio_total_bytes: u64,
 }
@@ -77,8 +73,6 @@ impl Demo004Setup {
 
         let post_config = build_demo_004_post_config();
 
-        let graph = build_demo_004_graph();
-
         let audio_bytes = load_texture_bytes("assets/audio.wav");
         let audio_chunk_size = 64 * 1024;
         let mut audio_chunk_ids = Vec::new();
@@ -92,7 +86,6 @@ impl Demo004Setup {
             ids,
             cube_models,
             post_config,
-            graph,
             audio_chunk_ids,
             audio_total_bytes: audio_bytes.len() as u64,
         }
@@ -121,10 +114,6 @@ impl Demo004Setup {
                     },
                     post: self.post_config.clone(),
                 },
-            }),
-            EngineCmd::CmdRenderGraph3DSet(CmdRenderGraph3DSetArgs {
-                realm_id,
-                graph: self.graph.clone(),
             }),
             EngineCmd::CmdPrimitiveGeometryCreate(CmdPrimitiveGeometryCreateArgs {
                 window_id,
@@ -325,14 +314,6 @@ impl Demo004Setup {
             }
             assert_eq!(send_commands(chunk_cmds), VulframResult::Success);
         }
-        let responses = receive_responses();
-        for response in responses {
-            if let CommandResponse::RenderGraph3DSet(result) = response.response {
-                println!(
-                    "RenderGraph3DSet: success={} fallback={} message={}",
-                    result.success, result.fallback_used, result.message
-                );
-            }
-        }
+        let _ = receive_responses();
     }
 }

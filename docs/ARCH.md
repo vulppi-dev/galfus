@@ -115,6 +115,45 @@ The render architecture is split into three layers:
 Each window creates a default `Realm` and `Surface`. `Present` links the window to the
 surface, and `Connector` layers control how realms compose (zIndex, blendMode, rect, clip).
 
+### 2.5 Auto-Graph (Experimental)
+
+The host does not construct graphs directly. Instead it provides logical maps:
+
+- `RealmMap`: logical realm IDs and kinds
+- `TargetMap`: logical targets (`Window`, `ViewportEmbed`, `PanelEmbed`, `Texture`)
+- `TargetBindMap`: `realmId -> targetId` with `layout` (rect, zIndex, clip, inputFlags, blendMode)
+
+The core builds `TargetGraph` and `RealmGraph` automatically and creates or updates
+`Surface`, `Present`, and `Connector` tables based on the binds.
+
+**TargetGraph cache/diff**
+
+- The core keeps a cached `TargetGraphPlan` and a hash of targets/binds.
+- On change it computes a diff (added/removed/updated targets and binds),
+  plus a `dirty_targets` list for partial updates.
+
+**Auto resolution (Phase H)**
+
+- Each `Bind(realm -> target)` produces a `Surface`.
+- The Realm output surface is set automatically from its primary bind.
+- If target is `Window`, the core creates a `Present`.
+- If target is `ViewportEmbed` or `PanelEmbed`, the core creates a `Connector`
+  targeting the host realm for that window.
+- Layout (`rect`, `zIndex`, `clip`, `inputFlags`, `blendMode`) is applied on
+  connector creation and updated when binds change.
+- Binds are resolved deterministically: per realm, the smallest `targetId` wins.
+
+**Parent inference (deterministic)**
+
+- `Window` targets are roots.
+- `Texture` targets are roots (offscreen).
+- `ViewportEmbed` / `PanelEmbed` infer parent from binds:
+  - Prefer the `hostWindowId` of the bound realm.
+  - If multiple binds reference different windows, choose the smallest `windowId`.
+  - If multiple realms in the same window bind to the same target, choose the smallest `realmId`
+    as the owner for parent inference.
+- Conflicts are resolved deterministically and should be logged for diagnostics.
+
 ---
 
 ## 3. Asynchronous Resource Linking (Fallback-Driven)
@@ -225,7 +264,7 @@ Inside each tick, the core:
 - Builds a `RealmGraphPlan` from `Connectors` + `Presents`.
 - Executes render graphs per realm (3D/2D).
 - Composes inter-realm surfaces in zIndex order.
-- Routes input events through connectors and emits `eventTrace`.
+- Routes input events through connectors and emits `eventTrace` (including `targetId`).
 
 ### 5.4 Shutdown
 

@@ -122,6 +122,10 @@ impl EngineState {
                 .input_routing
                 .captures
                 .retain(|(capture_window, _), _| *capture_window != window_id);
+            self.universal_state
+                .input_routing
+                .focus_targets
+                .retain(|focus_window, _| *focus_window != window_id);
             if !surfaces_to_remove.is_empty() {
                 let surface_set: std::collections::HashSet<_> =
                     surfaces_to_remove.iter().copied().collect();
@@ -144,6 +148,9 @@ impl EngineState {
                     self.universal_state.surfaces.remove(*surface_id);
                     self.surface_targets.remove(surface_id);
                 }
+                self.universal_state
+                    .auto_links
+                    .retain(|_, link| !surface_set.contains(&link.surface_id));
                 let mut removed_connectors = Vec::new();
                 self.universal_state
                     .connectors
@@ -162,7 +169,7 @@ impl EngineState {
                     self.universal_state
                         .input_routing
                         .captures
-                        .retain(|_, connector_id| !removed_set.contains(connector_id));
+                        .retain(|_, capture| !removed_set.contains(&capture.connector_id));
                 }
                 self.universal_state
                     .surface_cache

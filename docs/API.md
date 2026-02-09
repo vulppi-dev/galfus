@@ -305,6 +305,37 @@ Rendering is Realm-based:
 - The `RealmGraphPlanner` orders realms and determines cut edges for cycles.
 - Composition uses connector overlays after per-realm rendering.
 
+### 7.0 Auto-Graph Maps (Experimental)
+
+The host provides logical maps only:
+
+- `RealmMap` (realmId -> kind)
+- `TargetMap` (targetId -> kind)
+- `TargetBindMap` (realmId -> targetId + layout)
+
+The core resolves `TargetGraph` + `RealmGraph` automatically and creates
+`Surface`, `Present`, and `Connector` entries internally.
+
+Host bindings can update these maps with:
+
+- `CmdTargetUpsert` / `CmdTargetDispose`
+- `CmdTargetBindUpsert` / `CmdTargetBindDispose`
+
+Example:
+
+```text
+CmdTargetUpsert(targetId=9000, kind=window, ownerWindowId=1)
+CmdTargetUpsert(targetId=9002, kind=viewport-embed, ownerWindowId=1, sizeOverride=640x360)
+CmdTargetBindUpsert(realmId=10, targetId=9000, layout=...)
+CmdTargetBindUpsert(realmId=11, targetId=9002, layout=rect/zIndex/clip/inputFlags)
+```
+
+The core caches the `TargetGraphPlan` with a hash of targets/binds and
+computes diffs on change to drive partial updates.
+
+`FrameReport` includes TargetGraph stats (node/edge counts and bind diffs)
+so the host can inspect auto-graph updates.
+
 ### 7.1 Buffers
 
 Current GPU buffers:
@@ -372,9 +403,13 @@ These are translated into internal `EngineEvent` enums and pushed into
 `event_queue`.
 
 Pointer events now include optional routing metadata via `trace`, which
-provides the resolved `windowId`, `realmId`, `connectorId`, `sourceRealmId`,
-and UV coordinates when a connector hit-test succeeds. This metadata is
-optional and omitted when routing is not available.
+provides the resolved `windowId`, `realmId`, `targetId`, `connectorId`,
+`sourceRealmId`, and UV coordinates when a connector hit-test succeeds. This
+metadata is optional and omitted when routing is not available.
+
+If a bind sets `inputFlags` to include `RAYCAST` (`1`), the connector is treated
+as a plane hit-test and routing uses window-space UVs to support 3D-style
+raycast interactions.
 
 On `vulfram_receive_events`, the core:
 

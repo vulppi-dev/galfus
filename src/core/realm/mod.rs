@@ -7,9 +7,10 @@ pub mod state;
 pub use cmd::*;
 #[allow(unused_imports)]
 pub use state::{
-    AudioState, ConnectorId, ConnectorState, ConnectorTable, Generation, PresentId, PresentState,
-    InputRoutingState, PresentTable, RealmId, RealmKind, RealmState, RealmTable, SurfaceCache,
-    SurfaceId, SurfaceKind, SurfaceState, SurfaceTable, TableEntry, UniversalState,
+    AudioState, AutoLink, ConnectorId, ConnectorState, ConnectorTable, Generation, InputCapture,
+    InputRoutingState, PresentId, PresentState, PresentTable, RealmId, RealmKind, RealmState,
+    RealmTable, SurfaceCache, SurfaceId, SurfaceKind, SurfaceState, SurfaceTable, TableEntry,
+    UniversalState,
 };
 #[allow(unused_imports)]
 pub use graph::{RealmGraphEdge, RealmGraphEdgeKind, RealmGraphPlan, RealmGraphPlanner};

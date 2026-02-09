@@ -1,5 +1,4 @@
 pub mod cache;
-pub mod cmd;
 pub mod gizmos;
 pub mod graph;
 mod passes;
@@ -36,6 +35,20 @@ pub fn render_frames(engine_state: &mut EngineState) {
     engine_state.profiling.gpu_forward_ns = 0;
     engine_state.profiling.gpu_compose_ns = 0;
     engine_state.profiling.gpu_total_ns = 0;
+
+    let (target_plan, target_diff) = {
+        let cache = &mut engine_state.universal_state.target_graph_cache;
+        let diff = cache
+            .update(
+                &engine_state.universal_state.targets.entries,
+                &engine_state.universal_state.target_binds.entries,
+                &engine_state.universal_state.realms,
+            )
+            .cloned();
+        let plan = cache.last_plan.clone();
+        (plan, diff)
+    };
+    crate::core::target::sync_auto_graph(engine_state);
 
     let device = match &engine_state.device {
         Some(device) => device,
@@ -131,6 +144,7 @@ pub fn render_frames(engine_state: &mut EngineState) {
     update_surface_cache(&mut engine_state.universal_state, &cut_connectors);
     let mut frame_report =
         FrameReport::from_plan(&realm_plan, &engine_state.universal_state.surface_cache);
+    frame_report.apply_target_graph_stats(&target_plan, target_diff.as_ref());
     let realm_windows = map_realms_to_windows(&engine_state.universal_state);
     let surface_views = collect_surface_views(
         device,

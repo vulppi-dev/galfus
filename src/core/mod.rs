@@ -12,6 +12,7 @@ mod queue;
 pub mod realm;
 pub mod render;
 pub mod resources;
+pub mod target;
 mod singleton;
 mod state;
 pub mod system;

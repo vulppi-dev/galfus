@@ -1,6 +1,6 @@
-mod graph;
 mod runtime;
 mod setup;
+mod maps;
 
 use crate::demo::DemoContext;
 

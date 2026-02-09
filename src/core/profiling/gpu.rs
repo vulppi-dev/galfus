@@ -11,7 +11,6 @@ pub struct GpuProfiler {
     query_count: u32,
     window_count: usize,
     timestamp_period: f32,
-    pending_readback: Option<mpsc::Receiver<Result<(), wgpu::BufferAsyncError>>>,
 }
 
 impl GpuProfiler {
@@ -43,7 +42,6 @@ impl GpuProfiler {
             query_count,
             window_count,
             timestamp_period: queue.get_timestamp_period(),
-            pending_readback: None,
         }
     }
 
@@ -95,33 +93,24 @@ impl GpuProfiler {
         if self.query_count == 0 {
             return;
         }
-        if self.pending_readback.is_none() {
-            let slice = self.readback.slice(..);
-            let (sender, receiver) = mpsc::channel();
-            slice.map_async(wgpu::MapMode::Read, move |result| {
-                let _ = sender.send(result);
-            });
-            self.pending_readback = Some(receiver);
-            return;
-        }
-
-        let _ = device.poll(wgpu::PollType::Poll);
-        let receiver = match &self.pending_readback {
-            Some(receiver) => receiver,
-            None => return,
-        };
-        let result = match receiver.try_recv() {
+        let slice = self.readback.slice(..);
+        let (sender, receiver) = mpsc::channel();
+        slice.map_async(wgpu::MapMode::Read, move |result| {
+            let _ = sender.send(result);
+        });
+        let _ = device.poll(wgpu::PollType::Wait {
+            submission_index: None,
+            timeout: None,
+        });
+        let result = match receiver.recv() {
             Ok(result) => result,
-            Err(mpsc::TryRecvError::Empty) => return,
             Err(_) => {
                 self.readback.unmap();
-                self.pending_readback = None;
                 return;
             }
         };
         if result.is_err() {
             self.readback.unmap();
-            self.pending_readback = None;
             return;
         }
 
@@ -181,6 +170,5 @@ impl GpuProfiler {
 
         drop(data);
         self.readback.unmap();
-        self.pending_readback = None;
     }
 }

@@ -8,6 +8,8 @@ use crate::core::cmd::{EngineCmd, EngineEvent};
 use crate::core::input::events::{ElementState, KeyboardEvent, PointerEvent};
 use crate::core::resources::{CmdCameraUpdateArgs, CmdModelUpdateArgs};
 use crate::core::system::events::SystemEvent;
+use crate::core::window::{CmdWindowCloseArgs, WindowEvent};
+use crate::demo::send_commands;
 use crate::demo::demo_008::setup::{Demo008RealmIds, Demo008Setup};
 use crate::demo::{run_loop_with_events, DemoContext};
 
@@ -20,8 +22,13 @@ pub fn run(ctx: DemoContext, setup: &Demo008Setup, realms: &Demo008RealmIds) -> 
     let state_event = Rc::clone(&state);
 
     println!(
-        "Demo 008 connectors: a={}, b={}, cycle={}, self={}",
-        realms.connector_a, realms.connector_b, realms.connector_cycle, realms.connector_self
+        "Demo 008 targets: window_main={} window_aux={} viewport_main={} viewport_aux={} panel_ui={} texture_shared={}",
+        realms.target_window_main,
+        realms.target_window_aux,
+        realms.target_viewport_main,
+        realms.target_viewport_aux,
+        realms.target_panel_ui,
+        realms.target_texture_shared
     );
 
     run_loop_with_events(
@@ -134,6 +141,24 @@ pub fn run(ctx: DemoContext, setup: &Demo008Setup, realms: &Demo008RealmIds) -> 
                         if !report.frame_report.cut_edges.is_empty() {
                             println!("Cut edges: {:?}", report.frame_report.cut_edges);
                         }
+                        println!(
+                            "TargetGraph: nodes={} edges={} added={:?} removed={:?} updated={:?} binds_added={} binds_removed={} binds_updated={} plan_dirty={}",
+                            report.frame_report.target_nodes,
+                            report.frame_report.target_edges,
+                            report.frame_report.target_added,
+                            report.frame_report.target_removed,
+                            report.frame_report.target_updated,
+                            report.frame_report.target_binds_added.len(),
+                            report.frame_report.target_binds_removed.len(),
+                            report.frame_report.target_binds_updated.len(),
+                            report.frame_report.target_plan_dirty
+                        );
+                        if report.frame_report.target_nodes < 6 {
+                            println!(
+                                "Warning: expected at least 6 targets, got {}",
+                                report.frame_report.target_nodes
+                            );
+                        }
                     }
                 }
             }
@@ -142,6 +167,14 @@ pub fn run(ctx: DemoContext, setup: &Demo008Setup, realms: &Demo008RealmIds) -> 
         },
         move |event| {
             match event {
+                EngineEvent::Window(WindowEvent::OnCloseRequest { window_id: id })
+                    if id == window_id =>
+                {
+                    let _ = send_commands(vec![EngineCmd::CmdWindowClose(CmdWindowCloseArgs {
+                        window_id: realms.window_aux,
+                    })]);
+                    return true;
+                }
                 EngineEvent::System(SystemEvent::AudioReady {
                     resource_id,
                     success,
@@ -159,8 +192,28 @@ pub fn run(ctx: DemoContext, setup: &Demo008Setup, realms: &Demo008RealmIds) -> 
                     key_code,
                     state: ElementState::Pressed,
                     ..
-                }) if id == window_id && key_code == 36 => {
-                    println!("KeyR pressed: realm_a={}, realm_b={}, realm_ui={}", realms.realm_a, realms.realm_b, realms.realm_ui);
+                }) if id == window_id => {
+                    if key_code == 36 {
+                        println!(
+                            "KeyR pressed: host_main={} host_aux={} window_main={} window_aux={} viewport_main={} ui={} texture_main={} texture_aux={} conflict={}",
+                            realms.host_realm_main,
+                            realms.host_realm_aux,
+                            realms.realm_window_main,
+                            realms.realm_window_aux,
+                            realms.realm_viewport_main,
+                            realms.realm_ui,
+                            realms.realm_texture_main,
+                            realms.realm_texture_aux,
+                            realms.realm_conflict
+                        );
+                    }
+                    if key_code == 106 || key_code == 94 {
+                        let _ =
+                            send_commands(vec![EngineCmd::CmdWindowClose(CmdWindowCloseArgs {
+                                window_id: realms.window_aux,
+                            })]);
+                        return true;
+                    }
                 }
                 _ => {}
             }
@@ -192,8 +245,13 @@ fn log_pointer_trace(event: &PointerEvent) {
 
     if let Some(trace) = trace {
         println!(
-            "PointerTrace: window={} realm={} connector={:?} source_realm={:?} uv={:?}",
-            trace.window_id, trace.realm_id, trace.connector_id, trace.source_realm_id, trace.uv
+            "PointerTrace: window={} realm={} target={:?} connector={:?} source_realm={:?} uv={:?}",
+            trace.window_id,
+            trace.realm_id,
+            trace.target_id,
+            trace.connector_id,
+            trace.source_realm_id,
+            trace.uv
         );
     }
 }

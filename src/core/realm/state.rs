@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use crate::core::audio::{AudioListenerBinding, AudioSourceParams, AudioStreamState};
+use crate::core::target::{TargetBindTable, TargetGraphCache, TargetTable};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct RealmId(pub u32);
@@ -209,10 +210,21 @@ pub struct UniversalState {
     pub surfaces: SurfaceTable,
     pub connectors: ConnectorTable,
     pub presents: PresentTable,
+    pub targets: TargetTable,
+    pub target_binds: TargetBindTable,
+    pub target_graph_cache: TargetGraphCache,
+    pub auto_links: std::collections::HashMap<(u32, crate::core::target::TargetId), AutoLink>,
     pub audio: AudioState,
     pub input_routing: InputRoutingState,
     pub surface_cache: SurfaceCache,
     pub frame_report: super::FrameReport,
+}
+
+#[derive(Debug, Clone)]
+pub struct AutoLink {
+    pub surface_id: SurfaceId,
+    pub connector_id: Option<ConnectorId>,
+    pub present_id: Option<PresentId>,
 }
 
 #[derive(Debug, Default)]
@@ -221,7 +233,14 @@ pub struct SurfaceCache {
     pub fallback: HashMap<SurfaceId, SurfaceId>,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub struct InputCapture {
+    pub connector_id: ConnectorId,
+    pub target_id: Option<crate::core::target::TargetId>,
+}
+
 #[derive(Debug, Default)]
 pub struct InputRoutingState {
-    pub captures: HashMap<(u32, u64), ConnectorId>,
+    pub captures: HashMap<(u32, u64), InputCapture>,
+    pub focus_targets: HashMap<u32, crate::core::target::TargetId>,
 }

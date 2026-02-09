@@ -70,39 +70,39 @@
 - [x] Rodar `scripts/check.sh` antes de finalizar a fase.
 
 **Fase F — Auto-Graph (targets/realms por binds, sem graphs no host)**
-- [ ] Definir contrato dos mapas logicos do host: `RealmMap`, `TargetMap`, `BindMap` (binds com `layout`).
-- [ ] Definir tipos de `TargetKind`: `Window`, `ViewportEmbed`, `PanelEmbed`, `Texture`.
-- [ ] Definir estrutura de `BindLayout`: `rect`, `zIndex`, `clip`, `inputFlags`.
-- [ ] Definir regras deterministicas para inferir parent automaticamente (sem map explicito).
-- [ ] Definir politica de desempate para binds conflitantes (multi-window, multi-parent).
-- [ ] Documentar o fluxo: host -> maps -> auto TargetGraph + RealmGraph.
+- [x] Definir contrato dos mapas logicos do host: `RealmMap`, `TargetMap`, `TargetBindMap` (binds com `layout`).
+- [x] Definir tipos de `TargetKind`: `Window`, `ViewportEmbed`, `PanelEmbed`, `Texture`.
+- [x] Definir estrutura de `TargetBindLayout`: `rect`, `zIndex`, `clip`, `inputFlags`.
+- [x] Definir regras deterministicas para inferir parent automaticamente (sem map explicito).
+- [x] Definir politica de desempate para binds conflitantes (multi-window, multi-parent).
+- [x] Documentar o fluxo: host -> maps -> auto TargetGraph + RealmGraph.
 
 **Fase G — TargetGraph interno (cache + diffs)**
-- [ ] Criar `TargetId`, `TargetState` e `TargetTable` no core.
-- [ ] Criar `TargetGraphPlan` (arvore de targets + ordem de composicao).
-- [ ] Implementar cache `TargetGraphCache` com hash dos binds/targets.
-- [ ] Implementar diff incremental: detectar add/remove/update de bind e aplicar delta.
-- [ ] Implementar invalidação parcial por target afetado (auto-balanceamento).
-- [ ] Expor `FrameReport` com stats do TargetGraph (nodes/edges/updates).
+- [x] Criar `TargetId`, `TargetState` e `TargetTable` no core.
+- [x] Criar `TargetGraphPlan` (arvore de targets + ordem de composicao).
+- [x] Implementar cache `TargetGraphCache` com hash dos binds/targets.
+- [x] Implementar diff incremental: detectar add/remove/update de bind e aplicar delta.
+- [x] Implementar invalidação parcial por target afetado (auto-balanceamento).
+- [x] Expor `FrameReport` com stats do TargetGraph (nodes/edges/updates).
 
 **Fase H — Resolucao automatica de Surface/Present/Connector**
-- [ ] Resolver Surface automaticamente a partir de `Bind(realm -> target)`.
-- [ ] Criar/atualizar `Connector` quando target != root.
-- [ ] Criar/atualizar `Present` quando target == `Window`.
-- [ ] Atualizar layout do connector a partir do `BindLayout`.
-- [ ] Garantir dispose automatico ao remover binds/targets.
-- [ ] Consolidar politicas de tamanho/format/alpha/msaa no target.
+- [x] Resolver Surface automaticamente a partir de `Bind(realm -> target)`.
+- [x] Criar/atualizar `Connector` quando target != root.
+- [x] Criar/atualizar `Present` quando target == `Window`.
+- [x] Atualizar layout do connector a partir do `TargetBindLayout`.
+- [x] Garantir dispose automatico ao remover binds/targets.
+- [x] Consolidar politicas de tamanho/format/alpha/msaa no target.
 
 **Fase I — Input routing por TargetGraph**
-- [ ] Resolver hit-test pela arvore de targets (zIndex/clip/rect).
-- [ ] Mapear `targetId` no `eventTrace` junto com realm/connector.
-- [ ] Suportar `ViewportEmbed` (2D) e `PanelEmbed` (UI) com regras de layout.
-- [ ] Suportar `PlaneConnector` (3D) com raycast quando aplicavel.
-- [ ] Garantir capture/focus por target (nao apenas connector).
+- [x] Resolver hit-test pela arvore de targets (zIndex/clip/rect).
+- [x] Mapear `targetId` no `eventTrace` junto com realm/connector.
+- [x] Suportar `ViewportEmbed` (2D) e `PanelEmbed` (UI) com regras de layout.
+- [x] Suportar `PlaneConnector` (3D) com raycast quando aplicavel.
+- [x] Garantir capture/focus por target (nao apenas connector).
 
 **Fase J — Demos e validacao**
-- [ ] Criar demo que usa apenas binds/logical maps (sem comandos de graph).
-- [ ] Exercitar: Window + ViewportEmbed + PanelEmbed + Texture.
-- [ ] Exercitar multi-window com mesmo target e binds conflitantes.
-- [ ] Exercitar ciclo e self-sample com auto-cut.
-- [ ] Atualizar docs com exemplos do fluxo auto-graph.
+- [x] Criar demo que usa apenas binds/logical maps (sem comandos de graph).
+- [x] Exercitar: Window + ViewportEmbed + PanelEmbed + Texture.
+- [x] Exercitar multi-window com mesmo target e binds conflitantes.
+- [x] Exercitar ciclo e self-sample com auto-cut.
+- [x] Atualizar docs com exemplos do fluxo auto-graph.

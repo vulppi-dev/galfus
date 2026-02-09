@@ -11,10 +11,10 @@ use crate::core::window::WindowEvent;
 pub use crate::core::audio;
 pub use crate::core::buffers as buf;
 pub use crate::core::realm::cmd as realm;
-pub use crate::core::render::cmd as render;
 pub use crate::core::render::gizmos as gizmo;
 pub use crate::core::resources as res;
 pub use crate::core::system as sys;
+pub use crate::core::target::cmd as target;
 pub use crate::core::window as win;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -79,8 +79,6 @@ pub enum EngineCmd {
     CmdEnvironmentUpdate(res::CmdEnvironmentUpdateArgs),
     CmdEnvironmentDispose(res::CmdEnvironmentDisposeArgs),
     CmdShadowConfigure(res::shadow::CmdShadowConfigureArgs),
-    CmdRenderGraph3DSet(render::CmdRenderGraph3DSetArgs),
-    CmdRenderGraph2DSet(render::CmdRenderGraph2DSetArgs),
     CmdRealmCreate(realm::CmdRealmCreateArgs),
     CmdRealmDispose(realm::CmdRealmDisposeArgs),
     CmdSurfaceCreate(realm::CmdSurfaceCreateArgs),
@@ -89,6 +87,10 @@ pub enum EngineCmd {
     CmdPresentDispose(realm::CmdPresentDisposeArgs),
     CmdConnectorCreate(realm::CmdConnectorCreateArgs),
     CmdConnectorDispose(realm::CmdConnectorDisposeArgs),
+    CmdTargetUpsert(target::CmdTargetUpsertArgs),
+    CmdTargetDispose(target::CmdTargetDisposeArgs),
+    CmdTargetBindUpsert(target::CmdTargetBindUpsertArgs),
+    CmdTargetBindDispose(target::CmdTargetBindDisposeArgs),
     CmdModelList(res::CmdModelListArgs),
     CmdMaterialList(res::CmdMaterialListArgs),
     CmdTextureList(res::CmdTextureListArgs),
@@ -173,8 +175,6 @@ pub enum CommandResponse {
     EnvironmentUpdate(res::CmdResultEnvironment),
     EnvironmentDispose(res::CmdResultEnvironment),
     ShadowConfigure(res::shadow::CmdResultShadowConfigure),
-    RenderGraph3DSet(render::CmdResultRenderGraph3DSet),
-    RenderGraph2DSet(render::CmdResultRenderGraph2DSet),
     RealmCreate(realm::CmdResultRealmCreate),
     RealmDispose(realm::CmdResultRealmDispose),
     SurfaceCreate(realm::CmdResultSurfaceCreate),
@@ -183,6 +183,10 @@ pub enum CommandResponse {
     PresentDispose(realm::CmdResultPresentDispose),
     ConnectorCreate(realm::CmdResultConnectorCreate),
     ConnectorDispose(realm::CmdResultConnectorDispose),
+    TargetUpsert(target::CmdResultTargetUpsert),
+    TargetDispose(target::CmdResultTargetDispose),
+    TargetBindUpsert(target::CmdResultTargetBindUpsert),
+    TargetBindDispose(target::CmdResultTargetBindDispose),
     ModelList(res::CmdResultModelList),
     MaterialList(res::CmdResultMaterialList),
     TextureList(res::CmdResultTextureList),
@@ -640,20 +644,6 @@ pub fn engine_process_batch(
                     response: CommandResponse::ShadowConfigure(result),
                 });
             }
-            EngineCmd::CmdRenderGraph3DSet(args) => {
-                let result = render::engine_cmd_render_graph_3d_set(engine, &args);
-                engine.response_queue.push(CommandResponseEnvelope {
-                    id: pack.id,
-                    response: CommandResponse::RenderGraph3DSet(result),
-                });
-            }
-            EngineCmd::CmdRenderGraph2DSet(args) => {
-                let result = render::engine_cmd_render_graph_2d_set(engine, &args);
-                engine.response_queue.push(CommandResponseEnvelope {
-                    id: pack.id,
-                    response: CommandResponse::RenderGraph2DSet(result),
-                });
-            }
             EngineCmd::CmdRealmCreate(args) => {
                 let result = realm::engine_cmd_realm_create(engine, &args);
                 engine.response_queue.push(CommandResponseEnvelope {
@@ -708,6 +698,34 @@ pub fn engine_process_batch(
                 engine.response_queue.push(CommandResponseEnvelope {
                     id: pack.id,
                     response: CommandResponse::ConnectorDispose(result),
+                });
+            }
+            EngineCmd::CmdTargetUpsert(args) => {
+                let result = target::engine_cmd_target_upsert(engine, &args);
+                engine.response_queue.push(CommandResponseEnvelope {
+                    id: pack.id,
+                    response: CommandResponse::TargetUpsert(result),
+                });
+            }
+            EngineCmd::CmdTargetDispose(args) => {
+                let result = target::engine_cmd_target_dispose(engine, &args);
+                engine.response_queue.push(CommandResponseEnvelope {
+                    id: pack.id,
+                    response: CommandResponse::TargetDispose(result),
+                });
+            }
+            EngineCmd::CmdTargetBindUpsert(args) => {
+                let result = target::engine_cmd_target_bind_upsert(engine, &args);
+                engine.response_queue.push(CommandResponseEnvelope {
+                    id: pack.id,
+                    response: CommandResponse::TargetBindUpsert(result),
+                });
+            }
+            EngineCmd::CmdTargetBindDispose(args) => {
+                let result = target::engine_cmd_target_bind_dispose(engine, &args);
+                engine.response_queue.push(CommandResponseEnvelope {
+                    id: pack.id,
+                    response: CommandResponse::TargetBindDispose(result),
                 });
             }
             EngineCmd::CmdModelList(args) => {

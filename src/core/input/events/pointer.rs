@@ -117,6 +117,7 @@ pub enum PointerEvent {
 pub struct PointerEventTrace {
     pub window_id: u32,
     pub realm_id: u32,
+    pub target_id: Option<u64>,
     pub connector_id: Option<u32>,
     pub source_realm_id: Option<u32>,
     pub uv: Option<Vec2>,
