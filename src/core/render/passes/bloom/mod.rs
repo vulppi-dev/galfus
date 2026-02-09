@@ -71,7 +71,7 @@ pub fn pass_bloom(
     };
 
     let mut sorted_cameras: Vec<_> = render_state.scene.cameras.iter().collect();
-    sorted_cameras.sort_by_key(|(_, record)| record.order);
+    sorted_cameras.sort_by_key(|(id, record)| (record.order, *id));
 
     for (_id, record) in sorted_cameras {
         let input_target = match record

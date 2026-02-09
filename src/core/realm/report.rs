@@ -41,16 +41,16 @@ impl FrameReport {
             cache_last_good: cache
                 .last_good
                 .iter()
-                .map(|(target, source)| SurfaceCacheEntry {
-                    target_surface_id: target.0,
+                .map(|(connector, source)| SurfaceCacheEntry {
+                    connector_id: connector.0,
                     source_surface_id: source.0,
                 })
                 .collect(),
             cache_fallback: cache
                 .fallback
                 .iter()
-                .map(|(target, source)| SurfaceCacheEntry {
-                    target_surface_id: target.0,
+                .map(|(connector, source)| SurfaceCacheEntry {
+                    connector_id: connector.0,
                     source_surface_id: source.0,
                 })
                 .collect(),
@@ -138,7 +138,7 @@ pub struct FrameCutEdge {
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SurfaceCacheEntry {
-    pub target_surface_id: u32,
+    pub connector_id: u32,
     pub source_surface_id: u32,
 }
 

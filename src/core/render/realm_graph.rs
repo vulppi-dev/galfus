@@ -23,26 +23,18 @@ pub(crate) fn update_surface_cache(
     cut_connectors: &HashSet<ConnectorId>,
 ) {
     for (connector_id, connector) in universal.connectors.entries.iter() {
-        if cut_connectors.contains(connector_id) {
-            continue;
-        }
-        let target_surface = universal
-            .realms
-            .entries
-            .get(&connector.value.target_realm)
-            .and_then(|entry| entry.value.output_surface);
-        let Some(target_surface) = target_surface else {
-            continue;
-        };
         universal
             .surface_cache
             .last_good
-            .insert(target_surface, connector.value.source_surface);
+            .insert(*connector_id, connector.value.source_surface);
         universal
             .surface_cache
             .fallback
-            .entry(target_surface)
+            .entry(*connector_id)
             .or_insert(connector.value.source_surface);
+        if cut_connectors.contains(connector_id) {
+            continue;
+        }
     }
 }
 
@@ -178,7 +170,6 @@ pub(crate) fn compose_realm_connectors(
         }
         let source_surface = resolve_connector_surface(
             universal,
-            target_surface,
             *connector_id,
             cut_connectors,
             connector.value.source_surface,
@@ -240,7 +231,6 @@ pub(crate) fn compose_realm_connectors(
 
 fn resolve_connector_surface(
     universal: &UniversalState,
-    target_surface: SurfaceId,
     connector_id: ConnectorId,
     cut_connectors: &HashSet<ConnectorId>,
     default_surface: SurfaceId,
@@ -248,12 +238,15 @@ fn resolve_connector_surface(
     if !cut_connectors.contains(&connector_id) {
         return Some(default_surface);
     }
-    universal
-        .surface_cache
-        .last_good
-        .get(&target_surface)
-        .copied()
-        .or_else(|| universal.surface_cache.fallback.get(&target_surface).copied())
+    Some(
+        universal
+            .surface_cache
+            .last_good
+            .get(&connector_id)
+            .copied()
+            .or_else(|| universal.surface_cache.fallback.get(&connector_id).copied())
+            .unwrap_or(default_surface),
+    )
 }
 
 fn blend_state_for_mode(mode: u32) -> Option<wgpu::BlendState> {

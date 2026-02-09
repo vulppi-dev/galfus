@@ -37,7 +37,7 @@ impl RenderState {
         light_system.light_count = light_count;
 
         let mut sorted_cameras: Vec<_> = self.scene.cameras.iter().collect();
-        sorted_cameras.sort_by_key(|(_, record)| record.order);
+        sorted_cameras.sort_by_key(|(id, record)| (record.order, *id));
 
         let mut frustums = Vec::new();
         for (_, camera_record) in &sorted_cameras {

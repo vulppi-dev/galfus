@@ -174,15 +174,11 @@ impl EngineState {
                 self.universal_state
                     .surface_cache
                     .last_good
-                    .retain(|target, source| {
-                        !surface_set.contains(target) && !surface_set.contains(source)
-                    });
+                    .retain(|_, source| !surface_set.contains(source));
                 self.universal_state
                     .surface_cache
                     .fallback
-                    .retain(|target, source| {
-                        !surface_set.contains(target) && !surface_set.contains(source)
-                    });
+                    .retain(|_, source| !surface_set.contains(source));
             }
         }
         cleaned

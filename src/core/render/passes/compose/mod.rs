@@ -98,7 +98,7 @@ pub fn pass_compose_to_view(
 
     // 1. Sort cameras by order
     let mut sorted_cameras: Vec<_> = render_state.scene.cameras.iter().collect();
-    sorted_cameras.sort_by_key(|(_, record)| record.order);
+    sorted_cameras.sort_by_key(|(id, record)| (record.order, *id));
 
     let cache = &mut render_state.cache;
     let key = PipelineKey {

@@ -124,12 +124,12 @@ pub fn engine_cmd_realm_dispose(
             .universal_state
             .surface_cache
             .last_good
-            .retain(|target, source| *target != surface_id && *source != surface_id);
+            .retain(|_, source| *source != surface_id);
         engine
             .universal_state
             .surface_cache
             .fallback
-            .retain(|target, source| *target != surface_id && *source != surface_id);
+            .retain(|_, source| *source != surface_id);
     }
 
     CmdResultRealmDispose {

@@ -135,7 +135,7 @@ pub fn pass_forward(
 
     // 1. Sort cameras by order
     let mut sorted_cameras: Vec<_> = scene.cameras.iter().collect();
-    sorted_cameras.sort_by_key(|(_, record)| record.order);
+    sorted_cameras.sort_by_key(|(id, record)| (record.order, *id));
 
     for (camera_index, (camera_id, camera_record)) in sorted_cameras.into_iter().enumerate() {
         light_system.write_draw_params(camera_index as u32, light_system.max_lights_per_camera);

@@ -3,6 +3,34 @@ use crate::core::render::cache::{PipelineKey, ShaderId};
 use crate::core::resources::VertexStream;
 use crate::core::resources::geometry::Frustum;
 
+fn clear_target(
+    encoder: &mut wgpu::CommandEncoder,
+    target: &crate::core::resources::RenderTarget,
+    label: &str,
+) {
+    let _ = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+        label: Some(label),
+        color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+            view: &target.view,
+            resolve_target: None,
+            ops: wgpu::Operations {
+                load: wgpu::LoadOp::Clear(wgpu::Color {
+                    r: 0.0,
+                    g: 0.0,
+                    b: 0.0,
+                    a: 0.0,
+                }),
+                store: wgpu::StoreOp::Store,
+            },
+            depth_slice: None,
+        })],
+        depth_stencil_attachment: None,
+        timestamp_writes: None,
+        occlusion_query_set: None,
+        multiview_mask: None,
+    });
+}
+
 pub fn pass_outline(
     render_state: &mut RenderState,
     device: &wgpu::Device,
@@ -10,6 +38,7 @@ pub fn pass_outline(
     encoder: &mut wgpu::CommandEncoder,
     frame_index: u64,
 ) {
+    let post_config = render_state.environment.post.clone();
     let scene = &render_state.scene;
     if scene.cameras.is_empty() {
         return;
@@ -35,13 +64,18 @@ pub fn pass_outline(
     };
 
     let mut sorted_cameras: Vec<_> = scene.cameras.iter().collect();
-    sorted_cameras.sort_by_key(|(_, record)| record.order);
+    sorted_cameras.sort_by_key(|(id, record)| (record.order, *id));
 
     for (camera_index, (camera_id, camera_record)) in sorted_cameras.into_iter().enumerate() {
         let outline_target = match &camera_record.outline_target {
             Some(target) => target,
             None => continue,
         };
+
+        if !post_config.outline_enabled {
+            clear_target(encoder, outline_target, "Outline Clear (Disabled)");
+            continue;
+        }
 
         light_system.write_draw_params(camera_index as u32, light_system.max_lights_per_camera);
 
@@ -80,6 +114,7 @@ pub fn pass_outline(
         }
 
         if collector.outline_items.is_empty() {
+            clear_target(encoder, outline_target, "Outline Clear (Empty)");
             continue;
         }
 

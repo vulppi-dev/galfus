@@ -66,7 +66,7 @@ pub fn pass_skybox(
     };
 
     let mut sorted_cameras: Vec<_> = render_state.scene.cameras.iter().collect();
-    sorted_cameras.sort_by_key(|(_, record)| record.order);
+    sorted_cameras.sort_by_key(|(id, record)| (record.order, *id));
 
     for (_camera_id, camera_record) in sorted_cameras {
         let target_view = match &camera_record.render_target {

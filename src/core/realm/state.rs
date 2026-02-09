@@ -229,8 +229,8 @@ pub struct AutoLink {
 
 #[derive(Debug, Default)]
 pub struct SurfaceCache {
-    pub last_good: HashMap<SurfaceId, SurfaceId>,
-    pub fallback: HashMap<SurfaceId, SurfaceId>,
+    pub last_good: HashMap<ConnectorId, SurfaceId>,
+    pub fallback: HashMap<ConnectorId, SurfaceId>,
 }
 
 #[derive(Debug, Clone, Copy)]
