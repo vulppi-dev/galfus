@@ -75,12 +75,34 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
                         window_state
                             .render_state
                             .on_resize(device, size.width, size.height);
+                        crate::core::resources::ensure_render_target(
+                            device,
+                            &mut window_state.surface_target,
+                            size.width.max(1),
+                            size.height.max(1),
+                            wgpu::TextureFormat::Rgba16Float,
+                        );
 
                         // Update size state
                         window_state.inner_size = new_size;
                         let outer_size = window_state.window.outer_size();
                         window_state.outer_size = UVec2::new(outer_size.width, outer_size.height);
                         cache.outer_size = UVec2::new(outer_size.width, outer_size.height);
+
+                        if let Some(surface_id) = self
+                            .universal_state
+                            .presents
+                            .entries
+                            .values()
+                            .find(|present| present.value.window_id == window_id)
+                            .map(|present| present.value.surface)
+                        {
+                            if let Some(surface_entry) =
+                                self.universal_state.surfaces.entries.get_mut(&surface_id)
+                            {
+                                surface_entry.value.size = new_size;
+                            }
+                        }
 
                         // Mark window as dirty to trigger redraw
                         window_state.is_dirty = true;
@@ -288,6 +310,7 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
                         pointer_type: 0, // Mouse
                         pointer_id: 0,
                         position: cursor_pos,
+                        trace: None,
                     }));
             }
 
@@ -297,6 +320,7 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
                         window_id,
                         pointer_type: 0, // Mouse
                         pointer_id: 0,
+                        trace: None,
                     }));
             }
 
@@ -306,6 +330,7 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
                         window_id,
                         pointer_type: 0, // Mouse
                         pointer_id: 0,
+                        trace: None,
                     }));
             }
 
@@ -325,6 +350,7 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
                         window_id,
                         delta: scroll_delta,
                         phase: touch_phase,
+                        trace: None,
                     }));
             }
 
@@ -352,6 +378,7 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
                         button: btn,
                         state: elem_state,
                         position,
+                        trace: None,
                     }));
             }
 
@@ -361,6 +388,7 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
                         window_id,
                         delta,
                         phase: convert_touch_phase(phase),
+                        trace: None,
                     }));
             }
 
@@ -370,6 +398,7 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
                         window_id,
                         delta: Vec2::new(delta.x, delta.y),
                         phase: convert_touch_phase(phase),
+                        trace: None,
                     }));
             }
 
@@ -379,6 +408,7 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
                         window_id,
                         delta,
                         phase: convert_touch_phase(phase),
+                        trace: None,
                     }));
             }
 
@@ -386,6 +416,7 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
                 self.event_queue
                     .push(EngineEvent::Pointer(PointerEvent::OnDoubleTapGesture {
                         window_id,
+                        trace: None,
                     }));
             }
 
@@ -400,6 +431,7 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
                         phase,
                         position: Vec2::new(touch.location.x as f32, touch.location.y as f32),
                         pressure,
+                        trace: None,
                     }));
             }
 

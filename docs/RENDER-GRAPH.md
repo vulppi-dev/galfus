@@ -1,6 +1,6 @@
-# Render Graph (Host-Defined)
+# Render Graph (Internal)
 
-This document describes the host-facing render graph format. The host builds a graph using logical IDs; the core validates, maps, and executes it. If the graph is missing or invalid, the core executes a safe fallback graph.
+This document describes the internal render graph format. The host does **not** build graphs; the core owns and executes them. If a graph is missing or invalid, the core executes a safe fallback graph. Render graphs are defined per Realm (3D or 2D), not per window.
 
 The core infers any missing resources from node inputs/outputs using default values (texture + frame lifetime).
 
@@ -13,9 +13,9 @@ The core infers any missing resources from node inputs/outputs using default val
 
 ## High-Level Flow
 
-1. The host constructs a render graph using logical IDs.
+1. The core constructs a render graph using logical IDs.
 2. The core validates the graph and compiles an execution plan.
-3. On failure (or if no graph is supplied), the core uses a fallback graph.
+3. On failure, the core uses a fallback graph.
 
 ## Graph Structure
 

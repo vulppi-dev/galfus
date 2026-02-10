@@ -2,6 +2,7 @@ use bytemuck::{Pod, Zeroable};
 
 use crate::core::render::RenderState;
 use crate::core::render::cache::{PipelineKey, ShaderId};
+use crate::core::render::passes::clear_color_target;
 
 #[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable)]
@@ -84,28 +85,7 @@ fn update_ssao_blur_uniform(
     queue.write_buffer(buffer, 0, bytemuck::bytes_of(&uniform));
 }
 
-fn clear_target(
-    encoder: &mut wgpu::CommandEncoder,
-    target: &crate::core::resources::RenderTarget,
-    label: &str,
-) {
-    let _ = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-        label: Some(label),
-        color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-            view: &target.view,
-            resolve_target: None,
-            ops: wgpu::Operations {
-                load: wgpu::LoadOp::Clear(wgpu::Color::WHITE),
-                store: wgpu::StoreOp::Store,
-            },
-            depth_slice: None,
-        })],
-        depth_stencil_attachment: None,
-        timestamp_writes: None,
-        occlusion_query_set: None,
-        multiview_mask: None,
-    });
-}
+const CLEAR_WHITE: wgpu::Color = wgpu::Color::WHITE;
 
 pub fn pass_ssao(
     render_state: &mut RenderState,
@@ -129,17 +109,17 @@ pub fn pass_ssao(
         None => return,
     };
 
-    let mut sorted_cameras: Vec<_> = render_state.scene.cameras.iter().collect();
-    sorted_cameras.sort_by_key(|(_, record)| record.order);
-
-    for (_id, record) in sorted_cameras {
+    for camera_id in render_state.camera_order.iter().copied() {
+        let Some(record) = render_state.scene.cameras.get(&camera_id) else {
+            continue;
+        };
         let target = match &record.ssao_target {
             Some(t) => t,
             None => continue,
         };
 
         if !post_config.ssao_enabled {
-            clear_target(encoder, target, "SSAO Clear Pass");
+            clear_color_target(encoder, target, CLEAR_WHITE, "SSAO Clear Pass");
             continue;
         }
 
@@ -310,10 +290,10 @@ pub fn pass_ssao_blur(
         None => return,
     };
 
-    let mut sorted_cameras: Vec<_> = render_state.scene.cameras.iter().collect();
-    sorted_cameras.sort_by_key(|(_, record)| record.order);
-
-    for (_id, record) in sorted_cameras {
+    for camera_id in render_state.camera_order.iter().copied() {
+        let Some(record) = render_state.scene.cameras.get(&camera_id) else {
+            continue;
+        };
         let input_target = match &record.ssao_target {
             Some(t) => t,
             None => continue,
@@ -324,7 +304,7 @@ pub fn pass_ssao_blur(
         };
 
         if !post_config.ssao_enabled {
-            clear_target(encoder, output_target, "SSAO Blur Clear Pass");
+            clear_color_target(encoder, output_target, CLEAR_WHITE, "SSAO Blur Clear Pass");
             continue;
         }
 

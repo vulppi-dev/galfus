@@ -36,11 +36,11 @@ impl RenderState {
         }
         light_system.light_count = light_count;
 
-        let mut sorted_cameras: Vec<_> = self.scene.cameras.iter().collect();
-        sorted_cameras.sort_by_key(|(_, record)| record.order);
-
         let mut frustums = Vec::new();
-        for (_, camera_record) in &sorted_cameras {
+        for camera_id in self.camera_order.iter().copied() {
+            let Some(camera_record) = self.scene.cameras.get(&camera_id) else {
+                continue;
+            };
             let frustum = Frustum::from_view_projection(camera_record.data.view_projection);
             frustums.push(FrustumPlane {
                 data: frustum.planes[0],
@@ -65,7 +65,7 @@ impl RenderState {
         if !frustums.is_empty() {
             light_system.camera_frustums.write_slice(0, &frustums);
         }
-        light_system.camera_count = sorted_cameras.len() as u32;
+        light_system.camera_count = self.camera_order.len() as u32;
 
         let max_lights = 128; // TBD: make configurable or dynamic
         light_system.max_lights_per_camera = max_lights;

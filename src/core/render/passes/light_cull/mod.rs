@@ -126,9 +126,7 @@ pub fn pass_light_cull(
     };
 
     let light_count = light_system.light_count as u32;
-    let mut sorted_cameras: Vec<_> = render_state.scene.cameras.iter().collect();
-    sorted_cameras.sort_by_key(|(_, record)| record.order);
-    let camera_count = sorted_cameras.len() as u32;
+    let camera_count = render_state.camera_order.len() as u32;
 
     light_system.camera_count = camera_count as u32;
     light_system.max_lights_per_camera = light_count;
@@ -153,7 +151,10 @@ pub fn pass_light_cull(
 
     if camera_count > 0 {
         let mut planes = Vec::with_capacity((camera_count * PLANES_PER_CAMERA) as usize);
-        for (_id, record) in &sorted_cameras {
+        for camera_id in render_state.camera_order.iter().copied() {
+            let Some(record) = render_state.scene.cameras.get(&camera_id) else {
+                continue;
+            };
             planes.extend_from_slice(&extract_frustum_planes(record.data.view_projection));
         }
         light_system.camera_frustums.write_slice(0, &planes);

@@ -29,6 +29,27 @@ pub enum SystemEvent {
         success: bool,
         message: String,
     },
+    /// Async texture decode started
+    TextureProcessingStarted {
+        window_id: u32,
+        texture_id: u32,
+        total_bytes: u64,
+    },
+    /// Async texture decode progress
+    TextureProcessingProgress {
+        window_id: u32,
+        texture_id: u32,
+        processed_bytes: u64,
+        total_bytes: u64,
+    },
+    /// Async texture decode finished
+    TextureProcessingFinished {
+        window_id: u32,
+        texture_id: u32,
+        success: bool,
+        message: String,
+        total_bytes: u64,
+    },
 
     /// Async audio decode finished
     AudioReady {

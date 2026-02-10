@@ -41,6 +41,7 @@ impl RenderState {
                 textures: HashMap::new(),
                 forward_atlas_entries: HashMap::new(),
             },
+            camera_order: Vec::new(),
             bindings: None,
             library: None,
             vertex: None,
@@ -68,6 +69,7 @@ impl RenderState {
     /// Explicitly drop all render state resources
     pub fn drop_all(&mut self) {
         self.scene.cameras.clear();
+        self.camera_order.clear();
         self.scene.models.clear();
         self.scene.lights.clear();
         self.scene.materials_standard.clear();

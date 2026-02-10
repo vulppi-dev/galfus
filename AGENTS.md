@@ -1,6 +1,7 @@
 # AGENTS.md — Vulfram instructions
 
-- Sempre que o usuário comentar sobre um padrão ou regra de desenvolvimento, adicionar ao `AGENTS.md`.
+- Projeto experimental: nao precisamos manter retrocompatibilidade por enquanto; apos lancamento, sim.
+- Planejamento deve ocorrer sem alterar arquivos (sem gerar codigo) quando o usuario pedir apenas analise.
 - Variaveis que seguram ownership e não são mais usadas depois ganham sempre o prefixo `_`.
 - Se variaveis não forem usadas, devem ser removidas.
 - Funções não usadas também são removidas.
@@ -18,5 +19,5 @@
 - Dispose de recursos em decode deve cancelar (ou, se impossível, aguardar) e descartar o resultado.
 - `unwrap` em fluxo de comandos deve ser tratado com rollback e retorno de erro; fora de comandos deve emitir evento de erro.
 - Propriedades internas em Rust usam `snake_case`; o serde converte para `camelCase` no host.
-- Recursos de áudio devem seguir o mesmo padrão de recursos de textura: IDs lógicos, bind a modelo para emissor/receptor, play com delay opcional e modo (once/loop/reverse/loop-reverse/ping-pong), e bypass de spatialização quando emissor e receptor forem o mesmo modelo.
-- O sistema de áudio deve separar resource de source: source e listener são vinculados a modelos; play recebe resourceId e timelineId (default 0), reinicia se timeline já estiver ativo; stop pode receber timelineId.
+- Recursos devem seguir o padrão de: IDs lógicos controlados pelo host, todas as outras necessidades de gerenciamento e controle ficam no core, incluindo geração de IDs físicos, pooling, etc.
+- O host é responsável por garantir que os IDs lógicos sejam únicos e válidos; o core assume que isso é verdade e não faz validação extra.

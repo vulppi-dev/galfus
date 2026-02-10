@@ -94,6 +94,10 @@ The core is responsible for:
 
 - Tracking **resources** (materials, textures, geometries…)
 - Tracking **component instances** (cameras, models, lights) per host ID
+- Managing **Realm/Surface/RealmGraph**:
+  - `Realm` owns a render graph and outputs to a `Surface`.
+  - `Present` maps a `Surface` to a window.
+  - `Connector` composes one realm into another.
 - Managing GPU buffers and pipelines
 - Collecting input and window events via platform proxies
 - Executing the render pipeline in `vulfram_tick`
@@ -178,6 +182,10 @@ They are split into two categories:
 The host generates and owns:
 
 - `WindowId` — identifies a window
+- `RealmId` — identifies a render realm
+- `SurfaceId` — identifies a renderable/sampleable surface
+- `ConnectorId` — identifies inter-realm composition links
+- `PresentId` — identifies a window-to-surface present
 - `CameraId` — identifies a camera
 - `ModelId` — identifies a model instance
 - `LightId` — identifies a light
@@ -185,6 +193,45 @@ The host generates and owns:
 - `MaterialId` — material asset
 - `TextureId` — texture asset
 - `BufferId` — upload blob identifier
+
+---
+
+## 4.2 RealmGraph and Composition
+
+Vulfram composes multiple realms through a `RealmGraph`:
+
+- `Presents` anchor surfaces to windows (roots of the graph).
+- `Connectors` define edges between realms (3D Plane or 2D Viewport connectors).
+- Cycles are broken deterministically with cached `LastGoodSurface`/`FallbackSurface`.
+
+### Auto-Graph (Experimental)
+
+The host does not build graphs. Instead it provides logical maps:
+
+- `RealmMap` (realmId -> kind)
+- `TargetMap` (targetId -> kind)
+- `TargetBindMap` (realmId -> targetId + layout)
+
+The core resolves `TargetGraph` + `RealmGraph` automatically, creating
+`Surface`, `Present`, and `Connector` entries as needed. Parent/child
+relationships between targets are inferred by the core; the bind layout
+defines the composition rectangle, zIndex, clip, and input flags.
+- The compositor resolves format/size conversions and MSAA resolves automatically.
+Note: `Surface`, `Present`, and `Connector` are internal and not exposed as host commands.
+
+Example flow (host-side):
+
+```text
+CmdTargetUpsert(targetId=9000, kind=window, ownerWindowId=1)
+CmdTargetUpsert(targetId=9002, kind=viewport-embed, ownerWindowId=1, sizeOverride=640x360)
+CmdTargetBindUpsert(realmId=10, targetId=9000, layout=...)
+CmdTargetBindUpsert(realmId=11, targetId=9002, layout=rect/zIndex/clip/inputFlags)
+```
+
+Input routing uses the same connector graph to emit `eventTrace` metadata
+(`windowId`, `realmId`, `targetId`, `connectorId`, `sourceRealmId`, and UV coordinates when available).
+When `inputFlags` includes `RAYCAST` (`1`), routing treats the connector as a plane hit-test,
+using window-space UVs to drive raycast-like interactions in 3D.
 
 ---
 

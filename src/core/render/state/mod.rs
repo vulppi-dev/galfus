@@ -26,6 +26,7 @@ pub use crate::core::render::graph::RenderGraphState;
 
 pub struct RenderState {
     pub scene: RenderScene,
+    pub camera_order: Vec<u32>,
     pub bindings: Option<BindingSystem>,
     pub library: Option<ResourceLibrary>,
     pub vertex: Option<VertexAllocatorSystem>,

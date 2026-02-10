@@ -142,9 +142,6 @@ pub fn pass_post(
 
     let cache = &mut render_state.cache;
 
-    let mut sorted_cameras: Vec<_> = render_state.scene.cameras.iter().collect();
-    sorted_cameras.sort_by_key(|(_, record)| record.order);
-
     let post_config = render_state.environment.post.clone();
     let uniform_buffer = match render_state.post_uniform_buffer.as_ref() {
         Some(buffer) => buffer,
@@ -152,7 +149,10 @@ pub fn pass_post(
     };
     update_post_uniform_buffer(&post_config, uniform_buffer, queue, frame_index);
 
-    for (_id, record) in sorted_cameras {
+    for camera_id in render_state.camera_order.iter().copied() {
+        let Some(record) = render_state.scene.cameras.get(&camera_id) else {
+            continue;
+        };
         let input_target = match &record.render_target {
             Some(t) => t,
             None => continue,

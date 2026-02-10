@@ -89,7 +89,7 @@ impl GpuProfiler {
         (self.query_count as wgpu::BufferAddress) * wgpu::QUERY_SIZE as wgpu::BufferAddress
     }
 
-    pub fn readback_and_update(&self, device: &wgpu::Device, profiling: &mut TickProfiling) {
+    pub fn readback_and_update(&mut self, device: &wgpu::Device, profiling: &mut TickProfiling) {
         if self.query_count == 0 {
             return;
         }
@@ -98,12 +98,23 @@ impl GpuProfiler {
         slice.map_async(wgpu::MapMode::Read, move |result| {
             let _ = sender.send(result);
         });
-        let _ = device.poll(wgpu::PollType::wait_indefinitely());
-        if receiver.recv().ok() != Some(Ok(())) {
+        let _ = device.poll(wgpu::PollType::Wait {
+            submission_index: None,
+            timeout: None,
+        });
+        let result = match receiver.recv() {
+            Ok(result) => result,
+            Err(_) => {
+                self.readback.unmap();
+                return;
+            }
+        };
+        if result.is_err() {
             self.readback.unmap();
             return;
         }
 
+        let slice = self.readback.slice(..);
         let data = slice.get_mapped_range();
         let timestamps: &[u64] = bytemuck::cast_slice(&data);
         let period = self.timestamp_period as f64;

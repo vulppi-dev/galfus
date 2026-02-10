@@ -64,6 +64,9 @@ pub struct EngineState {
     pub queue: Option<wgpu::Queue>,
 
     pub buffers: BufferStorage,
+    pub texture_async: TextureAsyncManager,
+    pub audio: Box<dyn AudioProxy>,
+    pub universal_state: UniversalState,
 
     pub cmd_queue: EngineBatchCmds,
     pub event_queue: EngineBatchEvents,
@@ -78,11 +81,18 @@ pub struct EngineState {
     pub(crate) gamepad: GamepadState,
 
     pub(crate) profiling: TickProfiling,
+    pub(crate) gpu_profiler: Option<GpuProfiler>,
 }
 ```
 
 `EngineSingleton` owns the `EngineState` plus a platform proxy
 (`DesktopProxy` or `BrowserProxy`) that handles window/input integration.
+
+`UniversalState` is the realm-centric runtime table set:
+
+- `realms`, `surfaces`, `connectors`, `presents`
+- `surface_cache` for cycle-breaking (`LastGoodSurface`/`FallbackSurface`)
+- `frame_report` for RealmGraph diagnostics
 
 ---
 
@@ -289,6 +299,44 @@ buffers: HashMap<u64, UploadBuffer>  // BufferId -> UploadBuffer
 The `RenderState` is responsible for managing WGPU objects and executing
 the draw passes.
 
+Rendering is Realm-based:
+
+- Each `Realm` owns a `RenderGraphState` (3D or 2D).
+- The `RealmGraphPlanner` orders realms and determines cut edges for cycles.
+- Composition uses connector overlays after per-realm rendering.
+
+### 7.0 Auto-Graph Maps (Experimental)
+
+The host provides logical maps only:
+
+- `RealmMap` (realmId -> kind)
+- `TargetMap` (targetId -> kind)
+- `TargetBindMap` (realmId -> targetId + layout)
+
+The core resolves `TargetGraph` + `RealmGraph` automatically and creates
+`Surface`, `Present`, and `Connector` entries internally.
+These entries are internal-only and are not exposed as host commands.
+
+Host bindings can update these maps with:
+
+- `CmdTargetUpsert` / `CmdTargetDispose`
+- `CmdTargetBindUpsert` / `CmdTargetBindDispose`
+
+Example:
+
+```text
+CmdTargetUpsert(targetId=9000, kind=window, ownerWindowId=1)
+CmdTargetUpsert(targetId=9002, kind=viewport-embed, ownerWindowId=1, sizeOverride=640x360)
+CmdTargetBindUpsert(realmId=10, targetId=9000, layout=...)
+CmdTargetBindUpsert(realmId=11, targetId=9002, layout=rect/zIndex/clip/inputFlags)
+```
+
+The core caches the `TargetGraphPlan` with a hash of targets/binds and
+computes diffs on change to drive partial updates.
+
+`FrameReport` includes TargetGraph stats (node/edge counts and bind diffs)
+so the host can inspect auto-graph updates.
+
 ### 7.1 Buffers
 
 Current GPU buffers:
@@ -355,6 +403,15 @@ The input layer aggregates events via the active platform proxy:
 These are translated into internal `EngineEvent` enums and pushed into
 `event_queue`.
 
+Pointer events now include optional routing metadata via `trace`, which
+provides the resolved `windowId`, `realmId`, `targetId`, `connectorId`,
+`sourceRealmId`, and UV coordinates when a connector hit-test succeeds. This
+metadata is optional and omitted when routing is not available.
+
+If a bind sets `inputFlags` to include `RAYCAST` (`1`), the connector is treated
+as a plane hit-test and routing uses window-space UVs to support 3D-style
+raycast interactions.
+
 On `vulfram_receive_events`, the core:
 
 1. Serializes `event_queue` into MessagePack (using `rmp-serde`).
@@ -384,6 +441,8 @@ On `vulfram_receive_events`, the core:
 - Counters:
   - `totalEventsDispatched`
   - `totalEventsCached`
+- `frameReport` with the RealmGraph execution order, cut edges, cached surface
+  entries, and any throttled/no-progress realms detected during the frame.
 
 On `vulfram_get_profiling`, the core:
 

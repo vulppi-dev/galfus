@@ -54,6 +54,10 @@ Core responsibilities:
   - Geometries, materials, textures (and shadows).
 - Keep track of **instances** (components) per host ID:
   - Cameras, models, lights.
+- Maintain **Realm/Surface/RealmGraph** state:
+  - `Realm` owns a render graph and outputs to a `Surface`.
+  - `Present` maps a `Surface` to a window.
+  - `Connector` composes one realm into another.
 - Manage GPU buffers, textures, pipelines, and render passes.
 - Collect and expose input/window events via platform proxies.
 - Perform rendering in `vulfram_tick`.
@@ -97,6 +101,59 @@ the host payloads.
 These internal instances are indexed by host IDs and are not visible to the host.
 The host always refers to entities by their logical IDs, and the core resolves that to
 its internal instance structures.
+
+### 2.4 Realm, Surface and RealmGraph (Current)
+
+The render architecture is split into three layers:
+
+- **Realm**: execution scope with a `RenderGraph` (3D or 2D) and an output `Surface`.
+- **Surface**: renderable + sampleable target (virtual swapchain). The core handles
+  format, size, alpha conversions and MSAA resolve when needed.
+- **RealmGraph**: a DAG generated from `Connectors` + `Presents` that defines
+  cross-realm composition order and cycle breaking.
+
+Each window creates a default `Realm` and `Surface`. `Present` links the window to the
+surface, and `Connector` layers control how realms compose (zIndex, blendMode, rect, clip).
+
+### 2.5 Auto-Graph (Experimental)
+
+The host does not construct graphs directly. Instead it provides logical maps:
+
+- `RealmMap`: logical realm IDs and kinds
+- `TargetMap`: logical targets (`Window`, `ViewportEmbed`, `PanelEmbed`, `Texture`)
+- `TargetBindMap`: `realmId -> targetId` with `layout` (rect, zIndex, clip, inputFlags, blendMode)
+
+The core builds `TargetGraph` and `RealmGraph` automatically and creates or updates
+`Surface`, `Present`, and `Connector` tables based on the binds.
+`Surface`, `Present`, and `Connector` are internal-only and are not exposed as host commands.
+
+**TargetGraph cache/diff**
+
+- The core keeps a cached `TargetGraphPlan` and a hash of targets/binds.
+- On change it computes a diff (added/removed/updated targets and binds),
+  plus a `dirty_targets` list for partial updates.
+
+**Auto resolution (Phase H)**
+
+- Each `Bind(realm -> target)` produces a `Surface`.
+- The Realm output surface is set automatically from its primary bind.
+- If target is `Window`, the core creates a `Present`.
+- If target is `ViewportEmbed` or `PanelEmbed`, the core creates a `Connector`
+  targeting the host realm for that window.
+- Layout (`rect`, `zIndex`, `clip`, `inputFlags`, `blendMode`) is applied on
+  connector creation and updated when binds change.
+- Binds are resolved deterministically: per realm, the smallest `targetId` wins.
+
+**Parent inference (deterministic)**
+
+- `Window` targets are roots.
+- `Texture` targets are roots (offscreen).
+- `ViewportEmbed` / `PanelEmbed` infer parent from binds:
+  - Prefer the `hostWindowId` of the bound realm.
+  - If multiple binds reference different windows, choose the smallest `windowId`.
+  - If multiple realms in the same window bind to the same target, choose the smallest `realmId`
+    as the owner for parent inference.
+- Conflicts are resolved deterministically and should be logged for diagnostics.
 
 ---
 
@@ -202,6 +259,13 @@ Once the initial state is ready, the host enters its main loop, where:
 
 - `vulfram_tick` drives the core each frame and consumes queued commands.
 - The host sends updates and receives events/responses.
+
+Inside each tick, the core:
+
+- Builds a `RealmGraphPlan` from `Connectors` + `Presents`.
+- Executes render graphs per realm (3D/2D).
+- Composes inter-realm surfaces in zIndex order.
+- Routes input events through connectors and emits `eventTrace` (including `targetId`).
 
 ### 5.4 Shutdown
 

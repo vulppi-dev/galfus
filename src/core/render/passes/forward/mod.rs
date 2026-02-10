@@ -134,10 +134,10 @@ pub fn pass_forward(
     };
 
     // 1. Sort cameras by order
-    let mut sorted_cameras: Vec<_> = scene.cameras.iter().collect();
-    sorted_cameras.sort_by_key(|(_, record)| record.order);
-
-    for (camera_index, (camera_id, camera_record)) in sorted_cameras.into_iter().enumerate() {
+    for (camera_index, camera_id) in render_state.camera_order.iter().copied().enumerate() {
+        let Some(camera_record) = scene.cameras.get(&camera_id) else {
+            continue;
+        };
         light_system.write_draw_params(camera_index as u32, light_system.max_lights_per_camera);
 
         // 2. Get render target view
@@ -218,7 +218,7 @@ pub fn pass_forward(
 
             // 5. Bind Shared (Group 0: Frame + Camera + ModelPool)
             if let Some(shared_group) = bindings.shared_group.as_ref() {
-                let camera_offset = bindings.camera_pool.get_offset(*camera_id) as u32;
+                let camera_offset = bindings.camera_pool.get_offset(camera_id) as u32;
                 let light_offset = light_system.draw_params_offset(camera_index as u32) as u32;
                 render_pass.set_bind_group(0, shared_group, &[camera_offset, light_offset]);
             }

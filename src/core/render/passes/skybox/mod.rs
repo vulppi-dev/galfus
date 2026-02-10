@@ -2,7 +2,6 @@ use crate::core::render::RenderState;
 use crate::core::render::cache::{PipelineKey, ShaderId};
 use crate::core::resources::SkyboxMode;
 use bytemuck::{Pod, Zeroable};
-
 #[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable)]
 struct SkyboxUniform {
@@ -21,15 +20,15 @@ pub fn pass_skybox(
     queue: &wgpu::Queue,
     encoder: &mut wgpu::CommandEncoder,
     frame_index: u64,
-) {
+) -> bool {
     let library = match render_state.library.as_ref() {
         Some(l) => l,
-        None => return,
+        None => return false,
     };
 
     let skybox = &render_state.environment.skybox;
     if matches!(skybox.mode, SkyboxMode::None) {
-        return;
+        return false;
     }
 
     let sample_count = render_state.msaa_sample_count();
@@ -62,13 +61,14 @@ pub fn pass_skybox(
 
     let uniform_buffer = match render_state.skybox_uniform_buffer.as_ref() {
         Some(buffer) => buffer,
-        None => return,
+        None => return false,
     };
 
-    let mut sorted_cameras: Vec<_> = render_state.scene.cameras.iter().collect();
-    sorted_cameras.sort_by_key(|(_, record)| record.order);
-
-    for (_camera_id, camera_record) in sorted_cameras {
+    let mut drew_any = false;
+    for camera_id in render_state.camera_order.iter().copied() {
+        let Some(camera_record) = render_state.scene.cameras.get(&camera_id) else {
+            continue;
+        };
         let target_view = match &camera_record.render_target {
             Some(target) => &target.view,
             None => continue,
@@ -218,5 +218,8 @@ pub fn pass_skybox(
         pass.set_pipeline(pipeline);
         pass.set_bind_group(0, &bind_group, &[]);
         pass.draw(0..3, 0..1);
+        drew_any = true;
     }
+
+    drew_any
 }

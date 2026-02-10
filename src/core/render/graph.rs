@@ -149,12 +149,6 @@ impl RenderGraphPlan {
 }
 
 #[derive(Debug, Clone)]
-pub enum RenderGraphApplyResult {
-    Applied,
-    FallbackUsed(String),
-}
-
-#[derive(Debug, Clone)]
 pub struct RenderGraphState {
     fallback: RenderGraphPlan,
     active: RenderGraphPlan,
@@ -169,25 +163,6 @@ impl RenderGraphState {
             active: fallback.clone(),
             fallback,
             uses_fallback: true,
-        }
-    }
-
-    pub fn apply_graph(&mut self, desc: RenderGraphDesc) -> Result<RenderGraphApplyResult, String> {
-        match validate_graph(&desc) {
-            Ok(plan) => {
-                self.active = plan;
-                self.uses_fallback = false;
-                Ok(RenderGraphApplyResult::Applied)
-            }
-            Err(err) => {
-                if desc.fallback {
-                    self.active = self.fallback.clone();
-                    self.uses_fallback = true;
-                    Ok(RenderGraphApplyResult::FallbackUsed(err))
-                } else {
-                    Err(err)
-                }
-            }
         }
     }
 
@@ -234,11 +209,29 @@ pub fn validate_graph(desc: &RenderGraphDesc) -> Result<RenderGraphPlan, String>
     }
 
     for node in &desc.nodes {
+        let mut node_inputs: HashSet<&LogicalId> = HashSet::new();
         for input in &node.inputs {
-            res_ids.insert(input.clone());
+            if !node_inputs.insert(input) {
+                return Err(format!(
+                    "Duplicate input '{}' in node '{}'",
+                    input, node.node_id
+                ));
+            }
+            if !res_ids.contains(input) {
+                return Err(format!("Input resource '{}' not declared", input));
+            }
         }
+        let mut node_outputs: HashSet<&LogicalId> = HashSet::new();
         for output in &node.outputs {
-            res_ids.insert(output.clone());
+            if !node_outputs.insert(output) {
+                return Err(format!(
+                    "Duplicate output '{}' in node '{}'",
+                    output, node.node_id
+                ));
+            }
+            if !res_ids.contains(output) {
+                return Err(format!("Output resource '{}' not declared", output));
+            }
         }
     }
 
@@ -330,6 +323,13 @@ pub fn fallback_graph() -> RenderGraphDesc {
                 params: HashMap::new(),
             },
             RenderGraphNode {
+                node_id: LogicalId::Str("skybox_pass".into()),
+                pass_id: "skybox".into(),
+                inputs: Vec::new(),
+                outputs: vec![LogicalId::Str("hdr_color".into())],
+                params: HashMap::new(),
+            },
+            RenderGraphNode {
                 node_id: LogicalId::Str("forward_pass".into()),
                 pass_id: "forward".into(),
                 inputs: vec![LogicalId::Str("shadow_atlas".into())],
@@ -393,6 +393,16 @@ pub fn fallback_graph() -> RenderGraphDesc {
         edges: vec![
             RenderGraphEdge {
                 from_node_id: LogicalId::Str("shadow_pass".into()),
+                to_node_id: LogicalId::Str("forward_pass".into()),
+                reason: Some(RenderGraphEdgeReason::ReadAfterWrite),
+            },
+            RenderGraphEdge {
+                from_node_id: LogicalId::Str("light_cull_pass".into()),
+                to_node_id: LogicalId::Str("skybox_pass".into()),
+                reason: Some(RenderGraphEdgeReason::ReadAfterWrite),
+            },
+            RenderGraphEdge {
+                from_node_id: LogicalId::Str("skybox_pass".into()),
                 to_node_id: LogicalId::Str("forward_pass".into()),
                 reason: Some(RenderGraphEdgeReason::ReadAfterWrite),
             },

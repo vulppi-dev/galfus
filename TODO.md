@@ -1,61 +1,108 @@
-# 🦊 Vulfram Engine — Roadmap & TODO (Lean Core Architecture)
+# TODO — Render Architecture Replace (Realm/Surface/RealmGraph)
 
-Plano de evolução focado em um Core minimalista e performático. Lógica complexa e parsing de arquivos são delegados para o **Host**.
+> Checklist incremental e detalhado para migrar do modelo window-centric para Realm/Surface/RealmGraph (projeto experimental, sem retrocompatibilidade por enquanto).
 
-## 🟢 Fase 1: Fundamentos & Visibilidade (Core)
+**Fase 0 — Preparacao e alinhamento tecnico**
+- [x] Mapear o fluxo atual de render por window e os pontos de acoplamento (`WindowState.render_state`, `render_frames`, `CmdRenderGraphSet`).
+- [x] Definir a separacao de estados: `EngineState` (global), `WindowState` (janela), `InputsState` (teclado/ponteiro/gamepad), `UniversalState` (tabelas globais), `RealmState` (por realm).
+- [x] Definir o contrato interno de `Realm`, `Surface`, `Present` e `Connector` (campos minimos, defaults e lifecycle).
+- [x] Definir como os IDs logicos novos (`RealmId`, `SurfaceId`, `ConnectorId`, `PresentId`) aparecem no core (tabelas + generation).
+- [x] Definir a politica de buffering do `Surface` (min 2 imagens, prev/current) e como expor `PreviousFrame`.
+- [x] Definir regras de composicao multi-janela: mesma `Surface` em N windows no mesmo frame.
+- [x] Definir regras do `rect` (connector) com comportamento tipo `position: fixed` do CSS.
+- [x] Validar o impacto no profiling e GPU timestamps com execucao multi-realm.
+- [x] Atualizar docs de arquitetura (planejamento) antes de iniciar implementacao pesada.
 
-_Otimização do fluxo de dados e ferramentas de debug._
+**Fase A — Infraestrutura base (sem retrocompatibilidade)**
+- [x] Criar `RealmTable` com generation e estados essenciais (kind, output_surface, render_graph, flags).
+- [x] Criar `SurfaceTable` com generation, `kind` (onscreen/offscreen), size/format/alpha/msaa policies e buffering.
+- [x] Criar `PresentTable` com mapping `windowId -> surfaceId` e defaults.
+- [x] Criar `ConnectorTable` com campos minimos: `connectorId`, `kind`, `sourceSurfaceId`, `rect`, `zIndex`, `blendMode`, `clip`, `inputFlags`.
+- [x] Implementar APIs basicas das tabelas (alloc/get/remove).
+- [x] Realocar estado do sistema de audio para o `UniversalState` e bindings por `RealmState` (sem mexer em detalhes internos).
+- [x] Migrar bind de audio para `realmId` em vez de `windowId` (listener e source).
+- [x] Introduzir `Realm` default por window (criado junto com `CmdWindowCreate`).
+- [x] Criar `Surface` onscreen por window (virtual swapchain) e registrar em `Present`.
+- [x] Substituir `CmdRenderGraphSet` por `CmdRenderGraph3DSet` (remover comando antigo).
+- [x] Criar o comando de RenderGraph para Realm 2D (par 2D do `CmdRenderGraph3DSet`).
+- [x] Atualizar docs dos comandos de RenderGraph para refletir a divisao 3D/2D.
+- [x] Atualizar docs de `RENDER-GRAPH` para esclarecer que e intra-Realm.
 
-- [x] **Geometry Frustum Culling**: Descarte de draw calls no Core para objetos fora da visão (Performance).
-- [x] **Visual Debugger (Gizmos)**: Sistema no Core para desenhar linhas/shapes de debug via comandos simples.
-- [x] **Instancing**: Suporte a renderização instanciada para otimizar milhares de objetos repetidos.
-- [x] **Semantic Labeling**: Labels amigáveis em todos os recursos para facilitar depuração no Host e Profiler.
-- [x] **Resource Discovery**: Comandos de `List` para Modelos, Câmeras, Luzes, Materiais, Geometrias e Texturas.
+**Fase B — RealmGraph minimo (composicao visual basica)**
+- [x] Implementar `RealmGraphPlanner` com build de grafo a partir de `Connectors` + `Presents`.
+- [x] Implementar deteccao de ciclo (SCC) e politica de corte de edges soft.
+- [x] Implementar cache `LastGoodSurface` e `FallbackSurface` para edges cortadas.
+- [x] Definir politica `Hard` vs `Soft` para edges (present roots = hard, demais = soft default).
+- [x] Implementar execucao topologica de Realms (sem input routing).
+- [x] Implementar composicao por `Connector` no Realm consumidor (pass interno) respeitando `zIndex`, `blendMode` e `clip`.
+- [x] Implementar regras de ordenacao: `zIndex` ordena layers quando varios connectors apontam para a mesma `Surface`.
+- [x] Implementar `rect` com regras tipo `position: fixed` (coordenadas relativas a window/viewport + clip por width).
+- [x] Implementar alinhamento por height e clip por width ao desenhar a `Surface` em cada viewport.
+- [x] Implementar resolucao automatica de MSAA para surfaces sampleaveis.
+- [x] Criar conversoes automaticas de formato/alpha/size no compositor do Realm.
+- [x] Garantir que o `Surface` seja sempre renderavel e sampleavel.
+- [x] Atualizar docs de arquitetura com o fluxo `RealmGraph` e ciclo-break.
 
-## 🟡 Fase 2: Arquitetura de Renderização (Core)
+**Fase C — Input routing (hit-test e foco)**
+- [x] Implementar hit-test de `ViewportConnector` (rect + z-order + clip).
+- [x] Implementar retrace/raycast de `PlaneConnector` (screen -> UV -> local).
+- [x] Implementar pointer capture (down->up) e focus lock por connector.
+- [x] Implementar `eventTrace` e metadata: `Window -> Realm -> Connector -> Realm`.
+- [x] Garantir que o trace suporte multiplas janelas com a mesma `Surface`.
+- [x] Garantir compatibilidade com eventos atuais (nao quebrar payloads existentes).
+- [x] Atualizar docs de eventos para incluir routing opcional.
 
-_Refatoração para suportar efeitos avançados._
+**Fase D — Qualidade, performance e observabilidade**
+- [x] Implementar guard contra self-sample no frame atual (permitir apenas `PreviousFrame`).
+- [x] Implementar guard de no-progress (dirty ping-pong) com teto de iteracoes por frame.
+- [x] Implementar throttling por Realm (importance, cachePolicy).
+- [x] Consolidar conversoes automaticas no compositor (colorspace/alpha/size/resolve).
+- [x] Implementar `FrameReport` com ordem de execucao, edges cortadas e surfaces em cache/fallback.
+- [x] Garantir que nenhum Realm bloqueia o tick por readback (pipeline N-1).
+- [x] Atualizar docs de profiling para incluir informacoes de RealmGraph/FrameReport.
 
-- [x] **Render Graph**: Substituir o `Compose` por um grafo real para encadeamento de efeitos.
-- [x] **Advanced Profiler**: Exporta métricas detalhadas de GPU para o Host via MessagePack.
-- [x] **Skeletal Animation (Skinning)**: Implementar interpolação de ossos via GPU (Shader).
+**Fase E — Cleanups e consolidacao**
+- [x] Remover caminhos window-centric antigos (execucao direta por window) quando RealmGraph estiver estavel.
+- [x] Auditar fallback e caches (evitar leaks, respeitar politicas de dispose).
+- [x] Revisar validacao do RenderGraph intra-Realm para cobrir recursos/inputs/outputs de fato.
+- [x] Atualizar `docs/ARCH.md`, `docs/OVERVIEW.md` e `docs/API.md` com a nova arquitetura.
+- [x] Atualizar exemplos/demos para usar os novos comandos quando existirem.
+- [x] Rodar `scripts/check.sh` antes de finalizar a fase.
 
-## 🟠 Fase 3: Efeitos & Simulação (Core)
+**Fase F — Auto-Graph (targets/realms por binds, sem graphs no host)**
+- [x] Definir contrato dos mapas logicos do host: `RealmMap`, `TargetMap`, `TargetBindMap` (binds com `layout`).
+- [x] Definir tipos de `TargetKind`: `Window`, `ViewportEmbed`, `PanelEmbed`, `Texture`.
+- [x] Definir estrutura de `TargetBindLayout`: `rect`, `zIndex`, `clip`, `inputFlags`.
+- [x] Definir regras deterministicas para inferir parent automaticamente (sem map explicito).
+- [x] Definir politica de desempate para binds conflitantes (multi-window, multi-parent).
+- [x] Documentar o fluxo: host -> maps -> auto TargetGraph + RealmGraph.
 
-_Features que dependem de acesso a buffers e transformações espaciais._
+**Fase G — TargetGraph interno (cache + diffs)**
+- [x] Criar `TargetId`, `TargetState` e `TargetTable` no core.
+- [x] Criar `TargetGraphPlan` (arvore de targets + ordem de composicao).
+- [x] Implementar cache `TargetGraphCache` com hash dos binds/targets.
+- [x] Implementar diff incremental: detectar add/remove/update de bind e aplicar delta.
+- [x] Implementar invalidação parcial por target afetado (auto-balanceamento).
+- [x] Expor `FrameReport` com stats do TargetGraph (nodes/edges/updates).
 
-- [x] **Post-Processing (Fase 3.1)**: Pass de pós-processamento + targets por câmera + demo inicial.
-- [x] **Post-Processing (Fase 3.2)**: SSAO com blur bilateral e integração na composição.
-- [x] **Post-Processing (Fase 3.3)**: Bloom + Glow (downsample/blur/upsample) e controle de intensidade.
-- [x] **Glow baseado em emissive**: Saída emissive no forward + bloom usa emissive quando disponível.
-- [x] **Post-Processing (Fase 3.4)**: HDR pipeline avançado (exposure, tone mapping configurável).
-- [x] **Post-Processing (Fase 3.5)**: Outline com máscara e cor por modelo (pass outline + pós).
-- [x] **Post-Processing (Fase 3.7)**: Efeitos extras (vignette, grain, chromatic aberration, sharpen, posterize).
-- [x] **Cell Shading**: Posterize + bandas de luz no pós-processamento inicial.
-- [x] **Bloom & HDR**: Pipeline de alta dinâmica com tonemapping.
-- [x] **SSAO**: Oclusão de ambiente em screen-space.
-- [ ] **Áudio 3D (Core System)**: Integração com a crate `kira`. Suporte a emissores amarrados a `Models` e cálculo de atenuação/doppler sincronizado com as transformações do Core.
-  - [x] API base + proxy (desktop/web) e comandos de áudio no Core.
-  - [x] Backend desktop (Kira) + backend web (WebAudio).
-  - [x] Decodificação async + eventos de ready/erro.
-  - [ ] Streaming de áudio (cursor/chunks) para músicas longas.
+**Fase H — Resolucao automatica de Surface/Present/Connector**
+- [x] Resolver Surface automaticamente a partir de `Bind(realm -> target)`.
+- [x] Criar/atualizar `Connector` quando target != root.
+- [x] Criar/atualizar `Present` quando target == `Window`.
+- [x] Atualizar layout do connector a partir do `TargetBindLayout`.
+- [x] Garantir dispose automatico ao remover binds/targets.
+- [x] Consolidar politicas de tamanho/format/alpha/msaa no target.
 
-## 🔴 Opcionais, futuras melhorias
+**Fase I — Input routing por TargetGraph**
+- [x] Resolver hit-test pela arvore de targets (zIndex/clip/rect).
+- [x] Mapear `targetId` no `eventTrace` junto com realm/connector.
+- [x] Suportar `ViewportEmbed` (2D) e `PanelEmbed` (UI) com regras de layout.
+- [x] Suportar `PlaneConnector` (3D) com raycast quando aplicavel.
+- [x] Garantir capture/focus por target (nao apenas connector).
 
-- [ ] **Custom Materials via Graph Nodes**: Sistema no Core que recebe estruturas de "nós" e gera shaders dinâmicos.
-- [ ] **Custom Effects via Graph Nodes**: Sistema no Core que recebe estruturas de "nós" e gera efeitos dinâmicos para o render graph.
-- [ ] **Projective Spot Lights**: Luzes com projeção de textura.
-- [ ] **Occlusion Culling**: Otimização avançada baseada em visibilidade de pixels.
-- [ ] **Post-Processing**: Focus/DoF baseado em depth (CoC + blur variável).
-- [ ] **Decals (Decalques)**: Projeção de texturas via shader.
-- [ ] **Particles (CPU/GPU)**: Sistemas de partículas com dois modos (CPU e GPU).
-
-## 🔵 Responsabilidades do Host (Plugins & Lógica)
-
-_Funcionalidades que serão implementadas como bibliotecas/plugins no lado do Host._
-
-- [ ] **GLTF Loader (Host)**: Crate/Lib no Host para parsear GLTF e enviar `upload_buffer` para o Core.
-- [ ] **Physics Engine (Host)**: Integração com motores como Rapier no Host, enviando `ModelUpdate` a cada frame.
-- [ ] **Spatial Audio (Host)**: Gerenciamento de áudio 3D direto no Host.
-- [ ] **LOD System (Host)**: Lógica de troca de meshes baseada em distância rodando no Host.
-- [ ] **Input Mapping (Host)**: Abstração de input bruto para ações complexas.
+**Fase J — Demos e validacao**
+- [x] Criar demo que usa apenas binds/logical maps (sem comandos de graph).
+- [x] Exercitar: Window + ViewportEmbed + PanelEmbed + Texture.
+- [x] Exercitar multi-window com mesmo target e binds conflitantes.
+- [x] Exercitar ciclo e self-sample com auto-cut.
+- [x] Atualizar docs com exemplos do fluxo auto-graph.

@@ -3,7 +3,10 @@ use crate::core::render::cache::{PipelineKey, ShaderId};
 use crate::core::render::passes::update_post_uniform_buffer;
 use crate::core::render::state::ResourceLibrary;
 
-fn build_compose_bind_group(
+mod overlay;
+pub use overlay::{ComposeOverlay, pass_compose_overlays, pass_compose_surface};
+
+pub(super) fn build_compose_bind_group(
     device: &wgpu::Device,
     library: &ResourceLibrary,
     target_view: &wgpu::TextureView,
@@ -44,19 +47,17 @@ fn build_compose_bind_group(
     })
 }
 
-pub fn pass_compose(
+pub fn pass_compose_to_view(
     render_state: &mut RenderState,
     device: &wgpu::Device,
     queue: &wgpu::Queue,
     encoder: &mut wgpu::CommandEncoder,
-    surface_texture: &wgpu::SurfaceTexture,
-    config: &wgpu::SurfaceConfiguration,
+    target_view: &wgpu::TextureView,
+    target_format: wgpu::TextureFormat,
+    target_width: u32,
+    target_height: u32,
     frame_index: u64,
 ) {
-    let view = surface_texture
-        .texture
-        .create_view(&wgpu::TextureViewDescriptor::default());
-
     // 2. Get or Create Compose Pipeline
     let library = match render_state.library.as_ref() {
         Some(l) => l,
@@ -71,13 +72,11 @@ pub fn pass_compose(
     update_post_uniform_buffer(&post_config, uniform_buffer, queue, frame_index);
 
     // 1. Sort cameras by order
-    let mut sorted_cameras: Vec<_> = render_state.scene.cameras.iter().collect();
-    sorted_cameras.sort_by_key(|(_, record)| record.order);
 
     let cache = &mut render_state.cache;
     let key = PipelineKey {
         shader_id: ShaderId::Compose as u64,
-        color_format: config.format,
+        color_format: target_format,
         color_target_count: 1,
         depth_format: None,
         sample_count: 1,
@@ -109,7 +108,7 @@ pub fn pass_compose(
                 module: &library.compose_shader,
                 entry_point: Some("fs_main"),
                 targets: &[Some(wgpu::ColorTargetState {
-                    format: config.format,
+                    format: target_format,
                     blend: key.blend,
                     write_mask: wgpu::ColorWrites::ALL,
                 })],
@@ -127,7 +126,7 @@ pub fn pass_compose(
     let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
         label: Some("Compose Pass"),
         color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-            view: &view,
+            view: target_view,
             resolve_target: None,
             ops: wgpu::Operations {
                 load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
@@ -143,7 +142,10 @@ pub fn pass_compose(
 
     render_pass.set_pipeline(pipeline);
 
-    for (_id, record) in sorted_cameras {
+    for camera_id in render_state.camera_order.iter().copied() {
+        let Some(record) = render_state.scene.cameras.get(&camera_id) else {
+            continue;
+        };
         let target = match record
             .post_target
             .as_ref()
@@ -172,14 +174,14 @@ pub fn pass_compose(
         let (x, y) = record
             .view_position
             .as_ref()
-            .map(|vp| vp.resolve_position(config.width, config.height))
+            .map(|vp| vp.resolve_position(target_width, target_height))
             .unwrap_or((0, 0));
 
         let (width, height) = record
             .view_position
             .as_ref()
-            .map(|vp| vp.resolve_size(config.width, config.height))
-            .unwrap_or((config.width, config.height));
+            .map(|vp| vp.resolve_size(target_width, target_height))
+            .unwrap_or((target_width, target_height));
 
         render_pass.set_viewport(x as f32, y as f32, width as f32, height as f32, 0.0, 1.0);
 

@@ -1,12 +1,14 @@
 use serde::{Deserialize, Serialize};
 
 mod attention;
+mod close;
 mod create;
 mod cursor;
 mod decorations;
 mod properties;
 
 pub use attention::*;
+pub use close::*;
 pub use create::*;
 pub use cursor::*;
 pub use decorations::*;
