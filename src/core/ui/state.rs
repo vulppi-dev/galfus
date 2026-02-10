@@ -250,8 +250,18 @@ impl UiDocument {
 }
 
 #[allow(dead_code)]
-#[derive(Debug, Clone)]
 pub struct UiImageRecord {
     pub label: Option<String>,
     pub image: ImageBuffer,
+    pub size: [u32; 2],
+    pub texture: Option<egui::TextureHandle>,
+}
+
+impl std::fmt::Debug for UiImageRecord {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("UiImageRecord")
+            .field("label", &self.label)
+            .field("size", &self.size)
+            .finish()
+    }
 }

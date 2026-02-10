@@ -177,11 +177,14 @@ pub fn process_async_ui_image_results(engine: &mut EngineState) {
                 }
 
                 if let Some(image) = result.image {
+                    let size = [image.width, image.height];
                     ui_state.images.insert(
                         result.image_id,
                         UiImageRecord {
                             label: result.label,
                             image,
+                            size,
+                            texture: None,
                         },
                     );
                     engine

@@ -3,6 +3,7 @@ pub mod types;
 pub mod renderer;
 pub mod image_async;
 pub mod cmd;
+pub mod render;
 
 #[allow(unused_imports)]
 pub use renderer::UiRenderer;

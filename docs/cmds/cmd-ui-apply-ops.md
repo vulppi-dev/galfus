@@ -20,6 +20,28 @@ Supported ops:
 - `set { nodeId, props }`
 - `move { nodeId, newParent?, index? }`
 
+### UiNode
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| id    | u32  | Node ID     |
+| kind  | UiNodeKind | Node kind |
+| props | UiNodeProps | Node payload |
+
+### UiNodeKind
+
+`container`, `text`, `button`, `input`, `image`, `separator`, `spacer`
+
+### UiNodeProps (MVP)
+
+- `container { layout, padding?, size?, scrollX?, scrollY? }`
+- `text { text, size?, color? }`
+- `button { label, enabled? }`
+- `input { value, placeholder?, enabled? }`
+- `image { imageId, size? }`
+- `separator`
+- `spacer { width?, height? }`
+
 ## Response
 
 Returns `CmdResultUiApplyOps`:

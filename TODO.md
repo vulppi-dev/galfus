@@ -15,11 +15,11 @@ _Sistema de UI renderizado no core, host-driven, usando Realm TwoD + TargetGraph
 - [x] `UiImage` decode assíncrono; dispose deve cancelar (ou aguardar) e descartar resultados.
 
 ## Fase C — Layout e Widgets MVP
-- [ ] Widgets MVP: container, text, button, input, image, separator, spacer.
-- [ ] Layout MVP: row/col/grid, gaps, padding, size (auto/fill/px), align/justify básicos.
-- [ ] Text/Fonts: fallback, tamanhos por estilo e atlas de glyphs.
-- [ ] Clipping/Scissor consistente para scrolls e painéis.
-- [ ] Scroll real com offsets + barras.
+- [x] Widgets MVP: container, text, button, input, image, separator, spacer.
+- [x] Layout MVP: row/col/grid, gaps, padding, size (auto/fill/px), align/justify básicos.
+- [x] Text/Fonts: fallback, tamanhos por estilo e atlas de glyphs.
+- [x] Clipping/Scissor consistente para scrolls e painéis.
+- [x] Scroll real com offsets + barras.
 
 ## Fase D — Input e Eventos
 - [ ] Integrar input routing com `TargetBindLayout.inputFlags` e `eventTrace` (windowId/realmId/targetId/connectorId).

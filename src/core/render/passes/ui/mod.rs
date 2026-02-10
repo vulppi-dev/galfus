@@ -1,5 +1,6 @@
 use crate::core::realm::RealmId;
 use crate::core::render::RenderState;
+use crate::core::ui::render::{render_realm_documents, sync_ui_images};
 use crate::core::ui::UiState;
 
 pub fn pass_ui(
@@ -15,8 +16,12 @@ pub fn pass_ui(
     frame_index: u64,
 ) {
     ui_state.ensure_realm(realm_id);
-    let Some(ui_realm) = ui_state.realm_mut(realm_id) else {
-        return;
+    let (context, pixels_per_point) = {
+        let Some(ui_realm) = ui_state.realm_mut(realm_id) else {
+            return;
+        };
+        ui_realm.last_frame_index = frame_index;
+        (ui_realm.context.clone(), ui_realm.pixels_per_point)
     };
 
     let screen_size = egui::vec2(target_size.x as f32, target_size.y as f32);
@@ -24,18 +29,18 @@ pub fn pass_ui(
     let screen_rect = egui::Rect::from_min_size(egui::Pos2::ZERO, screen_size);
     input.screen_rect = Some(screen_rect);
     if let Some(viewport) = input.viewports.get_mut(&egui::ViewportId::ROOT) {
-        viewport.native_pixels_per_point = Some(ui_realm.pixels_per_point);
+        viewport.native_pixels_per_point = Some(pixels_per_point);
         viewport.inner_rect = Some(screen_rect);
         viewport.outer_rect = Some(screen_rect);
         viewport.focused = Some(true);
     }
     input.time = Some(frame_index as f64);
-    let output = ui_realm.context.run(input, |_| {});
+    sync_ui_images(&context, ui_state);
+    let output = context.run(input, |ctx| {
+        render_realm_documents(ctx, ui_state, realm_id);
+    });
 
-    let clipped_primitives =
-        ui_realm
-            .context
-            .tessellate(output.shapes, output.pixels_per_point);
+    let clipped_primitives = context.tessellate(output.shapes, output.pixels_per_point);
 
     let renderer = render_state
         .ui_renderer
