@@ -51,6 +51,31 @@ pub enum SystemEvent {
         total_bytes: u64,
     },
 
+    /// Async UI image decode finished
+    UiImageReady {
+        image_id: u32,
+        success: bool,
+        message: String,
+    },
+    /// Async UI image decode started
+    UiImageProcessingStarted {
+        image_id: u32,
+        total_bytes: u64,
+    },
+    /// Async UI image decode progress
+    UiImageProcessingProgress {
+        image_id: u32,
+        processed_bytes: u64,
+        total_bytes: u64,
+    },
+    /// Async UI image decode finished
+    UiImageProcessingFinished {
+        image_id: u32,
+        success: bool,
+        message: String,
+        total_bytes: u64,
+    },
+
     /// Async audio decode finished
     AudioReady {
         resource_id: u32,

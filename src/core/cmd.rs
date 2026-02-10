@@ -15,6 +15,7 @@ pub use crate::core::render::gizmos as gizmo;
 pub use crate::core::resources as res;
 pub use crate::core::system as sys;
 pub use crate::core::target::cmd as target;
+pub use crate::core::ui::cmd as ui;
 pub use crate::core::window as win;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -85,6 +86,15 @@ pub enum EngineCmd {
     CmdTargetDispose(target::CmdTargetDisposeArgs),
     CmdTargetBindUpsert(target::CmdTargetBindUpsertArgs),
     CmdTargetBindDispose(target::CmdTargetBindDisposeArgs),
+    CmdUiThemeDefine(ui::CmdUiThemeDefineArgs),
+    CmdUiThemeDispose(ui::CmdUiThemeDisposeArgs),
+    CmdUiDocumentCreate(ui::CmdUiDocumentCreateArgs),
+    CmdUiDocumentDispose(ui::CmdUiDocumentDisposeArgs),
+    CmdUiDocumentSetRect(ui::CmdUiDocumentSetRectArgs),
+    CmdUiDocumentSetTheme(ui::CmdUiDocumentSetThemeArgs),
+    CmdUiApplyOps(ui::CmdUiApplyOpsArgs),
+    CmdUiImageCreateFromBuffer(ui::CmdUiImageCreateFromBufferArgs),
+    CmdUiImageDispose(ui::CmdUiImageDisposeArgs),
     CmdModelList(res::CmdModelListArgs),
     CmdMaterialList(res::CmdMaterialListArgs),
     CmdTextureList(res::CmdTextureListArgs),
@@ -175,6 +185,15 @@ pub enum CommandResponse {
     TargetDispose(target::CmdResultTargetDispose),
     TargetBindUpsert(target::CmdResultTargetBindUpsert),
     TargetBindDispose(target::CmdResultTargetBindDispose),
+    UiThemeDefine(ui::CmdResultUiThemeDefine),
+    UiThemeDispose(ui::CmdResultUiThemeDispose),
+    UiDocumentCreate(ui::CmdResultUiDocumentCreate),
+    UiDocumentDispose(ui::CmdResultUiDocumentDispose),
+    UiDocumentSetRect(ui::CmdResultUiDocumentSetRect),
+    UiDocumentSetTheme(ui::CmdResultUiDocumentSetTheme),
+    UiApplyOps(ui::CmdResultUiApplyOps),
+    UiImageCreateFromBuffer(ui::CmdResultUiImageCreateFromBuffer),
+    UiImageDispose(ui::CmdResultUiImageDispose),
     ModelList(res::CmdResultModelList),
     MaterialList(res::CmdResultMaterialList),
     TextureList(res::CmdResultTextureList),
@@ -672,6 +691,69 @@ pub fn engine_process_batch(
                 engine.response_queue.push(CommandResponseEnvelope {
                     id: pack.id,
                     response: CommandResponse::TargetBindDispose(result),
+                });
+            }
+            EngineCmd::CmdUiThemeDefine(args) => {
+                let result = ui::engine_cmd_ui_theme_define(engine, &args);
+                engine.response_queue.push(CommandResponseEnvelope {
+                    id: pack.id,
+                    response: CommandResponse::UiThemeDefine(result),
+                });
+            }
+            EngineCmd::CmdUiThemeDispose(args) => {
+                let result = ui::engine_cmd_ui_theme_dispose(engine, &args);
+                engine.response_queue.push(CommandResponseEnvelope {
+                    id: pack.id,
+                    response: CommandResponse::UiThemeDispose(result),
+                });
+            }
+            EngineCmd::CmdUiDocumentCreate(args) => {
+                let result = ui::engine_cmd_ui_document_create(engine, &args);
+                engine.response_queue.push(CommandResponseEnvelope {
+                    id: pack.id,
+                    response: CommandResponse::UiDocumentCreate(result),
+                });
+            }
+            EngineCmd::CmdUiDocumentDispose(args) => {
+                let result = ui::engine_cmd_ui_document_dispose(engine, &args);
+                engine.response_queue.push(CommandResponseEnvelope {
+                    id: pack.id,
+                    response: CommandResponse::UiDocumentDispose(result),
+                });
+            }
+            EngineCmd::CmdUiDocumentSetRect(args) => {
+                let result = ui::engine_cmd_ui_document_set_rect(engine, &args);
+                engine.response_queue.push(CommandResponseEnvelope {
+                    id: pack.id,
+                    response: CommandResponse::UiDocumentSetRect(result),
+                });
+            }
+            EngineCmd::CmdUiDocumentSetTheme(args) => {
+                let result = ui::engine_cmd_ui_document_set_theme(engine, &args);
+                engine.response_queue.push(CommandResponseEnvelope {
+                    id: pack.id,
+                    response: CommandResponse::UiDocumentSetTheme(result),
+                });
+            }
+            EngineCmd::CmdUiApplyOps(args) => {
+                let result = ui::engine_cmd_ui_apply_ops(engine, &args);
+                engine.response_queue.push(CommandResponseEnvelope {
+                    id: pack.id,
+                    response: CommandResponse::UiApplyOps(result),
+                });
+            }
+            EngineCmd::CmdUiImageCreateFromBuffer(args) => {
+                let result = ui::engine_cmd_ui_image_create_from_buffer(engine, &args);
+                engine.response_queue.push(CommandResponseEnvelope {
+                    id: pack.id,
+                    response: CommandResponse::UiImageCreateFromBuffer(result),
+                });
+            }
+            EngineCmd::CmdUiImageDispose(args) => {
+                let result = ui::engine_cmd_ui_image_dispose(engine, &args);
+                engine.response_queue.push(CommandResponseEnvelope {
+                    id: pack.id,
+                    response: CommandResponse::UiImageDispose(result),
                 });
             }
             EngineCmd::CmdModelList(args) => {

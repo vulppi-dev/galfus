@@ -196,6 +196,8 @@ The host generates and owns:
 - `UiThemeId` — UI theme resource
 - `UiFontId` — UI font resource
 - `UiImageId` — UI image resource
+- `UiDocumentId` — UI document ID
+- `UiNodeId` — UI node ID
 
 ---
 

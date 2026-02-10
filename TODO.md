@@ -8,11 +8,11 @@ _Sistema de UI renderizado no core, host-driven, usando Realm TwoD + TargetGraph
 - [x] Definir contrato de recursos UI: `UiTheme`, `UiFont`, `UiImage` como IDs lógicos do host.
 
 ## Fase B — Comandos e Modelo de Dados
-- [ ] `CmdUiThemeDefine/Dispose` + `UiThemeDefined` (cache + versionamento).
-- [ ] `CmdUiDocumentCreate/Dispose/SetRect/SetTheme` (documento ligado ao `realmId`).
-- [ ] `CmdUiApplyOps` com versionamento e ops `add/remove/clear/set/move` (sem validação extra de IDs além de consistência interna).
-- [ ] Definir `UiNodeId` e payloads para widgets MVP.
-- [ ] `UiImage` decode assíncrono; dispose deve cancelar (ou aguardar) e descartar resultados.
+- [x] `CmdUiThemeDefine/Dispose` + `UiThemeDefined` (cache + versionamento).
+- [x] `CmdUiDocumentCreate/Dispose/SetRect/SetTheme` (documento ligado ao `realmId`).
+- [x] `CmdUiApplyOps` com versionamento e ops `add/remove/clear/set/move` (sem validação extra de IDs além de consistência interna).
+- [x] Definir `UiNodeId` e payloads para widgets MVP.
+- [x] `UiImage` decode assíncrono; dispose deve cancelar (ou aguardar) e descartar resultados.
 
 ## Fase C — Layout e Widgets MVP
 - [ ] Widgets MVP: container, text, button, input, image, separator, spacer.
