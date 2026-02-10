@@ -1,6 +1,8 @@
 use glam::UVec2;
 
-use crate::core::realm::{PresentId, PresentState, RealmId, RealmState, SurfaceId, SurfaceKind, SurfaceState};
+use crate::core::realm::{
+    PresentId, PresentState, RealmId, RealmState, SurfaceId, SurfaceKind, SurfaceState,
+};
 use crate::core::render::graph::RenderGraphState;
 use crate::core::state::EngineState;
 

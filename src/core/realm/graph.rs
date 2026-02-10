@@ -30,7 +30,8 @@ impl RealmGraphPlanner {
         }
 
         for (connector_id, connector) in universal.connectors.entries.iter() {
-            if let Some(source_realm) = find_realm_by_surface(universal, connector.value.source_surface)
+            if let Some(source_realm) =
+                find_realm_by_surface(universal, connector.value.source_surface)
             {
                 edges.push(RealmGraphEdge {
                     from: source_realm,
@@ -47,10 +48,7 @@ impl RealmGraphPlanner {
 
         let (order, cut_edges) = topo_with_soft_cuts(&all_realms, &plan_edges);
 
-        RealmGraphPlan {
-            order,
-            cut_edges,
-        }
+        RealmGraphPlan { order, cut_edges }
     }
 }
 

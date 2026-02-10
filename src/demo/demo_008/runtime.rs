@@ -9,9 +9,9 @@ use crate::core::input::events::{ElementState, KeyboardEvent, PointerEvent};
 use crate::core::resources::{CmdCameraUpdateArgs, CmdModelUpdateArgs};
 use crate::core::system::events::SystemEvent;
 use crate::core::window::{CmdWindowCloseArgs, WindowEvent};
-use crate::demo::send_commands;
 use crate::demo::demo_008::setup::{Demo008RealmIds, Demo008Setup};
-use crate::demo::{run_loop_with_events, DemoContext};
+use crate::demo::send_commands;
+use crate::demo::{DemoContext, run_loop_with_events};
 
 pub fn run(ctx: DemoContext, setup: &Demo008Setup, realms: &Demo008RealmIds) -> bool {
     let window_id = ctx.window_id;
@@ -100,12 +100,7 @@ pub fn run(ctx: DemoContext, setup: &Demo008Setup, realms: &Demo008RealmIds) -> 
                 material_id: None,
                 transform: Some(
                     Mat4::from_translation(Vec3::new(2.2, 0.2, -1.0))
-                        * Mat4::from_euler(
-                            glam::EulerRot::XYZ,
-                            wobble * 0.6,
-                            wobble * 0.9,
-                            0.0,
-                        )
+                        * Mat4::from_euler(glam::EulerRot::XYZ, wobble * 0.6, wobble * 0.9, 0.0)
                         * Mat4::from_scale(Vec3::splat(1.2)),
                 ),
                 layer_mask: None,

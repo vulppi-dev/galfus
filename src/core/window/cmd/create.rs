@@ -47,11 +47,11 @@ pub struct CmdResultWindowCreate {
     pub present_id: Option<u32>,
 }
 
-#[cfg(all(feature = "wasm", target_arch = "wasm32"))]
-pub use create_wasm::engine_cmd_window_create_async;
+#[cfg(not(feature = "wasm"))]
+pub use create_native::engine_cmd_window_create;
 #[cfg(all(feature = "wasm", target_arch = "wasm32"))]
 pub use create_wasm::engine_cmd_window_create;
 #[cfg(all(feature = "wasm", not(target_arch = "wasm32")))]
 pub use create_wasm::engine_cmd_window_create;
-#[cfg(not(feature = "wasm"))]
-pub use create_native::engine_cmd_window_create;
+#[cfg(all(feature = "wasm", target_arch = "wasm32"))]
+pub use create_wasm::engine_cmd_window_create_async;

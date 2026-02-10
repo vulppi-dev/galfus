@@ -2,6 +2,7 @@ use std::time::Duration;
 
 use glam::{Mat4, Quat, Vec3, Vec4};
 
+use super::maps::{Demo008BindRealms, build_bind_cmds, build_target_cmds};
 use crate::core::VulframResult;
 use crate::core::audio::{
     CmdAudioListenerCreateArgs, CmdAudioResourceCreateArgs, CmdAudioResourcePushArgs,
@@ -9,17 +10,16 @@ use crate::core::audio::{
 };
 use crate::core::cmd::{CommandResponse, EngineCmd};
 use crate::core::realm::cmd::{CmdRealmCreateArgs, RealmKindDto};
-use super::maps::{build_bind_cmds, build_target_cmds, Demo008BindRealms};
 use crate::core::resources::{
-    CmdEnvironmentUpdateArgs, CmdModelCreateArgs, CmdPrimitiveGeometryCreateArgs, EnvironmentConfig,
-    MsaaConfig, PostProcessConfig, PrimitiveShape, SkyboxConfig, SkyboxMode,
-};
-use crate::demo::{
-    create_ambient_light_cmd, create_camera_cmd, create_floor_cmd, create_point_light_cmd,
-    create_shadow_config_cmd, create_standard_material_cmd, create_window, load_texture_bytes,
-    upload_binary_bytes, DemoContext,
+    CmdEnvironmentUpdateArgs, CmdModelCreateArgs, CmdPrimitiveGeometryCreateArgs,
+    EnvironmentConfig, MsaaConfig, PostProcessConfig, PrimitiveShape, SkyboxConfig, SkyboxMode,
 };
 use crate::demo::io::{receive_responses, send_commands};
+use crate::demo::{
+    DemoContext, create_ambient_light_cmd, create_camera_cmd, create_floor_cmd,
+    create_point_light_cmd, create_shadow_config_cmd, create_standard_material_cmd, create_window,
+    load_texture_bytes, upload_binary_bytes,
+};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Demo008Ids {
@@ -277,7 +277,11 @@ impl Demo008Setup {
                 cast_outline: false,
                 outline_color: Vec4::ZERO,
             }),
-            create_floor_cmd(window_id, self.ids.floor_geometry_id, self.ids.material_floor_id),
+            create_floor_cmd(
+                window_id,
+                self.ids.floor_geometry_id,
+                self.ids.material_floor_id,
+            ),
             create_shadow_config_cmd(window_id),
             EngineCmd::CmdAudioListenerCreate(CmdAudioListenerCreateArgs {
                 realm_id,

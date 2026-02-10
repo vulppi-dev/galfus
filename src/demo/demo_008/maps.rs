@@ -102,10 +102,7 @@ pub fn build_target_cmds(window_main: u32, window_aux: u32) -> (Demo008TargetIds
     (target_ids, cmds)
 }
 
-pub fn build_bind_cmds(
-    targets: Demo008TargetIds,
-    realms: Demo008BindRealms,
-) -> Vec<EngineCmd> {
+pub fn build_bind_cmds(targets: Demo008TargetIds, realms: Demo008BindRealms) -> Vec<EngineCmd> {
     let binds = vec![
         CmdTargetBindUpsertArgs {
             realm_id: realms.host_main,

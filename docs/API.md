@@ -315,6 +315,7 @@ The host provides logical maps only:
 
 The core resolves `TargetGraph` + `RealmGraph` automatically and creates
 `Surface`, `Present`, and `Connector` entries internally.
+These entries are internal-only and are not exposed as host commands.
 
 Host bindings can update these maps with:
 

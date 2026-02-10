@@ -109,8 +109,7 @@ pub fn engine_cmd_realm_dispose(
             !remove
         });
     if !removed_connectors.is_empty() {
-        let removed_set: std::collections::HashSet<_> =
-            removed_connectors.into_iter().collect();
+        let removed_set: std::collections::HashSet<_> = removed_connectors.into_iter().collect();
         engine
             .universal_state
             .input_routing

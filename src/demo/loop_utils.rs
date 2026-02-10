@@ -5,8 +5,8 @@ use crate::core::window::{CmdWindowCloseArgs, WindowEvent};
 use std::time::{Duration, Instant};
 
 use crate::core;
-use crate::demo::io::{receive_events, receive_responses, send_commands};
 use crate::core::cmd::EngineCmd;
+use crate::demo::io::{receive_events, receive_responses, send_commands};
 
 pub fn run_loop<F>(window_id: u32, max_duration: Option<Duration>, on_frame: F) -> bool
 where

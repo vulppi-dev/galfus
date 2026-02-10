@@ -125,6 +125,7 @@ The host does not construct graphs directly. Instead it provides logical maps:
 
 The core builds `TargetGraph` and `RealmGraph` automatically and creates or updates
 `Surface`, `Present`, and `Connector` tables based on the binds.
+`Surface`, `Present`, and `Connector` are internal-only and are not exposed as host commands.
 
 **TargetGraph cache/diff**
 

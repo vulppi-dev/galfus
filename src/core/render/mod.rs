@@ -8,11 +8,11 @@ pub mod state;
 use crate::core::realm::{FrameReport, RealmGraphPlanner};
 use crate::core::render::graph::RenderGraphPlan;
 use crate::core::state::EngineState;
-pub use state::RenderState;
 use realm_graph::{
     collect_cut_connectors, collect_surface_views, compose_realm_connectors, ensure_surface_target,
     map_realms_to_windows, resolve_realm_surface, update_surface_cache,
 };
+pub use state::RenderState;
 use std::collections::HashSet;
 
 pub fn bloom_chain_size(base: u32, level: usize) -> u32 {

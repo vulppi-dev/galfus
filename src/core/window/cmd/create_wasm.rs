@@ -259,7 +259,9 @@ pub fn engine_cmd_window_create_async(
             engine
                 .state
                 .event_queue
-                .push(EngineEvent::Window(WindowEvent::OnCreate { window_id: win_id }));
+                .push(EngineEvent::Window(WindowEvent::OnCreate {
+                    window_id: win_id,
+                }));
             engine.state.response_queue.push(CommandResponseEnvelope {
                 id: cmd_id,
                 response: CommandResponse::WindowCreate(CmdResultWindowCreate {
@@ -274,8 +276,11 @@ pub fn engine_cmd_window_create_async(
                 if let (Some(device), Some(queue)) =
                     (engine.state.device.as_ref(), engine.state.queue.as_ref())
                 {
-                    engine.state.gpu_profiler =
-                        Some(GpuProfiler::new(device, queue, engine.state.window.states.len()));
+                    engine.state.gpu_profiler = Some(GpuProfiler::new(
+                        device,
+                        queue,
+                        engine.state.window.states.len(),
+                    ));
                 }
             }
         });

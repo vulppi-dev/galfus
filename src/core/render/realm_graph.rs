@@ -80,8 +80,13 @@ pub(crate) fn collect_surface_views(
             .format_policy
             .unwrap_or(wgpu::TextureFormat::Rgba16Float);
 
-        let surface_target =
-            ensure_surface_target(device, surface_targets, *surface_id, target_size, target_format);
+        let surface_target = ensure_surface_target(
+            device,
+            surface_targets,
+            *surface_id,
+            target_size,
+            target_format,
+        );
 
         views.insert(
             *surface_id,

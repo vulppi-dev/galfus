@@ -3,8 +3,8 @@ use crate::core::render::gizmos::CmdGizmoDrawLineArgs;
 use crate::core::resources::shadow::{CmdShadowConfigureArgs, ShadowConfig};
 use crate::core::resources::{
     CameraKind, CmdCameraCreateArgs, CmdLightCreateArgs, CmdMaterialCreateArgs, CmdModelCreateArgs,
-    CmdTextureCreateFromBufferArgs, MaterialKind, MaterialOptions, MaterialSampler, StandardOptions,
-    TextureCreateMode,
+    CmdTextureCreateFromBufferArgs, MaterialKind, MaterialOptions, MaterialSampler,
+    StandardOptions, TextureCreateMode,
 };
 use glam::{Mat4, Vec2, Vec3, Vec4};
 use rand::Rng;
@@ -95,7 +95,12 @@ pub fn create_standard_material_cmd(
     })
 }
 
-pub fn create_texture_cmd(window_id: u32, texture_id: u32, label: &str, buffer_id: u64) -> EngineCmd {
+pub fn create_texture_cmd(
+    window_id: u32,
+    texture_id: u32,
+    label: &str,
+    buffer_id: u64,
+) -> EngineCmd {
     EngineCmd::CmdTextureCreateFromBuffer(CmdTextureCreateFromBufferArgs {
         window_id,
         texture_id,

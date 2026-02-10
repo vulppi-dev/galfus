@@ -1,14 +1,14 @@
+use crate::core::VulframResult;
 use crate::core::cmd::EngineCmd;
 use crate::core::render::gizmos::CmdGizmoDrawAabbArgs;
 use crate::core::resources::{CmdModelUpdateArgs, CmdPrimitiveGeometryCreateArgs, PrimitiveShape};
-use crate::demo::{
-    create_camera_cmd, create_floor_cmd, create_instanced_cubes, create_point_light_cmd,
-    create_shadow_config_cmd, create_standard_material_cmd, create_texture_cmd, draw_axes_gizmos,
-    default_camera_transform, upload_texture, DemoContext,
-};
 use crate::demo::io::{receive_responses, send_commands};
 use crate::demo::loop_utils::run_loop;
-use crate::core::VulframResult;
+use crate::demo::{
+    DemoContext, create_camera_cmd, create_floor_cmd, create_instanced_cubes,
+    create_point_light_cmd, create_shadow_config_cmd, create_standard_material_cmd,
+    create_texture_cmd, default_camera_transform, draw_axes_gizmos, upload_texture,
+};
 use glam::{Mat4, Vec3, Vec4};
 
 pub fn run(ctx: DemoContext) -> bool {

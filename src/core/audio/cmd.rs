@@ -346,10 +346,11 @@ pub fn engine_cmd_audio_listener_create(
             message: format!("Realm {} not found", args.realm_id),
         };
     }
-    engine.universal_state.audio.listener_binding = Some(crate::core::audio::AudioListenerBinding {
-        realm_id: args.realm_id,
-        model_id: args.model_id,
-    });
+    engine.universal_state.audio.listener_binding =
+        Some(crate::core::audio::AudioListenerBinding {
+            realm_id: args.realm_id,
+            model_id: args.model_id,
+        });
     CmdResultAudioListenerCreate {
         success: true,
         message: "Listener bound to model".into(),
@@ -463,17 +464,27 @@ pub fn engine_cmd_audio_buffer_create_from_buffer(
             };
         }
         let complete = stream.complete();
-        engine.event_queue.push(crate::core::cmd::EngineEvent::System(
-            crate::core::system::events::SystemEvent::AudioStreamProgress {
-                resource_id: args.resource_id,
-                received_bytes: stream.received_bytes,
-                total_bytes: stream.total_bytes,
-                complete,
-            },
-        ));
+        engine
+            .event_queue
+            .push(crate::core::cmd::EngineEvent::System(
+                crate::core::system::events::SystemEvent::AudioStreamProgress {
+                    resource_id: args.resource_id,
+                    received_bytes: stream.received_bytes,
+                    total_bytes: stream.total_bytes,
+                    complete,
+                },
+            ));
         if complete {
-            let stream = engine.universal_state.audio.streams.remove(&args.resource_id).unwrap();
-            match engine.audio.buffer_create_from_bytes(args.resource_id, stream.data) {
+            let stream = engine
+                .universal_state
+                .audio
+                .streams
+                .remove(&args.resource_id)
+                .unwrap();
+            match engine
+                .audio
+                .buffer_create_from_bytes(args.resource_id, stream.data)
+            {
                 Ok(()) => CmdResultAudioResourceCreate {
                     success: true,
                     message: "Audio stream queued".into(),
@@ -540,7 +551,12 @@ pub fn engine_cmd_audio_resource_push(
         };
     }
     let (received_bytes, total_bytes, complete) = {
-        let stream = match engine.universal_state.audio.streams.get_mut(&args.resource_id) {
+        let stream = match engine
+            .universal_state
+            .audio
+            .streams
+            .get_mut(&args.resource_id)
+        {
             Some(stream) => stream,
             None => {
                 return CmdResultAudioResourcePush {
@@ -563,17 +579,27 @@ pub fn engine_cmd_audio_resource_push(
         }
         (stream.received_bytes, stream.total_bytes, stream.complete())
     };
-    engine.event_queue.push(crate::core::cmd::EngineEvent::System(
-        crate::core::system::events::SystemEvent::AudioStreamProgress {
-            resource_id: args.resource_id,
-            received_bytes,
-            total_bytes,
-            complete,
-        },
-    ));
+    engine
+        .event_queue
+        .push(crate::core::cmd::EngineEvent::System(
+            crate::core::system::events::SystemEvent::AudioStreamProgress {
+                resource_id: args.resource_id,
+                received_bytes,
+                total_bytes,
+                complete,
+            },
+        ));
     if complete {
-        let stream = engine.universal_state.audio.streams.remove(&args.resource_id).unwrap();
-        if let Err(message) = engine.audio.buffer_create_from_bytes(args.resource_id, stream.data) {
+        let stream = engine
+            .universal_state
+            .audio
+            .streams
+            .remove(&args.resource_id)
+            .unwrap();
+        if let Err(message) = engine
+            .audio
+            .buffer_create_from_bytes(args.resource_id, stream.data)
+        {
             return CmdResultAudioResourcePush {
                 success: false,
                 message,

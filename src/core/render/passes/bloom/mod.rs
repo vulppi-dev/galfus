@@ -82,7 +82,12 @@ pub fn pass_bloom(
         );
 
         if record.bloom_chain.iter().any(|target| target.is_none()) {
-            clear_color_target(encoder, bloom_target, CLEAR_BLACK, "Bloom Clear (Missing Chain)");
+            clear_color_target(
+                encoder,
+                bloom_target,
+                CLEAR_BLACK,
+                "Bloom Clear (Missing Chain)",
+            );
             continue;
         }
         let chain_targets = [

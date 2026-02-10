@@ -179,7 +179,6 @@ pub fn pass_skybox(
             _ => &library.fallback_view,
         };
 
-
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("Skybox Bind Group"),
             layout: &library.layout_skybox,

@@ -1,15 +1,15 @@
 use crate::core::VulframResult;
+use crate::core::buffers::state::UploadType;
 use crate::core::cmd::EngineCmd;
 use crate::core::resources::{
     CmdGeometryCreateArgs, CmdModelCreateArgs, CmdPoseUpdateArgs, GeometryPrimitiveEntry,
 };
-use crate::core::buffers::state::UploadType;
-use crate::demo::{
-    build_skinned_plane, create_ambient_light_cmd, create_camera_cmd, create_point_light_cmd,
-    create_shadow_config_cmd, create_standard_material_cmd, upload_buffer, DemoContext,
-};
 use crate::demo::io::{receive_responses, send_commands};
 use crate::demo::loop_utils::run_loop;
+use crate::demo::{
+    DemoContext, build_skinned_plane, create_ambient_light_cmd, create_camera_cmd,
+    create_point_light_cmd, create_shadow_config_cmd, create_standard_material_cmd, upload_buffer,
+};
 use glam::{Mat4, Vec3, Vec4};
 
 pub fn run(ctx: DemoContext) -> bool {

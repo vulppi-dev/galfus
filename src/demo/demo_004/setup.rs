@@ -1,18 +1,21 @@
 use crate::core::VulframResult;
-use crate::core::audio::{CmdAudioListenerCreateArgs, CmdAudioResourceCreateArgs, CmdAudioResourcePushArgs, CmdAudioSourceCreateArgs};
+use crate::core::audio::{
+    CmdAudioListenerCreateArgs, CmdAudioResourceCreateArgs, CmdAudioResourcePushArgs,
+    CmdAudioSourceCreateArgs,
+};
 use crate::core::cmd::EngineCmd;
 use crate::core::resources::{
-    CmdEnvironmentUpdateArgs, CmdModelCreateArgs, CmdPrimitiveGeometryCreateArgs, EnvironmentConfig,
-    MsaaConfig, PostProcessConfig, PrimitiveShape, SkyboxConfig, SkyboxMode,
+    CmdEnvironmentUpdateArgs, CmdModelCreateArgs, CmdPrimitiveGeometryCreateArgs,
+    EnvironmentConfig, MsaaConfig, PostProcessConfig, PrimitiveShape, SkyboxConfig, SkyboxMode,
 };
+use crate::demo::DemoContext;
+use crate::demo::demo_004::config::build_demo_004_post_config;
+use crate::demo::io::{receive_responses, send_commands};
 use crate::demo::{
     create_ambient_light_cmd, create_camera_cmd, create_floor_cmd, create_point_light_cmd,
     create_shadow_config_cmd, create_standard_material_cmd, load_texture_bytes,
     upload_binary_bytes,
 };
-use crate::demo::demo_004::config::build_demo_004_post_config;
-use crate::demo::io::{receive_responses, send_commands};
-use crate::demo::DemoContext;
 use glam::{Mat4, Quat, Vec3, Vec4};
 
 #[derive(Debug, Clone, Copy)]
@@ -63,12 +66,24 @@ impl Demo004Setup {
         };
 
         let cube_models = vec![
-            (501, Vec3::new(-2.5, 0.0, 0.0), Vec4::new(1.0, 0.1, 0.1, 1.0)),
+            (
+                501,
+                Vec3::new(-2.5, 0.0, 0.0),
+                Vec4::new(1.0, 0.1, 0.1, 1.0),
+            ),
             (502, Vec3::new(0.0, 0.0, 0.0), Vec4::new(0.1, 1.0, 0.1, 1.0)),
             (503, Vec3::new(2.5, 0.0, 0.0), Vec4::new(0.1, 0.1, 1.0, 1.0)),
-            (504, Vec3::new(-0.6, 0.2, -0.2), Vec4::new(1.0, 0.6, 0.1, 1.0)),
+            (
+                504,
+                Vec3::new(-0.6, 0.2, -0.2),
+                Vec4::new(1.0, 0.6, 0.1, 1.0),
+            ),
             (505, Vec3::new(0.4, 0.1, 0.3), Vec4::new(0.6, 1.0, 0.9, 1.0)),
-            (506, Vec3::new(0.0, -0.1, 0.8), Vec4::new(0.9, 0.4, 1.0, 1.0)),
+            (
+                506,
+                Vec3::new(0.0, -0.1, 0.8),
+                Vec4::new(0.9, 0.4, 1.0, 1.0),
+            ),
         ];
 
         let post_config = build_demo_004_post_config();

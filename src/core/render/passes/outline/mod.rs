@@ -53,7 +53,12 @@ pub fn pass_outline(
         };
 
         if !post_config.outline_enabled {
-            clear_color_target(encoder, outline_target, CLEAR_TRANSPARENT, "Outline Clear (Disabled)");
+            clear_color_target(
+                encoder,
+                outline_target,
+                CLEAR_TRANSPARENT,
+                "Outline Clear (Disabled)",
+            );
             continue;
         }
 
@@ -94,7 +99,12 @@ pub fn pass_outline(
         }
 
         if collector.outline_items.is_empty() {
-            clear_color_target(encoder, outline_target, CLEAR_TRANSPARENT, "Outline Clear (Empty)");
+            clear_color_target(
+                encoder,
+                outline_target,
+                CLEAR_TRANSPARENT,
+                "Outline Clear (Empty)",
+            );
             continue;
         }
 

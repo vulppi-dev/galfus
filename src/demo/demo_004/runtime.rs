@@ -1,17 +1,17 @@
 use crate::core::audio::{AudioPlayModeDto, CmdAudioSourcePlayArgs, CmdAudioSourceStopArgs};
+use crate::core::cmd::EngineCmd;
 use crate::core::cmd::EngineEvent;
+use crate::core::input::events::{ElementState, KeyboardEvent};
 use crate::core::resources::{
     CmdCameraUpdateArgs, CmdEnvironmentUpdateArgs, CmdModelUpdateArgs,
     CmdTextureCreateFromBufferArgs, EnvironmentConfig, MsaaConfig, SkyboxConfig, SkyboxMode,
     TextureCreateMode,
 };
+use crate::core::system::events::SystemEvent;
 use crate::demo::demo_004::setup::Demo004Setup;
 use crate::demo::{
-    load_texture_bytes, run_loop_with_events, send_commands, upload_texture_bytes, DemoContext,
+    DemoContext, load_texture_bytes, run_loop_with_events, send_commands, upload_texture_bytes,
 };
-use crate::core::cmd::EngineCmd;
-use crate::core::input::events::{ElementState, KeyboardEvent};
-use crate::core::system::events::SystemEvent;
 use glam::{Mat4, Vec3};
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -92,7 +92,7 @@ pub fn run(ctx: DemoContext, setup: &Demo004Setup) -> bool {
                 outline_color: None,
             }));
             {
-        let mut state = skybox_state_frame.borrow_mut();
+                let mut state = skybox_state_frame.borrow_mut();
                 if state.ready && !state.applied {
                     state.applied = true;
                     println!("Skybox applying cubemap environment");

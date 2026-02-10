@@ -116,14 +116,9 @@ pub fn route_pointer_events(engine_state: &mut EngineState) {
                 {
                     Some(capture.connector_id)
                 } else {
-                    capture
-                        .target_id
-                        .and_then(|target_id| {
-                            resolve_connector_for_target(
-                                connectors_by_realm.get(&realm_id),
-                                target_id,
-                            )
-                        })
+                    capture.target_id.and_then(|target_id| {
+                        resolve_connector_for_target(connectors_by_realm.get(&realm_id), target_id)
+                    })
                 };
             } else if let Some(hit) = resolve_hit_connector(
                 &engine_state.universal_state,
@@ -136,7 +131,8 @@ pub fn route_pointer_events(engine_state: &mut EngineState) {
             }
 
             if connector_id.is_none() {
-                if let Some(focused_target) = resolve_focus_target(&engine_state.universal_state, window_id)
+                if let Some(focused_target) =
+                    resolve_focus_target(&engine_state.universal_state, window_id)
                 {
                     target_id = Some(focused_target);
                     connector_id = resolve_connector_for_target(
@@ -159,8 +155,9 @@ pub fn route_pointer_events(engine_state: &mut EngineState) {
                     .map(|entry| &entry.value);
                 if let Some(connector) = connector {
                     source_realm_id = realm_by_surface.get(&connector.source_surface).copied();
-                    uv = uv_override
-                        .or_else(|| resolve_connector_uv(&engine_state.universal_state, connector, position));
+                    uv = uv_override.or_else(|| {
+                        resolve_connector_uv(&engine_state.universal_state, connector, position)
+                    });
                 }
             }
 
@@ -347,41 +344,41 @@ fn update_capture_state(
             ..
         } => {
             if let Some(connector_id) = connector_id {
-                universal
-                    .input_routing
-                    .captures
-                    .insert(
-                        (window_id, pointer_id),
-                        InputCapture {
-                            connector_id,
-                            target_id,
-                        },
-                    );
+                universal.input_routing.captures.insert(
+                    (window_id, pointer_id),
+                    InputCapture {
+                        connector_id,
+                        target_id,
+                    },
+                );
             }
         }
         PointerEvent::OnButton {
             state: ElementState::Released,
             ..
         } => {
-            universal.input_routing.captures.remove(&(window_id, pointer_id));
+            universal
+                .input_routing
+                .captures
+                .remove(&(window_id, pointer_id));
         }
         PointerEvent::OnTouch { phase, .. } => match phase {
             TouchPhase::Started | TouchPhase::Moved => {
                 if let Some(connector_id) = connector_id {
-                    universal
-                        .input_routing
-                        .captures
-                        .insert(
-                            (window_id, pointer_id),
-                            InputCapture {
-                                connector_id,
-                                target_id,
-                            },
-                        );
+                    universal.input_routing.captures.insert(
+                        (window_id, pointer_id),
+                        InputCapture {
+                            connector_id,
+                            target_id,
+                        },
+                    );
                 }
             }
             TouchPhase::Ended | TouchPhase::Cancelled => {
-                universal.input_routing.captures.remove(&(window_id, pointer_id));
+                universal
+                    .input_routing
+                    .captures
+                    .remove(&(window_id, pointer_id));
             }
         },
         _ => {}
@@ -425,7 +422,11 @@ fn update_focus_state(
 }
 
 fn resolve_focus_target(universal: &UniversalState, window_id: u32) -> Option<TargetId> {
-    universal.input_routing.focus_targets.get(&window_id).copied()
+    universal
+        .input_routing
+        .focus_targets
+        .get(&window_id)
+        .copied()
 }
 
 fn resolve_connector_for_target(

@@ -1,7 +1,5 @@
 use std::sync::Arc;
 
-use glam::{IVec2, UVec2};
-use pollster::FutureExt;
 use super::create_shared::register_window_realm;
 use super::{CmdResultWindowCreate, CmdWindowCreateArgs};
 use crate::core::platform::ActiveEventLoop;
@@ -10,6 +8,8 @@ use crate::core::platform::winit::dpi::{PhysicalPosition, PhysicalSize, Position
 use crate::core::profiling::gpu::GpuProfiler;
 use crate::core::state::EngineState;
 use crate::core::window::WindowState;
+use glam::{IVec2, UVec2};
+use pollster::FutureExt;
 
 #[cfg(not(feature = "wasm"))]
 pub fn engine_cmd_window_create(

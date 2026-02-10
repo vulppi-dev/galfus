@@ -5,7 +5,14 @@ pub fn build_skinned_plane(
     depth_segments: u32,
     size: f32,
     bone_count: u32,
-) -> (Vec<Vec3>, Vec<Vec3>, Vec<Vec2>, Vec<[u16; 4]>, Vec<Vec4>, Vec<u32>) {
+) -> (
+    Vec<Vec3>,
+    Vec<Vec3>,
+    Vec<Vec2>,
+    Vec<[u16; 4]>,
+    Vec<Vec4>,
+    Vec<u32>,
+) {
     let mut positions = Vec::new();
     let mut normals = Vec::new();
     let mut uvs = Vec::new();
@@ -35,12 +42,7 @@ pub fn build_skinned_plane(
             let next_index = (bone_index + 1).min(bone_count.saturating_sub(1));
             let weight = bone_float - bone_index as f32;
 
-            joints.push([
-                bone_index as u16,
-                next_index as u16,
-                0,
-                0,
-            ]);
+            joints.push([bone_index as u16, next_index as u16, 0, 0]);
             weights.push(Vec4::new(1.0 - weight, weight, 0.0, 0.0));
         }
     }

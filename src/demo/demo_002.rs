@@ -1,15 +1,16 @@
+use crate::core::VulframResult;
 use crate::core::cmd::EngineCmd;
 use crate::core::resources::{
-    CmdEnvironmentUpdateArgs, CmdModelCreateArgs, CmdModelUpdateArgs, CmdPrimitiveGeometryCreateArgs,
-    EnvironmentConfig, MsaaConfig, PostProcessConfig, PrimitiveShape, SkyboxConfig, SkyboxMode,
-};
-use crate::demo::{
-    create_ambient_light_cmd, create_camera_cmd, create_point_light_cmd,
-    create_shadow_config_cmd, create_standard_material_cmd, draw_axes_gizmos, DemoContext,
+    CmdEnvironmentUpdateArgs, CmdModelCreateArgs, CmdModelUpdateArgs,
+    CmdPrimitiveGeometryCreateArgs, EnvironmentConfig, MsaaConfig, PostProcessConfig,
+    PrimitiveShape, SkyboxConfig, SkyboxMode,
 };
 use crate::demo::io::{receive_responses, send_commands};
 use crate::demo::loop_utils::run_loop;
-use crate::core::VulframResult;
+use crate::demo::{
+    DemoContext, create_ambient_light_cmd, create_camera_cmd, create_point_light_cmd,
+    create_shadow_config_cmd, create_standard_material_cmd, draw_axes_gizmos,
+};
 use glam::{Mat4, Vec3, Vec4};
 
 pub fn run(ctx: DemoContext) -> bool {

@@ -212,7 +212,10 @@ pub fn validate_graph(desc: &RenderGraphDesc) -> Result<RenderGraphPlan, String>
         let mut node_inputs: HashSet<&LogicalId> = HashSet::new();
         for input in &node.inputs {
             if !node_inputs.insert(input) {
-                return Err(format!("Duplicate input '{}' in node '{}'", input, node.node_id));
+                return Err(format!(
+                    "Duplicate input '{}' in node '{}'",
+                    input, node.node_id
+                ));
             }
             if !res_ids.contains(input) {
                 return Err(format!("Input resource '{}' not declared", input));

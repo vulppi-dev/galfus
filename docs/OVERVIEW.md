@@ -217,6 +217,7 @@ The core resolves `TargetGraph` + `RealmGraph` automatically, creating
 relationships between targets are inferred by the core; the bind layout
 defines the composition rectangle, zIndex, clip, and input flags.
 - The compositor resolves format/size conversions and MSAA resolves automatically.
+Note: `Surface`, `Present`, and `Connector` are internal and not exposed as host commands.
 
 Example flow (host-side):
 

@@ -81,12 +81,6 @@ pub enum EngineCmd {
     CmdShadowConfigure(res::shadow::CmdShadowConfigureArgs),
     CmdRealmCreate(realm::CmdRealmCreateArgs),
     CmdRealmDispose(realm::CmdRealmDisposeArgs),
-    CmdSurfaceCreate(realm::CmdSurfaceCreateArgs),
-    CmdSurfaceDispose(realm::CmdSurfaceDisposeArgs),
-    CmdPresentCreate(realm::CmdPresentCreateArgs),
-    CmdPresentDispose(realm::CmdPresentDisposeArgs),
-    CmdConnectorCreate(realm::CmdConnectorCreateArgs),
-    CmdConnectorDispose(realm::CmdConnectorDisposeArgs),
     CmdTargetUpsert(target::CmdTargetUpsertArgs),
     CmdTargetDispose(target::CmdTargetDisposeArgs),
     CmdTargetBindUpsert(target::CmdTargetBindUpsertArgs),
@@ -177,12 +171,6 @@ pub enum CommandResponse {
     ShadowConfigure(res::shadow::CmdResultShadowConfigure),
     RealmCreate(realm::CmdResultRealmCreate),
     RealmDispose(realm::CmdResultRealmDispose),
-    SurfaceCreate(realm::CmdResultSurfaceCreate),
-    SurfaceDispose(realm::CmdResultSurfaceDispose),
-    PresentCreate(realm::CmdResultPresentCreate),
-    PresentDispose(realm::CmdResultPresentDispose),
-    ConnectorCreate(realm::CmdResultConnectorCreate),
-    ConnectorDispose(realm::CmdResultConnectorDispose),
     TargetUpsert(target::CmdResultTargetUpsert),
     TargetDispose(target::CmdResultTargetDispose),
     TargetBindUpsert(target::CmdResultTargetBindUpsert),
@@ -656,48 +644,6 @@ pub fn engine_process_batch(
                 engine.response_queue.push(CommandResponseEnvelope {
                     id: pack.id,
                     response: CommandResponse::RealmDispose(result),
-                });
-            }
-            EngineCmd::CmdSurfaceCreate(args) => {
-                let result = realm::engine_cmd_surface_create(engine, &args);
-                engine.response_queue.push(CommandResponseEnvelope {
-                    id: pack.id,
-                    response: CommandResponse::SurfaceCreate(result),
-                });
-            }
-            EngineCmd::CmdSurfaceDispose(args) => {
-                let result = realm::engine_cmd_surface_dispose(engine, &args);
-                engine.response_queue.push(CommandResponseEnvelope {
-                    id: pack.id,
-                    response: CommandResponse::SurfaceDispose(result),
-                });
-            }
-            EngineCmd::CmdPresentCreate(args) => {
-                let result = realm::engine_cmd_present_create(engine, &args);
-                engine.response_queue.push(CommandResponseEnvelope {
-                    id: pack.id,
-                    response: CommandResponse::PresentCreate(result),
-                });
-            }
-            EngineCmd::CmdPresentDispose(args) => {
-                let result = realm::engine_cmd_present_dispose(engine, &args);
-                engine.response_queue.push(CommandResponseEnvelope {
-                    id: pack.id,
-                    response: CommandResponse::PresentDispose(result),
-                });
-            }
-            EngineCmd::CmdConnectorCreate(args) => {
-                let result = realm::engine_cmd_connector_create(engine, &args);
-                engine.response_queue.push(CommandResponseEnvelope {
-                    id: pack.id,
-                    response: CommandResponse::ConnectorCreate(result),
-                });
-            }
-            EngineCmd::CmdConnectorDispose(args) => {
-                let result = realm::engine_cmd_connector_dispose(engine, &args);
-                engine.response_queue.push(CommandResponseEnvelope {
-                    id: pack.id,
-                    response: CommandResponse::ConnectorDispose(result),
                 });
             }
             EngineCmd::CmdTargetUpsert(args) => {

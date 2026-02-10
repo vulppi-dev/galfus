@@ -14,8 +14,7 @@ impl RenderState {
     ) {
         // 0. Cache sorted cameras for this tick
         self.camera_order.clear();
-        self.camera_order
-            .extend(self.scene.cameras.keys().copied());
+        self.camera_order.extend(self.scene.cameras.keys().copied());
         self.camera_order.sort_by_key(|id| {
             self.scene
                 .cameras
