@@ -9,8 +9,9 @@ use crate::core::realm::{FrameReport, RealmGraphPlanner};
 use crate::core::render::graph::RenderGraphPlan;
 use crate::core::state::EngineState;
 use realm_graph::{
-    collect_cut_connectors, collect_surface_views, compose_realm_connectors, ensure_surface_target,
-    map_realms_to_windows, resolve_realm_surface, update_surface_cache,
+    collect_connectors_by_realm, collect_cut_connectors, collect_present_sizes,
+    collect_surface_views, compose_realm_connectors, ensure_surface_target, map_realms_to_windows,
+    resolve_realm_surface, update_surface_cache,
 };
 pub use state::RenderState;
 use std::collections::HashSet;
@@ -147,11 +148,19 @@ pub fn render_frames(engine_state: &mut EngineState) {
         FrameReport::from_plan(&realm_plan, &engine_state.universal_state.surface_cache);
     frame_report.apply_target_graph_stats(&target_plan, target_diff.as_ref());
     let realm_windows = map_realms_to_windows(&engine_state.universal_state);
+    collect_present_sizes(
+        &engine_state.universal_state,
+        &engine_state.window.states,
+        &mut engine_state.present_sizes_cache,
+        &mut engine_state.present_sizes_hash,
+    );
+    let present_sizes = &engine_state.present_sizes_cache;
+    let connectors_by_realm = collect_connectors_by_realm(&engine_state.universal_state);
     let surface_views = collect_surface_views(
         device,
-        &engine_state.window.states,
         &engine_state.universal_state,
         &mut engine_state.surface_targets,
+        present_sizes,
     );
     let mut updated_surfaces: HashSet<crate::core::realm::SurfaceId> = HashSet::new();
     const MAX_REALM_ITERATIONS: u32 = 1;
@@ -255,6 +264,7 @@ pub fn render_frames(engine_state: &mut EngineState) {
                 device,
                 &mut encoder,
                 &engine_state.universal_state,
+                &connectors_by_realm,
                 *realm_id,
                 surface_id,
                 &cut_connectors,

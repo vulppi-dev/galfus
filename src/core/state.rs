@@ -31,6 +31,8 @@ pub struct EngineState {
     pub audio: Box<dyn AudioProxy>,
     pub universal_state: UniversalState,
     pub surface_targets: HashMap<crate::core::realm::SurfaceId, RenderTarget>,
+    pub present_sizes_cache: HashMap<crate::core::realm::SurfaceId, glam::UVec2>,
+    pub present_sizes_hash: u64,
 
     pub cmd_queue: EngineBatchCmds,
     pub event_queue: EngineBatchEvents,
@@ -87,6 +89,8 @@ impl EngineState {
             audio: Box::new(WebAudioProxy::default()),
             universal_state: UniversalState::default(),
             surface_targets: HashMap::new(),
+            present_sizes_cache: HashMap::new(),
+            present_sizes_hash: 0,
             cmd_queue: Vec::new(),
             event_queue: Vec::new(),
             response_queue: Vec::new(),

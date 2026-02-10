@@ -1,4 +1,5 @@
 use std::collections::{HashMap, HashSet};
+use std::hash::{Hash, Hasher};
 
 use crate::core::realm::{ConnectorId, RealmGraphPlan, RealmId, SurfaceId, UniversalState};
 use crate::core::render::{RenderState, passes};
@@ -53,20 +54,63 @@ pub(crate) fn map_realms_to_windows(universal: &UniversalState) -> HashMap<Realm
     map
 }
 
-pub(crate) fn collect_surface_views(
-    device: &wgpu::Device,
-    windows: &HashMap<u32, WindowState>,
+pub(crate) fn collect_present_sizes(
     universal: &UniversalState,
-    surface_targets: &mut HashMap<SurfaceId, RenderTarget>,
-) -> HashMap<SurfaceId, SurfaceSnapshot> {
-    let mut views = HashMap::new();
-    let mut present_sizes = HashMap::new();
+    windows: &HashMap<u32, WindowState>,
+    cache: &mut HashMap<SurfaceId, glam::UVec2>,
+    cache_hash: &mut u64,
+) {
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    let mut present_entries: Vec<_> = universal.presents.entries.values().collect();
+    present_entries.sort_by_key(|entry| (entry.value.surface.0, entry.value.window_id));
 
+    for entry in present_entries {
+        entry.value.surface.0.hash(&mut hasher);
+        entry.value.window_id.hash(&mut hasher);
+        let size = windows
+            .get(&entry.value.window_id)
+            .map(|window| window.inner_size)
+            .unwrap_or_else(|| glam::UVec2::new(0, 0));
+        size.x.hash(&mut hasher);
+        size.y.hash(&mut hasher);
+    }
+
+    let current_hash = hasher.finish();
+    if current_hash == *cache_hash {
+        return;
+    }
+
+    cache.clear();
     for present in universal.presents.entries.values() {
         if let Some(window_state) = windows.get(&present.value.window_id) {
-            present_sizes.insert(present.value.surface, window_state.inner_size);
+            cache.insert(present.value.surface, window_state.inner_size);
         }
     }
+    *cache_hash = current_hash;
+}
+
+pub(crate) fn collect_connectors_by_realm(
+    universal: &UniversalState,
+) -> HashMap<RealmId, Vec<ConnectorId>> {
+    let mut map: HashMap<RealmId, Vec<ConnectorId>> = HashMap::new();
+    for (connector_id, entry) in universal.connectors.entries.iter() {
+        map.entry(entry.value.target_realm)
+            .or_default()
+            .push(*connector_id);
+    }
+    for connectors in map.values_mut() {
+        connectors.sort_by_key(|id| id.0);
+    }
+    map
+}
+
+pub(crate) fn collect_surface_views(
+    device: &wgpu::Device,
+    universal: &UniversalState,
+    surface_targets: &mut HashMap<SurfaceId, RenderTarget>,
+    present_sizes: &HashMap<SurfaceId, glam::UVec2>,
+) -> HashMap<SurfaceId, SurfaceSnapshot> {
+    let mut views = HashMap::new();
 
     for (surface_id, entry) in universal.surfaces.entries.iter() {
         let mut target_size = entry.value.size;
@@ -146,6 +190,7 @@ pub(crate) fn compose_realm_connectors(
     device: &wgpu::Device,
     encoder: &mut wgpu::CommandEncoder,
     universal: &UniversalState,
+    connectors_by_realm: &HashMap<RealmId, Vec<ConnectorId>>,
     realm_id: RealmId,
     target_surface: SurfaceId,
     cut_connectors: &HashSet<ConnectorId>,
@@ -158,10 +203,14 @@ pub(crate) fn compose_realm_connectors(
 ) {
     let mut overlays = Vec::new();
 
-    for (connector_id, connector) in universal.connectors.entries.iter() {
-        if connector.value.target_realm != realm_id {
+    let Some(connector_ids) = connectors_by_realm.get(&realm_id) else {
+        return;
+    };
+
+    for connector_id in connector_ids {
+        let Some(connector) = universal.connectors.entries.get(connector_id) else {
             continue;
-        }
+        };
         if connector.value.source_surface == target_surface {
             crate::core::realm::FrameReport::push_unique(
                 &mut frame_report.self_sampled_connectors,
