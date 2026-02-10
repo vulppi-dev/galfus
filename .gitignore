@@ -26,12 +26,13 @@ bun.lock
 bun.lockb
 
 # build
-target/
-build/
-dist/
-pkg/
+/target/
+/build/
+/dist/
+/pkg/
 *.gem
 *.egg
+
 
 # Rust ts-rs generated bindings
 **/vulfram-core/bindings/
