@@ -61,6 +61,7 @@ pub enum EngineCmd {
     CmdTextureCreateFromBuffer(res::CmdTextureCreateFromBufferArgs),
     CmdTextureCreateSolidColor(res::CmdTextureCreateSolidColorArgs),
     CmdTextureDispose(res::CmdTextureDisposeArgs),
+    CmdTextureBindTarget(res::CmdTextureBindTargetArgs),
     CmdAudioListenerUpdate(audio::CmdAudioListenerUpdateArgs),
     CmdAudioListenerCreate(audio::CmdAudioListenerCreateArgs),
     CmdAudioListenerDispose(audio::CmdAudioListenerDisposeArgs),
@@ -161,6 +162,7 @@ pub enum CommandResponse {
     TextureCreateFromBuffer(res::CmdResultTextureCreateFromBuffer),
     TextureCreateSolidColor(res::CmdResultTextureCreateSolidColor),
     TextureDispose(res::CmdResultTextureDispose),
+    TextureBindTarget(res::CmdResultTextureBindTarget),
     AudioListenerUpdate(audio::CmdResultAudioListenerUpdate),
     AudioListenerCreate(audio::CmdResultAudioListenerCreate),
     AudioListenerDispose(audio::CmdResultAudioListenerDispose),
@@ -511,6 +513,13 @@ pub fn engine_process_batch(
                 engine.response_queue.push(CommandResponseEnvelope {
                     id: pack.id,
                     response: CommandResponse::TextureDispose(result),
+                });
+            }
+            EngineCmd::CmdTextureBindTarget(args) => {
+                let result = res::engine_cmd_texture_bind_target(engine, &args);
+                engine.response_queue.push(CommandResponseEnvelope {
+                    id: pack.id,
+                    response: CommandResponse::TextureBindTarget(result),
                 });
             }
             EngineCmd::CmdAudioListenerUpdate(args) => {

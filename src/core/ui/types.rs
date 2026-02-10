@@ -158,7 +158,7 @@ pub enum UiNodeProps {
         enabled: Option<bool>,
     },
     Image {
-        image_id: UiImageId,
+        source: UiImageSource,
         #[serde(default)]
         size: Option<UiSize>,
     },
@@ -167,6 +167,13 @@ pub enum UiNodeProps {
         width: Option<f32>,
         height: Option<f32>,
     },
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
+#[serde(tag = "type", content = "content", rename_all = "kebab-case")]
+pub enum UiImageSource {
+    UiImage(UiImageId),
+    Target(u64),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

@@ -34,12 +34,12 @@ _Sistema de UI renderizado no core, host-driven, usando Realm TwoD + TargetGraph
 - [x] Z-order interno (overlays/menus) por UiDocument.
 
 ## Fase E — Composição (Targets/Surfaces)
-- [ ] UI realm pode bindar em targets `window`, `viewport-embed`, `panel-embed` e `texture` via `CmdTargetBindUpsert`.
-- [ ] Overlay UI/3D via `zIndex` no `TargetBindLayout` (sem camadas separadas).
-- [ ] UI em superfície 3D: render para target `texture` e usar como textura em material/plane.
-- [ ] O mesmo realm pode ser usado em múltiplos targets; cada realm mantém seu próprio contexto.
-- [ ] Viewport POC: câmera para target texture e UI mostra como imagem.
-- [ ] Viewport resize: ajustar target ao tamanho do widget e resolver MSAA automaticamente.
+- [x] UI realm pode bindar em targets `window`, `viewport-embed`, `panel-embed` e `texture` via `CmdTargetBindUpsert`.
+- [x] Overlay UI/3D via `zIndex` no `TargetBindLayout` (sem camadas separadas).
+- [x] UI em superfície 3D: render para target `texture` e usar como textura em material/plane.
+- [x] O mesmo realm pode ser usado em múltiplos targets; cada realm mantém seu próprio contexto.
+- [x] Viewport POC: câmera para target texture e UI mostra como imagem.
+- [x] Viewport resize: ajustar target ao tamanho do widget e resolver MSAA automaticamente.
 
 ## Fase F — Recursos Avançados
 - [ ] Wrap (row/col reversos) com height limitada.

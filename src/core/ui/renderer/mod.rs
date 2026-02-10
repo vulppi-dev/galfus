@@ -1,21 +1,48 @@
 mod pipeline;
 mod textures;
 
+use std::collections::{HashMap, HashSet};
+
 use egui::ClippedPrimitive;
 
 use crate::core::ui::renderer::pipeline::UiPipeline;
 use crate::core::ui::renderer::textures::UiTextureStore;
 
+pub struct ExternalTextureInput<'a> {
+    pub id: u64,
+    pub view: &'a wgpu::TextureView,
+    pub size: [u32; 2],
+    pub source_ptr: usize,
+}
+
+struct ExternalUiTexture {
+    bind_group: wgpu::BindGroup,
+    _view: wgpu::TextureView,
+    size: [u32; 2],
+    source_ptr: usize,
+}
+
+impl ExternalUiTexture {
+    fn bind_group(&self) -> &wgpu::BindGroup {
+        &self.bind_group
+    }
+}
+
 pub struct UiRenderer {
     pipeline: UiPipeline,
     textures: UiTextureStore,
+    external_textures: HashMap<u64, ExternalUiTexture>,
 }
 
 impl UiRenderer {
     pub fn new(device: &wgpu::Device, queue: &wgpu::Queue, target_format: wgpu::TextureFormat) -> Self {
         let pipeline = UiPipeline::new(device, target_format);
         let textures = UiTextureStore::new(device, queue, pipeline.bind_group_layout(), pipeline.sampler(), pipeline.uniform_buffer());
-        Self { pipeline, textures }
+        Self {
+            pipeline,
+            textures,
+            external_textures: HashMap::new(),
+        }
     }
 
     pub fn update_textures(
@@ -26,6 +53,57 @@ impl UiRenderer {
     ) {
         self.textures
             .update_textures(device, queue, delta, self.pipeline.bind_group_layout(), self.pipeline.sampler(), self.pipeline.uniform_buffer());
+    }
+
+    pub fn update_external_textures(
+        &mut self,
+        device: &wgpu::Device,
+        inputs: &[ExternalTextureInput<'_>],
+    ) {
+        let mut keep_ids = HashSet::with_capacity(inputs.len());
+
+        for input in inputs {
+            keep_ids.insert(input.id);
+            let needs_new = self
+                .external_textures
+                .get(&input.id)
+                .map(|entry| entry.size != input.size || entry.source_ptr != input.source_ptr)
+                .unwrap_or(true);
+
+            if needs_new {
+                let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+                    label: Some("UI External Texture Bind Group"),
+                    layout: self.pipeline.bind_group_layout(),
+                    entries: &[
+                        wgpu::BindGroupEntry {
+                            binding: 0,
+                            resource: wgpu::BindingResource::TextureView(input.view),
+                        },
+                        wgpu::BindGroupEntry {
+                            binding: 1,
+                            resource: wgpu::BindingResource::Sampler(self.pipeline.sampler()),
+                        },
+                        wgpu::BindGroupEntry {
+                            binding: 2,
+                            resource: self.pipeline.uniform_buffer().as_entire_binding(),
+                        },
+                    ],
+                });
+
+                self.external_textures.insert(
+                    input.id,
+                    ExternalUiTexture {
+                        bind_group,
+                        _view: input.view.clone(),
+                        size: input.size,
+                        source_ptr: input.source_ptr,
+                    },
+                );
+            }
+        }
+
+        self.external_textures
+            .retain(|id, _| keep_ids.contains(id));
     }
 
     pub fn render(
@@ -96,9 +174,16 @@ impl UiRenderer {
             let (vertex_buffer, index_buffer, index_count) =
                 self.pipeline.build_mesh_buffers(device, mesh);
 
-            let texture = self.textures.get(mesh.texture_id);
+            let bind_group = match mesh.texture_id {
+                egui::TextureId::User(id) => self
+                    .external_textures
+                    .get(&id)
+                    .map(|texture| texture.bind_group())
+                    .unwrap_or_else(|| self.textures.fallback().bind_group()),
+                _ => self.textures.get(mesh.texture_id).bind_group(),
+            };
 
-            render_pass.set_bind_group(0, texture.bind_group(), &[]);
+            render_pass.set_bind_group(0, bind_group, &[]);
             render_pass.set_vertex_buffer(0, vertex_buffer.slice(..));
             render_pass.set_index_buffer(index_buffer.slice(..), wgpu::IndexFormat::Uint32);
             render_pass.draw_indexed(0..index_count, 0, 0..1);

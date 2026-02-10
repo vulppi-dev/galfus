@@ -8,9 +8,16 @@ use crate::core::state::EngineState;
 use crate::core::target::{TargetBindState, TargetId, TargetKind};
 
 pub fn sync_auto_graph(engine_state: &mut EngineState) {
-    let desired_binds = select_primary_binds(&engine_state.universal_state.target_binds.entries);
-    let mut desired_keys: HashSet<(u32, TargetId)> = desired_binds
+    let mut desired_binds: Vec<TargetBindState> = engine_state
+        .universal_state
+        .target_binds
+        .entries
         .values()
+        .cloned()
+        .collect();
+    desired_binds.sort_by_key(|bind| (bind.realm_id, bind.target_id.0));
+    let desired_keys: HashSet<(u32, TargetId)> = desired_binds
+        .iter()
         .map(|bind| (bind.realm_id, bind.target_id))
         .collect();
 
@@ -26,66 +33,89 @@ pub fn sync_auto_graph(engine_state: &mut EngineState) {
         }
     }
 
-    for bind in desired_binds.values() {
+    let mut primary_targets: HashMap<u32, TargetId> = HashMap::new();
+
+    for bind in desired_binds {
         let key = (bind.realm_id, bind.target_id);
-        if let Some(link) = engine_state.universal_state.auto_links.get(&key).cloned() {
-            if let Some(target) = engine_state
+        let target = match engine_state
+            .universal_state
+            .targets
+            .entries
+            .get(&bind.target_id)
+        {
+            Some(target) => target.clone(),
+            None => {
+                remove_auto_link(&mut engine_state.universal_state, key);
+                continue;
+            }
+        };
+
+        let primary_target = primary_targets
+            .entry(bind.realm_id)
+            .or_insert(bind.target_id);
+        let is_primary = *primary_target == bind.target_id;
+
+        let mut surface_id = engine_state
+            .universal_state
+            .realms
+            .entries
+            .get(&RealmId(bind.realm_id))
+            .and_then(|entry| entry.value.output_surface);
+
+        if surface_id.is_none() {
+            let desired_surface = surface_state_for_target(engine_state, &target);
+            surface_id = Some(engine_state.universal_state.surfaces.alloc(desired_surface));
+            if let Some(entry) = engine_state
                 .universal_state
-                .targets
+                .realms
                 .entries
-                .get(&bind.target_id)
+                .get_mut(&RealmId(bind.realm_id))
             {
-                let desired_surface = surface_state_for_target(engine_state, target);
-                let needs_rebuild = engine_state
+                entry.value.output_surface = surface_id;
+            }
+        } else if is_primary {
+            let desired_surface = surface_state_for_target(engine_state, &target);
+            if let Some(surface_id) = surface_id {
+                if let Some(entry) = engine_state
                     .universal_state
                     .surfaces
                     .entries
-                    .get(&link.surface_id)
-                    .map(|entry| !surface_state_matches(&entry.value, &desired_surface))
-                    .unwrap_or(true)
-                    || link.present_id.is_none() && matches!(target.kind, TargetKind::Window)
+                    .get_mut(&surface_id)
+                {
+                    if !surface_state_matches(&entry.value, &desired_surface) {
+                        entry.value = desired_surface;
+                    }
+                }
+            }
+        }
+
+        let Some(surface_id) = surface_id else {
+            continue;
+        };
+
+        if let Some(link) = engine_state.universal_state.auto_links.get(&key).cloned() {
+            let needs_rebuild =
+                link.surface_id != surface_id
+                    || link.present_id.is_none()
+                        && matches!(target.kind, TargetKind::Window)
                     || link.connector_id.is_none()
                         && matches!(
                             target.kind,
                             TargetKind::ViewportEmbed | TargetKind::PanelEmbed
                         );
 
-                if needs_rebuild {
-                    remove_auto_link(&mut engine_state.universal_state, key);
-                } else {
-                    if let Some(connector_id) = link.connector_id {
-                        update_auto_link_layout(
-                            &mut engine_state.universal_state,
-                            Some(connector_id),
-                            bind,
-                        );
-                    }
-                    continue;
-                }
-            } else {
+            if needs_rebuild {
                 remove_auto_link(&mut engine_state.universal_state, key);
+            } else {
+                if let Some(connector_id) = link.connector_id {
+                    update_auto_link_layout(
+                        &mut engine_state.universal_state,
+                        Some(connector_id),
+                        &bind,
+                    );
+                }
+                continue;
             }
-        }
-
-        let Some(target) = engine_state
-            .universal_state
-            .targets
-            .entries
-            .get(&bind.target_id)
-        else {
-            continue;
-        };
-
-        let desired_surface = surface_state_for_target(engine_state, target);
-        let surface_id = engine_state.universal_state.surfaces.alloc(desired_surface);
-
-        if let Some(entry) = engine_state
-            .universal_state
-            .realms
-            .entries
-            .get_mut(&RealmId(bind.realm_id))
-        {
-            entry.value.output_surface = Some(surface_id);
         }
 
         let mut connector_id = None;
@@ -130,7 +160,6 @@ pub fn sync_auto_graph(engine_state: &mut EngineState) {
                 present_id,
             },
         );
-        desired_keys.remove(&key);
     }
 }
 
@@ -181,35 +210,32 @@ fn remove_auto_link(universal: &mut UniversalState, key: (u32, TargetId)) {
     }
     if let Some(entry) = universal.realms.entries.get_mut(&RealmId(realm_id)) {
         if entry.value.output_surface == Some(link.surface_id) {
-            entry.value.output_surface = None;
+            let surface_id = link.surface_id;
+            let still_used = universal
+                .auto_links
+                .iter()
+                .any(|((realm, _), link)| *realm == realm_id && link.surface_id == surface_id);
+            if !still_used {
+                entry.value.output_surface = None;
+            }
         }
     }
-    universal.surfaces.remove(link.surface_id);
-    universal
-        .surface_cache
-        .last_good
-        .retain(|_, source| *source != link.surface_id);
-    universal
-        .surface_cache
-        .fallback
-        .retain(|_, source| *source != link.surface_id);
-}
 
-fn select_primary_binds(
-    binds: &HashMap<(u32, TargetId), TargetBindState>,
-) -> HashMap<u32, TargetBindState> {
-    let mut per_realm: HashMap<u32, TargetBindState> = HashMap::new();
-    for bind in binds.values() {
-        per_realm
-            .entry(bind.realm_id)
-            .and_modify(|existing| {
-                if bind.target_id.0 < existing.target_id.0 {
-                    *existing = bind.clone();
-                }
-            })
-            .or_insert_with(|| bind.clone());
+    let surface_still_used = universal
+        .auto_links
+        .values()
+        .any(|link_entry| link_entry.surface_id == link.surface_id);
+    if !surface_still_used {
+        universal.surfaces.remove(link.surface_id);
+        universal
+            .surface_cache
+            .last_good
+            .retain(|_, source| *source != link.surface_id);
+        universal
+            .surface_cache
+            .fallback
+            .retain(|_, source| *source != link.surface_id);
     }
-    per_realm
 }
 
 fn find_host_realm_for_window(universal: &UniversalState, window_id: u32) -> Option<RealmId> {

@@ -3,8 +3,8 @@ use crate::core::realm::RealmId;
 use crate::core::ui::events::{UiEvent, UiEventKind};
 use crate::core::ui::state::{UiDocument, UiImageRecord, UiNodeEntry, UiState};
 use crate::core::ui::types::{
-    UiAlign, UiColor, UiLayout, UiLayoutDirection, UiLength, UiNodeId, UiNodeProps, UiPadding,
-    UiSize,
+    UiAlign, UiColor, UiImageSource, UiLayout, UiLayoutDirection, UiLength, UiNodeId, UiNodeProps,
+    UiPadding, UiSize,
 };
 
 pub fn sync_ui_images(ctx: &egui::Context, ui_state: &mut UiState) {
@@ -24,14 +24,15 @@ pub fn sync_ui_images(ctx: &egui::Context, ui_state: &mut UiState) {
 
 pub fn render_realm_documents(
     ctx: &egui::Context,
-    ui_state: &UiState,
+    ui_state: &mut UiState,
     realm_id: RealmId,
     ui_events: &mut Vec<UiEvent>,
 ) {
-    let mut documents: Vec<&UiDocument> = ui_state
+    let mut documents: Vec<UiDocument> = ui_state
         .documents
         .values()
         .filter(|doc| doc.realm_id == realm_id)
+        .cloned()
         .collect();
     documents.sort_by_key(|doc| doc.document_id);
 
@@ -49,7 +50,7 @@ pub fn render_realm_documents(
                 ui.set_clip_rect(rect);
                 render_children(
                     ui,
-                    document,
+                    &document,
                     &document.root_children,
                     ui_state,
                     realm_id,
@@ -63,7 +64,7 @@ fn render_children(
     ui: &mut egui::Ui,
     document: &UiDocument,
     children: &[UiNodeId],
-    ui_state: &UiState,
+    ui_state: &mut UiState,
     realm_id: RealmId,
     ui_events: &mut Vec<UiEvent>,
 ) {
@@ -92,7 +93,7 @@ fn render_node(
     ui: &mut egui::Ui,
     document: &UiDocument,
     entry: &UiNodeEntry,
-    ui_state: &UiState,
+    ui_state: &mut UiState,
     realm_id: RealmId,
     ui_events: &mut Vec<UiEvent>,
 ) {
@@ -118,7 +119,7 @@ fn render_node_inner(
     ui: &mut egui::Ui,
     document: &UiDocument,
     entry: &UiNodeEntry,
-    ui_state: &UiState,
+    ui_state: &mut UiState,
     realm_id: RealmId,
     ui_events: &mut Vec<UiEvent>,
 ) {
@@ -195,18 +196,39 @@ fn render_node_inner(
                 });
             }
         }
-        UiNodeProps::Image { image_id, size } => {
-            if let Some(record) = ui_state.images.get(&image_id) {
-                if let Some(texture) = &record.texture {
-                    let size = resolve_size(size, record.size);
-                    ui.add(egui::Image::new(texture).fit_to_exact_size(size));
+        UiNodeProps::Image { source, size } => match source {
+            UiImageSource::UiImage(image_id) => {
+                if let Some(record) = ui_state.images.get(&image_id) {
+                    if let Some(texture) = &record.texture {
+                        let size = resolve_size(size, record.size);
+                        ui.add(egui::Image::new(texture).fit_to_exact_size(size));
+                    } else {
+                        ui.label("Image pending");
+                    }
                 } else {
-                    ui.label("Image pending");
+                    ui.label("Image missing");
                 }
-            } else {
-                ui.label("Image missing");
             }
-        }
+            UiImageSource::Target(target_id) => {
+                if let Some(target_size) = ui_state.external_textures.get(&target_id).copied() {
+                    let size = resolve_size(size, target_size);
+                    ui_state.target_size_requests.insert(
+                        target_id,
+                        glam::UVec2::new(
+                            size.x.max(1.0).round() as u32,
+                            size.y.max(1.0).round() as u32,
+                        ),
+                    );
+                    let texture = egui::load::SizedTexture::new(
+                        egui::TextureId::User(target_id),
+                        size,
+                    );
+                    ui.add(egui::Image::from_texture(texture).fit_to_exact_size(size));
+                } else {
+                    ui.label("Target missing");
+                }
+            }
+        },
         UiNodeProps::Separator => {
             ui.separator();
         }
@@ -227,7 +249,7 @@ fn render_layout(
     document: &UiDocument,
     entry: &UiNodeEntry,
     layout: UiLayout,
-    ui_state: &UiState,
+    ui_state: &mut UiState,
     realm_id: RealmId,
     ui_events: &mut Vec<UiEvent>,
 ) {

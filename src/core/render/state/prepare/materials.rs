@@ -127,6 +127,7 @@ impl RenderState {
                             .textures
                             .get(&tex_id)
                             .map(|t| &t.view)
+                            .or_else(|| self.external_textures.get(&tex_id))
                             .unwrap_or(&library.fallback_view)
                     } else {
                         &library.fallback_view
@@ -270,6 +271,7 @@ impl RenderState {
                             .textures
                             .get(&tex_id)
                             .map(|t| &t.view)
+                            .or_else(|| self.external_textures.get(&tex_id))
                             .unwrap_or(&library.fallback_view)
                     } else {
                         &library.fallback_view

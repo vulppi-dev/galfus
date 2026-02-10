@@ -42,9 +42,14 @@ Supported ops:
 - `text { text, size?, color? }`
 - `button { label, enabled? }`
 - `input { value, placeholder?, enabled? }`
-- `image { imageId, size? }`
+- `image { source, size? }`
 - `separator`
 - `spacer { width?, height? }`
+
+### UiImageSource
+
+- `ui-image { content: u32 }` (refere a `UiImageId`)
+- `target { content: u64 }` (refere a `TargetId`)
 
 ## Response
 

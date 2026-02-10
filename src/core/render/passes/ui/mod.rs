@@ -1,14 +1,22 @@
-use crate::core::realm::RealmId;
+use crate::core::realm::{AutoLink, RealmId, SurfaceId, SurfaceTable};
+use crate::core::resources::RenderTarget;
+use crate::core::target::{TargetId, TargetKind, TargetTable};
 use crate::core::render::RenderState;
 use crate::core::ui::events::UiEvent;
 use crate::core::ui::render::{render_realm_documents, sync_ui_images};
+use crate::core::ui::renderer::ExternalTextureInput;
 use crate::core::ui::UiState;
+use std::collections::HashMap;
 
 pub fn pass_ui(
     render_state: &mut RenderState,
     ui_state: &mut UiState,
     realm_id: RealmId,
     ui_events: &mut Vec<UiEvent>,
+    targets: &TargetTable,
+    surfaces: &SurfaceTable,
+    auto_links: &HashMap<(u32, TargetId), AutoLink>,
+    surface_targets: &HashMap<SurfaceId, RenderTarget>,
     device: &wgpu::Device,
     queue: &wgpu::Queue,
     encoder: &mut wgpu::CommandEncoder,
@@ -18,6 +26,8 @@ pub fn pass_ui(
     frame_index: u64,
 ) {
     ui_state.ensure_realm(realm_id);
+    let external_inputs =
+        collect_external_textures(ui_state, targets, surfaces, auto_links, surface_targets, realm_id);
     let (context, pixels_per_point, input_events, modifiers) = {
         let Some(ui_realm) = ui_state.realm_mut(realm_id) else {
             return;
@@ -55,6 +65,7 @@ pub fn pass_ui(
         .ui_renderer
         .get_or_insert_with(|| crate::core::ui::UiRenderer::new(device, queue, target_format));
     renderer.update_textures(device, queue, &output.textures_delta);
+    renderer.update_external_textures(device, &external_inputs);
     renderer.render(
         device,
         queue,
@@ -65,4 +76,59 @@ pub fn pass_ui(
         output.pixels_per_point,
         &clipped_primitives,
     );
+}
+
+fn collect_external_textures<'a>(
+    ui_state: &mut UiState,
+    targets: &TargetTable,
+    surfaces: &SurfaceTable,
+    auto_links: &HashMap<(u32, TargetId), AutoLink>,
+    surface_targets: &'a HashMap<SurfaceId, RenderTarget>,
+    realm_id: RealmId,
+) -> Vec<ExternalTextureInput<'a>> {
+    ui_state.external_textures.clear();
+    let mut target_surfaces: HashMap<TargetId, SurfaceId> = HashMap::new();
+
+    for ((link_realm, target_id), link) in auto_links.iter() {
+        let Some(target) = targets.entries.get(target_id) else {
+            continue;
+        };
+        if target.kind != TargetKind::Texture {
+            continue;
+        }
+
+        match target_surfaces.entry(*target_id) {
+            std::collections::hash_map::Entry::Vacant(entry) => {
+                entry.insert(link.surface_id);
+            }
+            std::collections::hash_map::Entry::Occupied(mut entry) => {
+                if *link_realm == realm_id.0 {
+                    entry.insert(link.surface_id);
+                }
+            }
+        }
+    }
+
+    let mut inputs = Vec::new();
+
+    for (target_id, surface_id) in target_surfaces {
+        let Some(surface_state) = surfaces.entries.get(&surface_id) else {
+            continue;
+        };
+        let Some(surface_target) = surface_targets.get(&surface_id) else {
+            continue;
+        };
+        let size = surface_state.value.size;
+        let size = [size.x.max(1), size.y.max(1)];
+        ui_state.external_textures.insert(target_id.0, size);
+
+        inputs.push(ExternalTextureInput {
+            id: target_id.0,
+            view: &surface_target.view,
+            size,
+            source_ptr: surface_target as *const RenderTarget as usize,
+        });
+    }
+
+    inputs
 }

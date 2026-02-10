@@ -106,6 +106,10 @@ impl UiTextureStore {
     pub fn get(&self, id: TextureId) -> &UiTexture {
         self.textures.get(&id).unwrap_or(&self.fallback)
     }
+
+    pub fn fallback(&self) -> &UiTexture {
+        &self.fallback
+    }
 }
 
 impl UiTexture {

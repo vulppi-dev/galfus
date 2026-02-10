@@ -164,6 +164,13 @@ pub fn engine_cmd_texture_list(
         });
     }
 
+    for (&id, entry) in &window_state.render_state.target_texture_binds {
+        textures.push(ResourceEntry {
+            id,
+            label: entry.label.clone(),
+        });
+    }
+
     CmdResultTextureList {
         success: true,
         message: "Textures listed successfully".into(),

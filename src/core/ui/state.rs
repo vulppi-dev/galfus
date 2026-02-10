@@ -61,6 +61,8 @@ pub struct UiState {
     pub documents: HashMap<UiDocumentId, UiDocument>,
     pub images: HashMap<UiImageId, UiImageRecord>,
     pub image_async: UiImageAsyncManager,
+    pub external_textures: HashMap<u64, [u32; 2]>,
+    pub target_size_requests: HashMap<u64, glam::UVec2>,
     pub focus_by_window: HashMap<u32, RealmId>,
 }
 
@@ -88,6 +90,8 @@ impl Default for UiState {
             documents: HashMap::new(),
             images: HashMap::new(),
             image_async: UiImageAsyncManager::new(),
+            external_textures: HashMap::new(),
+            target_size_requests: HashMap::new(),
             focus_by_window: HashMap::new(),
         }
     }

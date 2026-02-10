@@ -42,6 +42,8 @@ impl RenderState {
                 forward_atlas_entries: HashMap::new(),
             },
             camera_order: Vec::new(),
+            target_texture_binds: HashMap::new(),
+            external_textures: HashMap::new(),
             bindings: None,
             library: None,
             vertex: None,
@@ -84,6 +86,8 @@ impl RenderState {
         self.scene.materials_pbr.clear();
         self.scene.textures.clear();
         self.scene.forward_atlas_entries.clear();
+        self.target_texture_binds.clear();
+        self.external_textures.clear();
         self.bindings = None;
         self.library = None;
         self.vertex = None;

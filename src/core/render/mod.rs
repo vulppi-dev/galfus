@@ -9,6 +9,7 @@ use crate::core::realm::{FrameReport, RealmGraphPlanner, RealmId};
 use crate::core::ui::events::UiEvent;
 use crate::core::render::graph::RenderGraphPlan;
 use crate::core::state::EngineState;
+use crate::core::target::{TargetId, TargetKind, TargetTable};
 use realm_graph::{
     collect_connectors_by_realm, collect_cut_connectors, collect_present_sizes,
     collect_surface_views, compose_realm_connectors, ensure_surface_target, map_realms_to_windows,
@@ -38,6 +39,10 @@ pub fn render_frames(engine_state: &mut EngineState) {
     engine_state.profiling.gpu_forward_ns = 0;
     engine_state.profiling.gpu_compose_ns = 0;
     engine_state.profiling.gpu_total_ns = 0;
+
+    let target_size_requests =
+        std::mem::take(&mut engine_state.universal_state.ui.target_size_requests);
+    apply_target_size_requests(engine_state, &target_size_requests);
 
     let (target_plan, target_diff) = {
         let cache = &mut engine_state.universal_state.target_graph_cache;
@@ -163,6 +168,15 @@ pub fn render_frames(engine_state: &mut EngineState) {
         &mut engine_state.surface_targets,
         present_sizes,
     );
+    let target_surface_map = build_target_surface_map(
+        &engine_state.universal_state.targets,
+        &engine_state.universal_state.auto_links,
+    );
+    refresh_window_target_textures(
+        &mut engine_state.window.states,
+        &target_surface_map,
+        &engine_state.surface_targets,
+    );
     let mut updated_surfaces: HashSet<crate::core::realm::SurfaceId> = HashSet::new();
     let mut ui_events: Vec<UiEvent> = Vec::new();
     const MAX_REALM_ITERATIONS: u32 = 1;
@@ -182,15 +196,14 @@ pub fn render_frames(engine_state: &mut EngineState) {
             else {
                 continue;
             };
-            let Some(realm_entry) = engine_state
+            let should_render = engine_state
                 .universal_state
                 .realms
                 .entries
                 .get_mut(realm_id)
-            else {
-                continue;
-            };
-            if !should_render_realm(realm_entry, engine_state.frame_index) {
+                .map(|realm_entry| should_render_realm(realm_entry, engine_state.frame_index))
+                .unwrap_or(false);
+            if !should_render {
                 FrameReport::push_unique(&mut frame_report.throttled_realms, realm_id.0);
                 continue;
             }
@@ -210,13 +223,16 @@ pub fn render_frames(engine_state: &mut EngineState) {
                 .and_then(|entry| entry.value.format_policy)
                 .unwrap_or(wgpu::TextureFormat::Rgba16Float);
 
-            let surface_target = ensure_surface_target(
-                device,
-                &mut engine_state.surface_targets,
-                surface_id,
-                target_size,
-                target_format,
-            );
+            let (target_view, target_format) = {
+                let surface_target = ensure_surface_target(
+                    device,
+                    &mut engine_state.surface_targets,
+                    surface_id,
+                    target_size,
+                    target_format,
+                );
+                (surface_target.view.clone(), surface_target.format)
+            };
 
             #[cfg(not(feature = "wasm"))]
             let window_start = std::time::Instant::now();
@@ -233,7 +249,7 @@ pub fn render_frames(engine_state: &mut EngineState) {
                 let _clear_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                     label: Some("Realm Target Clear"),
                     color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                        view: &surface_target.view,
+                        view: &target_view,
                         resolve_target: None,
                         ops: wgpu::Operations {
                             load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
@@ -258,25 +274,40 @@ pub fn render_frames(engine_state: &mut EngineState) {
             });
             window_counter = window_counter.saturating_add(1);
 
-            let plan = match realm_entry.value.render_graph.as_ref() {
-                Some(graph) => graph.plan(),
+            let plan = match engine_state
+                .universal_state
+                .realms
+                .entries
+                .get(realm_id)
+                .and_then(|entry| entry.value.render_graph.as_ref())
+            {
+                Some(graph) => graph.plan().clone(),
                 None => {
                     log::error!("Realm {} is missing a render graph", realm_id.0);
                     FrameReport::push_unique(&mut frame_report.no_progress_realms, realm_id.0);
                     continue;
                 }
             };
+            let universal = &mut engine_state.universal_state;
+            let ui_state = &mut universal.ui;
+            let targets = &universal.targets;
+            let surfaces = &universal.surfaces;
+            let auto_links = &universal.auto_links;
             gpu_written |= execute_graph_to_view(
                 &plan,
                 render_state,
-                &mut engine_state.universal_state.ui,
+                ui_state,
                 *realm_id,
                 &mut ui_events,
+                targets,
+                surfaces,
+                auto_links,
+                &engine_state.surface_targets,
                 device,
                 queue,
                 &mut encoder,
-                &surface_target.view,
-                surface_target.format,
+                &target_view,
+                target_format,
                 target_size,
                 engine_state.frame_index,
                 engine_state.gpu_profiler.as_ref(),
@@ -293,8 +324,8 @@ pub fn render_frames(engine_state: &mut EngineState) {
                 surface_id,
                 &cut_connectors,
                 &surface_views,
-                &surface_target.view,
-                surface_target.format,
+                &target_view,
+                target_format,
                 target_size,
                 engine_state.frame_index,
                 &mut frame_report,
@@ -440,6 +471,13 @@ fn execute_graph_to_view(
     ui_state: &mut crate::core::ui::UiState,
     realm_id: RealmId,
     ui_events: &mut Vec<UiEvent>,
+    targets: &crate::core::target::TargetTable,
+    surfaces: &crate::core::realm::SurfaceTable,
+    auto_links: &std::collections::HashMap<
+        (u32, crate::core::target::TargetId),
+        crate::core::realm::AutoLink,
+    >,
+    surface_targets: &std::collections::HashMap<crate::core::realm::SurfaceId, crate::core::resources::RenderTarget>,
     device: &wgpu::Device,
     queue: &wgpu::Queue,
     encoder: &mut wgpu::CommandEncoder,
@@ -527,6 +565,10 @@ fn execute_graph_to_view(
                     ui_state,
                     realm_id,
                     ui_events,
+                    targets,
+                    surfaces,
+                    auto_links,
+                    surface_targets,
                     device,
                     queue,
                     encoder,
@@ -581,5 +623,92 @@ fn write_gpu_timestamp(
     if let Some(profiler) = gpu_profiler {
         encoder.write_timestamp(profiler.query_set(), index);
         *gpu_written = true;
+    }
+}
+
+fn apply_target_size_requests(
+    engine_state: &mut EngineState,
+    requests: &std::collections::HashMap<u64, glam::UVec2>,
+) {
+    if requests.is_empty() {
+        return;
+    }
+
+    for (target_id, size) in requests {
+        let target_id = TargetId(*target_id);
+        let Some(target) = engine_state.universal_state.targets.entries.get_mut(&target_id) else {
+            continue;
+        };
+        if target.kind == TargetKind::Window {
+            continue;
+        }
+
+        let desired = glam::UVec2::new(size.x.max(1), size.y.max(1));
+        if target.size_override != Some(desired) {
+            target.size_override = Some(desired);
+        }
+
+        if target.msaa_samples.is_none() {
+            let msaa = target
+                .owner_window_id
+                .and_then(|window_id| engine_state.window.states.get(&window_id))
+                .map(|state| state.render_state.msaa_sample_count())
+                .unwrap_or(1);
+            target.msaa_samples = Some(msaa);
+        }
+    }
+}
+
+fn build_target_surface_map(
+    targets: &TargetTable,
+    auto_links: &std::collections::HashMap<(u32, TargetId), crate::core::realm::AutoLink>,
+) -> std::collections::HashMap<TargetId, crate::core::realm::SurfaceId> {
+    let mut chosen: std::collections::HashMap<TargetId, (u32, crate::core::realm::SurfaceId)> =
+        std::collections::HashMap::new();
+
+    for ((realm_id, target_id), link) in auto_links {
+        let Some(target) = targets.entries.get(target_id) else {
+            continue;
+        };
+        if target.kind != TargetKind::Texture {
+            continue;
+        }
+
+        match chosen.get(target_id) {
+            Some((current_realm, _)) if *current_realm <= *realm_id => {}
+            _ => {
+                chosen.insert(*target_id, (*realm_id, link.surface_id));
+            }
+        }
+    }
+
+    chosen
+        .into_iter()
+        .map(|(target_id, (_, surface_id))| (target_id, surface_id))
+        .collect()
+}
+
+fn refresh_window_target_textures(
+    windows: &mut std::collections::HashMap<u32, crate::core::window::WindowState>,
+    target_surfaces: &std::collections::HashMap<TargetId, crate::core::realm::SurfaceId>,
+    surface_targets: &std::collections::HashMap<
+        crate::core::realm::SurfaceId,
+        crate::core::resources::RenderTarget,
+    >,
+) {
+    for window_state in windows.values_mut() {
+        window_state.render_state.external_textures.clear();
+        for (texture_id, binding) in &window_state.render_state.target_texture_binds {
+            let Some(surface_id) = target_surfaces.get(&binding.target_id) else {
+                continue;
+            };
+            let Some(surface_target) = surface_targets.get(surface_id) else {
+                continue;
+            };
+            window_state
+                .render_state
+                .external_textures
+                .insert(*texture_id, surface_target.view.clone());
+        }
     }
 }

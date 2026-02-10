@@ -28,6 +28,8 @@ pub use crate::core::render::graph::RenderGraphState;
 pub struct RenderState {
     pub scene: RenderScene,
     pub camera_order: Vec<u32>,
+    pub target_texture_binds: std::collections::HashMap<u32, crate::core::resources::TargetTextureBinding>,
+    pub external_textures: std::collections::HashMap<u32, wgpu::TextureView>,
     pub bindings: Option<BindingSystem>,
     pub library: Option<ResourceLibrary>,
     pub vertex: Option<VertexAllocatorSystem>,
