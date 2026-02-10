@@ -7,7 +7,7 @@ use crate::core::target::{TargetBindLayout, TargetKind};
 const INPUT_FLAG_RAYCAST: u32 = 1 << 0;
 
 #[derive(Debug, Clone, Copy)]
-pub struct Demo008TargetIds {
+pub struct Demo005TargetIds {
     pub window_main: u64,
     pub window_aux: u64,
     pub viewport_main: u64,
@@ -17,7 +17,7 @@ pub struct Demo008TargetIds {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct Demo008BindRealms {
+pub struct Demo005BindRealms {
     pub host_main: u32,
     pub host_aux: u32,
     pub viewport_main: u32,
@@ -27,8 +27,8 @@ pub struct Demo008BindRealms {
     pub conflict: u32,
 }
 
-pub fn build_target_cmds(window_main: u32, window_aux: u32) -> (Demo008TargetIds, Vec<EngineCmd>) {
-    let target_ids = Demo008TargetIds {
+pub fn build_target_cmds(window_main: u32, window_aux: u32) -> (Demo005TargetIds, Vec<EngineCmd>) {
+    let target_ids = Demo005TargetIds {
         window_main: 9000,
         window_aux: 9001,
         viewport_main: 9002,
@@ -102,7 +102,7 @@ pub fn build_target_cmds(window_main: u32, window_aux: u32) -> (Demo008TargetIds
     (target_ids, cmds)
 }
 
-pub fn build_bind_cmds(targets: Demo008TargetIds, realms: Demo008BindRealms) -> Vec<EngineCmd> {
+pub fn build_bind_cmds(targets: Demo005TargetIds, realms: Demo005BindRealms) -> Vec<EngineCmd> {
     let binds = vec![
         CmdTargetBindUpsertArgs {
             realm_id: realms.host_main,

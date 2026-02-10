@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use glam::{Mat4, Quat, Vec3, Vec4};
 
-use super::maps::{Demo008BindRealms, build_bind_cmds, build_target_cmds};
+use super::maps::{Demo005BindRealms, build_bind_cmds, build_target_cmds};
 use crate::core::VulframResult;
 use crate::core::audio::{
     CmdAudioListenerCreateArgs, CmdAudioResourceCreateArgs, CmdAudioResourcePushArgs,
@@ -22,7 +22,7 @@ use crate::demo::{
 };
 
 #[derive(Debug, Clone, Copy)]
-pub struct Demo008Ids {
+pub struct Demo005Ids {
     pub cube_geometry_id: u32,
     pub floor_geometry_id: u32,
     pub emitter_geometry_id: u32,
@@ -44,7 +44,7 @@ pub struct Demo008Ids {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct Demo008RealmIds {
+pub struct Demo005RealmIds {
     pub window_aux: u32,
     pub host_realm_main: u32,
     pub host_realm_aux: u32,
@@ -61,16 +61,16 @@ pub struct Demo008RealmIds {
     pub target_texture_shared: u64,
 }
 
-pub struct Demo008Setup {
-    pub ids: Demo008Ids,
+pub struct Demo005Setup {
+    pub ids: Demo005Ids,
     pub post_config: PostProcessConfig,
     pub audio_chunk_ids: Vec<(u64, u64)>,
     pub audio_total_bytes: u64,
 }
 
-impl Demo008Setup {
+impl Demo005Setup {
     pub fn new() -> Self {
-        let ids = Demo008Ids {
+        let ids = Demo005Ids {
             cube_geometry_id: 800,
             floor_geometry_id: 801,
             emitter_geometry_id: 802,
@@ -91,7 +91,7 @@ impl Demo008Setup {
             audio_buffer_id: 8300,
         };
 
-        let post_config = build_demo_008_post_config();
+        let post_config = build_demo_005_post_config();
 
         let audio_bytes = load_texture_bytes("assets/audio.wav");
         let audio_chunk_size = 64 * 1024;
@@ -110,12 +110,12 @@ impl Demo008Setup {
         }
     }
 
-    pub fn apply(&self, ctx: DemoContext) -> Demo008RealmIds {
+    pub fn apply(&self, ctx: DemoContext) -> Demo005RealmIds {
         let window_main = ctx.window_id;
         let host_realm_main = ctx.realm_id;
 
         let window_aux = 2;
-        let aux_binding = create_window(window_aux, "Vulfram Demo 008 Aux");
+        let aux_binding = create_window(window_aux, "Vulfram Demo 005 Aux");
         let host_realm_aux = aux_binding.realm_id;
 
         let realm_viewport_main = create_realm(RealmKindDto::ThreeD, Some(window_main));
@@ -127,7 +127,7 @@ impl Demo008Setup {
         let (target_ids, mut map_cmds) = build_target_cmds(window_main, window_aux);
         let bind_cmds = build_bind_cmds(
             target_ids,
-            Demo008BindRealms {
+            Demo005BindRealms {
                 host_main: host_realm_main,
                 host_aux: host_realm_aux,
                 viewport_main: realm_viewport_main,
@@ -167,27 +167,27 @@ impl Demo008Setup {
             EngineCmd::CmdPrimitiveGeometryCreate(CmdPrimitiveGeometryCreateArgs {
                 window_id,
                 geometry_id: self.ids.cube_geometry_id,
-                label: Some("Demo 008 Cube".into()),
+                label: Some("Demo 005 Cube".into()),
                 shape: PrimitiveShape::Cube,
                 options: None,
             }),
             EngineCmd::CmdPrimitiveGeometryCreate(CmdPrimitiveGeometryCreateArgs {
                 window_id,
                 geometry_id: self.ids.floor_geometry_id,
-                label: Some("Demo 008 Floor".into()),
+                label: Some("Demo 005 Floor".into()),
                 shape: PrimitiveShape::Plane,
                 options: None,
             }),
             EngineCmd::CmdPrimitiveGeometryCreate(CmdPrimitiveGeometryCreateArgs {
                 window_id,
                 geometry_id: self.ids.emitter_geometry_id,
-                label: Some("Demo 008 Emitter".into()),
+                label: Some("Demo 005 Emitter".into()),
                 shape: PrimitiveShape::Sphere,
                 options: None,
             }),
             create_camera_cmd(
                 self.ids.camera_id,
-                "Demo 008 Camera",
+                "Demo 005 Camera",
                 Mat4::look_at_rh(Vec3::new(0.0, 3.0, 9.0), Vec3::ZERO, Vec3::Y).inverse(),
             ),
             create_point_light_cmd(window_id, 2, Vec4::new(3.0, 6.0, 2.0, 1.0)),
@@ -195,7 +195,7 @@ impl Demo008Setup {
             create_standard_material_cmd(
                 window_id,
                 self.ids.material_primary_id,
-                "Demo 008 Primary",
+                "Demo 005 Primary",
                 Vec4::new(0.2, 0.6, 0.9, 1.0),
                 None,
                 None,
@@ -203,7 +203,7 @@ impl Demo008Setup {
             create_standard_material_cmd(
                 window_id,
                 self.ids.material_accent_id,
-                "Demo 008 Accent",
+                "Demo 005 Accent",
                 Vec4::new(0.9, 0.4, 0.2, 1.0),
                 None,
                 None,
@@ -211,7 +211,7 @@ impl Demo008Setup {
             create_standard_material_cmd(
                 window_id,
                 self.ids.material_floor_id,
-                "Demo 008 Floor",
+                "Demo 005 Floor",
                 Vec4::new(0.4, 0.4, 0.45, 1.0),
                 None,
                 None,
@@ -219,7 +219,7 @@ impl Demo008Setup {
             create_standard_material_cmd(
                 window_id,
                 self.ids.material_emitter_id,
-                "Demo 008 Emitter",
+                "Demo 005 Emitter",
                 Vec4::new(1.0, 0.85, 0.2, 1.0),
                 None,
                 Some(Vec4::new(2.5, 1.8, 0.6, 1.0)),
@@ -227,7 +227,7 @@ impl Demo008Setup {
             EngineCmd::CmdModelCreate(CmdModelCreateArgs {
                 window_id,
                 model_id: 840,
-                label: Some("Demo 008 Cube A".into()),
+                label: Some("Demo 005 Cube A".into()),
                 geometry_id: self.ids.cube_geometry_id,
                 material_id: Some(self.ids.material_primary_id),
                 transform: Mat4::from_translation(Vec3::new(-2.0, 0.0, 0.0)),
@@ -240,7 +240,7 @@ impl Demo008Setup {
             EngineCmd::CmdModelCreate(CmdModelCreateArgs {
                 window_id,
                 model_id: 841,
-                label: Some("Demo 008 Cube B".into()),
+                label: Some("Demo 005 Cube B".into()),
                 geometry_id: self.ids.cube_geometry_id,
                 material_id: Some(self.ids.material_accent_id),
                 transform: Mat4::from_translation(Vec3::new(2.2, 0.2, -1.0))
@@ -254,7 +254,7 @@ impl Demo008Setup {
             EngineCmd::CmdModelCreate(CmdModelCreateArgs {
                 window_id,
                 model_id: self.ids.listener_model_id,
-                label: Some("Demo 008 Listener".into()),
+                label: Some("Demo 005 Listener".into()),
                 geometry_id: self.ids.cube_geometry_id,
                 material_id: Some(self.ids.material_primary_id),
                 transform: Mat4::from_translation(Vec3::new(0.0, 3.0, 9.0))
@@ -268,7 +268,7 @@ impl Demo008Setup {
             EngineCmd::CmdModelCreate(CmdModelCreateArgs {
                 window_id,
                 model_id: self.ids.emitter_model_id,
-                label: Some("Demo 008 Emitter".into()),
+                label: Some("Demo 005 Emitter".into()),
                 geometry_id: self.ids.emitter_geometry_id,
                 material_id: Some(self.ids.material_emitter_id),
                 transform: Mat4::from_translation(Vec3::new(4.5, 0.5, 3.5))
@@ -335,7 +335,7 @@ impl Demo008Setup {
             EngineCmd::CmdPrimitiveGeometryCreate(CmdPrimitiveGeometryCreateArgs {
                 window_id: window_aux,
                 geometry_id: self.ids.cube_geometry_aux_id,
-                label: Some("Demo 008 Aux Cube".into()),
+                label: Some("Demo 005 Aux Cube".into()),
                 shape: PrimitiveShape::Cube,
                 options: None,
             }),
@@ -343,25 +343,25 @@ impl Demo008Setup {
                 window_id: window_aux,
                 texture_id: self.ids.texture_target_id,
                 target_id: target_ids.texture_shared,
-                label: Some("Demo 008 Target Texture".into()),
+                label: Some("Demo 005 Target Texture".into()),
             }),
             create_standard_material_cmd(
                 window_aux,
                 self.ids.material_aux_id,
-                "Demo 008 Aux Material",
+                "Demo 005 Aux Material",
                 Vec4::new(0.15, 0.5, 0.25, 1.0),
                 Some(self.ids.texture_target_id),
                 None,
             ),
             create_camera_cmd(
                 self.ids.camera_aux_id,
-                "Demo 008 Aux Camera",
+                "Demo 005 Aux Camera",
                 Mat4::look_at_rh(Vec3::new(0.0, 2.5, 6.0), Vec3::ZERO, Vec3::Y).inverse(),
             ),
             EngineCmd::CmdModelCreate(CmdModelCreateArgs {
                 window_id: window_aux,
                 model_id: self.ids.model_aux_id,
-                label: Some("Demo 008 Aux Model".into()),
+                label: Some("Demo 005 Aux Model".into()),
                 geometry_id: self.ids.cube_geometry_aux_id,
                 material_id: Some(self.ids.material_aux_id),
                 transform: Mat4::from_translation(Vec3::new(0.0, 0.0, 0.0))
@@ -390,7 +390,7 @@ impl Demo008Setup {
 
         let _ = receive_responses();
 
-        Demo008RealmIds {
+        Demo005RealmIds {
             window_aux,
             host_realm_main,
             host_realm_aux,
@@ -409,7 +409,7 @@ impl Demo008Setup {
     }
 }
 
-fn build_demo_008_post_config() -> PostProcessConfig {
+fn build_demo_005_post_config() -> PostProcessConfig {
     PostProcessConfig {
         filter_enabled: false,
         filter_exposure: 1.0,

@@ -49,7 +49,7 @@ _Sistema de UI renderizado no core, host-driven, usando Realm TwoD + TargetGraph
 - [x] Performance: cache de layout + invalidation por dirty flags (inclui cache de tessellation).
 
 ## Fase G — Demos e Docs
-- [ ] Demo UI com fechamento via Esc.
-- [ ] Atualizar demos existentes para continuar funcionando após integração da UI.
-- [ ] Refatorar demos de `main.rs` em subarquivos (tamanho).
-- [ ] Documentar comandos/ops e exemplos no host.
+- [x] Demo UI com fechamento via Esc.
+- [x] Atualizar demos existentes para continuar funcionando após integração da UI.
+- [x] Refatorar demos de `main.rs` em subarquivos (tamanho).
+- [x] Documentar comandos/ops e exemplos no host.

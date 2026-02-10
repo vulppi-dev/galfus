@@ -12,6 +12,7 @@ Welcome to the Vulfram documentation! This index will guide you to the right doc
 - **Create a language binding** → Read [ABI.md](ABI.md) and [ARCH.md](ARCH.md)
 - **Contribute to the Rust core** → Check [API.md](API.md) and [GLOSSARY.md](GLOSSARY.md)
 - **Define a render graph** → Read [RENDER-GRAPH.md](RENDER-GRAPH.md)
+- **Build UI flows** → See [UI-EXAMPLES.md](UI-EXAMPLES.md)
 - **Learn terminology** → See [GLOSSARY.md](GLOSSARY.md)
 - **Understand the architecture** → Read [ARCH.md](ARCH.md)
 - **Understand platform separation** → Read [PLATFORM-PROXIES.md](PLATFORM-PROXIES.md)
@@ -57,7 +58,9 @@ If you're building a language binding (Node.js, Lua, Python, etc.) or integratin
 
 6. **[RENDER-GRAPH.md](RENDER-GRAPH.md)** - _Host-defined render graph_
 
-7. **[GLOSSARY.md](GLOSSARY.md)** - _Terminology reference_
+7. **[UI-EXAMPLES.md](UI-EXAMPLES.md)** - _UI command examples_
+
+8. **[GLOSSARY.md](GLOSSARY.md)** - _Terminology reference_
    - Core concepts (Host, Core, ABI)
    - Components vs Resources
    - IDs and handles

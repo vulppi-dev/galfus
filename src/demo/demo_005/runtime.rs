@@ -9,20 +9,20 @@ use crate::core::input::events::{ElementState, KeyboardEvent, PointerEvent};
 use crate::core::resources::{CmdCameraUpdateArgs, CmdModelUpdateArgs};
 use crate::core::system::events::SystemEvent;
 use crate::core::window::{CmdWindowCloseArgs, WindowEvent};
-use crate::demo::demo_008::setup::{Demo008RealmIds, Demo008Setup};
+use crate::demo::demo_005::setup::{Demo005RealmIds, Demo005Setup};
 use crate::demo::send_commands;
 use crate::demo::{DemoContext, run_loop_with_events};
 
-pub fn run(ctx: DemoContext, setup: &Demo008Setup, realms: &Demo008RealmIds) -> bool {
+pub fn run(ctx: DemoContext, setup: &Demo005Setup, realms: &Demo005RealmIds) -> bool {
     let window_id = ctx.window_id;
     let ids = setup.ids;
 
-    let state = Rc::new(RefCell::new(Demo008RuntimeState::default()));
+    let state = Rc::new(RefCell::new(Demo005RuntimeState::default()));
     let state_frame = Rc::clone(&state);
     let state_event = Rc::clone(&state);
 
     println!(
-        "Demo 008 targets: window_main={} window_aux={} viewport_main={} viewport_aux={} panel_ui={} texture_shared={}",
+        "Demo 005 targets: window_main={} window_aux={} viewport_main={} viewport_aux={} panel_ui={} texture_shared={}",
         realms.target_window_main,
         realms.target_window_aux,
         realms.target_viewport_main,
@@ -216,7 +216,7 @@ pub fn run(ctx: DemoContext, setup: &Demo008Setup, realms: &Demo008RealmIds) -> 
 }
 
 #[derive(Debug, Default)]
-struct Demo008RuntimeState {
+struct Demo005RuntimeState {
     audio_ready: bool,
     audio_started: bool,
     last_report_ms: u64,

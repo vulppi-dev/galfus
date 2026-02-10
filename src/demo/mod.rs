@@ -4,7 +4,7 @@ mod demo_001;
 mod demo_002;
 mod demo_003;
 mod demo_004;
-mod demo_008;
+mod demo_005;
 mod geometry;
 mod io;
 mod loop_utils;
@@ -74,7 +74,7 @@ pub fn run_demo(demo: DemoKind, ctx: DemoContext) -> bool {
         DemoKind::Demo002 => demo_002::run(ctx),
         DemoKind::Demo003 => demo_003::run(ctx),
         DemoKind::Demo004 => demo_004::run(ctx),
-        DemoKind::Demo005 => demo_008::run(ctx),
+        DemoKind::Demo005 => demo_005::run(ctx),
     }
 }
 
