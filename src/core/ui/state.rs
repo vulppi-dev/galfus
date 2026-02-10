@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::hash::{Hash, Hasher};
 
 use crate::core::image::ImageBuffer;
 use crate::core::realm::RealmId;
@@ -17,6 +18,8 @@ pub struct UiRealmState {
     pub pixels_per_point: f32,
     pub modifiers: egui::Modifiers,
     pub pending_events: Vec<egui::Event>,
+    pub profile: UiFrameProfile,
+    pub tessellation_cache: Option<UiTessellationCache>,
 }
 
 #[allow(dead_code)]
@@ -29,6 +32,8 @@ impl UiRealmState {
             pixels_per_point: 1.0,
             modifiers: egui::Modifiers::default(),
             pending_events: Vec::new(),
+            profile: UiFrameProfile::default(),
+            tessellation_cache: None,
         }
     }
 
@@ -63,6 +68,8 @@ pub struct UiState {
     pub image_async: UiImageAsyncManager,
     pub external_textures: HashMap<u64, [u32; 2]>,
     pub target_size_requests: HashMap<u64, glam::UVec2>,
+    pub animations: HashMap<UiAnimKey, UiAnimState>,
+    pub debug: UiDebugState,
     pub focus_by_window: HashMap<u32, RealmId>,
 }
 
@@ -92,9 +99,63 @@ impl Default for UiState {
             image_async: UiImageAsyncManager::new(),
             external_textures: HashMap::new(),
             target_size_requests: HashMap::new(),
+            animations: HashMap::new(),
+            debug: UiDebugState::default(),
             focus_by_window: HashMap::new(),
         }
     }
+}
+
+#[derive(Debug, Default, Clone, Copy)]
+pub struct UiFrameProfile {
+    pub layout_ms: f32,
+    pub tessellate_ms: f32,
+}
+
+#[derive(Debug, Default, Clone, Copy)]
+pub struct UiDebugState {
+    pub enabled: bool,
+    pub show_bounds: bool,
+    pub show_ids: bool,
+    pub show_profile: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum UiAnimProperty {
+    Opacity,
+    TranslateY,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct UiAnimKey {
+    pub document_id: UiDocumentId,
+    pub node_id: UiNodeId,
+    pub property: UiAnimProperty,
+}
+
+impl Hash for UiAnimKey {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.document_id.hash(state);
+        self.node_id.hash(state);
+        self.property.hash(state);
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct UiAnimState {
+    pub start_time: f64,
+    pub from: f32,
+    pub to: f32,
+    pub duration: f32,
+    pub finished: bool,
+    pub last_value: f32,
+}
+
+#[derive(Debug, Clone)]
+pub struct UiTessellationCache {
+    pub shapes_hash: u64,
+    pub pixels_per_point: f32,
+    pub clipped: Vec<egui::ClippedPrimitive>,
 }
 
 #[allow(dead_code)]
@@ -118,9 +179,13 @@ pub struct UiDocument {
     pub realm_id: RealmId,
     pub rect: glam::Vec4,
     pub theme_id: Option<UiThemeId>,
+    pub last_theme_version: Option<u32>,
     pub version: u64,
     pub nodes: HashMap<UiNodeId, UiNodeEntry>,
     pub root_children: Vec<UiNodeId>,
+    pub layout_dirty: bool,
+    pub ordered_root: Vec<UiNodeId>,
+    pub ordered_children: HashMap<UiNodeId, Vec<UiNodeId>>,
 }
 
 impl UiDocument {
@@ -130,9 +195,13 @@ impl UiDocument {
             realm_id,
             rect,
             theme_id: None,
+            last_theme_version: None,
             version: 0,
             nodes: HashMap::new(),
             root_children: Vec::new(),
+            layout_dirty: true,
+            ordered_root: Vec::new(),
+            ordered_children: HashMap::new(),
         }
     }
 
@@ -157,6 +226,7 @@ impl UiDocument {
         };
         self.nodes.insert(node.id, entry);
         self.insert_child(parent, node.id, index);
+        self.layout_dirty = true;
         Ok(())
     }
 
@@ -166,6 +236,7 @@ impl UiDocument {
         }
         self.detach_child(node_id);
         self.remove_subtree(node_id);
+        self.layout_dirty = true;
         Ok(())
     }
 
@@ -190,6 +261,7 @@ impl UiDocument {
         } else {
             self.root_children.clear();
         }
+        self.layout_dirty = true;
         Ok(())
     }
 
@@ -199,6 +271,7 @@ impl UiDocument {
             .get_mut(&node_id)
             .ok_or_else(|| format!("UiNode {} not found", node_id))?;
         entry.node.props = props;
+        self.layout_dirty = true;
         Ok(())
     }
 
@@ -221,6 +294,7 @@ impl UiDocument {
             entry.parent = new_parent;
         }
         self.insert_child(new_parent, node_id, index);
+        self.layout_dirty = true;
         Ok(())
     }
 
@@ -265,6 +339,36 @@ impl UiDocument {
             self.remove_subtree(child);
         }
         self.nodes.remove(&node_id);
+    }
+
+    pub fn ensure_layout_cache(&mut self) {
+        if !self.layout_dirty {
+            return;
+        }
+        self.ordered_root = self.sort_children(&self.root_children);
+        self.ordered_children.clear();
+        for (node_id, entry) in &self.nodes {
+            let ordered = self.sort_children(&entry.children);
+            self.ordered_children.insert(*node_id, ordered);
+        }
+        self.layout_dirty = false;
+    }
+
+    fn sort_children(&self, children: &[UiNodeId]) -> Vec<UiNodeId> {
+        let mut ordered: Vec<(usize, UiNodeId, i32)> = children
+            .iter()
+            .enumerate()
+            .map(|(index, node_id)| {
+                let z = self
+                    .nodes
+                    .get(node_id)
+                    .and_then(|entry| entry.node.z_index)
+                    .unwrap_or(0);
+                (index, *node_id, z)
+            })
+            .collect();
+        ordered.sort_by(|a, b| a.2.cmp(&b.2).then_with(|| a.0.cmp(&b.0)));
+        ordered.into_iter().map(|(_, node_id, _)| node_id).collect()
     }
 }
 

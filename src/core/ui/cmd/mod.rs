@@ -1,4 +1,5 @@
 mod document;
+mod debug;
 mod image;
 mod theme;
 
@@ -9,6 +10,7 @@ pub use document::{
     CmdResultUiDocumentSetTheme, CmdUiApplyOpsArgs, CmdUiDocumentCreateArgs,
     CmdUiDocumentDisposeArgs, CmdUiDocumentSetRectArgs, CmdUiDocumentSetThemeArgs,
 };
+pub use debug::{engine_cmd_ui_debug_set, CmdResultUiDebugSet, CmdUiDebugSetArgs};
 pub use image::{
     engine_cmd_ui_image_create_from_buffer, engine_cmd_ui_image_dispose,
     process_async_ui_image_results, CmdResultUiImageCreateFromBuffer, CmdResultUiImageDispose,

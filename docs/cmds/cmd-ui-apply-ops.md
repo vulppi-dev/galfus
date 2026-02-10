@@ -31,6 +31,7 @@ Supported ops:
 | visible | Option<bool> | If false, invisible and non-interactive |
 | opacity | Option<f32> | Opacity multiplier (0..1) |
 | zIndex | Option<i32> | Z-order inside the document |
+| anim | Option<UiAnim> | Optional animation payload |
 
 ### UiNodeKind
 
@@ -45,6 +46,27 @@ Supported ops:
 - `image { source, size? }`
 - `separator`
 - `spacer { width?, height? }`
+
+### UiLayout
+
+Fields:
+
+- `direction`: `row`, `row-reverse`, `column`, `column-reverse`, `grid`
+- `align`: `start`, `center`, `end`, `stretch`
+- `justify`: `start`, `center`, `end`, `stretch`
+- `gap`: f32
+- `columns`: Option<u32> (grid only)
+- `wrap`: bool
+- `wrapLimit`: Option<f32>
+
+### UiAnim
+
+Optional animation payload on `UiNode`:
+
+- `opacity { from, to, durationMs, easing? }`
+- `translateY { from, to, durationMs, easing? }`
+
+`easing` supports `linear` or `ease-in-out`.
 
 ### UiImageSource
 

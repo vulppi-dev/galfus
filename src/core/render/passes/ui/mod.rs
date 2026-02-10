@@ -3,10 +3,11 @@ use crate::core::resources::RenderTarget;
 use crate::core::target::{TargetId, TargetKind, TargetTable};
 use crate::core::render::RenderState;
 use crate::core::ui::events::UiEvent;
-use crate::core::ui::render::{render_realm_documents, sync_ui_images};
+use crate::core::ui::render::{hash_shapes, render_realm_documents, sync_ui_images};
 use crate::core::ui::renderer::ExternalTextureInput;
 use crate::core::ui::UiState;
 use std::collections::HashMap;
+use std::time::Instant;
 
 pub fn pass_ui(
     render_state: &mut RenderState,
@@ -24,6 +25,7 @@ pub fn pass_ui(
     target_format: wgpu::TextureFormat,
     target_size: glam::UVec2,
     frame_index: u64,
+    time_seconds: f64,
 ) {
     ui_state.ensure_realm(realm_id);
     let external_inputs =
@@ -51,15 +53,39 @@ pub fn pass_ui(
         viewport.outer_rect = Some(screen_rect);
         viewport.focused = Some(true);
     }
-    input.time = Some(frame_index as f64);
+    input.time = Some(time_seconds);
     input.events = input_events;
     input.modifiers = modifiers;
     sync_ui_images(&context, ui_state);
+    let layout_start = Instant::now();
     let output = context.run(input, |ctx| {
-        render_realm_documents(ctx, ui_state, realm_id, ui_events);
+        render_realm_documents(ctx, ui_state, realm_id, ui_events, time_seconds);
     });
+    let layout_ms = layout_start.elapsed().as_secs_f32() * 1000.0;
 
-    let clipped_primitives = context.tessellate(output.shapes, output.pixels_per_point);
+    let tess_start = Instant::now();
+    let shapes_hash = hash_shapes(&output.shapes);
+    let cached = ui_state
+        .realm_mut(realm_id)
+        .and_then(|realm| realm.tessellation_cache.as_ref())
+        .filter(|cache| {
+            cache.shapes_hash == shapes_hash
+                && cache.pixels_per_point == output.pixels_per_point
+                && output.textures_delta.set.is_empty()
+        })
+        .map(|cache| cache.clipped.clone());
+    let clipped_primitives = cached
+        .unwrap_or_else(|| context.tessellate(output.shapes, output.pixels_per_point));
+    let tess_ms = tess_start.elapsed().as_secs_f32() * 1000.0;
+    if let Some(realm) = ui_state.realm_mut(realm_id) {
+        realm.profile.layout_ms = layout_ms;
+        realm.profile.tessellate_ms = tess_ms;
+        realm.tessellation_cache = Some(crate::core::ui::state::UiTessellationCache {
+            shapes_hash,
+            pixels_per_point: output.pixels_per_point,
+            clipped: clipped_primitives.clone(),
+        });
+    }
 
     let renderer = render_state
         .ui_renderer
@@ -76,6 +102,24 @@ pub fn pass_ui(
         output.pixels_per_point,
         &clipped_primitives,
     );
+
+    let debug = ui_state.debug;
+    if let Some(realm) = ui_state.realm_mut(realm_id) {
+        if debug.enabled && debug.show_profile {
+            let painter = realm.context.debug_painter();
+            let text = format!(
+                "UI layout: {:.2}ms\nUI tess: {:.2}ms",
+                realm.profile.layout_ms, realm.profile.tessellate_ms
+            );
+            painter.text(
+                egui::pos2(8.0, 8.0),
+                egui::Align2::LEFT_TOP,
+                text,
+                egui::TextStyle::Monospace.resolve(&realm.context.style()),
+                egui::Color32::from_rgba_premultiplied(255, 255, 255, 200),
+            );
+        }
+    }
 }
 
 fn collect_external_textures<'a>(

@@ -42,11 +42,11 @@ _Sistema de UI renderizado no core, host-driven, usando Realm TwoD + TargetGraph
 - [x] Viewport resize: ajustar target ao tamanho do widget e resolver MSAA automaticamente.
 
 ## Fase F — Recursos Avançados
-- [ ] Wrap (row/col reversos) com height limitada.
-- [ ] Animate: opacity/translateY com easing + `animComplete`.
-- [ ] Hot-reload de theme sem recriar o realm.
-- [ ] Debug UI: overlay de bounds/ids e profiling básico.
-- [ ] Performance: cache de layout + invalidation por dirty flags (inclui cache de tessellation).
+- [x] Wrap (row/col reversos) com height limitada.
+- [x] Animate: opacity/translateY com easing + `animComplete`.
+- [x] Hot-reload de theme sem recriar o realm.
+- [x] Debug UI: overlay de bounds/ids e profiling básico.
+- [x] Performance: cache de layout + invalidation por dirty flags (inclui cache de tessellation).
 
 ## Fase G — Demos e Docs
 - [ ] Demo UI com fechamento via Esc.

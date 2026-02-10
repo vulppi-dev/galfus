@@ -95,6 +95,7 @@ pub enum EngineCmd {
     CmdUiDocumentSetRect(ui::CmdUiDocumentSetRectArgs),
     CmdUiDocumentSetTheme(ui::CmdUiDocumentSetThemeArgs),
     CmdUiApplyOps(ui::CmdUiApplyOpsArgs),
+    CmdUiDebugSet(ui::CmdUiDebugSetArgs),
     CmdUiImageCreateFromBuffer(ui::CmdUiImageCreateFromBufferArgs),
     CmdUiImageDispose(ui::CmdUiImageDisposeArgs),
     CmdModelList(res::CmdModelListArgs),
@@ -196,6 +197,7 @@ pub enum CommandResponse {
     UiDocumentSetRect(ui::CmdResultUiDocumentSetRect),
     UiDocumentSetTheme(ui::CmdResultUiDocumentSetTheme),
     UiApplyOps(ui::CmdResultUiApplyOps),
+    UiDebugSet(ui::CmdResultUiDebugSet),
     UiImageCreateFromBuffer(ui::CmdResultUiImageCreateFromBuffer),
     UiImageDispose(ui::CmdResultUiImageDispose),
     ModelList(res::CmdResultModelList),
@@ -751,6 +753,13 @@ pub fn engine_process_batch(
                 engine.response_queue.push(CommandResponseEnvelope {
                     id: pack.id,
                     response: CommandResponse::UiApplyOps(result),
+                });
+            }
+            EngineCmd::CmdUiDebugSet(args) => {
+                let result = ui::engine_cmd_ui_debug_set(engine, &args);
+                engine.response_queue.push(CommandResponseEnvelope {
+                    id: pack.id,
+                    response: CommandResponse::UiDebugSet(result),
                 });
             }
             EngineCmd::CmdUiImageCreateFromBuffer(args) => {

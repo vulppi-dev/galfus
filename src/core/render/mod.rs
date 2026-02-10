@@ -310,6 +310,7 @@ pub fn render_frames(engine_state: &mut EngineState) {
                 target_format,
                 target_size,
                 engine_state.frame_index,
+                time as f64,
                 engine_state.gpu_profiler.as_ref(),
                 gpu_base,
             );
@@ -485,6 +486,7 @@ fn execute_graph_to_view(
     target_format: wgpu::TextureFormat,
     target_size: glam::UVec2,
     frame_index: u64,
+    time_seconds: f64,
     gpu_profiler: Option<&crate::core::profiling::gpu::GpuProfiler>,
     gpu_base: Option<u32>,
 ) -> bool {
@@ -576,6 +578,7 @@ fn execute_graph_to_view(
                     target_format,
                     target_size,
                     frame_index,
+                    time_seconds,
                 );
                 gpu_written = true;
             }

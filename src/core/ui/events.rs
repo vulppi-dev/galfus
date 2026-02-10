@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 pub enum UiEventKind {
     Click,
     ChangeCommit,
+    AnimComplete,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

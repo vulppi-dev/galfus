@@ -1,11 +1,14 @@
 use crate::core::image::ImagePixels;
 use crate::core::realm::RealmId;
 use crate::core::ui::events::{UiEvent, UiEventKind};
-use crate::core::ui::state::{UiDocument, UiImageRecord, UiNodeEntry, UiState};
-use crate::core::ui::types::{
-    UiAlign, UiColor, UiImageSource, UiLayout, UiLayoutDirection, UiLength, UiNodeId, UiNodeProps,
-    UiPadding, UiSize,
+use crate::core::ui::state::{
+    UiAnimKey, UiAnimProperty, UiAnimState, UiDocument, UiImageRecord, UiNodeEntry, UiState,
 };
+use crate::core::ui::types::{
+    UiAlign, UiAnimEasing, UiAnimSpec, UiColor, UiImageSource, UiLayout, UiLayoutDirection,
+    UiLength, UiNodeId, UiNodeProps, UiPadding, UiSize,
+};
+use std::hash::{Hash, Hasher};
 
 pub fn sync_ui_images(ctx: &egui::Context, ui_state: &mut UiState) {
     for (image_id, record) in ui_state.images.iter_mut() {
@@ -27,16 +30,32 @@ pub fn render_realm_documents(
     ui_state: &mut UiState,
     realm_id: RealmId,
     ui_events: &mut Vec<UiEvent>,
+    time_seconds: f64,
 ) {
-    let mut documents: Vec<UiDocument> = ui_state
+    let mut document_ids: Vec<_> = ui_state
         .documents
         .values()
         .filter(|doc| doc.realm_id == realm_id)
-        .cloned()
+        .map(|doc| doc.document_id)
         .collect();
-    documents.sort_by_key(|doc| doc.document_id);
+    document_ids.sort();
 
-    for document in documents {
+    for document_id in document_ids {
+        let document = {
+            let Some(doc) = ui_state.documents.get_mut(&document_id) else {
+                continue;
+            };
+            doc.ensure_layout_cache();
+            if let Some(theme_id) = doc.theme_id {
+                if let Some(theme) = ui_state.themes.get(&theme_id) {
+                    if doc.last_theme_version != Some(theme.version) {
+                        apply_theme(ctx, theme);
+                        doc.last_theme_version = Some(theme.version);
+                    }
+                }
+            }
+            doc.clone()
+        };
         let rect = egui::Rect::from_min_size(
             egui::pos2(document.rect.x, document.rect.y),
             egui::vec2(document.rect.z, document.rect.w),
@@ -51,10 +70,12 @@ pub fn render_realm_documents(
                 render_children(
                     ui,
                     &document,
+                    None,
                     &document.root_children,
                     ui_state,
                     realm_id,
                     ui_events,
+                    time_seconds,
                 );
             });
     }
@@ -63,28 +84,39 @@ pub fn render_realm_documents(
 fn render_children(
     ui: &mut egui::Ui,
     document: &UiDocument,
+    parent: Option<UiNodeId>,
     children: &[UiNodeId],
     ui_state: &mut UiState,
     realm_id: RealmId,
     ui_events: &mut Vec<UiEvent>,
+    time_seconds: f64,
 ) {
-    let mut ordered: Vec<(usize, UiNodeId, i32)> = children
-        .iter()
-        .enumerate()
-        .map(|(index, node_id)| {
-            let z = document
-                .nodes
-                .get(node_id)
-                .and_then(|entry| entry.node.z_index)
-                .unwrap_or(0);
-            (index, *node_id, z)
-        })
-        .collect();
-    ordered.sort_by(|a, b| a.2.cmp(&b.2).then_with(|| a.0.cmp(&b.0)));
+    let ordered: Vec<UiNodeId> = match parent {
+        Some(parent_id) => document
+            .ordered_children
+            .get(&parent_id)
+            .cloned()
+            .unwrap_or_else(|| children.to_vec()),
+        None => {
+            if document.ordered_root.is_empty() {
+                children.to_vec()
+            } else {
+                document.ordered_root.clone()
+            }
+        }
+    };
 
-    for (_, node_id, _) in ordered {
+    for node_id in ordered {
         if let Some(entry) = document.nodes.get(&node_id) {
-            render_node(ui, document, entry, ui_state, realm_id, ui_events);
+            render_node(
+                ui,
+                document,
+                entry,
+                ui_state,
+                realm_id,
+                ui_events,
+                time_seconds,
+            );
         }
     }
 }
@@ -96,23 +128,82 @@ fn render_node(
     ui_state: &mut UiState,
     realm_id: RealmId,
     ui_events: &mut Vec<UiEvent>,
+    time_seconds: f64,
 ) {
     let display = entry.node.display.unwrap_or(true);
     if !display {
         return;
     }
     let visible = entry.node.visible.unwrap_or(true);
-    let opacity = entry.node.opacity.unwrap_or(1.0).clamp(0.0, 1.0);
+    let mut opacity = entry.node.opacity.unwrap_or(1.0);
+    let mut translate_y = 0.0;
+    if let Some(anim) = entry.node.anim.as_ref() {
+        if let Some(spec) = anim.opacity {
+            opacity = resolve_anim(
+                ui_state,
+                document.document_id,
+                entry.node.id,
+                UiAnimProperty::Opacity,
+                spec,
+                time_seconds,
+                realm_id,
+                ui_events,
+            );
+        }
+        if let Some(spec) = anim.translate_y {
+            translate_y = resolve_anim(
+                ui_state,
+                document.document_id,
+                entry.node.id,
+                UiAnimProperty::TranslateY,
+                spec,
+                time_seconds,
+                realm_id,
+                ui_events,
+            );
+        }
+    }
+    let opacity = opacity.clamp(0.0, 1.0);
 
-    ui.scope(|ui| {
+    let debug = ui_state.debug;
+    let response = ui.scope(|ui| {
         if !visible || opacity <= 0.0 {
             ui.set_invisible();
         }
         if opacity < 1.0 {
             ui.set_opacity(opacity);
         }
-        render_node_inner(ui, document, entry, ui_state, realm_id, ui_events);
+        if translate_y.abs() > f32::EPSILON {
+            let mut rect = ui.available_rect_before_wrap();
+            rect = rect.translate(egui::vec2(0.0, translate_y));
+            ui.allocate_new_ui(egui::UiBuilder::new().max_rect(rect), |ui| {
+                render_node_inner(ui, document, entry, ui_state, realm_id, ui_events, time_seconds);
+            });
+        } else {
+            render_node_inner(ui, document, entry, ui_state, realm_id, ui_events, time_seconds);
+        }
     });
+
+    if debug.enabled && (debug.show_bounds || debug.show_ids) {
+        let painter = ui.painter();
+        let rect = response.response.rect;
+        if debug.show_bounds {
+            painter.rect_stroke(
+                rect,
+                0.0,
+                egui::Stroke::new(1.0, egui::Color32::from_rgba_premultiplied(0, 200, 255, 140)),
+            );
+        }
+        if debug.show_ids {
+            painter.text(
+                rect.min,
+                egui::Align2::LEFT_TOP,
+                format!("{}", entry.node.id),
+                egui::TextStyle::Monospace.resolve(ui.style()),
+                egui::Color32::from_rgba_premultiplied(0, 200, 255, 200),
+            );
+        }
+    }
 }
 
 fn render_node_inner(
@@ -122,6 +213,7 @@ fn render_node_inner(
     ui_state: &mut UiState,
     realm_id: RealmId,
     ui_events: &mut Vec<UiEvent>,
+    time_seconds: f64,
 ) {
     match entry.node.props.clone() {
         UiNodeProps::Container {
@@ -143,10 +235,28 @@ fn render_node_inner(
                     let mut scroll = egui::ScrollArea::new([scroll_x, scroll_y]);
                     scroll = scroll.auto_shrink([false, false]);
                     scroll.show(ui, |ui| {
-                        render_layout(ui, document, entry, layout, ui_state, realm_id, ui_events);
+                        render_layout(
+                            ui,
+                            document,
+                            entry,
+                            layout,
+                            ui_state,
+                            realm_id,
+                            ui_events,
+                            time_seconds,
+                        );
                     });
                 } else {
-                    render_layout(ui, document, entry, layout, ui_state, realm_id, ui_events);
+                    render_layout(
+                        ui,
+                        document,
+                        entry,
+                        layout,
+                        ui_state,
+                        realm_id,
+                        ui_events,
+                        time_seconds,
+                    );
                 }
                 ui.spacing_mut().item_spacing = spacing;
             });
@@ -252,6 +362,7 @@ fn render_layout(
     ui_state: &mut UiState,
     realm_id: RealmId,
     ui_events: &mut Vec<UiEvent>,
+    time_seconds: f64,
 ) {
     let align = match layout.align {
         UiAlign::Start => egui::Align::Min,
@@ -259,28 +370,213 @@ fn render_layout(
         UiAlign::End => egui::Align::Max,
         UiAlign::Stretch => egui::Align::Min,
     };
+    let justify = match layout.justify {
+        UiAlign::Start => egui::Align::Min,
+        UiAlign::Center => egui::Align::Center,
+        UiAlign::End => egui::Align::Max,
+        UiAlign::Stretch => egui::Align::Min,
+    };
 
-    match layout.direction {
-        UiLayoutDirection::Row => {
-            ui.with_layout(egui::Layout::left_to_right(align), |ui| {
-                render_children(ui, document, &entry.children, ui_state, realm_id, ui_events);
-            });
-        }
-        UiLayoutDirection::Column => {
-            ui.with_layout(egui::Layout::top_down(align), |ui| {
-                render_children(ui, document, &entry.children, ui_state, realm_id, ui_events);
-            });
-        }
+    let mut layout_def = match layout.direction {
+        UiLayoutDirection::Row => egui::Layout::left_to_right(align),
+        UiLayoutDirection::RowReverse => egui::Layout::right_to_left(align),
+        UiLayoutDirection::Column => egui::Layout::top_down(align),
+        UiLayoutDirection::ColumnReverse => egui::Layout::bottom_up(align),
         UiLayoutDirection::Grid => {
             let columns = layout.columns.unwrap_or(2).max(1);
             let grid_id = egui::Id::new(("grid", entry.node.id));
             egui::Grid::new(grid_id)
                 .num_columns(columns as usize)
                 .show(ui, |ui| {
-                    render_children(ui, document, &entry.children, ui_state, realm_id, ui_events);
+                    render_children(
+                        ui,
+                        document,
+                        Some(entry.node.id),
+                        &entry.children,
+                        ui_state,
+                        realm_id,
+                        ui_events,
+                        time_seconds,
+                    );
                 });
+            return;
+        }
+    };
+
+    layout_def = layout_def.with_main_align(justify).with_main_wrap(layout.wrap);
+    if layout.wrap {
+        if let Some(limit) = layout.wrap_limit {
+            if layout_def.is_horizontal() {
+                ui.set_max_height(limit.max(0.0));
+            } else {
+                ui.set_max_width(limit.max(0.0));
+            }
         }
     }
+
+    ui.with_layout(layout_def, |ui| {
+        render_children(
+            ui,
+            document,
+            Some(entry.node.id),
+            &entry.children,
+            ui_state,
+            realm_id,
+            ui_events,
+            time_seconds,
+        );
+    });
+}
+
+fn resolve_anim(
+    ui_state: &mut UiState,
+    document_id: u32,
+    node_id: u32,
+    property: UiAnimProperty,
+    spec: UiAnimSpec,
+    time_seconds: f64,
+    realm_id: RealmId,
+    ui_events: &mut Vec<UiEvent>,
+) -> f32 {
+    let key = UiAnimKey {
+        document_id,
+        node_id,
+        property,
+    };
+    let duration = (spec.duration_ms as f32 / 1000.0).max(0.0001);
+    let entry = ui_state.animations.entry(key).or_insert(UiAnimState {
+        start_time: time_seconds,
+        from: spec.from,
+        to: spec.to,
+        duration,
+        finished: false,
+        last_value: spec.from,
+    });
+
+    let elapsed = (time_seconds - entry.start_time).max(0.0) as f32;
+    let t = (elapsed / entry.duration).clamp(0.0, 1.0);
+    let eased = apply_easing(t, spec.easing);
+    let value = entry.from + (entry.to - entry.from) * eased;
+    entry.last_value = value;
+
+    if t >= 1.0 && !entry.finished {
+        entry.finished = true;
+        ui_events.push(UiEvent {
+            realm_id: realm_id.0,
+            document_id,
+            node_id,
+            kind: UiEventKind::AnimComplete,
+            label: Some(match property {
+                UiAnimProperty::Opacity => "opacity".into(),
+                UiAnimProperty::TranslateY => "translateY".into(),
+            }),
+        });
+    }
+
+    value
+}
+
+fn apply_easing(value: f32, easing: UiAnimEasing) -> f32 {
+    match easing {
+        UiAnimEasing::Linear => value,
+        UiAnimEasing::EaseInOut => {
+            if value < 0.5 {
+                2.0 * value * value
+            } else {
+                -1.0 + (4.0 - 2.0 * value) * value
+            }
+        }
+    }
+}
+
+fn apply_theme(ctx: &egui::Context, theme: &crate::core::ui::state::UiThemeState) {
+    let mut style = (*ctx.style()).clone();
+    let mut text_color: Option<egui::Color32> = None;
+    let mut panel_fill: Option<egui::Color32> = None;
+    let mut window_fill: Option<egui::Color32> = None;
+    let mut accent: Option<egui::Color32> = None;
+    let mut font_size: Option<f32> = None;
+
+    for (key, value) in &theme.data {
+        match (key.as_str(), value) {
+            ("fontSize", crate::core::ui::types::UiThemeValue::Float(v)) => {
+                font_size = Some(*v as f32);
+            }
+            ("textColor", crate::core::ui::types::UiThemeValue::String(v)) => {
+                text_color = parse_color_string(v);
+            }
+            ("panelFill", crate::core::ui::types::UiThemeValue::String(v)) => {
+                panel_fill = parse_color_string(v);
+            }
+            ("windowFill", crate::core::ui::types::UiThemeValue::String(v)) => {
+                window_fill = parse_color_string(v);
+            }
+            ("accentColor", crate::core::ui::types::UiThemeValue::String(v)) => {
+                accent = parse_color_string(v);
+            }
+            _ => {}
+        }
+    }
+
+    if let Some(size) = font_size {
+        for text_style in style.text_styles.values_mut() {
+            text_style.size = size;
+        }
+    }
+    if let Some(color) = text_color {
+        style.visuals.override_text_color = Some(color);
+    }
+    if let Some(color) = panel_fill {
+        style.visuals.panel_fill = color;
+    }
+    if let Some(color) = window_fill {
+        style.visuals.window_fill = color;
+    }
+    if let Some(color) = accent {
+        style.visuals.selection.bg_fill = color;
+    }
+
+    ctx.set_style(style);
+}
+
+fn parse_color_string(value: &str) -> Option<egui::Color32> {
+    let trimmed = value.trim();
+    if let Some(hex) = trimmed.strip_prefix('#') {
+        let parsed = match hex.len() {
+            6 => u32::from_str_radix(hex, 16).ok().map(|v| (v, 255u8)),
+            8 => u32::from_str_radix(hex, 16).ok().map(|v| (v >> 8, (v & 0xFF) as u8)),
+            _ => None,
+        };
+        if let Some((rgb, a)) = parsed {
+            let r = ((rgb >> 16) & 0xFF) as u8;
+            let g = ((rgb >> 8) & 0xFF) as u8;
+            let b = (rgb & 0xFF) as u8;
+            return Some(egui::Color32::from_rgba_premultiplied(r, g, b, a));
+        }
+    }
+
+    let parts: Vec<_> = trimmed.split(',').map(|p| p.trim()).collect();
+    if parts.len() >= 3 {
+        let r = parts[0].parse::<u8>().ok()?;
+        let g = parts[1].parse::<u8>().ok()?;
+        let b = parts[2].parse::<u8>().ok()?;
+        let a = parts
+            .get(3)
+            .and_then(|v| v.parse::<u8>().ok())
+            .unwrap_or(255);
+        return Some(egui::Color32::from_rgba_premultiplied(r, g, b, a));
+    }
+
+    None
+}
+
+pub(crate) fn hash_shapes(shapes: &[egui::epaint::ClippedShape]) -> u64 {
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    shapes.len().hash(&mut hasher);
+    for shape in shapes {
+        format!("{:?}", shape).hash(&mut hasher);
+    }
+    hasher.finish()
 }
 
 fn apply_size(ui: &mut egui::Ui, size: Option<UiSize>) {

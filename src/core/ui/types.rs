@@ -36,7 +36,9 @@ pub enum UiNodeKind {
 #[serde(rename_all = "kebab-case")]
 pub enum UiLayoutDirection {
     Row,
+    RowReverse,
     Column,
+    ColumnReverse,
     Grid,
 }
 
@@ -91,6 +93,10 @@ pub struct UiLayout {
     pub gap: f32,
     #[serde(default)]
     pub columns: Option<u32>,
+    #[serde(default)]
+    pub wrap: bool,
+    #[serde(default)]
+    pub wrap_limit: Option<f32>,
 }
 
 impl Default for UiLayout {
@@ -101,6 +107,8 @@ impl Default for UiLayout {
             justify: UiAlign::Start,
             gap: 0.0,
             columns: None,
+            wrap: false,
+            wrap_limit: None,
         }
     }
 }
@@ -183,6 +191,8 @@ pub struct UiNode {
     pub kind: UiNodeKind,
     pub props: UiNodeProps,
     #[serde(default)]
+    pub anim: Option<UiAnim>,
+    #[serde(default)]
     pub display: Option<bool>,
     #[serde(default)]
     pub visible: Option<bool>,
@@ -190,6 +200,38 @@ pub struct UiNode {
     pub opacity: Option<f32>,
     #[serde(default)]
     pub z_index: Option<i32>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct UiAnim {
+    #[serde(default)]
+    pub opacity: Option<UiAnimSpec>,
+    #[serde(default)]
+    pub translate_y: Option<UiAnimSpec>,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct UiAnimSpec {
+    pub from: f32,
+    pub to: f32,
+    pub duration_ms: u32,
+    #[serde(default)]
+    pub easing: UiAnimEasing,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+pub enum UiAnimEasing {
+    Linear,
+    EaseInOut,
+}
+
+impl Default for UiAnimEasing {
+    fn default() -> Self {
+        UiAnimEasing::Linear
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
