@@ -22,16 +22,16 @@ _Sistema de UI renderizado no core, host-driven, usando Realm TwoD + TargetGraph
 - [x] Scroll real com offsets + barras.
 
 ## Fase D — Input e Eventos
-- [ ] Integrar input routing com `TargetBindLayout.inputFlags` e `eventTrace` (windowId/realmId/targetId/connectorId).
-- [ ] Disparar eventos para o egui via proxies de input/janela (core).
-- [ ] Ponteiro em UI 2D via hit-box no ambiente 2D.
-- [ ] `Panel` é componente 3D (pos/escala/rotação) com UI embutida; aceita alpha e respeita `blendMode`.
-- [ ] Ponteiro em UI 3D via trace no `Panel` no ambiente 3D.
-- [ ] Padronizar payload de eventos entre conectores (transformação por camada no TargetGraph).
-- [ ] `UiEvent` com label + nodeId + realmId.
-- [ ] Hit-testing respeitando display/visible/opacity.
-- [ ] Focus/keyboard: tab/focus e navegação básica.
-- [ ] Z-order interno (overlays/menus) por UiDocument.
+- [x] Integrar input routing com `TargetBindLayout.inputFlags` e `eventTrace` (windowId/realmId/targetId/connectorId).
+- [x] Disparar eventos para o egui via proxies de input/janela (core).
+- [x] Ponteiro em UI 2D via hit-box no ambiente 2D.
+- [x] `Panel` é componente 3D (pos/escala/rotação) com UI embutida; aceita alpha e respeita `blendMode`.
+- [x] Ponteiro em UI 3D via trace no `Panel` no ambiente 3D.
+- [x] Padronizar payload de eventos entre conectores (transformação por camada no TargetGraph).
+- [x] `UiEvent` com label + nodeId + realmId.
+- [x] Hit-testing respeitando display/visible/opacity.
+- [x] Focus/keyboard: tab/focus e navegação básica.
+- [x] Z-order interno (overlays/menus) por UiDocument.
 
 ## Fase E — Composição (Targets/Surfaces)
 - [ ] UI realm pode bindar em targets `window`, `viewport-embed`, `panel-embed` e `texture` via `CmdTargetBindUpsert`.

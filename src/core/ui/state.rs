@@ -15,6 +15,8 @@ pub struct UiRealmState {
     pub last_frame_index: u64,
     pub context: Context,
     pub pixels_per_point: f32,
+    pub modifiers: egui::Modifiers,
+    pub pending_events: Vec<egui::Event>,
 }
 
 #[allow(dead_code)]
@@ -25,6 +27,8 @@ impl UiRealmState {
             last_frame_index: 0,
             context: Context::default(),
             pixels_per_point: 1.0,
+            modifiers: egui::Modifiers::default(),
+            pending_events: Vec::new(),
         }
     }
 
@@ -39,6 +43,15 @@ impl UiRealmState {
     pub fn set_last_frame_index(&mut self, frame_index: u64) {
         self.last_frame_index = frame_index;
     }
+
+    pub fn push_event(&mut self, event: egui::Event) {
+        self.pending_events.push(event);
+    }
+
+    pub fn drain_events(&mut self) -> Vec<egui::Event> {
+        std::mem::take(&mut self.pending_events)
+    }
+
 }
 
 #[derive(Debug)]
@@ -48,6 +61,7 @@ pub struct UiState {
     pub documents: HashMap<UiDocumentId, UiDocument>,
     pub images: HashMap<UiImageId, UiImageRecord>,
     pub image_async: UiImageAsyncManager,
+    pub focus_by_window: HashMap<u32, RealmId>,
 }
 
 impl UiState {
@@ -74,6 +88,7 @@ impl Default for UiState {
             documents: HashMap::new(),
             images: HashMap::new(),
             image_async: UiImageAsyncManager::new(),
+            focus_by_window: HashMap::new(),
         }
     }
 }

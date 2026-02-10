@@ -6,6 +6,7 @@ mod realm_graph;
 pub mod state;
 
 use crate::core::realm::{FrameReport, RealmGraphPlanner, RealmId};
+use crate::core::ui::events::UiEvent;
 use crate::core::render::graph::RenderGraphPlan;
 use crate::core::state::EngineState;
 use realm_graph::{
@@ -163,6 +164,7 @@ pub fn render_frames(engine_state: &mut EngineState) {
         present_sizes,
     );
     let mut updated_surfaces: HashSet<crate::core::realm::SurfaceId> = HashSet::new();
+    let mut ui_events: Vec<UiEvent> = Vec::new();
     const MAX_REALM_ITERATIONS: u32 = 1;
     let mut iteration: u32 = 0;
     loop {
@@ -269,6 +271,7 @@ pub fn render_frames(engine_state: &mut EngineState) {
                 render_state,
                 &mut engine_state.universal_state.ui,
                 *realm_id,
+                &mut ui_events,
                 device,
                 queue,
                 &mut encoder,
@@ -389,6 +392,11 @@ pub fn render_frames(engine_state: &mut EngineState) {
     }
 
     engine_state.universal_state.frame_report = frame_report;
+    for event in ui_events {
+        engine_state
+            .event_queue
+            .push(crate::core::cmd::EngineEvent::Ui(event));
+    }
 
     if gpu_written {
         if let Some(gpu_profiler) = engine_state.gpu_profiler.as_mut() {
@@ -431,6 +439,7 @@ fn execute_graph_to_view(
     render_state: &mut RenderState,
     ui_state: &mut crate::core::ui::UiState,
     realm_id: RealmId,
+    ui_events: &mut Vec<UiEvent>,
     device: &wgpu::Device,
     queue: &wgpu::Queue,
     encoder: &mut wgpu::CommandEncoder,
@@ -517,6 +526,7 @@ fn execute_graph_to_view(
                     render_state,
                     ui_state,
                     realm_id,
+                    ui_events,
                     device,
                     queue,
                     encoder,

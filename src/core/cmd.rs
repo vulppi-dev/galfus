@@ -6,6 +6,7 @@ use crate::core::gamepad::events::GamepadEvent;
 use crate::core::input::events::{KeyboardEvent, PointerEvent};
 use crate::core::state::EngineState;
 use crate::core::system::SystemEvent;
+use crate::core::ui::events::UiEvent;
 use crate::core::window::WindowEvent;
 
 pub use crate::core::audio;
@@ -114,6 +115,7 @@ pub enum EngineEvent {
     Keyboard(KeyboardEvent),
     Gamepad(GamepadEvent),
     System(SystemEvent),
+    Ui(UiEvent),
 }
 
 /// Command responses (answers to commands sent by user)

@@ -4,6 +4,8 @@ pub mod renderer;
 pub mod image_async;
 pub mod cmd;
 pub mod render;
+pub mod events;
+pub mod input;
 
 #[allow(unused_imports)]
 pub use renderer::UiRenderer;

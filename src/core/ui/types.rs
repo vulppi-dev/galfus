@@ -175,6 +175,14 @@ pub struct UiNode {
     pub id: UiNodeId,
     pub kind: UiNodeKind,
     pub props: UiNodeProps,
+    #[serde(default)]
+    pub display: Option<bool>,
+    #[serde(default)]
+    pub visible: Option<bool>,
+    #[serde(default)]
+    pub opacity: Option<f32>,
+    #[serde(default)]
+    pub z_index: Option<i32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

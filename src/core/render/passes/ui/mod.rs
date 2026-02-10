@@ -1,5 +1,6 @@
 use crate::core::realm::RealmId;
 use crate::core::render::RenderState;
+use crate::core::ui::events::UiEvent;
 use crate::core::ui::render::{render_realm_documents, sync_ui_images};
 use crate::core::ui::UiState;
 
@@ -7,6 +8,7 @@ pub fn pass_ui(
     render_state: &mut RenderState,
     ui_state: &mut UiState,
     realm_id: RealmId,
+    ui_events: &mut Vec<UiEvent>,
     device: &wgpu::Device,
     queue: &wgpu::Queue,
     encoder: &mut wgpu::CommandEncoder,
@@ -16,12 +18,17 @@ pub fn pass_ui(
     frame_index: u64,
 ) {
     ui_state.ensure_realm(realm_id);
-    let (context, pixels_per_point) = {
+    let (context, pixels_per_point, input_events, modifiers) = {
         let Some(ui_realm) = ui_state.realm_mut(realm_id) else {
             return;
         };
         ui_realm.last_frame_index = frame_index;
-        (ui_realm.context.clone(), ui_realm.pixels_per_point)
+        (
+            ui_realm.context.clone(),
+            ui_realm.pixels_per_point,
+            ui_realm.drain_events(),
+            ui_realm.modifiers,
+        )
     };
 
     let screen_size = egui::vec2(target_size.x as f32, target_size.y as f32);
@@ -35,9 +42,11 @@ pub fn pass_ui(
         viewport.focused = Some(true);
     }
     input.time = Some(frame_index as f64);
+    input.events = input_events;
+    input.modifiers = modifiers;
     sync_ui_images(&context, ui_state);
     let output = context.run(input, |ctx| {
-        render_realm_documents(ctx, ui_state, realm_id);
+        render_realm_documents(ctx, ui_state, realm_id, ui_events);
     });
 
     let clipped_primitives = context.tessellate(output.shapes, output.pixels_per_point);

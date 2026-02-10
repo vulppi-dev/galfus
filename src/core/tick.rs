@@ -83,6 +83,7 @@ pub fn vulfram_tick(time: u64, delta_time: u32) -> VulframResult {
         // MARK: Event Loop Pump
         engine.state.profiling.event_loop_pump_ns = engine.platform.pump_events(&mut engine.state);
         crate::core::input::route_pointer_events(&mut engine.state);
+        crate::core::ui::input::process_ui_input(&mut engine.state);
 
         let events_after = engine.state.event_queue.len();
         engine.state.profiling.total_events_dispatched = events_after - events_before;

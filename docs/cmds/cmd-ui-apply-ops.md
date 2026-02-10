@@ -27,6 +27,10 @@ Supported ops:
 | id    | u32  | Node ID     |
 | kind  | UiNodeKind | Node kind |
 | props | UiNodeProps | Node payload |
+| display | Option<bool> | If false, skips layout + hit-test |
+| visible | Option<bool> | If false, invisible and non-interactive |
+| opacity | Option<f32> | Opacity multiplier (0..1) |
+| zIndex | Option<i32> | Z-order inside the document |
 
 ### UiNodeKind
 

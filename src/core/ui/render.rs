@@ -1,5 +1,6 @@
 use crate::core::image::ImagePixels;
 use crate::core::realm::RealmId;
+use crate::core::ui::events::{UiEvent, UiEventKind};
 use crate::core::ui::state::{UiDocument, UiImageRecord, UiNodeEntry, UiState};
 use crate::core::ui::types::{
     UiAlign, UiColor, UiLayout, UiLayoutDirection, UiLength, UiNodeId, UiNodeProps, UiPadding,
@@ -21,7 +22,12 @@ pub fn sync_ui_images(ctx: &egui::Context, ui_state: &mut UiState) {
     }
 }
 
-pub fn render_realm_documents(ctx: &egui::Context, ui_state: &UiState, realm_id: RealmId) {
+pub fn render_realm_documents(
+    ctx: &egui::Context,
+    ui_state: &UiState,
+    realm_id: RealmId,
+    ui_events: &mut Vec<UiEvent>,
+) {
     let mut documents: Vec<&UiDocument> = ui_state
         .documents
         .values()
@@ -41,7 +47,14 @@ pub fn render_realm_documents(ctx: &egui::Context, ui_state: &UiState, realm_id:
                 ui.set_min_size(rect.size());
                 ui.set_max_size(rect.size());
                 ui.set_clip_rect(rect);
-                render_children(ui, document, &document.root_children, ui_state);
+                render_children(
+                    ui,
+                    document,
+                    &document.root_children,
+                    ui_state,
+                    realm_id,
+                    ui_events,
+                );
             });
     }
 }
@@ -51,10 +64,26 @@ fn render_children(
     document: &UiDocument,
     children: &[UiNodeId],
     ui_state: &UiState,
+    realm_id: RealmId,
+    ui_events: &mut Vec<UiEvent>,
 ) {
-    for node_id in children {
-        if let Some(entry) = document.nodes.get(node_id) {
-            render_node(ui, document, entry, ui_state);
+    let mut ordered: Vec<(usize, UiNodeId, i32)> = children
+        .iter()
+        .enumerate()
+        .map(|(index, node_id)| {
+            let z = document
+                .nodes
+                .get(node_id)
+                .and_then(|entry| entry.node.z_index)
+                .unwrap_or(0);
+            (index, *node_id, z)
+        })
+        .collect();
+    ordered.sort_by(|a, b| a.2.cmp(&b.2).then_with(|| a.0.cmp(&b.0)));
+
+    for (_, node_id, _) in ordered {
+        if let Some(entry) = document.nodes.get(&node_id) {
+            render_node(ui, document, entry, ui_state, realm_id, ui_events);
         }
     }
 }
@@ -64,6 +93,34 @@ fn render_node(
     document: &UiDocument,
     entry: &UiNodeEntry,
     ui_state: &UiState,
+    realm_id: RealmId,
+    ui_events: &mut Vec<UiEvent>,
+) {
+    let display = entry.node.display.unwrap_or(true);
+    if !display {
+        return;
+    }
+    let visible = entry.node.visible.unwrap_or(true);
+    let opacity = entry.node.opacity.unwrap_or(1.0).clamp(0.0, 1.0);
+
+    ui.scope(|ui| {
+        if !visible || opacity <= 0.0 {
+            ui.set_invisible();
+        }
+        if opacity < 1.0 {
+            ui.set_opacity(opacity);
+        }
+        render_node_inner(ui, document, entry, ui_state, realm_id, ui_events);
+    });
+}
+
+fn render_node_inner(
+    ui: &mut egui::Ui,
+    document: &UiDocument,
+    entry: &UiNodeEntry,
+    ui_state: &UiState,
+    realm_id: RealmId,
+    ui_events: &mut Vec<UiEvent>,
 ) {
     match entry.node.props.clone() {
         UiNodeProps::Container {
@@ -85,10 +142,10 @@ fn render_node(
                     let mut scroll = egui::ScrollArea::new([scroll_x, scroll_y]);
                     scroll = scroll.auto_shrink([false, false]);
                     scroll.show(ui, |ui| {
-                        render_layout(ui, document, entry, layout, ui_state);
+                        render_layout(ui, document, entry, layout, ui_state, realm_id, ui_events);
                     });
                 } else {
-                    render_layout(ui, document, entry, layout, ui_state);
+                    render_layout(ui, document, entry, layout, ui_state, realm_id, ui_events);
                 }
                 ui.spacing_mut().item_spacing = spacing;
             });
@@ -105,7 +162,16 @@ fn render_node(
         }
         UiNodeProps::Button { label, enabled } => {
             let enabled = enabled.unwrap_or(true);
-            ui.add_enabled(enabled, egui::Button::new(label));
+            let response = ui.add_enabled(enabled, egui::Button::new(label.clone()));
+            if response.clicked() {
+                ui_events.push(UiEvent {
+                    realm_id: realm_id.0,
+                    document_id: document.document_id,
+                    node_id: entry.node.id,
+                    kind: UiEventKind::Click,
+                    label: Some(label),
+                });
+            }
         }
         UiNodeProps::Input {
             value,
@@ -118,7 +184,16 @@ fn render_node(
                 edit = edit.hint_text(placeholder);
             }
             let enabled = enabled.unwrap_or(true);
-            ui.add_enabled(enabled, edit);
+            let response = ui.add_enabled(enabled, edit);
+            if response.changed() && response.lost_focus() {
+                ui_events.push(UiEvent {
+                    realm_id: realm_id.0,
+                    document_id: document.document_id,
+                    node_id: entry.node.id,
+                    kind: UiEventKind::ChangeCommit,
+                    label: Some(text),
+                });
+            }
         }
         UiNodeProps::Image { image_id, size } => {
             if let Some(record) = ui_state.images.get(&image_id) {
@@ -153,6 +228,8 @@ fn render_layout(
     entry: &UiNodeEntry,
     layout: UiLayout,
     ui_state: &UiState,
+    realm_id: RealmId,
+    ui_events: &mut Vec<UiEvent>,
 ) {
     let align = match layout.align {
         UiAlign::Start => egui::Align::Min,
@@ -164,12 +241,12 @@ fn render_layout(
     match layout.direction {
         UiLayoutDirection::Row => {
             ui.with_layout(egui::Layout::left_to_right(align), |ui| {
-                render_children(ui, document, &entry.children, ui_state);
+                render_children(ui, document, &entry.children, ui_state, realm_id, ui_events);
             });
         }
         UiLayoutDirection::Column => {
             ui.with_layout(egui::Layout::top_down(align), |ui| {
-                render_children(ui, document, &entry.children, ui_state);
+                render_children(ui, document, &entry.children, ui_state, realm_id, ui_events);
             });
         }
         UiLayoutDirection::Grid => {
@@ -178,7 +255,7 @@ fn render_layout(
             egui::Grid::new(grid_id)
                 .num_columns(columns as usize)
                 .show(ui, |ui| {
-                    render_children(ui, document, &entry.children, ui_state);
+                    render_children(ui, document, &entry.children, ui_state, realm_id, ui_events);
                 });
         }
     }
