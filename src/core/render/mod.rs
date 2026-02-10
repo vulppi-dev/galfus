@@ -227,6 +227,25 @@ pub fn render_frames(engine_state: &mut EngineState) {
             let mut encoder =
                 device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
 
+            {
+                let _clear_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                    label: Some("Realm Target Clear"),
+                    color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                        view: &surface_target.view,
+                        resolve_target: None,
+                        ops: wgpu::Operations {
+                            load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
+                            store: wgpu::StoreOp::Store,
+                        },
+                        depth_slice: None,
+                    })],
+                    depth_stencil_attachment: None,
+                    timestamp_writes: None,
+                    occlusion_query_set: None,
+                    multiview_mask: None,
+                });
+            }
+
             let gpu_base = engine_state.gpu_profiler.as_ref().and_then(|gpu_profiler| {
                 let base = 2 + (window_counter as u32) * 6;
                 if gpu_profiler.query_count() >= base + 6 {
@@ -428,8 +447,7 @@ fn execute_graph_to_view(
                 continue;
             }
             "skybox" => {
-                passes::pass_skybox(render_state, device, queue, encoder, frame_index);
-                skybox_done = true;
+                skybox_done = passes::pass_skybox(render_state, device, queue, encoder, frame_index);
             }
             "light-cull" => {
                 if let Some(base) = gpu_base {
