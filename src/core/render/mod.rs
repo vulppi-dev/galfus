@@ -5,7 +5,7 @@ mod passes;
 mod realm_graph;
 pub mod state;
 
-use crate::core::realm::{FrameReport, RealmGraphPlanner};
+use crate::core::realm::{FrameReport, RealmGraphPlanner, RealmId};
 use crate::core::render::graph::RenderGraphPlan;
 use crate::core::state::EngineState;
 use realm_graph::{
@@ -267,6 +267,8 @@ pub fn render_frames(engine_state: &mut EngineState) {
             gpu_written |= execute_graph_to_view(
                 &plan,
                 render_state,
+                &mut engine_state.universal_state.ui,
+                *realm_id,
                 device,
                 queue,
                 &mut encoder,
@@ -427,6 +429,8 @@ pub fn render_frames(engine_state: &mut EngineState) {
 fn execute_graph_to_view(
     plan: &RenderGraphPlan,
     render_state: &mut RenderState,
+    ui_state: &mut crate::core::ui::UiState,
+    realm_id: RealmId,
     device: &wgpu::Device,
     queue: &wgpu::Queue,
     encoder: &mut wgpu::CommandEncoder,
@@ -507,6 +511,21 @@ fn execute_graph_to_view(
                 if let Some(base) = gpu_base {
                     write_gpu_timestamp(encoder, gpu_profiler, base + 5, &mut gpu_written);
                 }
+            }
+            "ui" => {
+                passes::pass_ui(
+                    render_state,
+                    ui_state,
+                    realm_id,
+                    device,
+                    queue,
+                    encoder,
+                    target_view,
+                    target_format,
+                    target_size,
+                    frame_index,
+                );
+                gpu_written = true;
             }
             _ => {}
         }

@@ -147,6 +147,7 @@ impl EngineState {
                     realms_to_remove.iter().copied().collect();
                 for realm_id in realms_to_remove {
                     self.universal_state.realms.remove(realm_id);
+                    self.universal_state.ui.remove_realm(realm_id);
                 }
                 for surface_id in &surfaces_to_remove {
                     self.universal_state.surfaces.remove(*surface_id);

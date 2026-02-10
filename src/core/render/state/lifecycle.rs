@@ -61,6 +61,7 @@ impl RenderState {
             collector: DrawCollector::default(),
             skinning: crate::core::render::state::SkinningSystem::default(),
             render_graph: crate::core::render::graph::RenderGraphState::new(),
+            ui_renderer: None,
             environment: crate::core::resources::EnvironmentConfig::default(),
             environment_is_configured: false,
         }
@@ -100,6 +101,7 @@ impl RenderState {
         self.skybox_uniform_buffer = None;
         self.skinning.clear();
         self.render_graph.reset_to_fallback();
+        self.ui_renderer = None;
         self.environment = crate::core::resources::EnvironmentConfig::default();
         self.environment_is_configured = false;
     }

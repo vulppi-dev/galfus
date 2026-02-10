@@ -13,5 +13,6 @@ pub use report::{FrameCutEdge, FrameReport, SurfaceCacheEntry};
 pub use state::{
     AudioState, AutoLink, ConnectorId, ConnectorState, ConnectorTable, InputCapture,
     InputRoutingState, PresentId, PresentState, PresentTable, RealmId, RealmState, RealmTable,
-    SurfaceCache, SurfaceId, SurfaceKind, SurfaceState, SurfaceTable, TableEntry, UniversalState,
+    RealmKind, SurfaceCache, SurfaceId, SurfaceKind, SurfaceState, SurfaceTable, TableEntry,
+    UniversalState,
 };

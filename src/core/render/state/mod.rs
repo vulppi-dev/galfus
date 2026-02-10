@@ -13,6 +13,7 @@ use crate::core::render::gizmos::GizmoSystem;
 use crate::core::resources::EnvironmentConfig;
 use crate::core::resources::VertexAllocatorSystem;
 use crate::core::resources::shadow::ShadowManager;
+use crate::core::ui::UiRenderer;
 
 pub use self::binding::BindingSystem;
 pub use self::collector::{DrawCollector, DrawItem};
@@ -47,6 +48,7 @@ pub struct RenderState {
     pub environment_is_configured: bool,
     pub skinning: SkinningSystem,
     pub render_graph: RenderGraphState,
+    pub ui_renderer: Option<UiRenderer>,
 
     /// Per-frame collector for draw calls, reused to avoid allocations.
     pub collector: DrawCollector,

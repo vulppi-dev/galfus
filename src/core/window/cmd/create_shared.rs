@@ -1,7 +1,7 @@
 use glam::UVec2;
 
 use crate::core::realm::{
-    PresentId, PresentState, RealmId, RealmState, SurfaceId, SurfaceKind, SurfaceState,
+    PresentId, PresentState, RealmId, RealmKind, RealmState, SurfaceId, SurfaceKind, SurfaceState,
 };
 use crate::core::render::graph::RenderGraphState;
 use crate::core::state::EngineState;
@@ -25,6 +25,7 @@ pub fn register_window_realm(
         msaa_samples: None,
     });
     let realm_id = engine.universal_state.realms.alloc(RealmState {
+        kind: RealmKind::ThreeD,
         host_window_id: Some(window_id),
         output_surface: Some(surface_id),
         render_graph: Some(RenderGraphState::new()),

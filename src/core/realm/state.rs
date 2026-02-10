@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use crate::core::audio::{AudioListenerBinding, AudioSourceParams, AudioStreamState};
 use crate::core::target::{TargetBindTable, TargetGraphCache, TargetTable};
+use crate::core::ui::UiState;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct RealmId(pub u32);
@@ -16,6 +17,12 @@ pub struct ConnectorId(pub u32);
 pub struct PresentId(pub u32);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RealmKind {
+    ThreeD,
+    TwoD,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SurfaceKind {
     Onscreen,
     Offscreen,
@@ -23,6 +30,7 @@ pub enum SurfaceKind {
 
 #[derive(Debug, Clone)]
 pub struct RealmState {
+    pub kind: RealmKind,
     pub host_window_id: Option<u32>,
     pub output_surface: Option<SurfaceId>,
     pub render_graph: Option<crate::core::render::graph::RenderGraphState>,
@@ -175,6 +183,7 @@ pub struct UniversalState {
     pub surfaces: SurfaceTable,
     pub connectors: ConnectorTable,
     pub presents: PresentTable,
+    pub ui: UiState,
     pub targets: TargetTable,
     pub target_binds: TargetBindTable,
     pub target_graph_cache: TargetGraphCache,

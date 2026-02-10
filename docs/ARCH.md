@@ -115,6 +115,12 @@ The render architecture is split into three layers:
 Each window creates a default `Realm` and `Surface`. `Present` links the window to the
 surface, and `Connector` layers control how realms compose (zIndex, blendMode, rect, clip).
 
+UI rendering uses a `TwoD` realm with a dedicated `ui` render pass. The UI realm outputs to
+regular surfaces (alpha respected via `blendMode`) and is composed through the same
+TargetGraph rules as other realms.
+UI resources are referenced by logical IDs owned by the host: `UiThemeId`, `UiFontId`,
+and `UiImageId`.
+
 ### 2.5 Auto-Graph (Experimental)
 
 The host does not construct graphs directly. Instead it provides logical maps:

@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::core::realm::{RealmId, RealmState, SurfaceId};
+use crate::core::realm::{RealmId, RealmKind, RealmState, SurfaceId};
 use crate::core::render::graph::RenderGraphState;
 use crate::core::state::EngineState;
 use crate::core::target::resolve::remove_auto_link_for_bind;
@@ -68,14 +68,27 @@ pub fn engine_cmd_realm_create(
         }
     }
 
+    let kind = match args.kind {
+        RealmKindDto::ThreeD => RealmKind::ThreeD,
+        RealmKindDto::TwoD => RealmKind::TwoD,
+    };
+    let render_graph = match kind {
+        RealmKind::ThreeD => RenderGraphState::new(),
+        RealmKind::TwoD => RenderGraphState::new_ui(),
+    };
+
     let realm_id = engine.universal_state.realms.alloc(RealmState {
+        kind,
         host_window_id: args.host_window_id,
         output_surface,
-        render_graph: Some(RenderGraphState::new()),
+        render_graph: Some(render_graph),
         importance: args.importance.unwrap_or(1),
         cache_policy: args.cache_policy.unwrap_or(0),
         last_render_frame: 0,
     });
+    if kind == RealmKind::TwoD {
+        engine.universal_state.ui.ensure_realm(realm_id);
+    }
 
     CmdResultRealmCreate {
         success: true,
@@ -95,6 +108,9 @@ pub fn engine_cmd_realm_dispose(
             message: format!("Realm {} not found", args.realm_id),
         };
     };
+    if entry.value.kind == RealmKind::TwoD {
+        engine.universal_state.ui.remove_realm(realm_id);
+    }
 
     let mut removed_connectors = Vec::new();
     engine

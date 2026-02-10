@@ -193,6 +193,9 @@ The host generates and owns:
 - `MaterialId` — material asset
 - `TextureId` — texture asset
 - `BufferId` — upload blob identifier
+- `UiThemeId` — UI theme resource
+- `UiFontId` — UI font resource
+- `UiImageId` — UI image resource
 
 ---
 

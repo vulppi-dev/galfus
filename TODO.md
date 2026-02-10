@@ -1,11 +1,11 @@
 _Sistema de UI renderizado no core, host-driven, usando Realm TwoD + TargetGraph (Surface/Present/Connector internos)._ 
 
 ## Fase A — Fundação (Realm UI)
-- [ ] Definir UI como `Realm` `TwoD` com render graph próprio (pass UI) e fallback.
-- [ ] Criar estado `UiRealmState` associado ao `realmId` (sem `UiContext` separado).
-- [ ] Integrar UI com wgpu via draw direto do egui (sem `egui_wgpu`, incompatível com wgpu 28).
-- [ ] Garantir que o render graph não declare formatos; usar padrões do core (color float `rgba16f`, depth float quando aplicável).
-- [ ] Definir contrato de recursos UI: `UiTheme`, `UiFont`, `UiImage` como IDs lógicos do host.
+- [x] Definir UI como `Realm` `TwoD` com render graph próprio (pass UI) e fallback.
+- [x] Criar estado `UiRealmState` associado ao `realmId` (sem `UiContext` separado).
+- [x] Integrar UI com wgpu via draw direto do egui (sem `egui_wgpu`, incompatível com wgpu 28).
+- [x] Garantir que o render graph não declare formatos; usar padrões do core (color float `rgba16f`, depth float quando aplicável).
+- [x] Definir contrato de recursos UI: `UiTheme`, `UiFont`, `UiImage` como IDs lógicos do host.
 
 ## Fase B — Comandos e Modelo de Dados
 - [ ] `CmdUiThemeDefine/Dispose` + `UiThemeDefined` (cache + versionamento).
