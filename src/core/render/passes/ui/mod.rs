@@ -88,8 +88,9 @@ pub fn pass_ui(
     }
 
     let renderer = render_state
-        .ui_renderer
-        .get_or_insert_with(|| crate::core::ui::UiRenderer::new(device, queue, target_format));
+        .ui_renderers
+        .entry(realm_id)
+        .or_insert_with(|| crate::core::ui::UiRenderer::new(device, queue, target_format));
     renderer.update_textures(device, queue, &output.textures_delta);
     renderer.update_external_textures(device, &external_inputs);
     renderer.render(

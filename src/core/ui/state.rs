@@ -25,10 +25,12 @@ pub struct UiRealmState {
 #[allow(dead_code)]
 impl UiRealmState {
     pub fn new(realm_id: RealmId) -> Self {
+        let context = Context::default();
+        context.set_fonts(egui::FontDefinitions::default());
         Self {
             realm_id,
             last_frame_index: 0,
-            context: Context::default(),
+            context,
             pixels_per_point: 1.0,
             modifiers: egui::Modifiers::default(),
             pending_events: Vec::new(),

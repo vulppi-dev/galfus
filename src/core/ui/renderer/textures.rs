@@ -39,15 +39,28 @@ impl UiTextureStore {
         uniform_buffer: &wgpu::Buffer,
     ) {
         for (id, image_delta) in &delta.set {
-            let size = match &image_delta.image {
+            let image_size = match &image_delta.image {
                 ImageData::Color(color) => [color.size[0] as u32, color.size[1] as u32],
                 ImageData::Font(font) => [font.size[0] as u32, font.size[1] as u32],
             };
 
-            let needs_new = self
-                .textures
-                .get(id)
-                .map(|tex| tex.size != size)
+            let existing = self.textures.get(id);
+            let (texture_size, origin) = if let Some(pos) = image_delta.pos {
+                let origin = wgpu::Origin3d {
+                    x: pos[0] as u32,
+                    y: pos[1] as u32,
+                    z: 0,
+                };
+                let target_size = existing
+                    .map(|tex| tex.size)
+                    .unwrap_or_else(|| [pos[0] as u32 + image_size[0], pos[1] as u32 + image_size[1]]);
+                (target_size, origin)
+            } else {
+                (image_size, wgpu::Origin3d::ZERO)
+            };
+
+            let needs_new = existing
+                .map(|tex| tex.size != texture_size)
                 .unwrap_or(true);
 
             if needs_new {
@@ -56,7 +69,7 @@ impl UiTextureStore {
                     bind_group_layout,
                     sampler,
                     uniform_buffer,
-                    size,
+                    texture_size,
                 );
                 self.textures.insert(*id, texture);
             }
@@ -66,15 +79,6 @@ impl UiTextureStore {
                     ImageData::Color(color) => build_color_bytes_rgba16f(color),
                     ImageData::Font(font) => build_font_bytes_rgba16f(font),
                 };
-
-                let origin = image_delta
-                    .pos
-                    .map(|[x, y]| wgpu::Origin3d {
-                        x: x as u32,
-                        y: y as u32,
-                        z: 0,
-                    })
-                    .unwrap_or(wgpu::Origin3d::ZERO);
 
                 queue.write_texture(
                     wgpu::TexelCopyTextureInfo {
@@ -86,12 +90,12 @@ impl UiTextureStore {
                     &bytes,
                     wgpu::TexelCopyBufferLayout {
                         offset: 0,
-                        bytes_per_row: Some(8 * size[0]),
-                        rows_per_image: Some(size[1]),
+                        bytes_per_row: Some(8 * image_size[0]),
+                        rows_per_image: Some(image_size[1]),
                     },
                     wgpu::Extent3d {
-                        width: size[0],
-                        height: size[1],
+                        width: image_size[0],
+                        height: image_size[1],
                         depth_or_array_layers: 1,
                     },
                 );
@@ -223,7 +227,9 @@ fn build_color_bytes_rgba16f(image: &egui::ColorImage) -> Vec<u8> {
 fn build_font_bytes_rgba16f(image: &egui::FontImage) -> Vec<u8> {
     let mut bytes = Vec::with_capacity(image.pixels.len() * 8);
     for alpha in &image.pixels {
-        let rgba = [1.0, 1.0, 1.0, *alpha];
+        let coverage = (*alpha).clamp(0.0, 1.0);
+        let premultiplied = coverage.powf(0.55);
+        let rgba = [premultiplied, premultiplied, premultiplied, premultiplied];
         push_rgba16f(&mut bytes, rgba);
     }
     bytes

@@ -5,6 +5,7 @@ mod demo_002;
 mod demo_003;
 mod demo_004;
 mod demo_005;
+mod demo_006;
 mod geometry;
 mod io;
 mod loop_utils;
@@ -19,6 +20,7 @@ pub enum DemoKind {
     Demo003,
     Demo004,
     Demo005,
+    Demo006,
 }
 
 impl DemoKind {
@@ -29,6 +31,7 @@ impl DemoKind {
             "demo_003" | "demo003" | "3" => Some(Self::Demo003),
             "demo_004" | "demo004" | "4" => Some(Self::Demo004),
             "demo_005" | "demo005" | "5" => Some(Self::Demo005),
+            "demo_006" | "demo006" | "6" => Some(Self::Demo006),
             _ => None,
         }
     }
@@ -40,6 +43,7 @@ impl DemoKind {
             Self::Demo003 => "Vulfram Demo 003",
             Self::Demo004 => "Vulfram Demo 004",
             Self::Demo005 => "Vulfram Demo 005",
+            Self::Demo006 => "Vulfram Demo 006",
         }
     }
 }
@@ -75,6 +79,7 @@ pub fn run_demo(demo: DemoKind, ctx: DemoContext) -> bool {
         DemoKind::Demo003 => demo_003::run(ctx),
         DemoKind::Demo004 => demo_004::run(ctx),
         DemoKind::Demo005 => demo_005::run(ctx),
+        DemoKind::Demo006 => demo_006::run(ctx),
     }
 }
 

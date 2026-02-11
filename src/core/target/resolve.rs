@@ -272,10 +272,10 @@ fn surface_state_for_target(
 
     SurfaceState {
         kind: match target.kind {
-            TargetKind::Window | TargetKind::ViewportEmbed | TargetKind::PanelEmbed => {
-                SurfaceKind::Onscreen
+            TargetKind::Window => SurfaceKind::Onscreen,
+            TargetKind::ViewportEmbed | TargetKind::PanelEmbed | TargetKind::Texture => {
+                SurfaceKind::Offscreen
             }
-            TargetKind::Texture => SurfaceKind::Offscreen,
         },
         size,
         format_policy: target.format_policy,
