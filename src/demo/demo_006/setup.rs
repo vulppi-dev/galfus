@@ -8,9 +8,8 @@ use crate::core::cmd::{CommandResponse, EngineCmd};
 use crate::core::realm::cmd::{CmdRealmCreateArgs, RealmKindDto};
 use crate::core::resources::{
     CameraKind, CmdCameraCreateArgs, CmdEnvironmentUpdateArgs, CmdModelCreateArgs,
-    CmdPrimitiveGeometryCreateArgs, EnvironmentConfig, MsaaConfig,
-    PostProcessConfig, PrimitiveShape, SkyboxConfig, SkyboxMode, ViewAnchor, ViewPosition,
-    ViewSize, ViewValue,
+    CmdPrimitiveGeometryCreateArgs, EnvironmentConfig, MsaaConfig, PostProcessConfig,
+    PrimitiveShape, SkyboxConfig, SkyboxMode,
 };
 use crate::core::ui::cmd::{CmdUiApplyOpsArgs, CmdUiDocumentCreateArgs, CmdUiThemeDefineArgs};
 use crate::core::ui::types::{
@@ -42,6 +41,7 @@ pub struct Demo006Ids {
 #[derive(Debug, Clone, Copy)]
 pub struct Demo006RealmIds {
     pub _realm_ui: u32,
+    pub _realm_ui_viewport: u32,
 }
 
 pub struct Demo006Setup {
@@ -78,6 +78,7 @@ impl Demo006Setup {
         let host_realm_main = ctx.realm_id;
 
         let realm_ui = create_realm(RealmKindDto::TwoD, Some(window_main));
+        let realm_ui_viewport = create_realm(RealmKindDto::ThreeD, Some(window_main));
 
         let (target_ids, mut map_cmds) = build_target_cmds(window_main);
         let bind_cmds = build_bind_cmds(
@@ -85,6 +86,7 @@ impl Demo006Setup {
             Demo006BindRealms {
                 host_main: host_realm_main,
                 ui: realm_ui,
+                ui_viewport: realm_ui_viewport,
             },
         );
         map_cmds.extend(bind_cmds);
@@ -120,16 +122,7 @@ impl Demo006Setup {
                 near_far: Vec2::new(0.1, 80.0),
                 layer_mask: 0xFFFFFFFF,
                 order: 0,
-                view_position: Some(ViewPosition {
-                    anchor: ViewAnchor {
-                        x: ViewValue::Relative(0.5),
-                        y: ViewValue::Relative(0.0),
-                    },
-                    size: ViewSize {
-                        width: ViewValue::Relative(0.5),
-                        height: ViewValue::Relative(1.0),
-                    },
-                }),
+                view_position: None,
                 ortho_scale: 10.0,
             }),
             EngineCmd::CmdPrimitiveGeometryCreate(CmdPrimitiveGeometryCreateArgs {
@@ -195,6 +188,7 @@ impl Demo006Setup {
 
         Demo006RealmIds {
             _realm_ui: realm_ui,
+            _realm_ui_viewport: realm_ui_viewport,
         }
     }
 }

@@ -8,18 +8,21 @@ use crate::core::target::{TargetBindLayout, TargetKind};
 pub struct Demo006TargetIds {
     pub window_main: u64,
     pub panel_ui: u64,
+    pub realm_viewport_ui: u64,
 }
 
 #[derive(Debug, Clone, Copy)]
 pub struct Demo006BindRealms {
     pub host_main: u32,
     pub ui: u32,
+    pub ui_viewport: u32,
 }
 
 pub fn build_target_cmds(window_main: u32) -> (Demo006TargetIds, Vec<EngineCmd>) {
     let target_ids = Demo006TargetIds {
         window_main: 9200,
         panel_ui: 9201,
+        realm_viewport_ui: 9202,
     };
 
     let targets = vec![
@@ -40,6 +43,15 @@ pub fn build_target_cmds(window_main: u32) -> (Demo006TargetIds, Vec<EngineCmd>)
             format_policy: None,
             alpha_policy: None,
             msaa_samples: None,
+        },
+        CmdTargetUpsertArgs {
+            target_id: target_ids.realm_viewport_ui,
+            kind: TargetKind::RealmViewport,
+            owner_window_id: Some(window_main),
+            size_override: Some(glam::UVec2::new(360, 240)),
+            format_policy: None,
+            alpha_policy: None,
+            msaa_samples: Some(4),
         },
     ];
 
@@ -66,6 +78,17 @@ pub fn build_bind_cmds(targets: Demo006TargetIds, realms: Demo006BindRealms) -> 
                 1,
                 0,
                 Some(Vec4::new(0.0, 0.0, 640.0, 720.0)),
+                0,
+            ),
+        },
+        CmdTargetBindUpsertArgs {
+            realm_id: realms.ui_viewport,
+            target_id: targets.realm_viewport_ui,
+            layout: bind_layout(
+                Vec4::new(20.0, 430.0, 600.0, 260.0),
+                2,
+                0,
+                Some(Vec4::new(20.0, 430.0, 600.0, 260.0)),
                 0,
             ),
         },

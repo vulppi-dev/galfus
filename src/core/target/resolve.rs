@@ -99,10 +99,7 @@ pub fn sync_auto_graph(engine_state: &mut EngineState) {
                     || link.present_id.is_none()
                         && matches!(target.kind, TargetKind::Window)
                     || link.connector_id.is_none()
-                        && matches!(
-                            target.kind,
-                            TargetKind::ViewportEmbed | TargetKind::PanelEmbed
-                        );
+                        && matches!(target.kind, TargetKind::RealmViewport | TargetKind::PanelEmbed);
 
             if needs_rebuild {
                 remove_auto_link(&mut engine_state.universal_state, key);
@@ -130,7 +127,7 @@ pub fn sync_auto_graph(engine_state: &mut EngineState) {
                     }));
                 }
             }
-            TargetKind::ViewportEmbed | TargetKind::PanelEmbed => {
+            TargetKind::RealmViewport | TargetKind::PanelEmbed => {
                 if let Some(window_id) = target.owner_window_id {
                     if let Some(host_realm) =
                         find_host_realm_for_window(&engine_state.universal_state, window_id)
@@ -262,7 +259,7 @@ fn surface_state_for_target(
     let size = target
         .size_override
         .or_else(|| match target.kind {
-            TargetKind::Window | TargetKind::ViewportEmbed | TargetKind::PanelEmbed => target
+            TargetKind::Window | TargetKind::RealmViewport | TargetKind::PanelEmbed => target
                 .owner_window_id
                 .and_then(|window_id| engine_state.window.states.get(&window_id))
                 .map(|state| state.inner_size),
@@ -273,7 +270,7 @@ fn surface_state_for_target(
     SurfaceState {
         kind: match target.kind {
             TargetKind::Window => SurfaceKind::Onscreen,
-            TargetKind::ViewportEmbed | TargetKind::PanelEmbed | TargetKind::Texture => {
+            TargetKind::RealmViewport | TargetKind::PanelEmbed | TargetKind::Texture => {
                 SurfaceKind::Offscreen
             }
         },

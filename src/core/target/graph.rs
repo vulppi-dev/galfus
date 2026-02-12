@@ -32,7 +32,7 @@ impl TargetGraphPlanner {
         for (target_id, target) in targets.iter() {
             match target.kind {
                 TargetKind::Window | TargetKind::Texture => {}
-                TargetKind::ViewportEmbed | TargetKind::PanelEmbed => {
+                TargetKind::RealmViewport | TargetKind::PanelEmbed => {
                     if let Some(parent) =
                         infer_parent_from_binds(binds, realms, *target_id, &window_targets)
                     {

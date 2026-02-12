@@ -58,7 +58,7 @@ pub fn build_target_cmds(window_main: u32, window_aux: u32) -> (Demo005TargetIds
         },
         CmdTargetUpsertArgs {
             target_id: target_ids.viewport_main,
-            kind: TargetKind::ViewportEmbed,
+            kind: TargetKind::RealmViewport,
             owner_window_id: Some(window_main),
             size_override: Some(glam::UVec2::new(640, 360)),
             format_policy: None,
@@ -76,7 +76,7 @@ pub fn build_target_cmds(window_main: u32, window_aux: u32) -> (Demo005TargetIds
         },
         CmdTargetUpsertArgs {
             target_id: target_ids.viewport_aux,
-            kind: TargetKind::ViewportEmbed,
+            kind: TargetKind::RealmViewport,
             owner_window_id: Some(window_aux),
             size_override: Some(glam::UVec2::new(320, 240)),
             format_policy: None,
