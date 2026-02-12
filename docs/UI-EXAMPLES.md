@@ -37,6 +37,19 @@ CmdUiApplyOps {
 }
 ```
 
+## UIPlane in 3D (Target Texture)
+
+Render a UI document into a texture target and apply it to a 3D plane:
+
+```text
+CmdTargetUpsert { targetId: 9204, kind: "texture", sizeOverride: [420,260] }
+CmdTextureBindTarget { windowId: 1, textureId: 1400, targetId: 9204 }
+CmdMaterialCreate { materialId: 1212, kind: "standard", options: { surfaceType: "transparent", baseTexId: 1400, emissiveTexId: 1400 } }
+CmdModelCreate { modelId: 1303, geometryId: <plane>, materialId: 1212 }
+CmdRealmCreate { kind: "two-d", windowId: 1 }
+CmdUiDocumentCreate { documentId: 1510, realmId: <realmId>, rect: [0,0,420,260] }
+```
+
 ## Wrap Layout
 
 ```text
@@ -45,6 +58,32 @@ layout: {
   wrap: true,
   wrapLimit: 180,
   gap: 6
+}
+```
+
+## Side-by-Side UI + 3D Viewport
+
+Bind a UI panel on the left and a 3D viewport on the right:
+
+```text
+CmdTargetUpsert { targetId: 9201, kind: "panel-embed", sizeOverride: [640,720] }
+CmdTargetUpsert { targetId: 9202, kind: "viewport-embed", sizeOverride: [640,720] }
+CmdTargetBindUpsert { realmId: <uiRealm>, targetId: 9201, layout: { rect: [0,0,640,720], zIndex: 1 } }
+CmdTargetBindUpsert { realmId: <viewRealm>, targetId: 9202, layout: { rect: [640,0,640,720], zIndex: 0 } }
+```
+
+Typical left-panel content:
+
+```text
+CmdUiApplyOps {
+  documentId: 1500,
+  version: 1,
+  ops: [
+    add { parent: 1501, node: { id: 1504, kind: "input", props: { type: "input", content: { value: "Texto inicial", placeholder: "Digite algo..." }}}}
+    add { parent: 1501, node: { id: 1505, kind: "button", props: { type: "button", content: { label: "Adicionar" }}}}
+    add { parent: 1501, node: { id: 1506, kind: "button", props: { type: "button", content: { label: "Remover" }}}}
+    add { parent: 1501, node: { id: 1507, kind: "button", props: { type: "button", content: { label: "[ ] Habilitar efeito" }}}}
+  ]
 }
 ```
 

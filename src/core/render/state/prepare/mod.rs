@@ -52,6 +52,7 @@ impl RenderState {
 
         check_pool("frame", bindings.frame_pool.version());
         check_pool("camera", bindings.camera_pool.version());
+        check_pool("shadow_camera", bindings.shadow_camera_pool.version());
         check_pool("model", bindings.model_pool.version());
         check_pool("instance", bindings.instance_pool.version());
         check_pool("outline_instance", bindings.outline_instance_pool.version());
@@ -78,10 +79,12 @@ impl RenderState {
         if with_shadows != bindings.last_with_shadows {
             bindings.last_with_shadows = with_shadows;
             bindings.shared_group = None;
+            bindings.shadow_shared_group = None;
         }
 
         if any_pool_resized {
             bindings.shared_group = None;
+            bindings.shadow_shared_group = None;
             bindings.model_bind_group = None;
             bindings.outline_model_bind_group = None;
             bindings.shadow_model_bind_group = None;

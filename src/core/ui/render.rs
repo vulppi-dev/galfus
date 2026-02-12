@@ -67,6 +67,8 @@ pub fn render_realm_documents(
                 ui.set_min_size(rect.size());
                 ui.set_max_size(rect.size());
                 ui.set_clip_rect(rect);
+                let bg = ui.style().visuals.window_fill;
+                ui.painter().rect_filled(ui.max_rect(), 0.0, bg);
                 render_children(
                     ui,
                     &document,
@@ -289,8 +291,17 @@ fn render_node_inner(
             placeholder,
             enabled,
         } => {
-            let mut text = value.clone();
-            let mut edit = egui::TextEdit::singleline(&mut text);
+            let input_key = (document.document_id, entry.node.id);
+            let input_id = egui::Id::new(("ui_input", document.document_id, entry.node.id));
+            let text = ui_state
+                .input_buffers
+                .entry(input_key)
+                .or_insert_with(|| value.clone());
+            if *text != value && !ui.memory(|memory| memory.has_focus(input_id)) {
+                *text = value.clone();
+            }
+
+            let mut edit = egui::TextEdit::singleline(text).id_source(input_id);
             if let Some(placeholder) = placeholder {
                 edit = edit.hint_text(placeholder);
             }
@@ -302,7 +313,7 @@ fn render_node_inner(
                     document_id: document.document_id,
                     node_id: entry.node.id,
                     kind: UiEventKind::ChangeCommit,
-                    label: Some(text),
+                    label: Some(text.clone()),
                 });
             }
         }

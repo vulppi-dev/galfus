@@ -8,26 +8,18 @@ use crate::core::target::{TargetBindLayout, TargetKind};
 pub struct Demo006TargetIds {
     pub window_main: u64,
     pub panel_ui: u64,
-    pub texture_ui: u64,
-    pub texture_view: u64,
-    pub texture_panel_3d: u64,
 }
 
 #[derive(Debug, Clone, Copy)]
 pub struct Demo006BindRealms {
     pub host_main: u32,
     pub ui: u32,
-    pub ui_panel_3d: u32,
-    pub view: u32,
 }
 
 pub fn build_target_cmds(window_main: u32) -> (Demo006TargetIds, Vec<EngineCmd>) {
     let target_ids = Demo006TargetIds {
         window_main: 9200,
         panel_ui: 9201,
-        texture_ui: 9202,
-        texture_view: 9203,
-        texture_panel_3d: 9204,
     };
 
     let targets = vec![
@@ -44,34 +36,7 @@ pub fn build_target_cmds(window_main: u32) -> (Demo006TargetIds, Vec<EngineCmd>)
             target_id: target_ids.panel_ui,
             kind: TargetKind::PanelEmbed,
             owner_window_id: Some(window_main),
-            size_override: Some(glam::UVec2::new(520, 320)),
-            format_policy: None,
-            alpha_policy: None,
-            msaa_samples: None,
-        },
-        CmdTargetUpsertArgs {
-            target_id: target_ids.texture_ui,
-            kind: TargetKind::Texture,
-            owner_window_id: None,
-            size_override: Some(glam::UVec2::new(520, 320)),
-            format_policy: None,
-            alpha_policy: None,
-            msaa_samples: None,
-        },
-        CmdTargetUpsertArgs {
-            target_id: target_ids.texture_view,
-            kind: TargetKind::Texture,
-            owner_window_id: None,
-            size_override: Some(glam::UVec2::new(384, 256)),
-            format_policy: None,
-            alpha_policy: None,
-            msaa_samples: None,
-        },
-        CmdTargetUpsertArgs {
-            target_id: target_ids.texture_panel_3d,
-            kind: TargetKind::Texture,
-            owner_window_id: None,
-            size_override: Some(glam::UVec2::new(360, 240)),
+            size_override: Some(glam::UVec2::new(640, 720)),
             format_policy: None,
             alpha_policy: None,
             msaa_samples: None,
@@ -96,22 +61,13 @@ pub fn build_bind_cmds(targets: Demo006TargetIds, realms: Demo006BindRealms) -> 
         CmdTargetBindUpsertArgs {
             realm_id: realms.ui,
             target_id: targets.panel_ui,
-            layout: bind_layout(Vec4::new(80.0, 60.0, 520.0, 320.0), 2, 1, None, 0),
-        },
-        CmdTargetBindUpsertArgs {
-            realm_id: realms.ui,
-            target_id: targets.texture_ui,
-            layout: TargetBindLayout::default(),
-        },
-        CmdTargetBindUpsertArgs {
-            realm_id: realms.view,
-            target_id: targets.texture_view,
-            layout: TargetBindLayout::default(),
-        },
-        CmdTargetBindUpsertArgs {
-            realm_id: realms.ui_panel_3d,
-            target_id: targets.texture_panel_3d,
-            layout: TargetBindLayout::default(),
+            layout: bind_layout(
+                Vec4::new(0.0, 0.0, 640.0, 720.0),
+                1,
+                0,
+                Some(Vec4::new(0.0, 0.0, 640.0, 720.0)),
+                0,
+            ),
         },
     ];
 

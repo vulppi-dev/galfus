@@ -1,93 +1,133 @@
-use std::cell::RefCell;
-use std::rc::Rc;
-
 use glam::{Mat4, Vec3};
 
 use crate::core::cmd::{EngineCmd, EngineEvent};
 use crate::core::input::events::{ElementState, KeyboardEvent};
-use crate::core::resources::CmdCameraUpdateArgs;
+use crate::core::resources::CmdModelUpdateArgs;
+use crate::core::ui::cmd::CmdUiApplyOpsArgs;
+use crate::core::ui::events::UiEventKind;
+use crate::core::ui::types::{UiNodeProps, UiOp};
 use crate::core::window::{CmdWindowCloseArgs, WindowEvent};
 use crate::demo::demo_006::setup::{Demo006RealmIds, Demo006Setup};
 use crate::demo::send_commands;
-use crate::demo::{DemoContext, run_loop_with_events};
+use crate::demo::{DemoContext, draw_axes_gizmos, run_loop_with_events};
 
-pub fn run(ctx: DemoContext, setup: &Demo006Setup, realms: &Demo006RealmIds) -> bool {
+pub fn run(ctx: DemoContext, setup: &Demo006Setup, _realms: &Demo006RealmIds) -> bool {
     let window_id = ctx.window_id;
     let ids = setup.ids;
-
-    let state = Rc::new(RefCell::new(Demo006RuntimeState::default()));
-    let state_event = Rc::clone(&state);
-
-    println!(
-        "Demo 006 targets: texture_ui={} texture_view={}",
-        realms.target_texture_ui, realms.target_texture_view
-    );
+    let mut ui_version = 1u64;
+    let mut toggle_enabled = false;
+    let mut counter = 0i32;
 
     run_loop_with_events(
         window_id,
         None,
         move |total_ms, _delta_ms| {
-            let time_f = total_ms as f32 / 1000.0;
-            let mut cmds = Vec::new();
-
-            let camera_radius = 8.5;
-            let camera_height = 3.0 + (time_f * 0.5).sin() * 0.6;
-            let camera_angle = time_f * 0.35;
-            let camera_pos = Vec3::new(
-                camera_radius * camera_angle.cos(),
-                camera_height,
-                camera_radius * camera_angle.sin(),
-            );
-            let camera_transform = Mat4::look_at_rh(camera_pos, Vec3::ZERO, Vec3::Y).inverse();
-            cmds.push(EngineCmd::CmdCameraUpdate(CmdCameraUpdateArgs {
-                camera_id: ids.camera_main_id,
+            let t = total_ms as f32 / 1000.0;
+            let mut cmds = vec![EngineCmd::CmdModelUpdate(CmdModelUpdateArgs {
+                window_id,
+                model_id: ids.model_cube_id,
                 label: None,
-                transform: Some(camera_transform),
-                kind: None,
-                flags: None,
-                near_far: None,
+                geometry_id: None,
+                material_id: None,
+                transform: Some(
+                    Mat4::from_translation(Vec3::new(0.0, 0.8, 0.0))
+                        * Mat4::from_rotation_y(t * 1.6)
+                        * Mat4::from_rotation_x(t * 0.7)
+                        * Mat4::from_scale(Vec3::splat(1.2)),
+                ),
                 layer_mask: None,
-                order: None,
-                view_position: None,
-                ortho_scale: None,
-            }));
-
-            let view_angle = time_f * 0.7;
-            let view_pos = Vec3::new(2.5 * view_angle.cos(), 1.8, 2.5 * view_angle.sin());
-            let view_transform = Mat4::look_at_rh(view_pos, Vec3::ZERO, Vec3::Y).inverse();
-            cmds.push(EngineCmd::CmdCameraUpdate(CmdCameraUpdateArgs {
-                camera_id: ids.camera_view_id,
-                label: None,
-                transform: Some(view_transform),
-                kind: None,
-                flags: None,
-                near_far: None,
-                layer_mask: None,
-                order: Some(1),
-                view_position: None,
-                ortho_scale: None,
-            }));
-
-            {
-                let mut runtime = state_event.borrow_mut();
-                if total_ms.saturating_sub(runtime.last_report_ms) > 1500 {
-                    runtime.last_report_ms = total_ms;
-                    if let Some(report) = get_profiling() {
-                        println!(
-                            "FrameReport: order={:?} cut_edges={} blocked={} self_sampled={}",
-                            report.frame_report.order,
-                            report.frame_report.cut_edges.len(),
-                            report.frame_report.blocked_connectors.len(),
-                            report.frame_report.self_sampled_connectors.len()
-                        );
-                    }
-                }
-            }
-
+                cast_shadow: None,
+                receive_shadow: None,
+                cast_outline: None,
+                outline_color: None,
+            })];
+            cmds.extend(draw_axes_gizmos());
             cmds
         },
         move |event| {
             match event {
+                EngineEvent::Ui(ui_event) if ui_event.document_id == ids.ui_document_id => {
+                    match (ui_event.node_id, ui_event.kind) {
+                        (node_id, UiEventKind::ChangeCommit) if node_id == ids.ui_input_id => {
+                            if let Some(text) = ui_event.label {
+                                ui_version += 1;
+                                let _ = send_commands(vec![EngineCmd::CmdUiApplyOps(
+                                    CmdUiApplyOpsArgs {
+                                        document_id: ids.ui_document_id,
+                                        version: ui_version,
+                                        ops: vec![UiOp::Set {
+                                            node_id: ids.ui_input_id,
+                                            props: UiNodeProps::Input {
+                                                value: text,
+                                                placeholder: Some("Digite algo...".into()),
+                                                enabled: Some(true),
+                                            },
+                                        }],
+                                    },
+                                )]);
+                            }
+                        }
+                        (node_id, UiEventKind::Click) if node_id == ids.ui_toggle_checkbox_id => {
+                            toggle_enabled = !toggle_enabled;
+                            ui_version += 1;
+                            let toggle_label = if toggle_enabled {
+                                "[x] Habilitar efeito"
+                            } else {
+                                "[ ] Habilitar efeito"
+                            };
+                            let _ = send_commands(vec![EngineCmd::CmdUiApplyOps(
+                                CmdUiApplyOpsArgs {
+                                    document_id: ids.ui_document_id,
+                                    version: ui_version,
+                                    ops: vec![UiOp::Set {
+                                        node_id: ids.ui_toggle_checkbox_id,
+                                        props: UiNodeProps::Button {
+                                            label: toggle_label.into(),
+                                            enabled: Some(true),
+                                        },
+                                    }],
+                                },
+                            )]);
+                        }
+                        (node_id, UiEventKind::Click) if node_id == ids.ui_button_add_id => {
+                            counter += 1;
+                            ui_version += 1;
+                            let _ = send_commands(vec![EngineCmd::CmdUiApplyOps(
+                                CmdUiApplyOpsArgs {
+                                    document_id: ids.ui_document_id,
+                                    version: ui_version,
+                                    ops: vec![UiOp::Set {
+                                        node_id: ids.ui_body_id,
+                                        props: UiNodeProps::Text {
+                                            text: format!("Contador: {counter}"),
+                                            size: Some(15.0),
+                                            color: None,
+                                        },
+                                    }],
+                                },
+                            )]);
+                        }
+                        (node_id, UiEventKind::Click) if node_id == ids.ui_button_remove_id => {
+                            counter -= 1;
+                            ui_version += 1;
+                            let _ = send_commands(vec![EngineCmd::CmdUiApplyOps(
+                                CmdUiApplyOpsArgs {
+                                    document_id: ids.ui_document_id,
+                                    version: ui_version,
+                                    ops: vec![UiOp::Set {
+                                        node_id: ids.ui_body_id,
+                                        props: UiNodeProps::Text {
+                                            text: format!("Contador: {counter}"),
+                                            size: Some(15.0),
+                                            color: None,
+                                        },
+                                    }],
+                                },
+                            )]);
+                        }
+                        _ => {}
+                    }
+                }
                 EngineEvent::Window(WindowEvent::OnCloseRequest { window_id: id })
                     if id == window_id =>
                 {
@@ -106,33 +146,9 @@ pub fn run(ctx: DemoContext, setup: &Demo006Setup, realms: &Demo006RealmIds) -> 
                         return true;
                     }
                 }
-                EngineEvent::Ui(event) => {
-                    println!(
-                        "UiEvent: realm={} doc={} node={} kind={:?} label={:?}",
-                        event.realm_id, event.document_id, event.node_id, event.kind, event.label
-                    );
-                }
                 _ => {}
             }
             false
         },
     )
-}
-
-#[derive(Debug, Default)]
-struct Demo006RuntimeState {
-    last_report_ms: u64,
-}
-
-fn get_profiling() -> Option<crate::core::profiling::cmd::ProfilingData> {
-    let mut ptr = std::ptr::null();
-    let mut len: usize = 0;
-    let result = crate::core::vulfram_get_profiling(&mut ptr, &mut len);
-
-    if result != crate::core::VulframResult::Success || len == 0 {
-        return None;
-    }
-
-    let bytes = unsafe { Box::from_raw(std::slice::from_raw_parts_mut(ptr as *mut u8, len)) };
-    Some(rmp_serde::from_slice(&bytes).expect("failed to deserialize profiling"))
 }

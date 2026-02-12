@@ -262,11 +262,13 @@ fn resolve_overlay_geometry(
         return None;
     }
 
+    let source_width = overlay.source_size.x.max(1) as f32;
     let source_height = overlay.source_size.y.max(1) as f32;
     let scale = rect.w / source_height;
-    let draw_width = (overlay.source_size.x.max(1) as f32 * scale).max(1.0);
+    let draw_width = (source_width * scale).max(1.0);
 
-    let mut viewport_x = rect.x;
+    // CSS-like cover anchored by center: keep height fitted to rect.h and clip sides.
+    let mut viewport_x = rect.x + (rect.z - draw_width) * 0.5;
     let mut viewport_y = rect.y;
     let mut viewport_width = draw_width;
     let mut viewport_height = rect.w.max(1.0);
