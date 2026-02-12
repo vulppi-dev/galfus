@@ -8,8 +8,10 @@ use crate::core::cmd::{CommandResponse, EngineCmd};
 use crate::core::realm::cmd::{CmdRealmCreateArgs, RealmKindDto};
 use crate::core::resources::{
     CameraKind, CmdCameraCreateArgs, CmdEnvironmentUpdateArgs, CmdModelCreateArgs,
-    CmdPrimitiveGeometryCreateArgs, EnvironmentConfig, MsaaConfig, PostProcessConfig,
-    PrimitiveShape, SkyboxConfig, SkyboxMode,
+    CmdPrimitiveGeometryCreateArgs, CmdTextureBindTargetArgs, EnvironmentConfig, MsaaConfig,
+    PostProcessConfig, PrimitiveShape, SkyboxConfig, SkyboxMode,
+    CmdMaterialCreateArgs, MaterialKind, MaterialOptions, MaterialSampler, StandardOptions,
+    SurfaceType,
 };
 use crate::core::ui::cmd::{CmdUiApplyOpsArgs, CmdUiDocumentCreateArgs, CmdUiThemeDefineArgs};
 use crate::core::ui::types::{
@@ -28,6 +30,10 @@ pub struct Demo006Ids {
     pub geometry_cube_id: u32,
     pub material_cube_id: u32,
     pub model_cube_id: u32,
+    pub geometry_ui_plane_id: u32,
+    pub texture_ui_panel_id: u32,
+    pub material_ui_plane_id: u32,
+    pub model_ui_plane_id: u32,
     pub ui_document_id: u32,
     pub ui_root_id: u32,
     pub ui_title_id: u32,
@@ -36,12 +42,20 @@ pub struct Demo006Ids {
     pub ui_button_add_id: u32,
     pub ui_button_remove_id: u32,
     pub ui_toggle_checkbox_id: u32,
+    pub ui_panel_document_id: u32,
+    pub ui_panel_root_id: u32,
+    pub ui_panel_title_id: u32,
+    pub ui_panel_body_id: u32,
+    pub ui_panel_input_id: u32,
+    pub ui_panel_button_add_id: u32,
+    pub ui_panel_button_remove_id: u32,
 }
 
 #[derive(Debug, Clone, Copy)]
 pub struct Demo006RealmIds {
     pub _realm_ui: u32,
     pub _realm_ui_viewport: u32,
+    pub _realm_ui_panel_3d: u32,
 }
 
 pub struct Demo006Setup {
@@ -58,6 +72,10 @@ impl Demo006Setup {
             geometry_cube_id: 1200,
             material_cube_id: 1210,
             model_cube_id: 1300,
+            geometry_ui_plane_id: 1220,
+            texture_ui_panel_id: 1221,
+            material_ui_plane_id: 1222,
+            model_ui_plane_id: 1320,
             ui_document_id: 1500,
             ui_root_id: 1501,
             ui_title_id: 1502,
@@ -66,6 +84,13 @@ impl Demo006Setup {
             ui_button_add_id: 1505,
             ui_button_remove_id: 1506,
             ui_toggle_checkbox_id: 1507,
+            ui_panel_document_id: 1600,
+            ui_panel_root_id: 1601,
+            ui_panel_title_id: 1602,
+            ui_panel_body_id: 1603,
+            ui_panel_input_id: 1604,
+            ui_panel_button_add_id: 1605,
+            ui_panel_button_remove_id: 1606,
         };
 
         let post_config = build_demo_006_post_config();
@@ -79,6 +104,7 @@ impl Demo006Setup {
 
         let realm_ui = create_realm(RealmKindDto::TwoD, Some(window_main));
         let realm_ui_viewport = create_realm(RealmKindDto::ThreeD, Some(window_main));
+        let realm_ui_panel_3d = create_realm(RealmKindDto::TwoD, Some(window_main));
 
         let (target_ids, mut map_cmds) = build_target_cmds(window_main);
         let bind_cmds = build_bind_cmds(
@@ -87,6 +113,7 @@ impl Demo006Setup {
                 host_main: host_realm_main,
                 ui: realm_ui,
                 ui_viewport: realm_ui_viewport,
+                ui_panel_3d: realm_ui_panel_3d,
             },
         );
         map_cmds.extend(bind_cmds);
@@ -132,6 +159,13 @@ impl Demo006Setup {
                 shape: PrimitiveShape::Cube,
                 options: None,
             }),
+            EngineCmd::CmdPrimitiveGeometryCreate(CmdPrimitiveGeometryCreateArgs {
+                window_id: window_main,
+                geometry_id: self.ids.geometry_ui_plane_id,
+                label: Some("Demo 006 UI Plane".into()),
+                shape: PrimitiveShape::Plane,
+                options: None,
+            }),
             create_standard_material_cmd(
                 window_main,
                 self.ids.material_cube_id,
@@ -147,6 +181,41 @@ impl Demo006Setup {
                 1.25,
             ),
             create_point_light_cmd(window_main, self.ids.light_key_id, Vec4::new(3.5, 4.5, 5.5, 1.0)),
+            EngineCmd::CmdTextureBindTarget(CmdTextureBindTargetArgs {
+                window_id: window_main,
+                texture_id: self.ids.texture_ui_panel_id,
+                target_id: target_ids.texture_ui_panel_3d,
+                label: Some("Demo 006 UI Panel Texture".into()),
+            }),
+            EngineCmd::CmdMaterialCreate(CmdMaterialCreateArgs {
+                window_id: window_main,
+                material_id: self.ids.material_ui_plane_id,
+                label: Some("Demo 006 UI Plane Material".into()),
+                kind: MaterialKind::Standard,
+                options: Some(MaterialOptions::Standard(StandardOptions {
+                    base_color: Vec4::ONE,
+                    surface_type: SurfaceType::Transparent,
+                    base_tex_id: Some(self.ids.texture_ui_panel_id),
+                    base_sampler: Some(MaterialSampler::LinearClamp),
+                    ..Default::default()
+                })),
+            }),
+            EngineCmd::CmdModelCreate(CmdModelCreateArgs {
+                window_id: window_main,
+                model_id: self.ids.model_ui_plane_id,
+                label: Some("Demo 006 UI Plane Model".into()),
+                geometry_id: self.ids.geometry_ui_plane_id,
+                material_id: Some(self.ids.material_ui_plane_id),
+                transform: Mat4::from_translation(Vec3::new(1.0, 2.0, 3.8))
+                    * Mat4::from_rotation_y(std::f32::consts::PI - 0.35)
+                    * Mat4::from_rotation_x(-0.08)
+                    * Mat4::from_scale(Vec3::new(2.4, 1.0, 1.0)),
+                layer_mask: 0xFFFFFFFF,
+                cast_shadow: false,
+                receive_shadow: false,
+                cast_outline: false,
+                outline_color: Vec4::ZERO,
+            }),
         ];
 
         let cube_positions = [
@@ -180,17 +249,165 @@ impl Demo006Setup {
         }
 
         assert_eq!(send_commands(setup_cmds), VulframResult::Success);
-        assert_command_batch_success(16, "setup");
+        assert_command_batch_success(20, "setup");
 
-        let ui_cmds = build_ui_cmds(self.ids, realm_ui);
+        let mut ui_cmds = build_ui_cmds(self.ids, realm_ui);
+        ui_cmds.extend(build_ui_panel_3d_cmds(self.ids, realm_ui_panel_3d));
         assert_eq!(send_commands(ui_cmds), VulframResult::Success);
-        assert_command_batch_success(3, "ui");
+        assert_command_batch_success(5, "ui");
 
         Demo006RealmIds {
             _realm_ui: realm_ui,
             _realm_ui_viewport: realm_ui_viewport,
+            _realm_ui_panel_3d: realm_ui_panel_3d,
         }
     }
+}
+
+fn build_ui_panel_3d_cmds(ids: Demo006Ids, realm_ui_panel_3d: u32) -> Vec<EngineCmd> {
+    let mut cmds = Vec::new();
+
+    cmds.push(EngineCmd::CmdUiDocumentCreate(CmdUiDocumentCreateArgs {
+        document_id: ids.ui_panel_document_id,
+        realm_id: realm_ui_panel_3d,
+        rect: glam::Vec4::new(0.0, 0.0, 280.0, 180.0),
+        theme_id: Some(1),
+    }));
+
+    let root = UiNode {
+        id: ids.ui_panel_root_id,
+        kind: UiNodeKind::Container,
+        props: UiNodeProps::Container {
+            layout: UiLayout {
+                direction: UiLayoutDirection::Column,
+                gap: 8.0,
+                ..Default::default()
+            },
+            padding: Some(UiPadding {
+                left: 12.0,
+                top: 12.0,
+                right: 12.0,
+                bottom: 12.0,
+            }),
+            size: None,
+            scroll_x: false,
+            scroll_y: false,
+        },
+        anim: None,
+        display: None,
+        visible: None,
+        opacity: Some(1.0),
+        z_index: None,
+    };
+
+    let title = UiNode {
+        id: ids.ui_panel_title_id,
+        kind: UiNodeKind::Text,
+        props: UiNodeProps::Text {
+            text: "UIPanel no lado 3D".into(),
+            size: Some(16.0),
+            color: None,
+        },
+        anim: None,
+        display: None,
+        visible: None,
+        opacity: None,
+        z_index: None,
+    };
+
+    let body = UiNode {
+        id: ids.ui_panel_body_id,
+        kind: UiNodeKind::Text,
+        props: UiNodeProps::Text {
+            text: "Contador painel: 0".into(),
+            size: Some(14.0),
+            color: None,
+        },
+        anim: None,
+        display: None,
+        visible: None,
+        opacity: None,
+        z_index: None,
+    };
+    let input = UiNode {
+        id: ids.ui_panel_input_id,
+        kind: UiNodeKind::Input,
+        props: UiNodeProps::Input {
+            value: "Digite no painel 3D".into(),
+            placeholder: Some("Texto no UIPanel".into()),
+            enabled: Some(true),
+        },
+        anim: None,
+        display: None,
+        visible: None,
+        opacity: None,
+        z_index: None,
+    };
+    let button_add = UiNode {
+        id: ids.ui_panel_button_add_id,
+        kind: UiNodeKind::Button,
+        props: UiNodeProps::Button {
+            label: "Painel +".into(),
+            enabled: Some(true),
+        },
+        anim: None,
+        display: None,
+        visible: None,
+        opacity: None,
+        z_index: None,
+    };
+    let button_remove = UiNode {
+        id: ids.ui_panel_button_remove_id,
+        kind: UiNodeKind::Button,
+        props: UiNodeProps::Button {
+            label: "Painel -".into(),
+            enabled: Some(true),
+        },
+        anim: None,
+        display: None,
+        visible: None,
+        opacity: None,
+        z_index: None,
+    };
+
+    cmds.push(EngineCmd::CmdUiApplyOps(CmdUiApplyOpsArgs {
+        document_id: ids.ui_panel_document_id,
+        version: 1,
+        ops: vec![
+            UiOp::Add {
+                parent: None,
+                node: root,
+                index: None,
+            },
+            UiOp::Add {
+                parent: Some(ids.ui_panel_root_id),
+                node: title,
+                index: None,
+            },
+            UiOp::Add {
+                parent: Some(ids.ui_panel_root_id),
+                node: body,
+                index: None,
+            },
+            UiOp::Add {
+                parent: Some(ids.ui_panel_root_id),
+                node: input,
+                index: None,
+            },
+            UiOp::Add {
+                parent: Some(ids.ui_panel_root_id),
+                node: button_add,
+                index: None,
+            },
+            UiOp::Add {
+                parent: Some(ids.ui_panel_root_id),
+                node: button_remove,
+                index: None,
+            },
+        ],
+    }));
+
+    cmds
 }
 
 fn assert_command_batch_success(expected_responses: usize, tag: &str) {

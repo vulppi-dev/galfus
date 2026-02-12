@@ -15,8 +15,10 @@ pub fn run(ctx: DemoContext, setup: &Demo006Setup, _realms: &Demo006RealmIds) ->
     let window_id = ctx.window_id;
     let ids = setup.ids;
     let mut ui_version = 1u64;
+    let mut ui_panel_version = 1u64;
     let mut toggle_enabled = false;
     let mut counter = 0i32;
+    let mut panel_counter = 0i32;
 
     run_loop_with_events(
         window_id,
@@ -41,11 +43,93 @@ pub fn run(ctx: DemoContext, setup: &Demo006Setup, _realms: &Demo006RealmIds) ->
                 cast_outline: None,
                 outline_color: None,
             })];
+            cmds.push(EngineCmd::CmdModelUpdate(CmdModelUpdateArgs {
+                window_id,
+                model_id: ids.model_ui_plane_id,
+                label: None,
+                geometry_id: None,
+                material_id: None,
+                transform: Some(
+                    Mat4::from_translation(Vec3::new(1.0, 2.0, 3.8))
+                        * Mat4::from_rotation_y(
+                            std::f32::consts::PI - 0.35 + (t * 0.45).sin() * 0.08,
+                        )
+                        * Mat4::from_rotation_x(-0.08)
+                        * Mat4::from_scale(Vec3::new(2.4, 1.0, 1.0)),
+                ),
+                layer_mask: None,
+                cast_shadow: None,
+                receive_shadow: None,
+                cast_outline: None,
+                outline_color: None,
+            }));
             cmds.extend(draw_axes_gizmos());
             cmds
         },
         move |event| {
             match event {
+                EngineEvent::Ui(ui_event) if ui_event.document_id == ids.ui_panel_document_id => {
+                    match (ui_event.node_id, ui_event.kind) {
+                        (node_id, UiEventKind::ChangeCommit) if node_id == ids.ui_panel_input_id => {
+                            if let Some(text) = ui_event.label {
+                                ui_panel_version += 1;
+                                let _ = send_commands(vec![EngineCmd::CmdUiApplyOps(
+                                    CmdUiApplyOpsArgs {
+                                        document_id: ids.ui_panel_document_id,
+                                        version: ui_panel_version,
+                                        ops: vec![UiOp::Set {
+                                            node_id: ids.ui_panel_input_id,
+                                            props: UiNodeProps::Input {
+                                                value: text,
+                                                placeholder: Some("Texto no UIPanel".into()),
+                                                enabled: Some(true),
+                                            },
+                                        }],
+                                    },
+                                )]);
+                            }
+                        }
+                        (node_id, UiEventKind::Click) if node_id == ids.ui_panel_button_add_id => {
+                            panel_counter += 1;
+                            ui_panel_version += 1;
+                            let _ = send_commands(vec![EngineCmd::CmdUiApplyOps(
+                                CmdUiApplyOpsArgs {
+                                    document_id: ids.ui_panel_document_id,
+                                    version: ui_panel_version,
+                                    ops: vec![UiOp::Set {
+                                        node_id: ids.ui_panel_body_id,
+                                        props: UiNodeProps::Text {
+                                            text: format!("Contador painel: {panel_counter}"),
+                                            size: Some(14.0),
+                                            color: None,
+                                        },
+                                    }],
+                                },
+                            )]);
+                        }
+                        (node_id, UiEventKind::Click)
+                            if node_id == ids.ui_panel_button_remove_id =>
+                        {
+                            panel_counter -= 1;
+                            ui_panel_version += 1;
+                            let _ = send_commands(vec![EngineCmd::CmdUiApplyOps(
+                                CmdUiApplyOpsArgs {
+                                    document_id: ids.ui_panel_document_id,
+                                    version: ui_panel_version,
+                                    ops: vec![UiOp::Set {
+                                        node_id: ids.ui_panel_body_id,
+                                        props: UiNodeProps::Text {
+                                            text: format!("Contador painel: {panel_counter}"),
+                                            size: Some(14.0),
+                                            color: None,
+                                        },
+                                    }],
+                                },
+                            )]);
+                        }
+                        _ => {}
+                    }
+                }
                 EngineEvent::Ui(ui_event) if ui_event.document_id == ids.ui_document_id => {
                     match (ui_event.node_id, ui_event.kind) {
                         (node_id, UiEventKind::ChangeCommit) if node_id == ids.ui_input_id => {

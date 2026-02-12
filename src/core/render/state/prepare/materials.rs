@@ -38,6 +38,9 @@ impl RenderState {
                         desired_scale_bias = entry.uv_scale_bias;
                     } else {
                         desired_source = TEX_SOURCE_STANDALONE;
+                        if self.external_textures.contains_key(&tex_id) {
+                            desired_scale_bias = glam::Vec4::new(-1.0, -1.0, 1.0, 1.0);
+                        }
                     }
                 }
 
@@ -182,6 +185,9 @@ impl RenderState {
                         desired_scale_bias = entry.uv_scale_bias;
                     } else {
                         desired_source = TEX_SOURCE_STANDALONE;
+                        if self.external_textures.contains_key(&tex_id) {
+                            desired_scale_bias = glam::Vec4::new(-1.0, -1.0, 1.0, 1.0);
+                        }
                     }
                 }
 

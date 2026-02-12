@@ -41,6 +41,9 @@ CmdUiApplyOps {
 
 Render a UI document into a texture target and apply it to a 3D plane:
 
+- Texture sampling convention for UI targets on 3D materials: **top-left** origin.
+- The core normalizes UV orientation using `atlas_scale_bias` for standalone/external textures (no shader-specific flip source).
+
 ```text
 CmdTargetUpsert { targetId: 9204, kind: "texture", sizeOverride: [420,260] }
 CmdTextureBindTarget { windowId: 1, textureId: 1400, targetId: 9204 }
@@ -67,7 +70,7 @@ Bind a UI panel on the left and a 3D viewport on the right:
 
 ```text
 CmdTargetUpsert { targetId: 9201, kind: "panel-embed", sizeOverride: [640,720] }
-CmdTargetUpsert { targetId: 9202, kind: "viewport-embed", sizeOverride: [640,720] }
+CmdTargetUpsert { targetId: 9202, kind: "realm-viewport", sizeOverride: [640,720] }
 CmdTargetBindUpsert { realmId: <uiRealm>, targetId: 9201, layout: { rect: [0,0,640,720], zIndex: 1 } }
 CmdTargetBindUpsert { realmId: <viewRealm>, targetId: 9202, layout: { rect: [640,0,640,720], zIndex: 0 } }
 ```
