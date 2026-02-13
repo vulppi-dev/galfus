@@ -51,7 +51,7 @@ pub fn build_target_cmds(window_main: u32) -> (Demo006TargetIds, Vec<EngineCmd>)
             target_id: target_ids.realm_viewport_ui,
             kind: TargetKind::RealmViewport,
             owner_window_id: Some(window_main),
-            size_override: Some(glam::UVec2::new(360, 240)),
+            size_override: Some(glam::UVec2::new(600, 260)),
             format_policy: None,
             alpha_policy: None,
             msaa_samples: Some(4),

@@ -30,6 +30,7 @@ pub(super) fn resolve_ui_plane_hit(
     window_id: u32,
     target_realm: RealmId,
     pointer_position: Vec2,
+    pointer_surface_size: glam::UVec2,
 ) -> Option<UiPlaneHit> {
     let realm_entry = engine_state.universal_state.realms.entries.get(&target_realm)?;
     if realm_entry.value.kind != crate::core::realm::RealmKind::ThreeD {
@@ -37,8 +38,8 @@ pub(super) fn resolve_ui_plane_hit(
     }
 
     let window_state = engine_state.window.states.get(&window_id)?;
-    let camera = pick_main_camera(window_state)?;
-    let ray = screen_ray_from_pointer(pointer_position, window_state.inner_size, camera)?;
+    let camera = pick_camera_for_pointer(window_state, pointer_position, pointer_surface_size)?;
+    let ray = screen_ray_from_pointer(pointer_position, pointer_surface_size, camera)?;
 
     let mut best_hit: Option<(f32, UiPlaneHit)> = None;
     let vertex = window_state.render_state.vertex.as_ref()?;
@@ -78,25 +79,49 @@ pub(super) fn resolve_ui_plane_hit(
     best_hit.map(|(_, hit)| hit)
 }
 
-fn pick_main_camera(window_state: &crate::core::window::WindowState) -> Option<&crate::core::resources::CameraRecord> {
-    window_state
-        .render_state
-        .scene
-        .cameras
-        .iter()
-        .min_by_key(|(id, record)| (record.order, **id))
-        .map(|(_, record)| record)
+fn pick_camera_for_pointer(
+    window_state: &crate::core::window::WindowState,
+    pointer_position: Vec2,
+    surface_size: glam::UVec2,
+) -> Option<&crate::core::resources::CameraRecord> {
+    let mut cameras: Vec<_> = window_state.render_state.scene.cameras.iter().collect();
+    cameras.sort_by_key(|(id, record)| (record.order, **id));
+    cameras.reverse();
+    for (_, camera) in cameras {
+        let (viewport_x, viewport_y, viewport_w, viewport_h) =
+            resolve_camera_viewport_in_surface(surface_size, camera);
+        if pointer_position.x >= viewport_x
+            && pointer_position.x <= viewport_x + viewport_w
+            && pointer_position.y >= viewport_y
+            && pointer_position.y <= viewport_y + viewport_h
+        {
+            return Some(camera);
+        }
+    }
+    None
 }
 
 fn screen_ray_from_pointer(
     pointer_position: Vec2,
-    window_size: glam::UVec2,
+    surface_size: glam::UVec2,
     camera: &crate::core::resources::CameraRecord,
 ) -> Option<Ray> {
-    let width = window_size.x.max(1) as f32;
-    let height = window_size.y.max(1) as f32;
-    let ndc_x = (pointer_position.x / width) * 2.0 - 1.0;
-    let ndc_y = 1.0 - (pointer_position.y / height) * 2.0;
+    let (viewport_x, viewport_y, viewport_w, viewport_h) =
+        resolve_camera_viewport_in_surface(surface_size, camera);
+    if pointer_position.x < viewport_x
+        || pointer_position.x > viewport_x + viewport_w
+        || pointer_position.y < viewport_y
+        || pointer_position.y > viewport_y + viewport_h
+    {
+        return None;
+    }
+
+    let local_x = pointer_position.x - viewport_x;
+    let local_y = pointer_position.y - viewport_y;
+    let width = viewport_w.max(1.0);
+    let height = viewport_h.max(1.0);
+    let ndc_x = (local_x / width) * 2.0 - 1.0;
+    let ndc_y = 1.0 - (local_y / height) * 2.0;
 
     let inv_vp = camera.data.view_projection.inverse();
     let near_h = inv_vp * Vec4::new(ndc_x, ndc_y, 0.0, 1.0);
@@ -121,6 +146,23 @@ fn screen_ray_from_pointer(
         origin: camera.data.position.truncate(),
         direction,
     })
+}
+
+fn resolve_camera_viewport_in_surface(
+    surface_size: glam::UVec2,
+    camera: &crate::core::resources::CameraRecord,
+) -> (f32, f32, f32, f32) {
+    if let Some(view_position) = camera.view_position.as_ref() {
+        let (x, y) = view_position.resolve_position(surface_size.x, surface_size.y);
+        let (w, h) = view_position.resolve_size(surface_size.x, surface_size.y);
+        return (x as f32, y as f32, w.max(1) as f32, h.max(1) as f32);
+    }
+    (
+        0.0,
+        0.0,
+        surface_size.x.max(1) as f32,
+        surface_size.y.max(1) as f32,
+    )
 }
 
 fn resolve_ui_source_for_model(

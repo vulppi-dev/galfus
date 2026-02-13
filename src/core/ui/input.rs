@@ -109,8 +109,13 @@ fn resolve_pointer_realm(
     };
 
     let pos = if let Some(uv) = trace.uv {
-        let size = connector_source_size(&engine.universal_state, trace.connector_id)
-            .or_else(|| realm_output_size(&engine.universal_state, realm_id))?;
+        let size = if trace.source_realm_id.is_some() {
+            realm_output_size(&engine.universal_state, realm_id)
+                .or_else(|| connector_source_size(&engine.universal_state, trace.connector_id))
+        } else {
+            connector_source_size(&engine.universal_state, trace.connector_id)
+                .or_else(|| realm_output_size(&engine.universal_state, realm_id))
+        }?;
         egui::pos2(uv.x * size.x as f32, uv.y * size.y as f32)
     } else if let Some(position) = position {
         egui::pos2(position.x, position.y)

@@ -1,5 +1,5 @@
 use std::cmp::Ordering;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use glam::{UVec2, Vec2};
 
@@ -11,6 +11,7 @@ use crate::core::state::EngineState;
 use crate::core::target::TargetId;
 
 const INPUT_FLAG_RAYCAST: u32 = 1 << 0;
+const MAX_ROUTE_STEPS: usize = 32;
 
 pub fn route_pointer_events(engine_state: &mut EngineState) {
     let mut events = std::mem::take(&mut engine_state.event_queue);
@@ -164,12 +165,92 @@ pub fn route_pointer_events(engine_state: &mut EngineState) {
                 }
             } else if source_realm_id.is_none() {
                 if let Some(ui_plane_hit) =
-                    resolve_ui_plane_hit(engine_state, window_id, realm_id, position)
+                    resolve_ui_plane_hit(
+                        engine_state,
+                        window_id,
+                        realm_id,
+                        position,
+                        window_size.unwrap_or(glam::UVec2::new(1, 1)),
+                    )
                 {
                     source_realm_id = Some(ui_plane_hit.source_realm_id);
                     target_id = Some(ui_plane_hit.target_id);
                     uv = Some(ui_plane_hit.uv);
                 }
+            }
+
+            let mut visited: HashSet<(RealmId, u16, u16)> = HashSet::new();
+            for _ in 0..MAX_ROUTE_STEPS {
+                let (current_realm, current_uv) = match (source_realm_id, uv) {
+                    (Some(realm), Some(uv)) => (realm, uv),
+                    _ => break,
+                };
+                let key = (
+                    current_realm,
+                    quantize_uv(current_uv.x),
+                    quantize_uv(current_uv.y),
+                );
+                if !visited.insert(key) {
+                    break;
+                }
+                let Some(surface_size) = realm_surface_size(&engine_state.universal_state, current_realm) else {
+                    break;
+                };
+                let current_position = Vec2::new(
+                    current_uv.x * surface_size.x as f32,
+                    current_uv.y * surface_size.y as f32,
+                );
+
+                if let Some(hit) = resolve_hit_connector(
+                    &engine_state.universal_state,
+                    connectors_by_realm.get(&current_realm),
+                    current_position,
+                    Some(surface_size),
+                ) {
+                    connector_id = Some(hit.connector_id);
+                    target_id = connector_targets.get(&hit.connector_id).copied().or(target_id);
+                    let connector = engine_state
+                        .universal_state
+                        .connectors
+                        .entries
+                        .get(&hit.connector_id)
+                        .map(|entry| &entry.value);
+                    let Some(connector) = connector else {
+                        break;
+                    };
+                    let next_realm = realm_by_surface.get(&connector.source_surface).copied();
+                    let next_uv = hit
+                        .uv
+                        .or_else(|| {
+                            resolve_connector_uv(
+                                &engine_state.universal_state,
+                                connector,
+                                current_position,
+                            )
+                        });
+                    match (next_realm, next_uv) {
+                        (Some(next_realm), Some(next_uv)) => {
+                            source_realm_id = Some(next_realm);
+                            uv = Some(next_uv);
+                            continue;
+                        }
+                        _ => break,
+                    }
+                }
+
+                if let Some(ui_plane_hit) = resolve_ui_plane_hit(
+                    engine_state,
+                    window_id,
+                    current_realm,
+                    current_position,
+                    surface_size,
+                ) {
+                    source_realm_id = Some(ui_plane_hit.source_realm_id);
+                    target_id = Some(ui_plane_hit.target_id);
+                    uv = Some(ui_plane_hit.uv);
+                    continue;
+                }
+                break;
             }
 
             update_capture_state(
@@ -337,8 +418,9 @@ fn resolve_connector_uv(
     let source_height = source_size.y.max(1) as f32;
     let scale = rect_height / source_height;
     let draw_width = (source_size.x.max(1) as f32 * scale).max(1.0);
+    let viewport_x = connector.rect.x + (connector.rect.z - draw_width) * 0.5;
 
-    let u = ((position.x - connector.rect.x) / draw_width).clamp(0.0, 1.0);
+    let u = ((position.x - viewport_x) / draw_width).clamp(0.0, 1.0);
     let v = ((position.y - connector.rect.y) / rect_height).clamp(0.0, 1.0);
     Some(Vec2::new(u, v))
 }
@@ -480,6 +562,18 @@ fn normalize_window_uv(position: Vec2, window_size: UVec2) -> Option<Vec2> {
     Some(Vec2::new(u, v))
 }
 
+fn realm_surface_size(universal: &UniversalState, realm_id: RealmId) -> Option<UVec2> {
+    let realm = universal.realms.entries.get(&realm_id)?;
+    let surface_id = realm.value.output_surface?;
+    let surface = universal.surfaces.entries.get(&surface_id)?;
+    Some(surface.value.size)
+}
+
+fn quantize_uv(value: f32) -> u16 {
+    let clamped = value.clamp(0.0, 1.0);
+    (clamped * 1024.0).round() as u16
+}
+
 fn hit_test_connector(
     position: Vec2,
     rect: glam::Vec4,
@@ -494,8 +588,9 @@ fn hit_test_connector(
     let source_height = source_size.y.max(1) as f32;
     let scale = rect_height / source_height;
     let draw_width = (source_size.x.max(1) as f32 * scale).max(1.0);
+    let viewport_x = rect.x + (rect.z - draw_width) * 0.5;
 
-    let viewport = glam::Vec4::new(rect.x, rect.y, draw_width, rect_height);
+    let viewport = glam::Vec4::new(viewport_x, rect.y, draw_width, rect_height);
     let mut clip_rect = glam::Vec4::new(rect.x, rect.y, rect.z, rect.w);
     if let Some(clip) = clip {
         clip_rect = intersect_rect(clip_rect, clip);

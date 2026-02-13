@@ -242,6 +242,10 @@ Additionally, `UIPlane` behavior is available for 3D models that use textures bo
 `texture` targets produced by a `TwoD` realm: routing raycasts the model plane/hitbox and
 forwards pointer input to the bound UI realm.
 
+Pointer routing now propagates through multiple realm/target hops per event (including
+`RealmViewport -> 3D -> UIPlane -> UI`). Cycles are handled with bounded step propagation
+to keep the frame loop non-blocking.
+
 ---
 
 ## 4.3 Asynchronous Resource Linking (Fallback-Driven)
