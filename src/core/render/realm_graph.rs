@@ -110,6 +110,8 @@ pub(crate) fn collect_surface_views(
     surface_targets: &mut HashMap<SurfaceId, RenderTarget>,
     present_sizes: &HashMap<SurfaceId, glam::UVec2>,
 ) -> HashMap<SurfaceId, SurfaceSnapshot> {
+    surface_targets.retain(|surface_id, _| universal.surfaces.entries.contains_key(surface_id));
+
     let mut views = HashMap::new();
 
     for (surface_id, entry) in universal.surfaces.entries.iter() {

@@ -7,9 +7,9 @@ Upserts a logical target used by the auto-graph system.
 | Field         | Type                  | Description                                   |
 | ------------- | --------------------- | --------------------------------------------- |
 | targetId      | u64                   | Logical target ID                             |
-| kind          | TargetKind            | "window", "viewport-embed", "panel-embed", "texture" |
-| ownerWindowId | Option<u32>           | Owning window (required for window/embeds)    |
-| sizeOverride  | Option<UVec2>         | Optional size override for the target         |
+| kind          | TargetKind            | "window", "realm-viewport", "ui-plane", "texture" |
+| windowId | Option<u32>           | Required for `window`, `realm-viewport`, `ui-plane` |
+| size  | Option<UVec2>         | Valid only for `texture` targets |
 | formatPolicy  | Option<SurfaceFormat> | Optional color/depth format policy            |
 | alphaPolicy   | Option<AlphaMode>     | Optional alpha policy                         |
 | msaaSamples   | Option<u32>           | Optional MSAA samples                         |

@@ -311,7 +311,7 @@ The host provides logical maps only:
 
 - `RealmMap` (realmId -> kind)
 - `TargetMap` (targetId -> kind)
-- `TargetBindMap` (realmId -> targetId + layout)
+- `TargetLayerMap` (realmId -> targetId + layout)
 
 The core resolves `TargetGraph` + `RealmGraph` automatically and creates
 `Surface`, `Present`, and `Connector` entries internally.
@@ -320,21 +320,26 @@ These entries are internal-only and are not exposed as host commands.
 Host bindings can update these maps with:
 
 - `CmdTargetUpsert` / `CmdTargetDispose`
-- `CmdTargetBindUpsert` / `CmdTargetBindDispose`
+- `CmdTargetLayerUpsert` / `CmdTargetLayerDispose`
 
 Example:
 
 ```text
-CmdTargetUpsert(targetId=9000, kind=window, ownerWindowId=1)
-CmdTargetUpsert(targetId=9002, kind=viewport-embed, ownerWindowId=1, sizeOverride=640x360)
-CmdTargetBindUpsert(realmId=10, targetId=9000, layout=...)
-CmdTargetBindUpsert(realmId=11, targetId=9002, layout=rect/zIndex/clip/inputFlags)
+CmdTargetUpsert(targetId=9000, kind=window, windowId=1)
+CmdTargetUpsert(targetId=9002, kind=realm-viewport, windowId=1)
+CmdTargetUpsert(targetId=9003, kind=texture, size=640x360)
+CmdTargetLayerUpsert(realmId=10, targetId=9000, layout=...)
+CmdTargetLayerUpsert(realmId=11, targetId=9002, layout=rect/zIndex/clip/inputFlags)
 ```
 
-The core caches the `TargetGraphPlan` with a hash of targets/binds and
+Rules:
+- `windowId` is mandatory for `window`, `realm-viewport`, and `ui-plane`.
+- `size` is accepted only for `texture`.
+
+The core caches the `TargetGraphPlan` with a hash of targets/layers/realms and
 computes diffs on change to drive partial updates.
 
-`FrameReport` includes TargetGraph stats (node/edge counts and bind diffs)
+`FrameReport` includes TargetGraph stats (node/edge counts and layer diffs)
 so the host can inspect auto-graph updates.
 
 ### 7.1 Buffers

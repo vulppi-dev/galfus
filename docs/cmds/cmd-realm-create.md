@@ -3,7 +3,7 @@
 Creates a new realm.
 
 Realms represent renderable contexts (3D/2D). They can later be bound to
-logical targets through `CmdTargetBindUpsert` to form the auto-graph.
+logical targets through `CmdTargetLayerUpsert` to form the auto-graph.
 
 ## Arguments
 

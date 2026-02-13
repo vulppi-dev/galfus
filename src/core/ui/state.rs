@@ -87,8 +87,34 @@ impl UiState {
         self.realms.get_mut(&realm_id)
     }
 
+    pub fn remove_document(&mut self, document_id: UiDocumentId) -> bool {
+        let existed = self.documents.remove(&document_id).is_some();
+        if !existed {
+            return false;
+        }
+
+        self.input_buffers
+            .retain(|(entry_document_id, _), _| *entry_document_id != document_id);
+        self.animations
+            .retain(|key, _| key.document_id != document_id);
+
+        true
+    }
+
     pub fn remove_realm(&mut self, realm_id: RealmId) {
         self.realms.remove(&realm_id);
+        self.focus_by_window
+            .retain(|_, focus_realm_id| *focus_realm_id != realm_id);
+
+        let mut docs_to_remove = Vec::new();
+        for (document_id, document) in &self.documents {
+            if document.realm_id == realm_id {
+                docs_to_remove.push(*document_id);
+            }
+        }
+        for document_id in docs_to_remove {
+            self.remove_document(document_id);
+        }
     }
 }
 

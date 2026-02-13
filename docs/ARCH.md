@@ -126,17 +126,17 @@ and `UiImageId`.
 The host does not construct graphs directly. Instead it provides logical maps:
 
 - `RealmMap`: logical realm IDs and kinds
-- `TargetMap`: logical targets (`Window`, `ViewportEmbed`, `PanelEmbed`, `Texture`)
-- `TargetBindMap`: `realmId -> targetId` with `layout` (rect, zIndex, clip, inputFlags, blendMode)
+- `TargetMap`: logical targets (`Window`, `RealmViewport`, `UiPlane`, `Texture`)
+- `TargetLayerMap`: `realmId -> targetId` with `layout` (rect, zIndex, clip, inputFlags, blendMode)
 
 The core builds `TargetGraph` and `RealmGraph` automatically and creates or updates
-`Surface`, `Present`, and `Connector` tables based on the binds.
+`Surface`, `Present`, and `Connector` tables based on the layers.
 `Surface`, `Present`, and `Connector` are internal-only and are not exposed as host commands.
 
 **TargetGraph cache/diff**
 
-- The core keeps a cached `TargetGraphPlan` and a hash of targets/binds.
-- On change it computes a diff (added/removed/updated targets and binds),
+- The core keeps a cached `TargetGraphPlan` and a hash of targets/layers/realms.
+- On change it computes a diff (added/removed/updated targets and layers),
   plus a `dirty_targets` list for partial updates.
 
 **Auto resolution (Phase H)**
@@ -144,19 +144,19 @@ The core builds `TargetGraph` and `RealmGraph` automatically and creates or upda
 - Each `Bind(realm -> target)` produces a `Surface`.
 - The Realm output surface is set automatically from its primary bind.
 - If target is `Window`, the core creates a `Present`.
-- If target is `ViewportEmbed` or `PanelEmbed`, the core creates a `Connector`
+- If target is `RealmViewport` or `UiPlane`, the core creates a `Connector`
   targeting the host realm for that window.
 - Layout (`rect`, `zIndex`, `clip`, `inputFlags`, `blendMode`) is applied on
-  connector creation and updated when binds change.
+  connector creation and updated when layers change.
 - Binds are resolved deterministically: per realm, the smallest `targetId` wins.
 
 **Parent inference (deterministic)**
 
 - `Window` targets are roots.
 - `Texture` targets are roots (offscreen).
-- `ViewportEmbed` / `PanelEmbed` infer parent from binds:
-  - Prefer the `hostWindowId` of the bound realm.
-  - If multiple binds reference different windows, choose the smallest `windowId`.
+- `RealmViewport` / `UiPlane` infer parent from layers:
+  - Prefer the `hostWindowId` of the layer realm.
+- If multiple layers reference different windows, choose the smallest `windowId`.
   - If multiple realms in the same window bind to the same target, choose the smallest `realmId`
     as the owner for parent inference.
 - Conflicts are resolved deterministically and should be logged for diagnostics.

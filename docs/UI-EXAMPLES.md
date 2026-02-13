@@ -26,7 +26,7 @@ CmdUiApplyOps {
 Bind a texture target to a material and also render it in UI:
 
 ```text
-CmdTargetUpsert { targetId: 9005, kind: "texture", sizeOverride: [256,256] }
+CmdTargetUpsert { targetId: 9005, kind: "texture", size: [256,256] }
 CmdTextureBindTarget { windowId: 1, textureId: 2001, targetId: 9005 }
 CmdUiApplyOps {
   documentId: 100,
@@ -45,7 +45,7 @@ Render a UI document into a texture target and apply it to a 3D plane:
 - The core normalizes UV orientation using `atlas_scale_bias` for standalone/external textures (no shader-specific flip source).
 
 ```text
-CmdTargetUpsert { targetId: 9204, kind: "texture", sizeOverride: [420,260] }
+CmdTargetUpsert { targetId: 9204, kind: "texture", size: [420,260] }
 CmdTextureBindTarget { windowId: 1, textureId: 1400, targetId: 9204 }
 CmdMaterialCreate { materialId: 1212, kind: "standard", options: { surfaceType: "transparent", baseTexId: 1400, emissiveTexId: 1400 } }
 CmdModelCreate { modelId: 1303, geometryId: <plane>, materialId: 1212 }
@@ -69,10 +69,10 @@ layout: {
 Bind a UI panel on the left and a 3D viewport on the right:
 
 ```text
-CmdTargetUpsert { targetId: 9201, kind: "panel-embed", sizeOverride: [640,720] }
-CmdTargetUpsert { targetId: 9202, kind: "realm-viewport", sizeOverride: [640,720] }
-CmdTargetBindUpsert { realmId: <uiRealm>, targetId: 9201, layout: { rect: [0,0,640,720], zIndex: 1 } }
-CmdTargetBindUpsert { realmId: <viewRealm>, targetId: 9202, layout: { rect: [640,0,640,720], zIndex: 0 } }
+CmdTargetUpsert { targetId: 9201, kind: "ui-plane", windowId: 1 }
+CmdTargetUpsert { targetId: 9202, kind: "realm-viewport", windowId: 1 }
+CmdTargetLayerUpsert { realmId: <uiRealm>, targetId: 9201, layout: { rect: [0,0,640,720], zIndex: 1 } }
+CmdTargetLayerUpsert { realmId: <viewRealm>, targetId: 9202, layout: { rect: [640,0,640,720], zIndex: 0 } }
 ```
 
 Typical left-panel content:

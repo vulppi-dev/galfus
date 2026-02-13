@@ -217,7 +217,7 @@ fn apply_uv_scale_bias(uv: Vec2, scale_bias: Vec4) -> Vec2 {
 }
 
 fn resolve_target_ui_realm(engine_state: &EngineState, target_id: TargetId) -> Option<RealmId> {
-    for bind in engine_state.universal_state.target_binds.entries.values() {
+    for bind in engine_state.universal_state.target_layers.entries.values() {
         if bind.target_id != target_id {
             continue;
         }

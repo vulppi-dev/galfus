@@ -114,7 +114,7 @@ pub fn engine_cmd_ui_document_dispose(
     args: &CmdUiDocumentDisposeArgs,
 ) -> CmdResultUiDocumentDispose {
     let ui_state = &mut engine.universal_state.ui;
-    if ui_state.documents.remove(&args.document_id).is_none() {
+    if !ui_state.remove_document(args.document_id) {
         return CmdResultUiDocumentDispose {
             success: false,
             message: format!("UiDocument {} not found", args.document_id),

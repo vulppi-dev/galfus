@@ -5,12 +5,12 @@ use crate::core::realm::{
     UniversalState,
 };
 use crate::core::state::EngineState;
-use crate::core::target::{TargetBindState, TargetId, TargetKind};
+use crate::core::target::{TargetLayerState, TargetId, TargetKind};
 
 pub fn sync_auto_graph(engine_state: &mut EngineState) {
-    let mut desired_binds: Vec<TargetBindState> = engine_state
+    let mut desired_binds: Vec<TargetLayerState> = engine_state
         .universal_state
-        .target_binds
+        .target_layers
         .entries
         .values()
         .cloned()
@@ -99,7 +99,7 @@ pub fn sync_auto_graph(engine_state: &mut EngineState) {
                     || link.present_id.is_none()
                         && matches!(target.kind, TargetKind::Window)
                     || link.connector_id.is_none()
-                        && matches!(target.kind, TargetKind::RealmViewport | TargetKind::PanelEmbed);
+                        && matches!(target.kind, TargetKind::RealmViewport | TargetKind::UiPlane);
 
             if needs_rebuild {
                 remove_auto_link(&mut engine_state.universal_state, key);
@@ -120,15 +120,15 @@ pub fn sync_auto_graph(engine_state: &mut EngineState) {
 
         match target.kind {
             TargetKind::Window => {
-                if let Some(window_id) = target.owner_window_id {
+                if let Some(window_id) = target.window_id {
                     present_id = Some(engine_state.universal_state.presents.alloc(PresentState {
                         window_id,
                         surface: surface_id,
                     }));
                 }
             }
-            TargetKind::RealmViewport | TargetKind::PanelEmbed => {
-                if let Some(window_id) = target.owner_window_id {
+            TargetKind::RealmViewport | TargetKind::UiPlane => {
+                if let Some(window_id) = target.window_id {
                     if let Some(host_realm) =
                         find_host_realm_for_window(&engine_state.universal_state, window_id)
                     {
@@ -160,7 +160,7 @@ pub fn sync_auto_graph(engine_state: &mut EngineState) {
     }
 }
 
-pub(crate) fn remove_auto_link_for_bind(
+pub(crate) fn remove_auto_link_for_layer(
     universal: &mut UniversalState,
     realm_id: u32,
     target_id: TargetId,
@@ -171,7 +171,7 @@ pub(crate) fn remove_auto_link_for_bind(
 fn update_auto_link_layout(
     universal: &mut UniversalState,
     connector_id: Option<ConnectorId>,
-    bind: &TargetBindState,
+    bind: &TargetLayerState,
 ) {
     let Some(connector_id) = connector_id else {
         return;
@@ -256,21 +256,19 @@ fn surface_state_for_target(
     engine_state: &EngineState,
     target: &crate::core::target::TargetState,
 ) -> SurfaceState {
-    let size = target
-        .size_override
-        .or_else(|| match target.kind {
-            TargetKind::Window | TargetKind::RealmViewport | TargetKind::PanelEmbed => target
-                .owner_window_id
-                .and_then(|window_id| engine_state.window.states.get(&window_id))
-                .map(|state| state.inner_size),
-            TargetKind::Texture => None,
-        })
-        .unwrap_or_else(|| glam::UVec2::new(1, 1));
+    let size = match target.kind {
+        TargetKind::Texture => target.size.unwrap_or_else(|| glam::UVec2::new(1, 1)),
+        TargetKind::Window | TargetKind::RealmViewport | TargetKind::UiPlane => target
+            .window_id
+            .and_then(|window_id| engine_state.window.states.get(&window_id))
+            .map(|state| state.inner_size)
+            .unwrap_or_else(|| glam::UVec2::new(1, 1)),
+    };
 
     SurfaceState {
         kind: match target.kind {
             TargetKind::Window => SurfaceKind::Onscreen,
-            TargetKind::RealmViewport | TargetKind::PanelEmbed | TargetKind::Texture => {
+            TargetKind::RealmViewport | TargetKind::UiPlane | TargetKind::Texture => {
                 SurfaceKind::Offscreen
             }
         },

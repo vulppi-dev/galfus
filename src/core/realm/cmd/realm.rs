@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use crate::core::realm::{RealmId, RealmKind, RealmState, SurfaceId};
 use crate::core::render::graph::RenderGraphState;
 use crate::core::state::EngineState;
-use crate::core::target::resolve::remove_auto_link_for_bind;
+use crate::core::target::resolve::remove_auto_link_for_layer;
 
 use super::RealmKindDto;
 
@@ -133,21 +133,21 @@ pub fn engine_cmd_realm_dispose(
             .retain(|_, capture| !removed_set.contains(&capture.connector_id));
     }
 
-    let removed_binds: Vec<_> = engine
+    let removed_layers: Vec<_> = engine
         .universal_state
-        .target_binds
+        .target_layers
         .entries
         .keys()
         .filter(|(bind_realm, _)| *bind_realm == realm_id.0)
         .copied()
         .collect();
-    for (bind_realm, bind_target) in removed_binds {
+    for (bind_realm, bind_target) in removed_layers {
         engine
             .universal_state
-            .target_binds
+            .target_layers
             .entries
             .remove(&(bind_realm, bind_target));
-        remove_auto_link_for_bind(&mut engine.universal_state, bind_realm, bind_target);
+        remove_auto_link_for_layer(&mut engine.universal_state, bind_realm, bind_target);
     }
 
     if let Some(surface_id) = entry.value.output_surface {

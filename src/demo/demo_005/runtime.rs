@@ -143,9 +143,9 @@ pub fn run(ctx: DemoContext, setup: &Demo005Setup, realms: &Demo005RealmIds) -> 
                             report.frame_report.target_added,
                             report.frame_report.target_removed,
                             report.frame_report.target_updated,
-                            report.frame_report.target_binds_added.len(),
-                            report.frame_report.target_binds_removed.len(),
-                            report.frame_report.target_binds_updated.len(),
+                            report.frame_report.target_layers_added.len(),
+                            report.frame_report.target_layers_removed.len(),
+                            report.frame_report.target_layers_updated.len(),
                             report.frame_report.target_plan_dirty
                         );
                         if report.frame_report.target_nodes < 6 {

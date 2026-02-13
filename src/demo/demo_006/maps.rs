@@ -1,8 +1,8 @@
 use glam::Vec4;
 
 use crate::core::cmd::EngineCmd;
-use crate::core::target::cmd::{CmdTargetBindUpsertArgs, CmdTargetUpsertArgs};
-use crate::core::target::{TargetBindLayout, TargetKind};
+use crate::core::target::cmd::{CmdTargetLayerUpsertArgs, CmdTargetUpsertArgs};
+use crate::core::target::{TargetLayerLayout, TargetKind};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Demo006TargetIds {
@@ -32,17 +32,17 @@ pub fn build_target_cmds(window_main: u32) -> (Demo006TargetIds, Vec<EngineCmd>)
         CmdTargetUpsertArgs {
             target_id: target_ids.window_main,
             kind: TargetKind::Window,
-            owner_window_id: Some(window_main),
-            size_override: None,
+            window_id: Some(window_main),
+            size: None,
             format_policy: None,
             alpha_policy: None,
             msaa_samples: None,
         },
         CmdTargetUpsertArgs {
             target_id: target_ids.panel_ui,
-            kind: TargetKind::PanelEmbed,
-            owner_window_id: Some(window_main),
-            size_override: Some(glam::UVec2::new(640, 720)),
+            kind: TargetKind::UiPlane,
+            window_id: Some(window_main),
+            size: None,
             format_policy: None,
             alpha_policy: None,
             msaa_samples: None,
@@ -50,8 +50,8 @@ pub fn build_target_cmds(window_main: u32) -> (Demo006TargetIds, Vec<EngineCmd>)
         CmdTargetUpsertArgs {
             target_id: target_ids.realm_viewport_ui,
             kind: TargetKind::RealmViewport,
-            owner_window_id: Some(window_main),
-            size_override: Some(glam::UVec2::new(600, 260)),
+            window_id: Some(window_main),
+            size: None,
             format_policy: None,
             alpha_policy: None,
             msaa_samples: Some(4),
@@ -59,8 +59,8 @@ pub fn build_target_cmds(window_main: u32) -> (Demo006TargetIds, Vec<EngineCmd>)
         CmdTargetUpsertArgs {
             target_id: target_ids.texture_ui_panel_3d,
             kind: TargetKind::Texture,
-            owner_window_id: None,
-            size_override: Some(glam::UVec2::new(280, 180)),
+            window_id: None,
+            size: Some(glam::UVec2::new(280, 180)),
             format_policy: None,
             alpha_policy: None,
             msaa_samples: None,
@@ -77,12 +77,12 @@ pub fn build_target_cmds(window_main: u32) -> (Demo006TargetIds, Vec<EngineCmd>)
 
 pub fn build_bind_cmds(targets: Demo006TargetIds, realms: Demo006BindRealms) -> Vec<EngineCmd> {
     let binds = vec![
-        CmdTargetBindUpsertArgs {
+        CmdTargetLayerUpsertArgs {
             realm_id: realms.host_main,
             target_id: targets.window_main,
-            layout: TargetBindLayout::default(),
+            layout: TargetLayerLayout::default(),
         },
-        CmdTargetBindUpsertArgs {
+        CmdTargetLayerUpsertArgs {
             realm_id: realms.ui,
             target_id: targets.panel_ui,
             layout: bind_layout(
@@ -93,7 +93,7 @@ pub fn build_bind_cmds(targets: Demo006TargetIds, realms: Demo006BindRealms) -> 
                 0,
             ),
         },
-        CmdTargetBindUpsertArgs {
+        CmdTargetLayerUpsertArgs {
             realm_id: realms.ui_viewport,
             target_id: targets.realm_viewport_ui,
             layout: bind_layout(
@@ -104,16 +104,16 @@ pub fn build_bind_cmds(targets: Demo006TargetIds, realms: Demo006BindRealms) -> 
                 0,
             ),
         },
-        CmdTargetBindUpsertArgs {
+        CmdTargetLayerUpsertArgs {
             realm_id: realms.ui_panel_3d,
             target_id: targets.texture_ui_panel_3d,
-            layout: TargetBindLayout::default(),
+            layout: TargetLayerLayout::default(),
         },
     ];
 
     let mut cmds = Vec::new();
     for bind in binds {
-        cmds.push(EngineCmd::CmdTargetBindUpsert(bind));
+        cmds.push(EngineCmd::CmdTargetLayerUpsert(bind));
     }
     cmds
 }
@@ -124,8 +124,8 @@ fn bind_layout(
     blend_mode: u32,
     clip: Option<Vec4>,
     input_flags: u32,
-) -> TargetBindLayout {
-    TargetBindLayout {
+) -> TargetLayerLayout {
+    TargetLayerLayout {
         rect,
         z_index,
         blend_mode,

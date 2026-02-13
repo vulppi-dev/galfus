@@ -215,11 +215,11 @@ The host does not build graphs. Instead it provides logical maps:
 
 - `RealmMap` (realmId -> kind)
 - `TargetMap` (targetId -> kind)
-- `TargetBindMap` (realmId -> targetId + layout)
+- `TargetLayerMap` (realmId -> targetId + layout)
 
 The core resolves `TargetGraph` + `RealmGraph` automatically, creating
 `Surface`, `Present`, and `Connector` entries as needed. Parent/child
-relationships between targets are inferred by the core; the bind layout
+relationships between targets are inferred by the core; the layer layout
 defines the composition rectangle, zIndex, clip, and input flags.
 - The compositor resolves format/size conversions and MSAA resolves automatically.
 Note: `Surface`, `Present`, and `Connector` are internal and not exposed as host commands.
@@ -227,11 +227,16 @@ Note: `Surface`, `Present`, and `Connector` are internal and not exposed as host
 Example flow (host-side):
 
 ```text
-CmdTargetUpsert(targetId=9000, kind=window, ownerWindowId=1)
-CmdTargetUpsert(targetId=9002, kind=viewport-embed, ownerWindowId=1, sizeOverride=640x360)
-CmdTargetBindUpsert(realmId=10, targetId=9000, layout=...)
-CmdTargetBindUpsert(realmId=11, targetId=9002, layout=rect/zIndex/clip/inputFlags)
+CmdTargetUpsert(targetId=9000, kind=window, windowId=1)
+CmdTargetUpsert(targetId=9002, kind=realm-viewport, windowId=1)
+CmdTargetUpsert(targetId=9003, kind=texture, size=640x360)
+CmdTargetLayerUpsert(realmId=10, targetId=9000, layout=...)
+CmdTargetLayerUpsert(realmId=11, targetId=9002, layout=rect/zIndex/clip/inputFlags)
 ```
+
+Rules:
+- `windowId` is mandatory for `window`, `realm-viewport`, and `ui-plane`.
+- `size` is accepted only for `texture`.
 
 Input routing uses the same connector graph to emit `eventTrace` metadata
 (`windowId`, `realmId`, `targetId`, `connectorId`, `sourceRealmId`, and UV coordinates when available).

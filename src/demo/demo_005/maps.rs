@@ -1,8 +1,8 @@
 use glam::Vec4;
 
 use crate::core::cmd::EngineCmd;
-use crate::core::target::cmd::{CmdTargetBindUpsertArgs, CmdTargetUpsertArgs};
-use crate::core::target::{TargetBindLayout, TargetKind};
+use crate::core::target::cmd::{CmdTargetLayerUpsertArgs, CmdTargetUpsertArgs};
+use crate::core::target::{TargetLayerLayout, TargetKind};
 
 const INPUT_FLAG_RAYCAST: u32 = 1 << 0;
 
@@ -41,8 +41,8 @@ pub fn build_target_cmds(window_main: u32, window_aux: u32) -> (Demo005TargetIds
         CmdTargetUpsertArgs {
             target_id: target_ids.window_main,
             kind: TargetKind::Window,
-            owner_window_id: Some(window_main),
-            size_override: None,
+            window_id: Some(window_main),
+            size: None,
             format_policy: None,
             alpha_policy: None,
             msaa_samples: None,
@@ -50,8 +50,8 @@ pub fn build_target_cmds(window_main: u32, window_aux: u32) -> (Demo005TargetIds
         CmdTargetUpsertArgs {
             target_id: target_ids.window_aux,
             kind: TargetKind::Window,
-            owner_window_id: Some(window_aux),
-            size_override: None,
+            window_id: Some(window_aux),
+            size: None,
             format_policy: None,
             alpha_policy: None,
             msaa_samples: None,
@@ -59,17 +59,17 @@ pub fn build_target_cmds(window_main: u32, window_aux: u32) -> (Demo005TargetIds
         CmdTargetUpsertArgs {
             target_id: target_ids.viewport_main,
             kind: TargetKind::RealmViewport,
-            owner_window_id: Some(window_main),
-            size_override: Some(glam::UVec2::new(640, 360)),
+            window_id: Some(window_main),
+            size: None,
             format_policy: None,
             alpha_policy: None,
             msaa_samples: Some(4),
         },
         CmdTargetUpsertArgs {
             target_id: target_ids.panel_ui,
-            kind: TargetKind::PanelEmbed,
-            owner_window_id: Some(window_main),
-            size_override: Some(glam::UVec2::new(512, 512)),
+            kind: TargetKind::UiPlane,
+            window_id: Some(window_main),
+            size: None,
             format_policy: None,
             alpha_policy: None,
             msaa_samples: None,
@@ -77,8 +77,8 @@ pub fn build_target_cmds(window_main: u32, window_aux: u32) -> (Demo005TargetIds
         CmdTargetUpsertArgs {
             target_id: target_ids.viewport_aux,
             kind: TargetKind::RealmViewport,
-            owner_window_id: Some(window_aux),
-            size_override: Some(glam::UVec2::new(320, 240)),
+            window_id: Some(window_aux),
+            size: None,
             format_policy: None,
             alpha_policy: None,
             msaa_samples: None,
@@ -86,8 +86,8 @@ pub fn build_target_cmds(window_main: u32, window_aux: u32) -> (Demo005TargetIds
         CmdTargetUpsertArgs {
             target_id: target_ids.texture_shared,
             kind: TargetKind::Texture,
-            owner_window_id: None,
-            size_override: Some(glam::UVec2::new(256, 256)),
+            window_id: None,
+            size: Some(glam::UVec2::new(256, 256)),
             format_policy: None,
             alpha_policy: None,
             msaa_samples: None,
@@ -104,17 +104,17 @@ pub fn build_target_cmds(window_main: u32, window_aux: u32) -> (Demo005TargetIds
 
 pub fn build_bind_cmds(targets: Demo005TargetIds, realms: Demo005BindRealms) -> Vec<EngineCmd> {
     let binds = vec![
-        CmdTargetBindUpsertArgs {
+        CmdTargetLayerUpsertArgs {
             realm_id: realms.host_main,
             target_id: targets.window_main,
-            layout: TargetBindLayout::default(),
+            layout: TargetLayerLayout::default(),
         },
-        CmdTargetBindUpsertArgs {
+        CmdTargetLayerUpsertArgs {
             realm_id: realms.host_aux,
             target_id: targets.window_aux,
-            layout: TargetBindLayout::default(),
+            layout: TargetLayerLayout::default(),
         },
-        CmdTargetBindUpsertArgs {
+        CmdTargetLayerUpsertArgs {
             realm_id: realms.viewport_main,
             target_id: targets.viewport_main,
             layout: bind_layout(
@@ -125,7 +125,7 @@ pub fn build_bind_cmds(targets: Demo005TargetIds, realms: Demo005BindRealms) -> 
                 INPUT_FLAG_RAYCAST,
             ),
         },
-        CmdTargetBindUpsertArgs {
+        CmdTargetLayerUpsertArgs {
             realm_id: realms.ui,
             target_id: targets.panel_ui,
             layout: bind_layout(
@@ -136,37 +136,37 @@ pub fn build_bind_cmds(targets: Demo005TargetIds, realms: Demo005BindRealms) -> 
                 0,
             ),
         },
-        CmdTargetBindUpsertArgs {
+        CmdTargetLayerUpsertArgs {
             realm_id: realms.texture_main,
             target_id: targets.texture_shared,
-            layout: TargetBindLayout::default(),
+            layout: TargetLayerLayout::default(),
         },
-        CmdTargetBindUpsertArgs {
+        CmdTargetLayerUpsertArgs {
             realm_id: realms.texture_aux,
             target_id: targets.texture_shared,
-            layout: TargetBindLayout::default(),
+            layout: TargetLayerLayout::default(),
         },
-        CmdTargetBindUpsertArgs {
+        CmdTargetLayerUpsertArgs {
             realm_id: realms.conflict,
             target_id: targets.viewport_main,
-            layout: TargetBindLayout::default(),
+            layout: TargetLayerLayout::default(),
         },
-        CmdTargetBindUpsertArgs {
+        CmdTargetLayerUpsertArgs {
             realm_id: realms.conflict,
             target_id: targets.texture_shared,
-            layout: TargetBindLayout::default(),
+            layout: TargetLayerLayout::default(),
         },
-        CmdTargetBindUpsertArgs {
+        CmdTargetLayerUpsertArgs {
             realm_id: realms.host_main,
             target_id: targets.viewport_main,
             layout: bind_layout(Vec4::new(60.0, 360.0, 220.0, 160.0), 1, 0, None, 0),
         },
-        CmdTargetBindUpsertArgs {
+        CmdTargetLayerUpsertArgs {
             realm_id: realms.host_main,
             target_id: targets.viewport_aux,
             layout: bind_layout(Vec4::new(1020.0, 40.0, 180.0, 120.0), 0, 0, None, 0),
         },
-        CmdTargetBindUpsertArgs {
+        CmdTargetLayerUpsertArgs {
             realm_id: realms.host_aux,
             target_id: targets.viewport_main,
             layout: bind_layout(Vec4::new(20.0, 40.0, 200.0, 140.0), 0, 0, None, 0),
@@ -175,7 +175,7 @@ pub fn build_bind_cmds(targets: Demo005TargetIds, realms: Demo005BindRealms) -> 
 
     let mut cmds = Vec::new();
     for bind in binds {
-        cmds.push(EngineCmd::CmdTargetBindUpsert(bind));
+        cmds.push(EngineCmd::CmdTargetLayerUpsert(bind));
     }
     cmds
 }
@@ -186,8 +186,8 @@ fn bind_layout(
     blend_mode: u32,
     clip: Option<Vec4>,
     input_flags: u32,
-) -> TargetBindLayout {
-    TargetBindLayout {
+) -> TargetLayerLayout {
+    TargetLayerLayout {
         rect,
         z_index,
         blend_mode,

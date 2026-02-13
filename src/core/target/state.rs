@@ -11,7 +11,7 @@ pub struct TargetId(pub u64);
 pub enum TargetKind {
     Window,
     RealmViewport,
-    PanelEmbed,
+    UiPlane,
     Texture,
 }
 
@@ -62,8 +62,8 @@ impl SurfaceAlphaModeDto {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TargetState {
     pub kind: TargetKind,
-    pub owner_window_id: Option<u32>,
-    pub size_override: Option<glam::UVec2>,
+    pub window_id: Option<u32>,
+    pub size: Option<glam::UVec2>,
     pub format_policy: Option<wgpu::TextureFormat>,
     pub alpha_policy: Option<wgpu::CompositeAlphaMode>,
     pub msaa_samples: Option<u32>,
@@ -78,7 +78,7 @@ impl TargetTable {}
 
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
-pub struct TargetBindLayout {
+pub struct TargetLayerLayout {
     pub rect: Vec4,
     pub z_index: i32,
     pub blend_mode: u32,
@@ -86,7 +86,7 @@ pub struct TargetBindLayout {
     pub input_flags: u32,
 }
 
-impl Default for TargetBindLayout {
+impl Default for TargetLayerLayout {
     fn default() -> Self {
         Self {
             rect: Vec4::ZERO,
@@ -99,15 +99,15 @@ impl Default for TargetBindLayout {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct TargetBindState {
+pub struct TargetLayerState {
     pub realm_id: u32,
     pub target_id: TargetId,
-    pub layout: TargetBindLayout,
+    pub layout: TargetLayerLayout,
 }
 
 #[derive(Debug, Clone, Default)]
-pub struct TargetBindTable {
-    pub entries: HashMap<(u32, TargetId), TargetBindState>,
+pub struct TargetLayerTable {
+    pub entries: HashMap<(u32, TargetId), TargetLayerState>,
 }
 
-impl TargetBindTable {}
+impl TargetLayerTable {}

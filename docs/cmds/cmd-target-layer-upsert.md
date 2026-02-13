@@ -1,6 +1,6 @@
-# CmdTargetBindUpsert
+# CmdTargetLayerUpsert
 
-Upserts a logical bind between a realm and a target.
+Upserts a logical layer between a realm and a target.
 
 ## Arguments
 
@@ -8,9 +8,9 @@ Upserts a logical bind between a realm and a target.
 | -------- | ---------- | ------------------------------- |
 | realmId  | u32        | Logical realm ID                |
 | targetId | u64        | Logical target ID               |
-| layout   | TargetBindLayout | Layout and routing configuration |
+| layout   | TargetLayerLayout | Layout and routing configuration |
 
-### TargetBindLayout
+### TargetLayerLayout
 
 | Field      | Type        | Description                         |
 | ---------- | ----------- | ----------------------------------- |
@@ -22,9 +22,9 @@ Upserts a logical bind between a realm and a target.
 
 ## Response
 
-Returns `CmdResultTargetBindUpsert`:
+Returns `CmdResultTargetLayerUpsert`:
 
 | Field   | Type   | Description                  |
 | ------- | ------ | ---------------------------- |
-| success | bool   | Whether the bind was upserted |
+| success | bool   | Whether the layer was upserted |
 | message | String | Status or error message      |

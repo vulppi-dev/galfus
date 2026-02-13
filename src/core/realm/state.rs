@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::core::audio::{AudioListenerBinding, AudioSourceParams, AudioStreamState};
-use crate::core::target::{TargetBindTable, TargetGraphCache, TargetTable};
+use crate::core::target::{TargetLayerTable, TargetGraphCache, TargetTable};
 use crate::core::ui::UiState;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -185,7 +185,7 @@ pub struct UniversalState {
     pub presents: PresentTable,
     pub ui: UiState,
     pub targets: TargetTable,
-    pub target_binds: TargetBindTable,
+    pub target_layers: TargetLayerTable,
     pub target_graph_cache: TargetGraphCache,
     pub auto_links: std::collections::HashMap<(u32, crate::core::target::TargetId), AutoLink>,
     pub audio: AudioState,

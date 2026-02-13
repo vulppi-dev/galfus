@@ -49,7 +49,7 @@ pub fn render_frames(engine_state: &mut EngineState) {
         let diff = cache
             .update(
                 &engine_state.universal_state.targets.entries,
-                &engine_state.universal_state.target_binds.entries,
+                &engine_state.universal_state.target_layers.entries,
                 &engine_state.universal_state.realms,
             )
             .cloned();
@@ -647,13 +647,13 @@ fn apply_target_size_requests(
         }
 
         let desired = glam::UVec2::new(size.x.max(1), size.y.max(1));
-        if target.size_override != Some(desired) {
-            target.size_override = Some(desired);
+        if target.size != Some(desired) {
+            target.size = Some(desired);
         }
 
         if target.msaa_samples.is_none() {
             let msaa = target
-                .owner_window_id
+                .window_id
                 .and_then(|window_id| engine_state.window.states.get(&window_id))
                 .map(|state| state.render_state.msaa_sample_count())
                 .unwrap_or(1);

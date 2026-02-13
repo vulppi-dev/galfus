@@ -1,6 +1,6 @@
-# CmdTargetBindDispose
+# CmdTargetLayerDispose
 
-Removes a logical bind between a realm and a target.
+Removes a logical layer between a realm and a target.
 
 ## Arguments
 
@@ -11,9 +11,9 @@ Removes a logical bind between a realm and a target.
 
 ## Response
 
-Returns `CmdResultTargetBindDispose`:
+Returns `CmdResultTargetLayerDispose`:
 
 | Field   | Type   | Description                 |
 | ------- | ------ | --------------------------- |
-| success | bool   | Whether the bind was disposed |
+| success | bool   | Whether the layer was disposed |
 | message | String | Status or error message     |
