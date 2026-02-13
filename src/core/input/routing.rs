@@ -5,6 +5,7 @@ use glam::{UVec2, Vec2};
 
 use crate::core::cmd::EngineEvent;
 use crate::core::input::events::{ElementState, PointerEvent, PointerEventTrace, TouchPhase};
+use crate::core::input::raycast::resolve_ui_plane_hit;
 use crate::core::realm::{ConnectorId, ConnectorState, InputCapture, RealmId, UniversalState};
 use crate::core::state::EngineState;
 use crate::core::target::TargetId;
@@ -12,6 +13,8 @@ use crate::core::target::TargetId;
 const INPUT_FLAG_RAYCAST: u32 = 1 << 0;
 
 pub fn route_pointer_events(engine_state: &mut EngineState) {
+    let mut events = std::mem::take(&mut engine_state.event_queue);
+
     let mut realm_by_surface = HashMap::new();
     for (realm_id, entry) in engine_state.universal_state.realms.entries.iter() {
         if let Some(surface_id) = entry.value.output_surface {
@@ -73,7 +76,7 @@ pub fn route_pointer_events(engine_state: &mut EngineState) {
         });
     }
 
-    for event in engine_state.event_queue.iter_mut() {
+    for event in events.iter_mut() {
         let EngineEvent::Pointer(pointer_event) = event else {
             continue;
         };
@@ -159,6 +162,14 @@ pub fn route_pointer_events(engine_state: &mut EngineState) {
                         resolve_connector_uv(&engine_state.universal_state, connector, position)
                     });
                 }
+            } else if source_realm_id.is_none() {
+                if let Some(ui_plane_hit) =
+                    resolve_ui_plane_hit(engine_state, window_id, realm_id, position)
+                {
+                    source_realm_id = Some(ui_plane_hit.source_realm_id);
+                    target_id = Some(ui_plane_hit.target_id);
+                    uv = Some(ui_plane_hit.uv);
+                }
             }
 
             update_capture_state(
@@ -188,6 +199,8 @@ pub fn route_pointer_events(engine_state: &mut EngineState) {
 
         apply_trace(pointer_event, trace);
     }
+
+    engine_state.event_queue = events;
 }
 
 fn pointer_window_id(event: &PointerEvent) -> u32 {

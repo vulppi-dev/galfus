@@ -412,6 +412,10 @@ If a bind sets `inputFlags` to include `RAYCAST` (`1`), the connector is treated
 as a plane hit-test and routing uses window-space UVs to support 3D-style
 raycast interactions.
 
+For `UIPlane`-style usage, when a 3D model material samples a texture bound to a
+`texture` target that is also bound by a `TwoD` realm, pointer routing performs
+raycast + hitbox test against the model plane and forwards events to that UI realm.
+
 On `vulfram_receive_events`, the core:
 
 1. Serializes `event_queue` into MessagePack (using `rmp-serde`).

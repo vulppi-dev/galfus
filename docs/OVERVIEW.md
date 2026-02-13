@@ -238,6 +238,10 @@ Input routing uses the same connector graph to emit `eventTrace` metadata
 When `inputFlags` includes `RAYCAST` (`1`), routing treats the connector as a plane hit-test,
 using window-space UVs to drive raycast-like interactions in 3D.
 
+Additionally, `UIPlane` behavior is available for 3D models that use textures bound to
+`texture` targets produced by a `TwoD` realm: routing raycasts the model plane/hitbox and
+forwards pointer input to the bound UI realm.
+
 ---
 
 ## 4.3 Asynchronous Resource Linking (Fallback-Driven)
