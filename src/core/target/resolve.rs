@@ -7,9 +7,18 @@ use crate::core::realm::{
 };
 use crate::core::state::EngineState;
 use crate::core::system::SystemEvent;
-use crate::core::target::{TargetId, TargetKind, TargetLayerState};
+use crate::core::target::{TargetId, TargetKind, TargetLayerLayout, TargetLayerState, TargetState};
 
 const INPUT_FLAG_RAYCAST: u32 = 1 << 0;
+const DEFAULT_CH_WIDTH: f32 = 8.0;
+
+#[derive(Debug, Clone, Copy)]
+struct ResolvedLayerLayout {
+    rect: glam::Vec4,
+    z_index: i32,
+    blend_mode: u32,
+    clip: Option<glam::Vec4>,
+}
 
 pub fn sync_auto_graph(engine_state: &mut EngineState) {
     rebuild_target_indexes(&mut engine_state.universal_state);
@@ -71,6 +80,7 @@ pub fn sync_auto_graph(engine_state: &mut EngineState) {
                 continue;
             }
         };
+        let resolved_layout = resolve_layer_layout(engine_state, &target, &layer.layout);
 
         let primary_target = primary_targets
             .entry(layer.realm_id)
@@ -124,7 +134,7 @@ pub fn sync_auto_graph(engine_state: &mut EngineState) {
                         &mut engine_state.universal_state,
                         Some(connector_id),
                         target.kind,
-                        &layer,
+                        resolved_layout,
                     );
                 }
                 continue;
@@ -155,10 +165,10 @@ pub fn sync_auto_graph(engine_state: &mut EngineState) {
                             ConnectorState {
                                 target_realm: host_realm,
                                 source_surface: surface_id,
-                                rect: layer.layout.rect,
-                                z_index: layer.layout.z_index,
-                                blend_mode: layer.layout.blend_mode,
-                                clip: layer.layout.clip,
+                                rect: resolved_layout.rect,
+                                z_index: resolved_layout.z_index,
+                                blend_mode: resolved_layout.blend_mode,
+                                clip: resolved_layout.clip,
                                 input_flags: infer_layer_input_flags(target.kind),
                             },
                         ));
@@ -213,7 +223,7 @@ fn update_auto_link_layout(
     universal: &mut UniversalState,
     connector_id: Option<ConnectorId>,
     target_kind: TargetKind,
-    layer: &TargetLayerState,
+    layout: ResolvedLayerLayout,
 ) {
     let Some(connector_id) = connector_id else {
         return;
@@ -222,10 +232,10 @@ fn update_auto_link_layout(
         return;
     };
 
-    entry.value.rect = layer.layout.rect;
-    entry.value.z_index = layer.layout.z_index;
-    entry.value.blend_mode = layer.layout.blend_mode;
-    entry.value.clip = layer.layout.clip;
+    entry.value.rect = layout.rect;
+    entry.value.z_index = layout.z_index;
+    entry.value.blend_mode = layout.blend_mode;
+    entry.value.clip = layout.clip;
     entry.value.input_flags = infer_layer_input_flags(target_kind);
 }
 
@@ -328,7 +338,7 @@ fn rebuild_target_indexes(universal: &mut UniversalState) {
 
 fn surface_state_for_target(
     engine_state: &EngineState,
-    target: &crate::core::target::TargetState,
+    target: &TargetState,
     layer: Option<&TargetLayerState>,
 ) -> SurfaceState {
     let size = match target.kind {
@@ -340,8 +350,9 @@ fn surface_state_for_target(
             .unwrap_or_else(|| glam::UVec2::new(1, 1)),
         TargetKind::RealmViewport | TargetKind::UiPlane => {
             let layer_size = layer.and_then(|layer| {
-                let width = layer.layout.rect.z.max(1.0).round() as u32;
-                let height = layer.layout.rect.w.max(1.0).round() as u32;
+                let resolved = resolve_layer_layout(engine_state, target, &layer.layout);
+                let width = resolved.rect.z.max(1.0).round() as u32;
+                let height = resolved.rect.w.max(1.0).round() as u32;
                 if width > 0 && height > 0 {
                     Some(glam::UVec2::new(width, height))
                 } else {
@@ -379,4 +390,28 @@ fn surface_state_matches(a: &SurfaceState, b: &SurfaceState) -> bool {
         && a.format_policy == b.format_policy
         && a.alpha_policy == b.alpha_policy
         && a.msaa_samples == b.msaa_samples
+}
+
+fn resolve_layer_layout(
+    engine_state: &EngineState,
+    target: &TargetState,
+    layout: &TargetLayerLayout,
+) -> ResolvedLayerLayout {
+    let ref_size = target
+        .window_id
+        .and_then(|window_id| engine_state.window.states.get(&window_id))
+        .map(|state| state.inner_size)
+        .unwrap_or_else(|| glam::UVec2::new(1, 1));
+    let ref_width = ref_size.x.max(1) as f32;
+    let ref_height = ref_size.y.max(1) as f32;
+    let left = layout.left.resolve(ref_width, DEFAULT_CH_WIDTH);
+    let top = layout.top.resolve(ref_height, DEFAULT_CH_WIDTH);
+    let width = layout.width.resolve(ref_width, DEFAULT_CH_WIDTH).max(0.0);
+    let height = layout.height.resolve(ref_height, DEFAULT_CH_WIDTH).max(0.0);
+    ResolvedLayerLayout {
+        rect: glam::Vec4::new(left, top, width, height),
+        z_index: layout.z_index,
+        blend_mode: layout.blend_mode,
+        clip: layout.clip,
+    }
 }

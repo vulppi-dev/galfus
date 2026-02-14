@@ -20,6 +20,69 @@ pub use crate::core::ui::cmd as ui;
 pub use crate::core::window as win;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(untagged)]
+pub enum CmdCameraUpsertArgs {
+    Create(res::CmdCameraCreateArgs),
+    Update(res::CmdCameraUpdateArgs),
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(untagged)]
+pub enum CmdModelUpsertArgs {
+    Create(res::CmdModelCreateArgs),
+    Update(res::CmdModelUpdateArgs),
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(untagged)]
+pub enum CmdLightUpsertArgs {
+    Create(res::CmdLightCreateArgs),
+    Update(res::CmdLightUpdateArgs),
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(untagged)]
+pub enum CmdMaterialUpsertArgs {
+    Create(res::CmdMaterialCreateArgs),
+    Update(res::CmdMaterialUpdateArgs),
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(untagged)]
+pub enum CmdGeometryUpsertArgs {
+    Create(res::CmdGeometryCreateArgs),
+    Update(res::CmdGeometryUpdateArgs),
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(untagged)]
+pub enum CmdEnvironmentUpsertArgs {
+    Create(res::CmdEnvironmentCreateArgs),
+    Update(res::CmdEnvironmentUpdateArgs),
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(untagged)]
+pub enum CmdAudioListenerUpsertArgs {
+    Create(audio::CmdAudioListenerCreateArgs),
+    Update(audio::CmdAudioListenerUpdateArgs),
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(untagged)]
+pub enum CmdAudioSourceUpsertArgs {
+    Create(audio::CmdAudioSourceCreateArgs),
+    Update(audio::CmdAudioSourceUpdateArgs),
+}
+
+#[derive(Debug, Default, Deserialize, Serialize, Clone)]
+#[serde(default, rename_all = "camelCase")]
+pub struct CmdResultSimple {
+    pub success: bool,
+    pub message: String,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(tag = "type", content = "content", rename_all = "kebab-case")]
 pub enum EngineCmd {
     CmdNotificationSend(sys::CmdNotificationSendArgs),
@@ -45,41 +108,33 @@ pub enum EngineCmd {
     CmdWindowSetCursorGrab(win::CmdWindowSetCursorGrabArgs),
     CmdWindowSetCursorIcon(win::CmdWindowSetCursorIconArgs),
     CmdUploadBufferDiscardAll(buf::CmdUploadBufferDiscardAllArgs),
-    CmdCameraCreate(res::CmdCameraCreateArgs),
-    CmdCameraUpdate(res::CmdCameraUpdateArgs),
+    CmdCameraUpsert(CmdCameraUpsertArgs),
     CmdCameraDispose(res::CmdCameraDisposeArgs),
-    CmdModelCreate(res::CmdModelCreateArgs),
-    CmdModelUpdate(res::CmdModelUpdateArgs),
+    CmdModelUpsert(CmdModelUpsertArgs),
     CmdPoseUpdate(res::CmdPoseUpdateArgs),
     CmdModelDispose(res::CmdModelDisposeArgs),
-    CmdLightCreate(res::CmdLightCreateArgs),
-    CmdLightUpdate(res::CmdLightUpdateArgs),
+    CmdLightUpsert(CmdLightUpsertArgs),
     CmdLightDispose(res::CmdLightDisposeArgs),
-    CmdMaterialCreate(res::CmdMaterialCreateArgs),
-    CmdMaterialUpdate(res::CmdMaterialUpdateArgs),
+    CmdMaterialUpsert(CmdMaterialUpsertArgs),
     CmdMaterialDispose(res::CmdMaterialDisposeArgs),
     CmdTextureCreateFromBuffer(res::CmdTextureCreateFromBufferArgs),
     CmdTextureCreateSolidColor(res::CmdTextureCreateSolidColorArgs),
     CmdTextureDispose(res::CmdTextureDisposeArgs),
     CmdTextureBindTarget(res::CmdTextureBindTargetArgs),
-    CmdAudioListenerUpdate(audio::CmdAudioListenerUpdateArgs),
-    CmdAudioListenerCreate(audio::CmdAudioListenerCreateArgs),
+    CmdAudioListenerUpsert(CmdAudioListenerUpsertArgs),
     CmdAudioListenerDispose(audio::CmdAudioListenerDisposeArgs),
     CmdAudioResourceCreate(audio::CmdAudioResourceCreateArgs),
     CmdAudioResourcePush(audio::CmdAudioResourcePushArgs),
-    CmdAudioSourceCreate(audio::CmdAudioSourceCreateArgs),
-    CmdAudioSourceUpdate(audio::CmdAudioSourceUpdateArgs),
+    CmdAudioSourceUpsert(CmdAudioSourceUpsertArgs),
     CmdAudioSourcePlay(audio::CmdAudioSourcePlayArgs),
     CmdAudioSourcePause(audio::CmdAudioSourcePauseArgs),
     CmdAudioSourceStop(audio::CmdAudioSourceStopArgs),
     CmdAudioSourceDispose(audio::CmdAudioSourceDisposeArgs),
     CmdAudioResourceDispose(audio::CmdAudioResourceDisposeArgs),
-    CmdGeometryCreate(res::CmdGeometryCreateArgs),
-    CmdGeometryUpdate(res::CmdGeometryUpdateArgs),
+    CmdGeometryUpsert(CmdGeometryUpsertArgs),
     CmdGeometryDispose(res::CmdGeometryDisposeArgs),
     CmdPrimitiveGeometryCreate(res::CmdPrimitiveGeometryCreateArgs),
-    CmdEnvironmentCreate(res::CmdEnvironmentCreateArgs),
-    CmdEnvironmentUpdate(res::CmdEnvironmentUpdateArgs),
+    CmdEnvironmentUpsert(CmdEnvironmentUpsertArgs),
     CmdEnvironmentDispose(res::CmdEnvironmentDisposeArgs),
     CmdShadowConfigure(res::shadow::CmdShadowConfigureArgs),
     CmdRealmCreate(realm::CmdRealmCreateArgs),
@@ -147,41 +202,33 @@ pub enum CommandResponse {
     WindowSetCursorGrab(win::CmdResultWindowSetCursorGrab),
     WindowSetCursorIcon(win::CmdResultWindowSetCursorIcon),
     UploadBufferDiscardAll(buf::CmdResultUploadBufferDiscardAll),
-    CameraCreate(res::CmdResultCameraCreate),
-    CameraUpdate(res::CmdResultCameraUpdate),
+    CameraUpsert(CmdResultSimple),
     CameraDispose(res::CmdResultCameraDispose),
-    ModelCreate(res::CmdResultModelCreate),
-    ModelUpdate(res::CmdResultModelUpdate),
+    ModelUpsert(CmdResultSimple),
     PoseUpdate(res::CmdResultPoseUpdate),
     ModelDispose(res::CmdResultModelDispose),
-    LightCreate(res::CmdResultLightCreate),
-    LightUpdate(res::CmdResultLightUpdate),
+    LightUpsert(CmdResultSimple),
     LightDispose(res::CmdResultLightDispose),
-    MaterialCreate(res::CmdResultMaterialCreate),
-    MaterialUpdate(res::CmdResultMaterialUpdate),
+    MaterialUpsert(CmdResultSimple),
     MaterialDispose(res::CmdResultMaterialDispose),
     TextureCreateFromBuffer(res::CmdResultTextureCreateFromBuffer),
     TextureCreateSolidColor(res::CmdResultTextureCreateSolidColor),
     TextureDispose(res::CmdResultTextureDispose),
     TextureBindTarget(res::CmdResultTextureBindTarget),
-    AudioListenerUpdate(audio::CmdResultAudioListenerUpdate),
-    AudioListenerCreate(audio::CmdResultAudioListenerCreate),
+    AudioListenerUpsert(CmdResultSimple),
     AudioListenerDispose(audio::CmdResultAudioListenerDispose),
     AudioResourceCreate(audio::CmdResultAudioResourceCreate),
     AudioResourcePush(audio::CmdResultAudioResourcePush),
-    AudioSourceCreate(audio::CmdResultAudioSourceCreate),
-    AudioSourceUpdate(audio::CmdResultAudioSourceUpdate),
+    AudioSourceUpsert(CmdResultSimple),
     AudioSourcePlay(audio::CmdResultAudioSourcePlay),
     AudioSourcePause(audio::CmdResultAudioSourcePause),
     AudioSourceStop(audio::CmdResultAudioSourceStop),
     AudioSourceDispose(audio::CmdResultAudioSourceDispose),
     AudioResourceDispose(audio::CmdResultAudioResourceDispose),
-    GeometryCreate(res::CmdResultGeometryCreate),
-    GeometryUpdate(res::CmdResultGeometryUpdate),
+    GeometryUpsert(CmdResultSimple),
     GeometryDispose(res::CmdResultGeometryDispose),
     PrimitiveGeometryCreate(res::CmdResultPrimitiveGeometryCreate),
-    EnvironmentCreate(res::CmdResultEnvironment),
-    EnvironmentUpdate(res::CmdResultEnvironment),
+    EnvironmentUpsert(CmdResultSimple),
     EnvironmentDispose(res::CmdResultEnvironment),
     ShadowConfigure(res::shadow::CmdResultShadowConfigure),
     RealmCreate(realm::CmdResultRealmCreate),
@@ -252,19 +299,15 @@ fn maybe_emit_response_error_event(
         CommandResponse::UploadBufferDiscardAll(result) => {
             failure_case!(result, "upload-buffer-discard-all")
         }
+        CommandResponse::CameraUpsert(result) => failure_case!(result, "camera-upsert"),
         CommandResponse::WindowCreate(result) => failure_case!(result, "window-create"),
-        CommandResponse::CameraCreate(result) => failure_case!(result, "camera-create"),
-        CommandResponse::CameraUpdate(result) => failure_case!(result, "camera-update"),
         CommandResponse::CameraDispose(result) => failure_case!(result, "camera-dispose"),
-        CommandResponse::ModelCreate(result) => failure_case!(result, "model-create"),
-        CommandResponse::ModelUpdate(result) => failure_case!(result, "model-update"),
+        CommandResponse::ModelUpsert(result) => failure_case!(result, "model-upsert"),
         CommandResponse::PoseUpdate(result) => failure_case!(result, "pose-update"),
         CommandResponse::ModelDispose(result) => failure_case!(result, "model-dispose"),
-        CommandResponse::LightCreate(result) => failure_case!(result, "light-create"),
-        CommandResponse::LightUpdate(result) => failure_case!(result, "light-update"),
+        CommandResponse::LightUpsert(result) => failure_case!(result, "light-upsert"),
         CommandResponse::LightDispose(result) => failure_case!(result, "light-dispose"),
-        CommandResponse::MaterialCreate(result) => failure_case!(result, "material-create"),
-        CommandResponse::MaterialUpdate(result) => failure_case!(result, "material-update"),
+        CommandResponse::MaterialUpsert(result) => failure_case!(result, "material-upsert"),
         CommandResponse::MaterialDispose(result) => failure_case!(result, "material-dispose"),
         CommandResponse::TextureCreateFromBuffer(result) => {
             failure_case!(result, "texture-create-from-buffer")
@@ -274,11 +317,8 @@ fn maybe_emit_response_error_event(
         }
         CommandResponse::TextureDispose(result) => failure_case!(result, "texture-dispose"),
         CommandResponse::TextureBindTarget(result) => failure_case!(result, "texture-bind-target"),
-        CommandResponse::AudioListenerUpdate(result) => {
-            failure_case!(result, "audio-listener-update")
-        }
-        CommandResponse::AudioListenerCreate(result) => {
-            failure_case!(result, "audio-listener-create")
+        CommandResponse::AudioListenerUpsert(result) => {
+            failure_case!(result, "audio-listener-upsert")
         }
         CommandResponse::AudioListenerDispose(result) => {
             failure_case!(result, "audio-listener-dispose")
@@ -287,8 +327,7 @@ fn maybe_emit_response_error_event(
             failure_case!(result, "audio-resource-create")
         }
         CommandResponse::AudioResourcePush(result) => failure_case!(result, "audio-resource-push"),
-        CommandResponse::AudioSourceCreate(result) => failure_case!(result, "audio-source-create"),
-        CommandResponse::AudioSourceUpdate(result) => failure_case!(result, "audio-source-update"),
+        CommandResponse::AudioSourceUpsert(result) => failure_case!(result, "audio-source-upsert"),
         CommandResponse::AudioSourcePlay(result) => failure_case!(result, "audio-source-play"),
         CommandResponse::AudioSourcePause(result) => failure_case!(result, "audio-source-pause"),
         CommandResponse::AudioSourceStop(result) => failure_case!(result, "audio-source-stop"),
@@ -298,14 +337,12 @@ fn maybe_emit_response_error_event(
         CommandResponse::AudioResourceDispose(result) => {
             failure_case!(result, "audio-resource-dispose")
         }
-        CommandResponse::GeometryCreate(result) => failure_case!(result, "geometry-create"),
-        CommandResponse::GeometryUpdate(result) => failure_case!(result, "geometry-update"),
+        CommandResponse::GeometryUpsert(result) => failure_case!(result, "geometry-upsert"),
         CommandResponse::GeometryDispose(result) => failure_case!(result, "geometry-dispose"),
         CommandResponse::PrimitiveGeometryCreate(result) => {
             failure_case!(result, "primitive-geometry-create")
         }
-        CommandResponse::EnvironmentCreate(result) => failure_case!(result, "environment-create"),
-        CommandResponse::EnvironmentUpdate(result) => failure_case!(result, "environment-update"),
+        CommandResponse::EnvironmentUpsert(result) => failure_case!(result, "environment-upsert"),
         CommandResponse::EnvironmentDispose(result) => {
             failure_case!(result, "environment-dispose")
         }
@@ -536,18 +573,26 @@ pub fn engine_process_batch(
                     response: CommandResponse::UploadBufferDiscardAll(result),
                 });
             }
-            EngineCmd::CmdCameraCreate(args) => {
-                let result = res::engine_cmd_camera_create(engine, &args);
+            EngineCmd::CmdCameraUpsert(args) => {
+                let result = match args {
+                    CmdCameraUpsertArgs::Create(create_args) => {
+                        let create_result = res::engine_cmd_camera_create(engine, &create_args);
+                        CmdResultSimple {
+                            success: create_result.success,
+                            message: create_result.message,
+                        }
+                    }
+                    CmdCameraUpsertArgs::Update(update_args) => {
+                        let update_result = res::engine_cmd_camera_update(engine, &update_args);
+                        CmdResultSimple {
+                            success: update_result.success,
+                            message: update_result.message,
+                        }
+                    }
+                };
                 engine.response_queue.push(CommandResponseEnvelope {
                     id: pack.id,
-                    response: CommandResponse::CameraCreate(result),
-                });
-            }
-            EngineCmd::CmdCameraUpdate(args) => {
-                let result = res::engine_cmd_camera_update(engine, &args);
-                engine.response_queue.push(CommandResponseEnvelope {
-                    id: pack.id,
-                    response: CommandResponse::CameraUpdate(result),
+                    response: CommandResponse::CameraUpsert(result),
                 });
             }
             EngineCmd::CmdCameraDispose(args) => {
@@ -557,18 +602,26 @@ pub fn engine_process_batch(
                     response: CommandResponse::CameraDispose(result),
                 });
             }
-            EngineCmd::CmdModelCreate(args) => {
-                let result = res::engine_cmd_model_create(engine, &args);
+            EngineCmd::CmdModelUpsert(args) => {
+                let result = match args {
+                    CmdModelUpsertArgs::Create(create_args) => {
+                        let create_result = res::engine_cmd_model_create(engine, &create_args);
+                        CmdResultSimple {
+                            success: create_result.success,
+                            message: create_result.message,
+                        }
+                    }
+                    CmdModelUpsertArgs::Update(update_args) => {
+                        let update_result = res::engine_cmd_model_update(engine, &update_args);
+                        CmdResultSimple {
+                            success: update_result.success,
+                            message: update_result.message,
+                        }
+                    }
+                };
                 engine.response_queue.push(CommandResponseEnvelope {
                     id: pack.id,
-                    response: CommandResponse::ModelCreate(result),
-                });
-            }
-            EngineCmd::CmdModelUpdate(args) => {
-                let result = res::engine_cmd_model_update(engine, &args);
-                engine.response_queue.push(CommandResponseEnvelope {
-                    id: pack.id,
-                    response: CommandResponse::ModelUpdate(result),
+                    response: CommandResponse::ModelUpsert(result),
                 });
             }
             EngineCmd::CmdPoseUpdate(args) => {
@@ -585,18 +638,26 @@ pub fn engine_process_batch(
                     response: CommandResponse::ModelDispose(result),
                 });
             }
-            EngineCmd::CmdLightCreate(args) => {
-                let result = res::engine_cmd_light_create(engine, &args);
+            EngineCmd::CmdLightUpsert(args) => {
+                let result = match args {
+                    CmdLightUpsertArgs::Create(create_args) => {
+                        let create_result = res::engine_cmd_light_create(engine, &create_args);
+                        CmdResultSimple {
+                            success: create_result.success,
+                            message: create_result.message,
+                        }
+                    }
+                    CmdLightUpsertArgs::Update(update_args) => {
+                        let update_result = res::engine_cmd_light_update(engine, &update_args);
+                        CmdResultSimple {
+                            success: update_result.success,
+                            message: update_result.message,
+                        }
+                    }
+                };
                 engine.response_queue.push(CommandResponseEnvelope {
                     id: pack.id,
-                    response: CommandResponse::LightCreate(result),
-                });
-            }
-            EngineCmd::CmdLightUpdate(args) => {
-                let result = res::engine_cmd_light_update(engine, &args);
-                engine.response_queue.push(CommandResponseEnvelope {
-                    id: pack.id,
-                    response: CommandResponse::LightUpdate(result),
+                    response: CommandResponse::LightUpsert(result),
                 });
             }
             EngineCmd::CmdLightDispose(args) => {
@@ -606,18 +667,26 @@ pub fn engine_process_batch(
                     response: CommandResponse::LightDispose(result),
                 });
             }
-            EngineCmd::CmdMaterialCreate(args) => {
-                let result = res::engine_cmd_material_create(engine, &args);
+            EngineCmd::CmdMaterialUpsert(args) => {
+                let result = match args {
+                    CmdMaterialUpsertArgs::Create(create_args) => {
+                        let create_result = res::engine_cmd_material_create(engine, &create_args);
+                        CmdResultSimple {
+                            success: create_result.success,
+                            message: create_result.message,
+                        }
+                    }
+                    CmdMaterialUpsertArgs::Update(update_args) => {
+                        let update_result = res::engine_cmd_material_update(engine, &update_args);
+                        CmdResultSimple {
+                            success: update_result.success,
+                            message: update_result.message,
+                        }
+                    }
+                };
                 engine.response_queue.push(CommandResponseEnvelope {
                     id: pack.id,
-                    response: CommandResponse::MaterialCreate(result),
-                });
-            }
-            EngineCmd::CmdMaterialUpdate(args) => {
-                let result = res::engine_cmd_material_update(engine, &args);
-                engine.response_queue.push(CommandResponseEnvelope {
-                    id: pack.id,
-                    response: CommandResponse::MaterialUpdate(result),
+                    response: CommandResponse::MaterialUpsert(result),
                 });
             }
             EngineCmd::CmdMaterialDispose(args) => {
@@ -655,18 +724,28 @@ pub fn engine_process_batch(
                     response: CommandResponse::TextureBindTarget(result),
                 });
             }
-            EngineCmd::CmdAudioListenerUpdate(args) => {
-                let result = audio::engine_cmd_audio_listener_update(engine, &args);
+            EngineCmd::CmdAudioListenerUpsert(args) => {
+                let result = match args {
+                    CmdAudioListenerUpsertArgs::Create(create_args) => {
+                        let create_result =
+                            audio::engine_cmd_audio_listener_create(engine, &create_args);
+                        CmdResultSimple {
+                            success: create_result.success,
+                            message: create_result.message,
+                        }
+                    }
+                    CmdAudioListenerUpsertArgs::Update(update_args) => {
+                        let update_result =
+                            audio::engine_cmd_audio_listener_update(engine, &update_args);
+                        CmdResultSimple {
+                            success: update_result.success,
+                            message: update_result.message,
+                        }
+                    }
+                };
                 engine.response_queue.push(CommandResponseEnvelope {
                     id: pack.id,
-                    response: CommandResponse::AudioListenerUpdate(result),
-                });
-            }
-            EngineCmd::CmdAudioListenerCreate(args) => {
-                let result = audio::engine_cmd_audio_listener_create(engine, &args);
-                engine.response_queue.push(CommandResponseEnvelope {
-                    id: pack.id,
-                    response: CommandResponse::AudioListenerCreate(result),
+                    response: CommandResponse::AudioListenerUpsert(result),
                 });
             }
             EngineCmd::CmdAudioListenerDispose(args) => {
@@ -690,18 +769,28 @@ pub fn engine_process_batch(
                     response: CommandResponse::AudioResourcePush(result),
                 });
             }
-            EngineCmd::CmdAudioSourceCreate(args) => {
-                let result = audio::engine_cmd_audio_source_create(engine, &args);
+            EngineCmd::CmdAudioSourceUpsert(args) => {
+                let result = match args {
+                    CmdAudioSourceUpsertArgs::Create(create_args) => {
+                        let create_result =
+                            audio::engine_cmd_audio_source_create(engine, &create_args);
+                        CmdResultSimple {
+                            success: create_result.success,
+                            message: create_result.message,
+                        }
+                    }
+                    CmdAudioSourceUpsertArgs::Update(update_args) => {
+                        let update_result =
+                            audio::engine_cmd_audio_source_update(engine, &update_args);
+                        CmdResultSimple {
+                            success: update_result.success,
+                            message: update_result.message,
+                        }
+                    }
+                };
                 engine.response_queue.push(CommandResponseEnvelope {
                     id: pack.id,
-                    response: CommandResponse::AudioSourceCreate(result),
-                });
-            }
-            EngineCmd::CmdAudioSourceUpdate(args) => {
-                let result = audio::engine_cmd_audio_source_update(engine, &args);
-                engine.response_queue.push(CommandResponseEnvelope {
-                    id: pack.id,
-                    response: CommandResponse::AudioSourceUpdate(result),
+                    response: CommandResponse::AudioSourceUpsert(result),
                 });
             }
             EngineCmd::CmdAudioSourcePlay(args) => {
@@ -739,18 +828,26 @@ pub fn engine_process_batch(
                     response: CommandResponse::AudioResourceDispose(result),
                 });
             }
-            EngineCmd::CmdGeometryCreate(args) => {
-                let result = res::engine_cmd_geometry_create(engine, &args);
+            EngineCmd::CmdGeometryUpsert(args) => {
+                let result = match args {
+                    CmdGeometryUpsertArgs::Create(create_args) => {
+                        let create_result = res::engine_cmd_geometry_create(engine, &create_args);
+                        CmdResultSimple {
+                            success: create_result.success,
+                            message: create_result.message,
+                        }
+                    }
+                    CmdGeometryUpsertArgs::Update(update_args) => {
+                        let update_result = res::engine_cmd_geometry_update(engine, &update_args);
+                        CmdResultSimple {
+                            success: update_result.success,
+                            message: update_result.message,
+                        }
+                    }
+                };
                 engine.response_queue.push(CommandResponseEnvelope {
                     id: pack.id,
-                    response: CommandResponse::GeometryCreate(result),
-                });
-            }
-            EngineCmd::CmdGeometryUpdate(args) => {
-                let result = res::engine_cmd_geometry_update(engine, &args);
-                engine.response_queue.push(CommandResponseEnvelope {
-                    id: pack.id,
-                    response: CommandResponse::GeometryUpdate(result),
+                    response: CommandResponse::GeometryUpsert(result),
                 });
             }
             EngineCmd::CmdGeometryDispose(args) => {
@@ -767,18 +864,28 @@ pub fn engine_process_batch(
                     response: CommandResponse::PrimitiveGeometryCreate(result),
                 });
             }
-            EngineCmd::CmdEnvironmentCreate(args) => {
-                let result = res::engine_cmd_environment_create(engine, &args);
+            EngineCmd::CmdEnvironmentUpsert(args) => {
+                let result = match args {
+                    CmdEnvironmentUpsertArgs::Create(create_args) => {
+                        let create_result =
+                            res::engine_cmd_environment_create(engine, &create_args);
+                        CmdResultSimple {
+                            success: create_result.success,
+                            message: create_result.message,
+                        }
+                    }
+                    CmdEnvironmentUpsertArgs::Update(update_args) => {
+                        let update_result =
+                            res::engine_cmd_environment_update(engine, &update_args);
+                        CmdResultSimple {
+                            success: update_result.success,
+                            message: update_result.message,
+                        }
+                    }
+                };
                 engine.response_queue.push(CommandResponseEnvelope {
                     id: pack.id,
-                    response: CommandResponse::EnvironmentCreate(result),
-                });
-            }
-            EngineCmd::CmdEnvironmentUpdate(args) => {
-                let result = res::engine_cmd_environment_update(engine, &args);
-                engine.response_queue.push(CommandResponseEnvelope {
-                    id: pack.id,
-                    response: CommandResponse::EnvironmentUpdate(result),
+                    response: CommandResponse::EnvironmentUpsert(result),
                 });
             }
             EngineCmd::CmdEnvironmentDispose(args) => {

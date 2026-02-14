@@ -238,6 +238,10 @@ then decoded into internal Rust enums.
 ### 5.2 Command Representation
 
 `EngineCmd` is the internal command enum; see `docs/cmds` for the command surface.
+Unified upsert commands are available for resource create/update pairs:
+`camera`, `model`, `light`, `material`, `geometry`, `environment`,
+`audio-listener`, and `audio-source`.
+For these families, use only `*Upsert` command variants.
 
 ### 5.3 Command Execution
 
@@ -329,14 +333,20 @@ CmdTargetUpsert(targetId=9000, kind=window, windowId=1)
 CmdTargetUpsert(targetId=9002, kind=realm-viewport, windowId=1)
 CmdTargetUpsert(targetId=9003, kind=texture, size=640x360)
 CmdTargetLayerUpsert(realmId=10, targetId=9000, layout=...)
-CmdTargetLayerUpsert(realmId=11, targetId=9002, layout=rect/zIndex/clip)
+CmdTargetLayerUpsert(realmId=11, targetId=9002, layout=left/top/width/height/zIndex/clip)
 ```
 
 Rules:
 - `windowId` is mandatory for `window`, `realm-viewport`, and `ui-plane`.
 - `size` is accepted only for `texture`.
 - For `realm-viewport` and `ui-plane`, surface size is derived from
-  `TargetLayerLayout.rect` (`w`, `h`) when the layer is resolved.
+  `TargetLayerLayout.width` and `TargetLayerLayout.height` when the layer is
+  resolved.
+- `TargetLayerLayout.left/top/width/height` accept `DimensionValue`:
+  - `px`
+  - `percent`
+  - `character` (`ch`)
+  - `display` (`dp`, 4px grid)
 
 Frame reporting includes composition diagnostics for host tooling.
 

@@ -231,14 +231,16 @@ CmdTargetUpsert(targetId=9000, kind=window, windowId=1)
 CmdTargetUpsert(targetId=9002, kind=realm-viewport, windowId=1)
 CmdTargetUpsert(targetId=9003, kind=texture, size=640x360)
 CmdTargetLayerUpsert(realmId=10, targetId=9000, layout=...)
-CmdTargetLayerUpsert(realmId=11, targetId=9002, layout=rect/zIndex/clip)
+CmdTargetLayerUpsert(realmId=11, targetId=9002, layout=left/top/width/height/zIndex/clip)
 ```
 
 Rules:
 - `windowId` is mandatory for `window`, `realm-viewport`, and `ui-plane`.
 - `size` is accepted only for `texture`.
 - For `realm-viewport` and `ui-plane`, output surface size follows
-  `TargetLayerLayout.rect` width/height.
+  `TargetLayerLayout.width` and `TargetLayerLayout.height`.
+- `TargetLayerLayout.left/top/width/height` accept `DimensionValue` units:
+  `px`, `percent`, `character` (`ch`), and `display` (`dp`, 4px grid).
 
 Input routing uses the same connector graph to emit `eventTrace` metadata
 (`windowId`, `realmId`, `targetId`, `connectorId`, `sourceRealmId`, and UV coordinates when available).
@@ -293,7 +295,7 @@ Heavy data is sent via `vulfram_upload_buffer` using `BufferId`s.
 Typical flow:
 
 1. Host calls `vulfram_upload_buffer(buffer_id, type, bytes, len)` one or more times.
-2. Host sends commands (in `vulfram_send_queue`) like `CmdGeometryCreate` or
+2. Host sends commands (in `vulfram_send_queue`) like `CmdGeometryUpsert` or
    `CmdTextureCreateFromBuffer` that **reference those `BufferId`s**.
 3. The core:
    - looks up each `BufferId` in its internal upload table

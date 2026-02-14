@@ -113,7 +113,7 @@ The render architecture is split into three layers:
   cross-realm composition order and cycle breaking.
 
 Each window creates a default `Realm` and `Surface`. `Present` links the window to the
-surface, and `Connector` layers control how realms compose (zIndex, blendMode, rect, clip).
+surface, and `Connector` layers control how realms compose (zIndex, blendMode, resolved rect, clip).
 
 UI rendering uses a `TwoD` realm with a dedicated `ui` render pass. The UI realm outputs to
 regular surfaces (alpha respected via `blendMode`) and is composed through the same
@@ -127,7 +127,7 @@ The host does not construct graphs directly. Instead it provides logical maps:
 
 - `RealmMap`: logical realm IDs and kinds
 - `TargetMap`: logical targets (`Window`, `RealmViewport`, `UiPlane`, `Texture`)
-- `TargetLayerMap`: `realmId -> targetId` with `layout` (rect, zIndex, clip, blendMode)
+- `TargetLayerMap`: `realmId -> targetId` with `layout` (left/top/width/height, zIndex, clip, blendMode)
 
 The core builds `TargetGraph` and `RealmGraph` automatically and creates or updates
 `Surface`, `Present`, and `Connector` tables based on the layers.
@@ -140,7 +140,7 @@ The core builds `TargetGraph` and `RealmGraph` automatically and creates or upda
 - If target is `Window`, the core creates a `Present`.
 - If target is `RealmViewport` or `UiPlane`, the core creates a `Connector`
   targeting the host realm for that window.
-- Layout (`rect`, `zIndex`, `clip`, `blendMode`) is applied on
+- Layout (`left/top/width/height`, `zIndex`, `clip`, `blendMode`) is applied on
   connector creation and updated when layers change.
 - Layers are resolved deterministically: per realm, the smallest `targetId` wins.
 
@@ -244,8 +244,8 @@ In the loading phase, the host typically:
 
 - Uploads heavy data (meshes, textures) via `vulfram_upload_buffer`.
 - Sends one or more command batches via `vulfram_send_queue` to:
-  - create resources (`CmdGeometryCreate`, `CmdTextureCreateFromBuffer`, `CmdMaterialCreate`, etc.)
-  - create components (`CmdCameraCreate`, `CmdModelCreate`, `CmdLightCreate`, …)
+  - upsert resources (`CmdGeometryUpsert`, `CmdTextureCreateFromBuffer`, `CmdMaterialUpsert`, etc.)
+  - upsert components (`CmdCameraUpsert`, `CmdModelUpsert`, `CmdLightUpsert`, …)
 
 The core processes these commands on subsequent calls to `vulfram_tick`.
 

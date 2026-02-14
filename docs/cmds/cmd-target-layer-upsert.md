@@ -14,10 +14,26 @@ Upserts a logical layer between a realm and a target.
 
 | Field      | Type        | Description                         |
 | ---------- | ----------- | ----------------------------------- |
-| rect       | Vec4        | Composition rectangle (x, y, w, h) |
+| left       | DimensionValue | X position |
+| top        | DimensionValue | Y position |
+| width      | DimensionValue | Layer width |
+| height     | DimensionValue | Layer height |
 | zIndex     | i32         | Layer order                         |
 | blendMode  | u32         | Blend mode selector                 |
 | clip       | Option<Vec4>| Optional clip rect                  |
+
+### DimensionValue
+
+`DimensionValue` is encoded as:
+
+```json
+{ "unit": "px" | "percent" | "character" | "display", "value": <number> }
+```
+
+- `px`: absolute pixels
+- `percent`: axis-relative percentage (`left/width` use realm width, `top/height` use realm height)
+- `character`: text width unit (`ch`)
+- `display`: display unit (`dp`, resolved as `value * 4px`)
 
 Pointer routing mode is inferred internally by the core from target kind.
 `realm-viewport` enables raycast routing automatically.

@@ -17,36 +17,40 @@ pub struct CubeData {
 }
 
 pub fn create_camera_cmd(camera_id: u32, label: &str, transform: Mat4) -> EngineCmd {
-    EngineCmd::CmdCameraCreate(CmdCameraCreateArgs {
-        camera_id,
-        label: Some(label.to_string()),
-        transform,
-        kind: CameraKind::Perspective,
-        flags: 0,
-        near_far: Vec2::new(0.1, 100.0),
-        layer_mask: 0xFFFFFFFF,
-        order: 0,
-        view_position: None,
-        ortho_scale: 10.0,
-    })
+    EngineCmd::CmdCameraUpsert(crate::core::cmd::CmdCameraUpsertArgs::Create(
+        CmdCameraCreateArgs {
+            camera_id,
+            label: Some(label.to_string()),
+            transform,
+            kind: CameraKind::Perspective,
+            flags: 0,
+            near_far: Vec2::new(0.1, 100.0),
+            layer_mask: 0xFFFFFFFF,
+            order: 0,
+            view_position: None,
+            ortho_scale: 10.0,
+        },
+    ))
 }
 
 pub fn create_point_light_cmd(window_id: u32, light_id: u32, position: Vec4) -> EngineCmd {
-    EngineCmd::CmdLightCreate(CmdLightCreateArgs {
-        window_id,
-        light_id,
-        label: Some("Point Light".to_string()),
-        kind: Some(crate::core::resources::LightKind::Point),
-        position: Some(position),
-        direction: None,
-        color: Some(Vec4::new(1.0, 1.0, 1.0, 1.0)),
-        ground_color: None,
-        intensity: Some(20.0),
-        range: Some(30.0),
-        spot_inner_outer: None,
-        layer_mask: 0xFFFFFFFF,
-        cast_shadow: true,
-    })
+    EngineCmd::CmdLightUpsert(crate::core::cmd::CmdLightUpsertArgs::Create(
+        CmdLightCreateArgs {
+            window_id,
+            light_id,
+            label: Some("Point Light".to_string()),
+            kind: Some(crate::core::resources::LightKind::Point),
+            position: Some(position),
+            direction: None,
+            color: Some(Vec4::new(1.0, 1.0, 1.0, 1.0)),
+            ground_color: None,
+            intensity: Some(20.0),
+            range: Some(30.0),
+            spot_inner_outer: None,
+            layer_mask: 0xFFFFFFFF,
+            cast_shadow: true,
+        },
+    ))
 }
 
 pub fn create_ambient_light_cmd(
@@ -55,21 +59,23 @@ pub fn create_ambient_light_cmd(
     color: Vec4,
     intensity: f32,
 ) -> EngineCmd {
-    EngineCmd::CmdLightCreate(CmdLightCreateArgs {
-        window_id,
-        light_id,
-        label: Some("Ambient Light".to_string()),
-        kind: Some(crate::core::resources::LightKind::Ambient),
-        position: None,
-        direction: None,
-        color: Some(color),
-        ground_color: None,
-        intensity: Some(intensity),
-        range: Some(1.0),
-        spot_inner_outer: None,
-        layer_mask: 0xFFFFFFFF,
-        cast_shadow: false,
-    })
+    EngineCmd::CmdLightUpsert(crate::core::cmd::CmdLightUpsertArgs::Create(
+        CmdLightCreateArgs {
+            window_id,
+            light_id,
+            label: Some("Ambient Light".to_string()),
+            kind: Some(crate::core::resources::LightKind::Ambient),
+            position: None,
+            direction: None,
+            color: Some(color),
+            ground_color: None,
+            intensity: Some(intensity),
+            range: Some(1.0),
+            spot_inner_outer: None,
+            layer_mask: 0xFFFFFFFF,
+            cast_shadow: false,
+        },
+    ))
 }
 
 pub fn create_standard_material_cmd(
@@ -80,19 +86,21 @@ pub fn create_standard_material_cmd(
     base_tex_id: Option<u32>,
     emissive_color: Option<Vec4>,
 ) -> EngineCmd {
-    EngineCmd::CmdMaterialCreate(CmdMaterialCreateArgs {
-        window_id,
-        material_id,
-        label: Some(label.to_string()),
-        kind: MaterialKind::Standard,
-        options: Some(MaterialOptions::Standard(StandardOptions {
-            base_color,
-            base_tex_id,
-            base_sampler: Some(MaterialSampler::LinearClamp),
-            emissive_color: emissive_color.unwrap_or(Vec4::ZERO),
-            ..Default::default()
-        })),
-    })
+    EngineCmd::CmdMaterialUpsert(crate::core::cmd::CmdMaterialUpsertArgs::Create(
+        CmdMaterialCreateArgs {
+            window_id,
+            material_id,
+            label: Some(label.to_string()),
+            kind: MaterialKind::Standard,
+            options: Some(MaterialOptions::Standard(StandardOptions {
+                base_color,
+                base_tex_id,
+                base_sampler: Some(MaterialSampler::LinearClamp),
+                emissive_color: emissive_color.unwrap_or(Vec4::ZERO),
+                ..Default::default()
+            })),
+        },
+    ))
 }
 
 pub fn create_texture_cmd(
@@ -113,20 +121,22 @@ pub fn create_texture_cmd(
 }
 
 pub fn create_floor_cmd(window_id: u32, geometry_id: u32, material_id: u32) -> EngineCmd {
-    EngineCmd::CmdModelCreate(CmdModelCreateArgs {
-        window_id,
-        model_id: 2000,
-        label: Some("Floor".to_string()),
-        geometry_id,
-        material_id: Some(material_id),
-        transform: Mat4::from_translation(Vec3::new(0.0, -6.0, 0.0))
-            * Mat4::from_scale(Vec3::new(20.0, 0.1, 20.0)),
-        layer_mask: 0xFFFFFFFF,
-        cast_shadow: false,
-        receive_shadow: true,
-        cast_outline: false,
-        outline_color: Vec4::ZERO,
-    })
+    EngineCmd::CmdModelUpsert(crate::core::cmd::CmdModelUpsertArgs::Create(
+        CmdModelCreateArgs {
+            window_id,
+            model_id: 2000,
+            label: Some("Floor".to_string()),
+            geometry_id,
+            material_id: Some(material_id),
+            transform: Mat4::from_translation(Vec3::new(0.0, -6.0, 0.0))
+                * Mat4::from_scale(Vec3::new(20.0, 0.1, 20.0)),
+            layer_mask: 0xFFFFFFFF,
+            cast_shadow: false,
+            receive_shadow: true,
+            cast_outline: false,
+            outline_color: Vec4::ZERO,
+        },
+    ))
 }
 
 pub fn create_instanced_cubes(
@@ -154,21 +164,23 @@ pub fn create_instanced_cubes(
             phase: rng.random_range(0.0..std::f32::consts::TAU),
         });
 
-        cmds.push(EngineCmd::CmdModelCreate(CmdModelCreateArgs {
-            window_id,
-            model_id,
-            label: Some(format!("Cube {}", i)),
-            geometry_id,
-            material_id: Some(material_id),
-            transform: Mat4::from_translation(Vec3::new(x, y, z))
-                * Mat4::from_euler(glam::EulerRot::XYZ, rot_x, rot_y, 0.0)
-                * Mat4::from_scale(Vec3::splat(0.4)),
-            layer_mask: 0xFFFFFFFF,
-            cast_shadow: true,
-            receive_shadow: true,
-            cast_outline: false,
-            outline_color: Vec4::ZERO,
-        }));
+        cmds.push(EngineCmd::CmdModelUpsert(
+            crate::core::cmd::CmdModelUpsertArgs::Create(CmdModelCreateArgs {
+                window_id,
+                model_id,
+                label: Some(format!("Cube {}", i)),
+                geometry_id,
+                material_id: Some(material_id),
+                transform: Mat4::from_translation(Vec3::new(x, y, z))
+                    * Mat4::from_euler(glam::EulerRot::XYZ, rot_x, rot_y, 0.0)
+                    * Mat4::from_scale(Vec3::splat(0.4)),
+                layer_mask: 0xFFFFFFFF,
+                cast_shadow: true,
+                receive_shadow: true,
+                cast_outline: false,
+                outline_color: Vec4::ZERO,
+            }),
+        ));
     }
 
     (cubes, cmds)

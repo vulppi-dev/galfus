@@ -2,7 +2,7 @@ use glam::Vec4;
 
 use crate::core::cmd::EngineCmd;
 use crate::core::target::cmd::{CmdTargetLayerUpsertArgs, CmdTargetUpsertArgs};
-use crate::core::target::{TargetKind, TargetLayerLayout};
+use crate::core::target::{DimensionValue, TargetKind, TargetLayerLayout};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Demo005TargetIds {
@@ -173,7 +173,10 @@ pub fn build_bind_cmds(targets: Demo005TargetIds, realms: Demo005BindRealms) -> 
 
 fn bind_layout(rect: Vec4, z_index: i32, blend_mode: u32, clip: Option<Vec4>) -> TargetLayerLayout {
     TargetLayerLayout {
-        rect,
+        left: DimensionValue::Px(rect.x),
+        top: DimensionValue::Px(rect.y),
+        width: DimensionValue::Px(rect.z),
+        height: DimensionValue::Px(rect.w),
         z_index,
         blend_mode,
         clip,

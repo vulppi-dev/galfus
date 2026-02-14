@@ -2,7 +2,9 @@ use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 
 use crate::core::realm::{RealmId, RealmTable};
-use crate::core::target::{TargetId, TargetLayerLayout, TargetLayerState, TargetState};
+use crate::core::target::{
+    DimensionValue, TargetId, TargetLayerLayout, TargetLayerState, TargetState,
+};
 
 pub(super) fn hash_targets_layers_and_realms(
     targets: &HashMap<TargetId, TargetState>,
@@ -100,10 +102,10 @@ fn hash_realm_host(window_id: Option<u32>) -> u64 {
 }
 
 fn hash_layout(layout: &TargetLayerLayout, hasher: &mut impl Hasher) {
-    hash_f32(layout.rect.x, hasher);
-    hash_f32(layout.rect.y, hasher);
-    hash_f32(layout.rect.z, hasher);
-    hash_f32(layout.rect.w, hasher);
+    hash_dimension_value(layout.left, hasher);
+    hash_dimension_value(layout.top, hasher);
+    hash_dimension_value(layout.width, hasher);
+    hash_dimension_value(layout.height, hasher);
     layout.z_index.hash(hasher);
     layout.blend_mode.hash(hasher);
     if let Some(clip) = layout.clip {
@@ -111,6 +113,27 @@ fn hash_layout(layout: &TargetLayerLayout, hasher: &mut impl Hasher) {
         hash_f32(clip.y, hasher);
         hash_f32(clip.z, hasher);
         hash_f32(clip.w, hasher);
+    }
+}
+
+fn hash_dimension_value(value: DimensionValue, hasher: &mut impl Hasher) {
+    match value {
+        DimensionValue::Px(v) => {
+            0u8.hash(hasher);
+            hash_f32(v, hasher);
+        }
+        DimensionValue::Percent(v) => {
+            1u8.hash(hasher);
+            hash_f32(v, hasher);
+        }
+        DimensionValue::Character(v) => {
+            2u8.hash(hasher);
+            hash_f32(v, hasher);
+        }
+        DimensionValue::Display(v) => {
+            3u8.hash(hasher);
+            hash_f32(v, hasher);
+        }
     }
 }
 

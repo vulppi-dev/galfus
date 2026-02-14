@@ -48,67 +48,80 @@ pub fn run(ctx: DemoContext, setup: &Demo005Setup, realms: &Demo005RealmIds) -> 
             );
             let camera_transform = Mat4::look_at_rh(camera_pos, Vec3::ZERO, Vec3::Y).inverse();
 
-            cmds.push(EngineCmd::CmdCameraUpdate(CmdCameraUpdateArgs {
-                camera_id: ids.camera_id,
-                label: None,
-                transform: Some(camera_transform),
-                kind: None,
-                flags: None,
-                near_far: None,
-                layer_mask: None,
-                order: None,
-                view_position: None,
-                ortho_scale: None,
-            }));
+            cmds.push(EngineCmd::CmdCameraUpsert(
+                crate::core::cmd::CmdCameraUpsertArgs::Update(CmdCameraUpdateArgs {
+                    camera_id: ids.camera_id,
+                    label: None,
+                    transform: Some(camera_transform),
+                    kind: None,
+                    flags: None,
+                    near_far: None,
+                    layer_mask: None,
+                    order: None,
+                    view_position: None,
+                    ortho_scale: None,
+                }),
+            ));
 
-            cmds.push(EngineCmd::CmdModelUpdate(CmdModelUpdateArgs {
-                window_id,
-                model_id: ids.listener_model_id,
-                label: None,
-                geometry_id: None,
-                material_id: None,
-                transform: Some(camera_transform * Mat4::from_scale(Vec3::splat(0.4))),
-                layer_mask: None,
-                cast_shadow: None,
-                receive_shadow: None,
-                cast_outline: None,
-                outline_color: None,
-            }));
+            cmds.push(EngineCmd::CmdModelUpsert(
+                crate::core::cmd::CmdModelUpsertArgs::Update(CmdModelUpdateArgs {
+                    window_id,
+                    model_id: ids.listener_model_id,
+                    label: None,
+                    geometry_id: None,
+                    material_id: None,
+                    transform: Some(camera_transform * Mat4::from_scale(Vec3::splat(0.4))),
+                    layer_mask: None,
+                    cast_shadow: None,
+                    receive_shadow: None,
+                    cast_outline: None,
+                    outline_color: None,
+                }),
+            ));
 
             let wobble = time_f * 0.8;
-            cmds.push(EngineCmd::CmdModelUpdate(CmdModelUpdateArgs {
-                window_id,
-                model_id: 840,
-                label: None,
-                geometry_id: None,
-                material_id: None,
-                transform: Some(
-                    Mat4::from_translation(Vec3::new(-2.0, wobble.sin() * 0.4, 0.0))
-                        * Mat4::from_scale(Vec3::splat(1.0)),
-                ),
-                layer_mask: None,
-                cast_shadow: None,
-                receive_shadow: None,
-                cast_outline: None,
-                outline_color: None,
-            }));
-            cmds.push(EngineCmd::CmdModelUpdate(CmdModelUpdateArgs {
-                window_id,
-                model_id: 841,
-                label: None,
-                geometry_id: None,
-                material_id: None,
-                transform: Some(
-                    Mat4::from_translation(Vec3::new(2.2, 0.2, -1.0))
-                        * Mat4::from_euler(glam::EulerRot::XYZ, wobble * 0.6, wobble * 0.9, 0.0)
-                        * Mat4::from_scale(Vec3::splat(1.2)),
-                ),
-                layer_mask: None,
-                cast_shadow: None,
-                receive_shadow: None,
-                cast_outline: None,
-                outline_color: None,
-            }));
+            cmds.push(EngineCmd::CmdModelUpsert(
+                crate::core::cmd::CmdModelUpsertArgs::Update(CmdModelUpdateArgs {
+                    window_id,
+                    model_id: 840,
+                    label: None,
+                    geometry_id: None,
+                    material_id: None,
+                    transform: Some(
+                        Mat4::from_translation(Vec3::new(-2.0, wobble.sin() * 0.4, 0.0))
+                            * Mat4::from_scale(Vec3::splat(1.0)),
+                    ),
+                    layer_mask: None,
+                    cast_shadow: None,
+                    receive_shadow: None,
+                    cast_outline: None,
+                    outline_color: None,
+                }),
+            ));
+            cmds.push(EngineCmd::CmdModelUpsert(
+                crate::core::cmd::CmdModelUpsertArgs::Update(CmdModelUpdateArgs {
+                    window_id,
+                    model_id: 841,
+                    label: None,
+                    geometry_id: None,
+                    material_id: None,
+                    transform: Some(
+                        Mat4::from_translation(Vec3::new(2.2, 0.2, -1.0))
+                            * Mat4::from_euler(
+                                glam::EulerRot::XYZ,
+                                wobble * 0.6,
+                                wobble * 0.9,
+                                0.0,
+                            )
+                            * Mat4::from_scale(Vec3::splat(1.2)),
+                    ),
+                    layer_mask: None,
+                    cast_shadow: None,
+                    receive_shadow: None,
+                    cast_outline: None,
+                    outline_color: None,
+                }),
+            ));
 
             {
                 let mut runtime = state_frame.borrow_mut();

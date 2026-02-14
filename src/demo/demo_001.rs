@@ -68,23 +68,25 @@ pub fn run(ctx: DemoContext) -> bool {
             let offset_y = (time_f + cube.phase).sin() * 0.5;
             let rotation = time_f * 2.0 + cube.phase;
 
-            frame_cmds.push(EngineCmd::CmdModelUpdate(CmdModelUpdateArgs {
-                window_id,
-                model_id: cube.id,
-                label: None,
-                geometry_id: None,
-                material_id: None,
-                transform: Some(
-                    Mat4::from_translation(cube.initial_pos + Vec3::new(0.0, offset_y, 0.0))
-                        * Mat4::from_euler(glam::EulerRot::XYZ, rotation, rotation * 0.5, 0.0)
-                        * Mat4::from_scale(Vec3::splat(0.4)),
-                ),
-                layer_mask: None,
-                cast_shadow: None,
-                receive_shadow: None,
-                cast_outline: None,
-                outline_color: None,
-            }));
+            frame_cmds.push(EngineCmd::CmdModelUpsert(
+                crate::core::cmd::CmdModelUpsertArgs::Update(CmdModelUpdateArgs {
+                    window_id,
+                    model_id: cube.id,
+                    label: None,
+                    geometry_id: None,
+                    material_id: None,
+                    transform: Some(
+                        Mat4::from_translation(cube.initial_pos + Vec3::new(0.0, offset_y, 0.0))
+                            * Mat4::from_euler(glam::EulerRot::XYZ, rotation, rotation * 0.5, 0.0)
+                            * Mat4::from_scale(Vec3::splat(0.4)),
+                    ),
+                    layer_mask: None,
+                    cast_shadow: None,
+                    receive_shadow: None,
+                    cast_outline: None,
+                    outline_color: None,
+                }),
+            ));
         }
 
         frame_cmds

@@ -119,38 +119,42 @@ impl Demo006Setup {
         assert_eq!(send_commands(map_cmds), VulframResult::Success);
 
         let mut setup_cmds = vec![
-            EngineCmd::CmdEnvironmentUpdate(CmdEnvironmentUpdateArgs {
-                window_id: window_main,
-                config: EnvironmentConfig {
-                    msaa: MsaaConfig {
-                        enabled: true,
-                        sample_count: 4,
+            EngineCmd::CmdEnvironmentUpsert(crate::core::cmd::CmdEnvironmentUpsertArgs::Update(
+                CmdEnvironmentUpdateArgs {
+                    window_id: window_main,
+                    config: EnvironmentConfig {
+                        msaa: MsaaConfig {
+                            enabled: true,
+                            sample_count: 4,
+                        },
+                        skybox: SkyboxConfig {
+                            mode: SkyboxMode::Procedural,
+                            intensity: 0.8,
+                            rotation: 0.0,
+                            ground_color: Vec3::new(0.05, 0.05, 0.08),
+                            horizon_color: Vec3::new(0.2, 0.25, 0.35),
+                            sky_color: Vec3::new(0.12, 0.22, 0.4),
+                            cubemap_texture_id: None,
+                        },
+                        post: self.post_config.clone(),
                     },
-                    skybox: SkyboxConfig {
-                        mode: SkyboxMode::Procedural,
-                        intensity: 0.8,
-                        rotation: 0.0,
-                        ground_color: Vec3::new(0.05, 0.05, 0.08),
-                        horizon_color: Vec3::new(0.2, 0.25, 0.35),
-                        sky_color: Vec3::new(0.12, 0.22, 0.4),
-                        cubemap_texture_id: None,
-                    },
-                    post: self.post_config.clone(),
                 },
-            }),
-            EngineCmd::CmdCameraCreate(CmdCameraCreateArgs {
-                camera_id: self.ids.camera_main_id,
-                label: Some("Demo 006 Camera".into()),
-                transform: Mat4::look_at_rh(Vec3::new(0.0, 3.2, 8.5), Vec3::ZERO, Vec3::Y)
-                    .inverse(),
-                kind: CameraKind::Perspective,
-                flags: 0,
-                near_far: Vec2::new(0.1, 80.0),
-                layer_mask: 0xFFFFFFFF,
-                order: 0,
-                view_position: None,
-                ortho_scale: 10.0,
-            }),
+            )),
+            EngineCmd::CmdCameraUpsert(crate::core::cmd::CmdCameraUpsertArgs::Create(
+                CmdCameraCreateArgs {
+                    camera_id: self.ids.camera_main_id,
+                    label: Some("Demo 006 Camera".into()),
+                    transform: Mat4::look_at_rh(Vec3::new(0.0, 3.2, 8.5), Vec3::ZERO, Vec3::Y)
+                        .inverse(),
+                    kind: CameraKind::Perspective,
+                    flags: 0,
+                    near_far: Vec2::new(0.1, 80.0),
+                    layer_mask: 0xFFFFFFFF,
+                    order: 0,
+                    view_position: None,
+                    ortho_scale: 10.0,
+                },
+            )),
             EngineCmd::CmdPrimitiveGeometryCreate(CmdPrimitiveGeometryCreateArgs {
                 window_id: window_main,
                 geometry_id: self.ids.geometry_cube_id,
@@ -190,35 +194,39 @@ impl Demo006Setup {
                 target_id: target_ids.texture_ui_panel_3d,
                 label: Some("Demo 006 UI Panel Texture".into()),
             }),
-            EngineCmd::CmdMaterialCreate(CmdMaterialCreateArgs {
-                window_id: window_main,
-                material_id: self.ids.material_ui_plane_id,
-                label: Some("Demo 006 UI Plane Material".into()),
-                kind: MaterialKind::Standard,
-                options: Some(MaterialOptions::Standard(StandardOptions {
-                    base_color: Vec4::ONE,
-                    surface_type: SurfaceType::Transparent,
-                    base_tex_id: Some(self.ids.texture_ui_panel_id),
-                    base_sampler: Some(MaterialSampler::LinearClamp),
-                    ..Default::default()
-                })),
-            }),
-            EngineCmd::CmdModelCreate(CmdModelCreateArgs {
-                window_id: window_main,
-                model_id: self.ids.model_ui_plane_id,
-                label: Some("Demo 006 UI Plane Model".into()),
-                geometry_id: self.ids.geometry_ui_plane_id,
-                material_id: Some(self.ids.material_ui_plane_id),
-                transform: Mat4::from_translation(Vec3::new(1.0, 2.0, 3.8))
-                    * Mat4::from_rotation_y(std::f32::consts::PI - 0.35)
-                    * Mat4::from_rotation_x(-0.08)
-                    * Mat4::from_scale(Vec3::new(2.4, 1.0, 1.0)),
-                layer_mask: 0xFFFFFFFF,
-                cast_shadow: false,
-                receive_shadow: false,
-                cast_outline: false,
-                outline_color: Vec4::ZERO,
-            }),
+            EngineCmd::CmdMaterialUpsert(crate::core::cmd::CmdMaterialUpsertArgs::Create(
+                CmdMaterialCreateArgs {
+                    window_id: window_main,
+                    material_id: self.ids.material_ui_plane_id,
+                    label: Some("Demo 006 UI Plane Material".into()),
+                    kind: MaterialKind::Standard,
+                    options: Some(MaterialOptions::Standard(StandardOptions {
+                        base_color: Vec4::ONE,
+                        surface_type: SurfaceType::Transparent,
+                        base_tex_id: Some(self.ids.texture_ui_panel_id),
+                        base_sampler: Some(MaterialSampler::LinearClamp),
+                        ..Default::default()
+                    })),
+                },
+            )),
+            EngineCmd::CmdModelUpsert(crate::core::cmd::CmdModelUpsertArgs::Create(
+                CmdModelCreateArgs {
+                    window_id: window_main,
+                    model_id: self.ids.model_ui_plane_id,
+                    label: Some("Demo 006 UI Plane Model".into()),
+                    geometry_id: self.ids.geometry_ui_plane_id,
+                    material_id: Some(self.ids.material_ui_plane_id),
+                    transform: Mat4::from_translation(Vec3::new(1.0, 2.0, 3.8))
+                        * Mat4::from_rotation_y(std::f32::consts::PI - 0.35)
+                        * Mat4::from_rotation_x(-0.08)
+                        * Mat4::from_scale(Vec3::new(2.4, 1.0, 1.0)),
+                    layer_mask: 0xFFFFFFFF,
+                    cast_shadow: false,
+                    receive_shadow: false,
+                    cast_outline: false,
+                    outline_color: Vec4::ZERO,
+                },
+            )),
         ];
 
         let cube_positions = [
@@ -235,19 +243,22 @@ impl Demo006Setup {
         ];
 
         for (index, position) in cube_positions.iter().enumerate() {
-            setup_cmds.push(EngineCmd::CmdModelCreate(CmdModelCreateArgs {
-                window_id: window_main,
-                model_id: self.ids.model_cube_id + index as u32,
-                label: Some(format!("Demo 006 Cube {}", index + 1)),
-                geometry_id: self.ids.geometry_cube_id,
-                material_id: Some(self.ids.material_cube_id),
-                transform: Mat4::from_translation(*position) * Mat4::from_scale(Vec3::splat(1.4)),
-                layer_mask: 0xFFFFFFFF,
-                cast_shadow: true,
-                receive_shadow: true,
-                cast_outline: true,
-                outline_color: Vec4::new(0.1, 0.9, 1.0, 1.0),
-            }));
+            setup_cmds.push(EngineCmd::CmdModelUpsert(
+                crate::core::cmd::CmdModelUpsertArgs::Create(CmdModelCreateArgs {
+                    window_id: window_main,
+                    model_id: self.ids.model_cube_id + index as u32,
+                    label: Some(format!("Demo 006 Cube {}", index + 1)),
+                    geometry_id: self.ids.geometry_cube_id,
+                    material_id: Some(self.ids.material_cube_id),
+                    transform: Mat4::from_translation(*position)
+                        * Mat4::from_scale(Vec3::splat(1.4)),
+                    layer_mask: 0xFFFFFFFF,
+                    cast_shadow: true,
+                    receive_shadow: true,
+                    cast_outline: true,
+                    outline_color: Vec4::new(0.1, 0.9, 1.0, 1.0),
+                }),
+            ));
         }
 
         assert_eq!(send_commands(setup_cmds), VulframResult::Success);
@@ -419,22 +430,22 @@ fn assert_command_batch_success(expected_responses: usize, tag: &str) {
         received += responses.len();
         for response in responses {
             match response.response {
-                CommandResponse::EnvironmentUpdate(result) => {
+                CommandResponse::EnvironmentUpsert(result) => {
                     assert!(result.success, "[demo006:{tag}] {}", result.message);
                 }
-                CommandResponse::CameraCreate(result) => {
+                CommandResponse::CameraUpsert(result) => {
                     assert!(result.success, "[demo006:{tag}] {}", result.message);
                 }
                 CommandResponse::PrimitiveGeometryCreate(result) => {
                     assert!(result.success, "[demo006:{tag}] {}", result.message);
                 }
-                CommandResponse::MaterialCreate(result) => {
+                CommandResponse::MaterialUpsert(result) => {
                     assert!(result.success, "[demo006:{tag}] {}", result.message);
                 }
-                CommandResponse::LightCreate(result) => {
+                CommandResponse::LightUpsert(result) => {
                     assert!(result.success, "[demo006:{tag}] {}", result.message);
                 }
-                CommandResponse::ModelCreate(result) => {
+                CommandResponse::ModelUpsert(result) => {
                     assert!(result.success, "[demo006:{tag}] {}", result.message);
                 }
                 CommandResponse::UiThemeDefine(result) => {

@@ -145,25 +145,27 @@ impl Demo005Setup {
         let realm_id = host_realm_main;
 
         let setup_cmds = vec![
-            EngineCmd::CmdEnvironmentUpdate(CmdEnvironmentUpdateArgs {
-                window_id,
-                config: EnvironmentConfig {
-                    msaa: MsaaConfig {
-                        enabled: true,
-                        sample_count: 4,
+            EngineCmd::CmdEnvironmentUpsert(crate::core::cmd::CmdEnvironmentUpsertArgs::Update(
+                CmdEnvironmentUpdateArgs {
+                    window_id,
+                    config: EnvironmentConfig {
+                        msaa: MsaaConfig {
+                            enabled: true,
+                            sample_count: 4,
+                        },
+                        skybox: SkyboxConfig {
+                            mode: SkyboxMode::Procedural,
+                            intensity: 1.0,
+                            rotation: 0.0,
+                            ground_color: Vec3::new(0.02, 0.02, 0.03),
+                            horizon_color: Vec3::new(0.2, 0.2, 0.35),
+                            sky_color: Vec3::new(0.18, 0.32, 0.55),
+                            cubemap_texture_id: None,
+                        },
+                        post: self.post_config.clone(),
                     },
-                    skybox: SkyboxConfig {
-                        mode: SkyboxMode::Procedural,
-                        intensity: 1.0,
-                        rotation: 0.0,
-                        ground_color: Vec3::new(0.02, 0.02, 0.03),
-                        horizon_color: Vec3::new(0.2, 0.2, 0.35),
-                        sky_color: Vec3::new(0.18, 0.32, 0.55),
-                        cubemap_texture_id: None,
-                    },
-                    post: self.post_config.clone(),
                 },
-            }),
+            )),
             EngineCmd::CmdPrimitiveGeometryCreate(CmdPrimitiveGeometryCreateArgs {
                 window_id,
                 geometry_id: self.ids.cube_geometry_id,
@@ -224,71 +226,81 @@ impl Demo005Setup {
                 None,
                 Some(Vec4::new(2.5, 1.8, 0.6, 1.0)),
             ),
-            EngineCmd::CmdModelCreate(CmdModelCreateArgs {
-                window_id,
-                model_id: 840,
-                label: Some("Demo 005 Cube A".into()),
-                geometry_id: self.ids.cube_geometry_id,
-                material_id: Some(self.ids.material_primary_id),
-                transform: Mat4::from_translation(Vec3::new(-2.0, 0.0, 0.0)),
-                layer_mask: 0xFFFFFFFF,
-                cast_shadow: true,
-                receive_shadow: true,
-                cast_outline: true,
-                outline_color: Vec4::new(0.8, 0.2, 0.2, 1.0),
-            }),
-            EngineCmd::CmdModelCreate(CmdModelCreateArgs {
-                window_id,
-                model_id: 841,
-                label: Some("Demo 005 Cube B".into()),
-                geometry_id: self.ids.cube_geometry_id,
-                material_id: Some(self.ids.material_accent_id),
-                transform: Mat4::from_translation(Vec3::new(2.2, 0.2, -1.0))
-                    * Mat4::from_scale(Vec3::splat(1.2)),
-                layer_mask: 0xFFFFFFFF,
-                cast_shadow: true,
-                receive_shadow: true,
-                cast_outline: true,
-                outline_color: Vec4::new(0.2, 0.8, 0.4, 1.0),
-            }),
-            EngineCmd::CmdModelCreate(CmdModelCreateArgs {
-                window_id,
-                model_id: self.ids.listener_model_id,
-                label: Some("Demo 005 Listener".into()),
-                geometry_id: self.ids.cube_geometry_id,
-                material_id: Some(self.ids.material_primary_id),
-                transform: Mat4::from_translation(Vec3::new(0.0, 3.0, 9.0))
-                    * Mat4::from_scale(Vec3::splat(0.4)),
-                layer_mask: 0,
-                cast_shadow: false,
-                receive_shadow: false,
-                cast_outline: false,
-                outline_color: Vec4::ZERO,
-            }),
-            EngineCmd::CmdModelCreate(CmdModelCreateArgs {
-                window_id,
-                model_id: self.ids.emitter_model_id,
-                label: Some("Demo 005 Emitter".into()),
-                geometry_id: self.ids.emitter_geometry_id,
-                material_id: Some(self.ids.material_emitter_id),
-                transform: Mat4::from_translation(Vec3::new(4.5, 0.5, 3.5))
-                    * Mat4::from_scale(Vec3::splat(0.5)),
-                layer_mask: 0xFFFFFFFF,
-                cast_shadow: false,
-                receive_shadow: true,
-                cast_outline: false,
-                outline_color: Vec4::ZERO,
-            }),
+            EngineCmd::CmdModelUpsert(crate::core::cmd::CmdModelUpsertArgs::Create(
+                CmdModelCreateArgs {
+                    window_id,
+                    model_id: 840,
+                    label: Some("Demo 005 Cube A".into()),
+                    geometry_id: self.ids.cube_geometry_id,
+                    material_id: Some(self.ids.material_primary_id),
+                    transform: Mat4::from_translation(Vec3::new(-2.0, 0.0, 0.0)),
+                    layer_mask: 0xFFFFFFFF,
+                    cast_shadow: true,
+                    receive_shadow: true,
+                    cast_outline: true,
+                    outline_color: Vec4::new(0.8, 0.2, 0.2, 1.0),
+                },
+            )),
+            EngineCmd::CmdModelUpsert(crate::core::cmd::CmdModelUpsertArgs::Create(
+                CmdModelCreateArgs {
+                    window_id,
+                    model_id: 841,
+                    label: Some("Demo 005 Cube B".into()),
+                    geometry_id: self.ids.cube_geometry_id,
+                    material_id: Some(self.ids.material_accent_id),
+                    transform: Mat4::from_translation(Vec3::new(2.2, 0.2, -1.0))
+                        * Mat4::from_scale(Vec3::splat(1.2)),
+                    layer_mask: 0xFFFFFFFF,
+                    cast_shadow: true,
+                    receive_shadow: true,
+                    cast_outline: true,
+                    outline_color: Vec4::new(0.2, 0.8, 0.4, 1.0),
+                },
+            )),
+            EngineCmd::CmdModelUpsert(crate::core::cmd::CmdModelUpsertArgs::Create(
+                CmdModelCreateArgs {
+                    window_id,
+                    model_id: self.ids.listener_model_id,
+                    label: Some("Demo 005 Listener".into()),
+                    geometry_id: self.ids.cube_geometry_id,
+                    material_id: Some(self.ids.material_primary_id),
+                    transform: Mat4::from_translation(Vec3::new(0.0, 3.0, 9.0))
+                        * Mat4::from_scale(Vec3::splat(0.4)),
+                    layer_mask: 0,
+                    cast_shadow: false,
+                    receive_shadow: false,
+                    cast_outline: false,
+                    outline_color: Vec4::ZERO,
+                },
+            )),
+            EngineCmd::CmdModelUpsert(crate::core::cmd::CmdModelUpsertArgs::Create(
+                CmdModelCreateArgs {
+                    window_id,
+                    model_id: self.ids.emitter_model_id,
+                    label: Some("Demo 005 Emitter".into()),
+                    geometry_id: self.ids.emitter_geometry_id,
+                    material_id: Some(self.ids.material_emitter_id),
+                    transform: Mat4::from_translation(Vec3::new(4.5, 0.5, 3.5))
+                        * Mat4::from_scale(Vec3::splat(0.5)),
+                    layer_mask: 0xFFFFFFFF,
+                    cast_shadow: false,
+                    receive_shadow: true,
+                    cast_outline: false,
+                    outline_color: Vec4::ZERO,
+                },
+            )),
             create_floor_cmd(
                 window_id,
                 self.ids.floor_geometry_id,
                 self.ids.material_floor_id,
             ),
             create_shadow_config_cmd(window_id),
-            EngineCmd::CmdAudioListenerCreate(CmdAudioListenerCreateArgs {
-                realm_id,
-                model_id: self.ids.listener_model_id,
-            }),
+            EngineCmd::CmdAudioListenerUpsert(
+                crate::core::cmd::CmdAudioListenerUpsertArgs::Create(CmdAudioListenerCreateArgs {
+                    realm_id,
+                    model_id: self.ids.listener_model_id,
+                }),
+            ),
             EngineCmd::CmdAudioResourceCreate(CmdAudioResourceCreateArgs {
                 resource_id: self.ids.audio_id,
                 buffer_id: self
@@ -299,39 +311,43 @@ impl Demo005Setup {
                 total_bytes: Some(self.audio_total_bytes),
                 offset_bytes: Some(0),
             }),
-            EngineCmd::CmdAudioSourceCreate(CmdAudioSourceCreateArgs {
-                realm_id,
-                source_id: self.ids.audio_source_id,
-                model_id: self.ids.emitter_model_id,
-                position: Vec3::new(4.5, 0.5, 3.5),
-                velocity: Vec3::ZERO,
-                orientation: Quat::IDENTITY,
-                gain: 1.0,
-                pitch: 1.0,
-                spatial: crate::core::audio::AudioSpatialParamsDto::default(),
-            }),
+            EngineCmd::CmdAudioSourceUpsert(crate::core::cmd::CmdAudioSourceUpsertArgs::Create(
+                CmdAudioSourceCreateArgs {
+                    realm_id,
+                    source_id: self.ids.audio_source_id,
+                    model_id: self.ids.emitter_model_id,
+                    position: Vec3::new(4.5, 0.5, 3.5),
+                    velocity: Vec3::ZERO,
+                    orientation: Quat::IDENTITY,
+                    gain: 1.0,
+                    pitch: 1.0,
+                    spatial: crate::core::audio::AudioSpatialParamsDto::default(),
+                },
+            )),
         ];
 
         let aux_cmds = vec![
-            EngineCmd::CmdEnvironmentUpdate(CmdEnvironmentUpdateArgs {
-                window_id: window_aux,
-                config: EnvironmentConfig {
-                    msaa: MsaaConfig {
-                        enabled: true,
-                        sample_count: 4,
+            EngineCmd::CmdEnvironmentUpsert(crate::core::cmd::CmdEnvironmentUpsertArgs::Update(
+                CmdEnvironmentUpdateArgs {
+                    window_id: window_aux,
+                    config: EnvironmentConfig {
+                        msaa: MsaaConfig {
+                            enabled: true,
+                            sample_count: 4,
+                        },
+                        skybox: SkyboxConfig {
+                            mode: SkyboxMode::Procedural,
+                            intensity: 0.7,
+                            rotation: 0.0,
+                            ground_color: Vec3::new(0.05, 0.05, 0.08),
+                            horizon_color: Vec3::new(0.15, 0.2, 0.35),
+                            sky_color: Vec3::new(0.12, 0.22, 0.4),
+                            cubemap_texture_id: None,
+                        },
+                        post: self.post_config.clone(),
                     },
-                    skybox: SkyboxConfig {
-                        mode: SkyboxMode::Procedural,
-                        intensity: 0.7,
-                        rotation: 0.0,
-                        ground_color: Vec3::new(0.05, 0.05, 0.08),
-                        horizon_color: Vec3::new(0.15, 0.2, 0.35),
-                        sky_color: Vec3::new(0.12, 0.22, 0.4),
-                        cubemap_texture_id: None,
-                    },
-                    post: self.post_config.clone(),
                 },
-            }),
+            )),
             EngineCmd::CmdPrimitiveGeometryCreate(CmdPrimitiveGeometryCreateArgs {
                 window_id: window_aux,
                 geometry_id: self.ids.cube_geometry_aux_id,
@@ -358,20 +374,22 @@ impl Demo005Setup {
                 "Demo 005 Aux Camera",
                 Mat4::look_at_rh(Vec3::new(0.0, 2.5, 6.0), Vec3::ZERO, Vec3::Y).inverse(),
             ),
-            EngineCmd::CmdModelCreate(CmdModelCreateArgs {
-                window_id: window_aux,
-                model_id: self.ids.model_aux_id,
-                label: Some("Demo 005 Aux Model".into()),
-                geometry_id: self.ids.cube_geometry_aux_id,
-                material_id: Some(self.ids.material_aux_id),
-                transform: Mat4::from_translation(Vec3::new(0.0, 0.0, 0.0))
-                    * Mat4::from_scale(Vec3::splat(1.4)),
-                layer_mask: 0xFFFFFFFF,
-                cast_shadow: true,
-                receive_shadow: true,
-                cast_outline: true,
-                outline_color: Vec4::new(0.1, 0.9, 0.4, 1.0),
-            }),
+            EngineCmd::CmdModelUpsert(crate::core::cmd::CmdModelUpsertArgs::Create(
+                CmdModelCreateArgs {
+                    window_id: window_aux,
+                    model_id: self.ids.model_aux_id,
+                    label: Some("Demo 005 Aux Model".into()),
+                    geometry_id: self.ids.cube_geometry_aux_id,
+                    material_id: Some(self.ids.material_aux_id),
+                    transform: Mat4::from_translation(Vec3::new(0.0, 0.0, 0.0))
+                        * Mat4::from_scale(Vec3::splat(1.4)),
+                    layer_mask: 0xFFFFFFFF,
+                    cast_shadow: true,
+                    receive_shadow: true,
+                    cast_outline: true,
+                    outline_color: Vec4::new(0.1, 0.9, 0.4, 1.0),
+                },
+            )),
         ];
 
         assert_eq!(send_commands(setup_cmds), VulframResult::Success);

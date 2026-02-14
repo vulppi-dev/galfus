@@ -66,55 +66,63 @@ pub fn run(ctx: DemoContext, setup: &Demo004Setup) -> bool {
                 camera_radius * camera_angle.sin(),
             );
             let camera_transform = Mat4::look_at_rh(camera_pos, Vec3::ZERO, Vec3::Y).inverse();
-            cmds.push(EngineCmd::CmdCameraUpdate(CmdCameraUpdateArgs {
-                camera_id: ids.camera_id,
-                label: None,
-                transform: Some(camera_transform),
-                kind: None,
-                flags: None,
-                near_far: None,
-                layer_mask: None,
-                order: None,
-                view_position: None,
-                ortho_scale: None,
-            }));
-            cmds.push(EngineCmd::CmdModelUpdate(CmdModelUpdateArgs {
-                window_id,
-                model_id: ids.listener_model_id,
-                label: None,
-                geometry_id: None,
-                material_id: None,
-                transform: Some(camera_transform),
-                layer_mask: None,
-                cast_shadow: None,
-                receive_shadow: None,
-                cast_outline: None,
-                outline_color: None,
-            }));
+            cmds.push(EngineCmd::CmdCameraUpsert(
+                crate::core::cmd::CmdCameraUpsertArgs::Update(CmdCameraUpdateArgs {
+                    camera_id: ids.camera_id,
+                    label: None,
+                    transform: Some(camera_transform),
+                    kind: None,
+                    flags: None,
+                    near_far: None,
+                    layer_mask: None,
+                    order: None,
+                    view_position: None,
+                    ortho_scale: None,
+                }),
+            ));
+            cmds.push(EngineCmd::CmdModelUpsert(
+                crate::core::cmd::CmdModelUpsertArgs::Update(CmdModelUpdateArgs {
+                    window_id,
+                    model_id: ids.listener_model_id,
+                    label: None,
+                    geometry_id: None,
+                    material_id: None,
+                    transform: Some(camera_transform),
+                    layer_mask: None,
+                    cast_shadow: None,
+                    receive_shadow: None,
+                    cast_outline: None,
+                    outline_color: None,
+                }),
+            ));
             {
                 let mut state = skybox_state_frame.borrow_mut();
                 if state.ready && !state.applied {
                     state.applied = true;
                     println!("Skybox applying cubemap environment");
-                    cmds.push(EngineCmd::CmdEnvironmentUpdate(CmdEnvironmentUpdateArgs {
-                        window_id,
-                        config: EnvironmentConfig {
-                            msaa: MsaaConfig {
-                                enabled: true,
-                                sample_count: 4,
+                    cmds.push(EngineCmd::CmdEnvironmentUpsert(
+                        crate::core::cmd::CmdEnvironmentUpsertArgs::Update(
+                            CmdEnvironmentUpdateArgs {
+                                window_id,
+                                config: EnvironmentConfig {
+                                    msaa: MsaaConfig {
+                                        enabled: true,
+                                        sample_count: 4,
+                                    },
+                                    skybox: SkyboxConfig {
+                                        mode: SkyboxMode::Cubemap,
+                                        intensity: 1.0,
+                                        rotation: 0.0,
+                                        ground_color: Vec3::new(0.01, 0.02, 0.03),
+                                        horizon_color: Vec3::new(0.08, 0.12, 0.18),
+                                        sky_color: Vec3::new(0.18, 0.32, 0.55),
+                                        cubemap_texture_id: Some(ids.skybox_texture_id),
+                                    },
+                                    post: post_config.clone(),
+                                },
                             },
-                            skybox: SkyboxConfig {
-                                mode: SkyboxMode::Cubemap,
-                                intensity: 1.0,
-                                rotation: 0.0,
-                                ground_color: Vec3::new(0.01, 0.02, 0.03),
-                                horizon_color: Vec3::new(0.08, 0.12, 0.18),
-                                sky_color: Vec3::new(0.18, 0.32, 0.55),
-                                cubemap_texture_id: Some(ids.skybox_texture_id),
-                            },
-                            post: post_config.clone(),
-                        },
-                    }));
+                        ),
+                    ));
                 }
             }
             for (index, (model_id, base_pos, _outline)) in cube_models.iter().enumerate() {
@@ -128,19 +136,21 @@ pub fn run(ctx: DemoContext, setup: &Demo004Setup) -> bool {
                         wobble * 0.3,
                     )
                     * Mat4::from_scale(Vec3::splat(1.15));
-                cmds.push(EngineCmd::CmdModelUpdate(CmdModelUpdateArgs {
-                    window_id,
-                    model_id: *model_id,
-                    label: None,
-                    geometry_id: None,
-                    material_id: None,
-                    transform: Some(transform),
-                    layer_mask: None,
-                    cast_shadow: None,
-                    receive_shadow: None,
-                    cast_outline: None,
-                    outline_color: None,
-                }));
+                cmds.push(EngineCmd::CmdModelUpsert(
+                    crate::core::cmd::CmdModelUpsertArgs::Update(CmdModelUpdateArgs {
+                        window_id,
+                        model_id: *model_id,
+                        label: None,
+                        geometry_id: None,
+                        material_id: None,
+                        transform: Some(transform),
+                        layer_mask: None,
+                        cast_shadow: None,
+                        receive_shadow: None,
+                        cast_outline: None,
+                        outline_color: None,
+                    }),
+                ));
             }
             {
                 let mut state = audio_state_frame.borrow_mut();
