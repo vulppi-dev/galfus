@@ -17,3 +17,7 @@ Returns `CmdResultTargetLayerDispose`:
 | ------- | ------ | --------------------------- |
 | success | bool   | Whether the layer was disposed |
 | message | String | Status or error message     |
+
+If layer key (`realmId`, `targetId`) is not found:
+- command response returns `success = false`
+- host also receives `SystemEvent::Error` (`scope = "command"`).

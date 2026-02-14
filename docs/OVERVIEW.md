@@ -88,7 +88,7 @@ The core is implemented in Rust and uses:
 - `web-sys` for browser window/input plumbing (WASM)
 - `image` for texture decoding
 - `glam` + `bytemuck` for math and safe binary packing
-- `serde`, `serde_repr`, `rmp-serde` for MessagePack serialization
+- `serde`, `rmp-serde` for MessagePack serialization
 
 The core is responsible for:
 
@@ -237,6 +237,8 @@ CmdTargetLayerUpsert(realmId=11, targetId=9002, layout=rect/zIndex/clip/inputFla
 Rules:
 - `windowId` is mandatory for `window`, `realm-viewport`, and `ui-plane`.
 - `size` is accepted only for `texture`.
+- For `realm-viewport` and `ui-plane`, output surface size follows
+  `TargetLayerLayout.rect` width/height.
 
 Input routing uses the same connector graph to emit `eventTrace` metadata
 (`windowId`, `realmId`, `targetId`, `connectorId`, `sourceRealmId`, and UV coordinates when available).
@@ -250,7 +252,7 @@ forwards pointer input to the bound UI realm.
 Pointer routing now propagates through multiple realm/target hops per event (including
 `RealmViewport -> 3D -> UIPlane -> UI`). Cycles are handled with bounded step propagation
 to keep the frame loop non-blocking.
-Command failures and internal diagnostic errors are forwarded to host through
+Command failures (`success=false`) and internal diagnostic errors are forwarded to host through
 `SystemEvent::Error`.
 
 ---

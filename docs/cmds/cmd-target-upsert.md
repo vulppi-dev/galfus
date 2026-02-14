@@ -22,3 +22,14 @@ Returns `CmdResultTargetUpsert`:
 | ------- | ------ | ------------------------------- |
 | success | bool   | Whether the target was upserted |
 | message | String | Status or error message         |
+
+## Validation Rules
+
+- `windowId` is required for `kind = "window"`, `"realm-viewport"`, `"ui-plane"`.
+- `windowId` must reference an existing window.
+- `windowId` is not accepted for `kind = "texture"`.
+- `size` is accepted only for `kind = "texture"`.
+
+When validation fails:
+- command response returns `success = false`
+- host also receives `SystemEvent::Error` (`scope = "command"`).

@@ -42,7 +42,6 @@ The Vulfram core is built as a Rust library with the following key crates:
 
 - **Serialization**
   - `serde`
-  - `serde_repr`
   - `rmp-serde`
     - MessagePack serialization/deserialization for commands, events, profiling
 
@@ -337,6 +336,8 @@ CmdTargetLayerUpsert(realmId=11, targetId=9002, layout=rect/zIndex/clip/inputFla
 Rules:
 - `windowId` is mandatory for `window`, `realm-viewport`, and `ui-plane`.
 - `size` is accepted only for `texture`.
+- For `realm-viewport` and `ui-plane`, surface size is derived from
+  `TargetLayerLayout.rect` (`w`, `h`) when the layer is resolved.
 
 The core caches the `TargetGraphPlan` with a hash of targets/layers/realms and
 computes diffs on change to drive partial updates.
@@ -415,7 +416,7 @@ provides the resolved `windowId`, `realmId`, `targetId`, `connectorId`,
 `sourceRealmId`, and UV coordinates when a connector hit-test succeeds. This
 metadata is optional and omitted when routing is not available.
 
-If a bind sets `inputFlags` to include `RAYCAST` (`1`), the connector is treated
+If a layer sets `inputFlags` to include `RAYCAST` (`1`), the connector is treated
 as a plane hit-test and routing uses window-space UVs to support 3D-style
 raycast interactions.
 
@@ -425,6 +426,15 @@ raycast + hitbox test against the model plane and forwards events to that UI rea
 
 Routing is multi-hop across realms/targets in a single pointer event. Cycles are
 supported using bounded propagation (`MAX_ROUTE_STEPS`) to avoid blocking.
+
+Command failures (`success=false` responses) emit `SystemEvent::Error` with:
+- `scope = "command"`
+- `commandId` and `commandType` when available.
+
+Internal auto-graph diagnostics may also emit `SystemEvent::Error` with:
+- `scope = "target-auto-link"`
+- reason payload encoded in `message`.
+  - current reasons: `realm-not-found`, `target-not-found`, `host-realm-not-found`.
 
 On `vulfram_receive_events`, the core:
 
@@ -458,6 +468,7 @@ On `vulfram_receive_events`, the core:
 - `frameReport` with the RealmGraph execution order, cut edges, cached surface
   entries, any throttled/no-progress realms, plus target auto-link diagnostics
   (`targetAutolinkFailures`).
+  - `targetAutolinkFailures[]` entries: `{ realmId, targetId, reason }`.
 
 On `vulfram_get_profiling`, the core:
 

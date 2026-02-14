@@ -141,14 +141,14 @@ The core builds `TargetGraph` and `RealmGraph` automatically and creates or upda
 
 **Auto resolution (Phase H)**
 
-- Each `Bind(realm -> target)` produces a `Surface`.
-- The Realm output surface is set automatically from its primary bind.
+- Each `TargetLayer(realm -> target)` produces a `Surface`.
+- The Realm output surface is set automatically from its primary layer.
 - If target is `Window`, the core creates a `Present`.
 - If target is `RealmViewport` or `UiPlane`, the core creates a `Connector`
   targeting the host realm for that window.
 - Layout (`rect`, `zIndex`, `clip`, `inputFlags`, `blendMode`) is applied on
   connector creation and updated when layers change.
-- Binds are resolved deterministically: per realm, the smallest `targetId` wins.
+- Layers are resolved deterministically: per realm, the smallest `targetId` wins.
 
 **Parent inference (deterministic)**
 
@@ -157,7 +157,7 @@ The core builds `TargetGraph` and `RealmGraph` automatically and creates or upda
 - `RealmViewport` / `UiPlane` infer parent from layers:
   - Prefer the `hostWindowId` of the layer realm.
 - If multiple layers reference different windows, choose the smallest `windowId`.
-  - If multiple realms in the same window bind to the same target, choose the smallest `realmId`
+  - If multiple realms in the same window layer to the same target, choose the smallest `realmId`
     as the owner for parent inference.
 - Conflicts are resolved deterministically and should be logged for diagnostics.
 

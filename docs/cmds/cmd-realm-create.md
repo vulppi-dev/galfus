@@ -25,3 +25,12 @@ Returns `CmdResultRealmCreate`:
 | success | bool        | Whether the realm was created |
 | message | String      | Status or error message       |
 | realmId | Option<u32> | ID of the created realm       |
+
+## Validation Rules
+
+- If `hostWindowId` is provided, it must reference an existing window.
+- If `outputSurfaceId` is provided, it must reference an existing surface.
+
+When validation fails:
+- command response returns `success = false`
+- host also receives `SystemEvent::Error` (`scope = "command"`).

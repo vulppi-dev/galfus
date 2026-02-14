@@ -28,3 +28,12 @@ Returns `CmdResultTargetLayerUpsert`:
 | ------- | ------ | ---------------------------- |
 | success | bool   | Whether the layer was upserted |
 | message | String | Status or error message      |
+
+## Validation Rules
+
+- `realmId` must reference an existing realm.
+- `targetId` must reference an existing target.
+
+When validation fails:
+- command response returns `success = false`
+- host also receives `SystemEvent::Error` (`scope = "command"`).

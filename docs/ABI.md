@@ -43,7 +43,6 @@ All structured data that crosses the ABI uses **MessagePack**, via:
 
 - `serde`
 - `rmp-serde`
-- `serde_repr` for numeric enums
 
 This includes:
 
@@ -162,6 +161,8 @@ u32 vulfram_receive_events(uint8_t** out_ptr, size_t* out_length);
 - Returns a MessagePack buffer containing a batch of **events**:
   - Keyboard, pointer, touch, gamepad (Gilrs on native, Gamepad API on web)
   - Window system events (resize, close, focus, etc.) via the platform proxy
+  - System diagnostic events (`SystemEvent::Error`) for command failures and
+    internal routing/auto-graph diagnostics
 
 Semantics are identical to `vulfram_receive_queue`, but the content is
 strictly _event_ data, not responses.
