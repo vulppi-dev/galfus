@@ -122,14 +122,12 @@ fn bind_layout(
     rect: Vec4,
     z_index: i32,
     blend_mode: u32,
-    clip: Option<Vec4>,
-    input_flags: u32,
+    clip: Option<Vec4>
 ) -> TargetLayerLayout {
     TargetLayerLayout {
         rect,
         z_index,
         blend_mode,
-        clip,
-        input_flags,
+        clip
     }
 }

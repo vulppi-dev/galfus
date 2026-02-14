@@ -112,7 +112,6 @@ fn hash_layout(layout: &TargetLayerLayout, hasher: &mut impl Hasher) {
         hash_f32(clip.z, hasher);
         hash_f32(clip.w, hasher);
     }
-    layout.input_flags.hash(hasher);
 }
 
 fn hash_f32(value: f32, hasher: &mut impl Hasher) {

@@ -18,7 +18,9 @@ Upserts a logical layer between a realm and a target.
 | zIndex     | i32         | Layer order                         |
 | blendMode  | u32         | Blend mode selector                 |
 | clip       | Option<Vec4>| Optional clip rect                  |
-| inputFlags | u32         | Input flags (bitmask)               |
+
+Pointer routing mode is inferred internally by the core from target kind.
+`realm-viewport` enables raycast routing automatically.
 
 ## Response
 

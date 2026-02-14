@@ -9,6 +9,8 @@ use crate::core::state::EngineState;
 use crate::core::system::SystemEvent;
 use crate::core::target::{TargetLayerState, TargetId, TargetKind};
 
+const INPUT_FLAG_RAYCAST: u32 = 1 << 0;
+
 pub fn sync_auto_graph(engine_state: &mut EngineState) {
     rebuild_target_indexes(&mut engine_state.universal_state);
 
@@ -123,6 +125,7 @@ pub fn sync_auto_graph(engine_state: &mut EngineState) {
                     update_auto_link_layout(
                         &mut engine_state.universal_state,
                         Some(connector_id),
+                        target.kind,
                         &layer,
                     );
                 }
@@ -158,7 +161,7 @@ pub fn sync_auto_graph(engine_state: &mut EngineState) {
                                 z_index: layer.layout.z_index,
                                 blend_mode: layer.layout.blend_mode,
                                 clip: layer.layout.clip,
-                                input_flags: layer.layout.input_flags,
+                                input_flags: infer_layer_input_flags(target.kind),
                             },
                         ));
                     } else {
@@ -211,6 +214,7 @@ pub(crate) fn remove_auto_link_for_layer(
 fn update_auto_link_layout(
     universal: &mut UniversalState,
     connector_id: Option<ConnectorId>,
+    target_kind: TargetKind,
     layer: &TargetLayerState,
 ) {
     let Some(connector_id) = connector_id else {
@@ -224,7 +228,14 @@ fn update_auto_link_layout(
     entry.value.z_index = layer.layout.z_index;
     entry.value.blend_mode = layer.layout.blend_mode;
     entry.value.clip = layer.layout.clip;
-    entry.value.input_flags = layer.layout.input_flags;
+    entry.value.input_flags = infer_layer_input_flags(target_kind);
+}
+
+fn infer_layer_input_flags(target_kind: TargetKind) -> u32 {
+    match target_kind {
+        TargetKind::RealmViewport => INPUT_FLAG_RAYCAST,
+        TargetKind::Window | TargetKind::UiPlane | TargetKind::Texture => 0,
+    }
 }
 
 fn remove_auto_link(universal: &mut UniversalState, key: (u32, TargetId)) {

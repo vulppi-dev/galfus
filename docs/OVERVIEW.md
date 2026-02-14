@@ -219,8 +219,8 @@ The host does not build graphs. Instead it provides logical maps:
 
 The core resolves `TargetGraph` + `RealmGraph` automatically, creating
 `Surface`, `Present`, and `Connector` entries as needed. Parent/child
-relationships between targets are inferred by the core; the layer layout
-defines the composition rectangle, zIndex, clip, and input flags.
+relationships are handled by the core. The layer layout defines the
+composition rectangle, zIndex, and clip.
 - The compositor resolves format/size conversions and MSAA resolves automatically.
 Note: `Surface`, `Present`, and `Connector` are internal and not exposed as host commands.
 
@@ -231,7 +231,7 @@ CmdTargetUpsert(targetId=9000, kind=window, windowId=1)
 CmdTargetUpsert(targetId=9002, kind=realm-viewport, windowId=1)
 CmdTargetUpsert(targetId=9003, kind=texture, size=640x360)
 CmdTargetLayerUpsert(realmId=10, targetId=9000, layout=...)
-CmdTargetLayerUpsert(realmId=11, targetId=9002, layout=rect/zIndex/clip/inputFlags)
+CmdTargetLayerUpsert(realmId=11, targetId=9002, layout=rect/zIndex/clip)
 ```
 
 Rules:
@@ -242,7 +242,7 @@ Rules:
 
 Input routing uses the same connector graph to emit `eventTrace` metadata
 (`windowId`, `realmId`, `targetId`, `connectorId`, `sourceRealmId`, and UV coordinates when available).
-When `inputFlags` includes `RAYCAST` (`1`), routing treats the connector as a plane hit-test,
+For `realm-viewport` layers, routing treats the connector as a plane hit-test,
 using window-space UVs to drive raycast-like interactions in 3D.
 
 Additionally, `UIPlane` behavior is available for 3D models that use textures bound to
@@ -252,7 +252,7 @@ forwards pointer input to the bound UI realm.
 Pointer routing now propagates through multiple realm/target hops per event (including
 `RealmViewport -> 3D -> UIPlane -> UI`). Cycles are handled with bounded step propagation
 to keep the frame loop non-blocking.
-Command failures (`success=false`) and internal diagnostic errors are forwarded to host through
+Command failures (`success=false`) and diagnostic errors are forwarded to host through
 `SystemEvent::Error`.
 
 ---

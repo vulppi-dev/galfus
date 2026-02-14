@@ -92,7 +92,6 @@ pub struct EngineState {
 - `realms`, `surfaces`, `connectors`, `presents`
 - `surface_cache` for cycle-breaking (`LastGoodSurface`/`FallbackSurface`)
 - `frame_report` for RealmGraph diagnostics
-- `host_realm_index` and `target_ui_realm_index` for auto-graph/raycast routing
 
 ---
 
@@ -330,7 +329,7 @@ CmdTargetUpsert(targetId=9000, kind=window, windowId=1)
 CmdTargetUpsert(targetId=9002, kind=realm-viewport, windowId=1)
 CmdTargetUpsert(targetId=9003, kind=texture, size=640x360)
 CmdTargetLayerUpsert(realmId=10, targetId=9000, layout=...)
-CmdTargetLayerUpsert(realmId=11, targetId=9002, layout=rect/zIndex/clip/inputFlags)
+CmdTargetLayerUpsert(realmId=11, targetId=9002, layout=rect/zIndex/clip)
 ```
 
 Rules:
@@ -339,11 +338,7 @@ Rules:
 - For `realm-viewport` and `ui-plane`, surface size is derived from
   `TargetLayerLayout.rect` (`w`, `h`) when the layer is resolved.
 
-The core caches the `TargetGraphPlan` with a hash of targets/layers/realms and
-computes diffs on change to drive partial updates.
-
-`FrameReport` includes TargetGraph stats (node/edge counts and layer diffs)
-so the host can inspect auto-graph updates.
+Frame reporting includes composition diagnostics for host tooling.
 
 ### 7.1 Buffers
 
@@ -416,9 +411,8 @@ provides the resolved `windowId`, `realmId`, `targetId`, `connectorId`,
 `sourceRealmId`, and UV coordinates when a connector hit-test succeeds. This
 metadata is optional and omitted when routing is not available.
 
-If a layer sets `inputFlags` to include `RAYCAST` (`1`), the connector is treated
-as a plane hit-test and routing uses window-space UVs to support 3D-style
-raycast interactions.
+For `realm-viewport` layers, connector input routing uses raycast mode
+automatically. Other layer kinds use rect/clip hit-test routing.
 
 For `UIPlane`-style usage, when a 3D model material samples a texture bound to a
 `texture` target that is also bound by a `TwoD` realm, pointer routing performs
@@ -431,7 +425,7 @@ Command failures (`success=false` responses) emit `SystemEvent::Error` with:
 - `scope = "command"`
 - `commandId` and `commandType` when available.
 
-Internal auto-graph diagnostics may also emit `SystemEvent::Error` with:
+Auto-graph diagnostics may also emit `SystemEvent::Error` with:
 - `scope = "target-auto-link"`
 - reason payload encoded in `message`.
   - current reasons: `realm-not-found`, `target-not-found`, `host-realm-not-found`.

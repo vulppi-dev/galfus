@@ -169,7 +169,7 @@ pub fn build_bind_cmds(targets: Demo005TargetIds, realms: Demo005BindRealms) -> 
         CmdTargetLayerUpsertArgs {
             realm_id: realms.host_aux,
             target_id: targets.viewport_main,
-            layout: bind_layout(Vec4::new(20.0, 40.0, 200.0, 140.0), 0, 0, None, 0),
+            layout: bind_layout(Vec4::new(20.0, 40.0, 200.0, 140.0), 0, 0, None),
         },
     ];
 
@@ -184,14 +184,12 @@ fn bind_layout(
     rect: Vec4,
     z_index: i32,
     blend_mode: u32,
-    clip: Option<Vec4>,
-    input_flags: u32,
+    clip: Option<Vec4>
 ) -> TargetLayerLayout {
     TargetLayerLayout {
         rect,
         z_index,
         blend_mode,
-        clip,
-        input_flags,
+        clip
     }
 }

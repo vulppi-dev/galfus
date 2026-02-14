@@ -83,7 +83,6 @@ pub struct TargetLayerLayout {
     pub z_index: i32,
     pub blend_mode: u32,
     pub clip: Option<Vec4>,
-    pub input_flags: u32,
 }
 
 impl Default for TargetLayerLayout {
@@ -93,7 +92,6 @@ impl Default for TargetLayerLayout {
             z_index: 0,
             blend_mode: 0,
             clip: None,
-            input_flags: 0,
         }
     }
 }
