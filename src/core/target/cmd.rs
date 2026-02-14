@@ -152,17 +152,17 @@ pub fn engine_cmd_target_dispose(
         .universal_state
         .target_layers
         .entries
-        .retain(|(_, bind_target), _| *bind_target != target_id);
+        .retain(|(_, layer_target), _| *layer_target != target_id);
 
     let remove_keys: Vec<_> = engine
         .universal_state
         .auto_links
         .keys()
-        .filter(|(_, bind_target)| *bind_target == target_id)
+        .filter(|(_, layer_target)| *layer_target == target_id)
         .copied()
         .collect();
-    for (realm_id, bind_target) in remove_keys {
-        remove_auto_link_for_layer(&mut engine.universal_state, realm_id, bind_target);
+    for (realm_id, layer_target) in remove_keys {
+        remove_auto_link_for_layer(&mut engine.universal_state, realm_id, layer_target);
     }
 
     CmdResultTargetDispose {
@@ -223,7 +223,7 @@ pub fn engine_cmd_target_layer_dispose(
         return CmdResultTargetLayerDispose {
             success: false,
             message: format!(
-                "Bind not found (realm_id={}, target_id={})",
+                "Layer not found (realm_id={}, target_id={})",
                 args.realm_id, args.target_id
             ),
         };

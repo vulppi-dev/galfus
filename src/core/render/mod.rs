@@ -153,6 +153,8 @@ pub fn render_frames(engine_state: &mut EngineState) {
     let mut frame_report =
         FrameReport::from_plan(&realm_plan, &engine_state.universal_state.surface_cache);
     frame_report.apply_target_graph_stats(&target_plan, target_diff.as_ref());
+    frame_report.target_autolink_failures =
+        engine_state.universal_state.target_autolink_failures.clone();
     let realm_windows = map_realms_to_windows(&engine_state.universal_state);
     collect_present_sizes(
         &engine_state.universal_state,

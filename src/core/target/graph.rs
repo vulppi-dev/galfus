@@ -1,10 +1,10 @@
 use std::collections::{HashMap, HashSet, VecDeque};
-use std::hash::{Hash, Hasher};
 
 use crate::core::realm::{RealmId, RealmTable};
 use crate::core::target::{
-    TargetId, TargetKind, TargetLayerLayout, TargetLayerState, TargetState,
+    TargetId, TargetKind, TargetLayerState, TargetState,
 };
+use crate::core::target::graph_hash::{hash_entries, hash_targets_layers_and_realms};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct TargetEdge {
@@ -30,14 +30,19 @@ impl TargetGraphPlanner {
         realms: &RealmTable,
     ) -> TargetGraphPlan {
         let window_targets = collect_window_targets(targets);
+        let layers_by_target = collect_layers_by_target(layers);
         let mut parents: HashMap<TargetId, TargetId> = HashMap::new();
 
         for (target_id, target) in targets {
             match target.kind {
                 TargetKind::Window | TargetKind::Texture => {}
                 TargetKind::RealmViewport | TargetKind::UiPlane => {
-                    if let Some(parent) =
-                        infer_parent_from_layers(layers, realms, *target_id, &window_targets)
+                    if let Some(parent) = infer_parent_from_layers(
+                        &layers_by_target,
+                        realms,
+                        *target_id,
+                        &window_targets,
+                    )
                     {
                         parents.insert(*target_id, parent);
                     }
@@ -241,7 +246,7 @@ fn collect_window_targets(targets: &HashMap<TargetId, TargetState>) -> HashMap<u
 }
 
 fn infer_parent_from_layers(
-    layers: &HashMap<(u32, TargetId), TargetLayerState>,
+    layers_by_target: &HashMap<TargetId, Vec<u32>>,
     realms: &RealmTable,
     target_id: TargetId,
     window_targets: &HashMap<u32, TargetId>,
@@ -249,13 +254,14 @@ fn infer_parent_from_layers(
     let mut chosen_window: Option<u32> = None;
     let mut chosen_realm: Option<u32> = None;
 
-    for layer in layers.values() {
-        if layer.target_id != target_id {
+    let Some(realm_ids) = layers_by_target.get(&target_id) else {
+        return None;
+    };
+    for layer_realm_id in realm_ids {
+        let realm_id = RealmId(*layer_realm_id);
+        let Some(realm) = realms.entries.get(&realm_id) else {
             continue;
-        }
-
-        let realm_id = RealmId(layer.realm_id);
-        let realm = realms.entries.get(&realm_id)?;
+        };
         let Some(host_window_id) = realm.value.host_window_id else {
             continue;
         };
@@ -263,16 +269,16 @@ fn infer_parent_from_layers(
         match chosen_window {
             None => {
                 chosen_window = Some(host_window_id);
-                chosen_realm = Some(layer.realm_id);
+                chosen_realm = Some(*layer_realm_id);
             }
             Some(current_window) => {
                 if host_window_id < current_window {
                     chosen_window = Some(host_window_id);
-                    chosen_realm = Some(layer.realm_id);
+                    chosen_realm = Some(*layer_realm_id);
                 } else if host_window_id == current_window {
                     let current_realm = chosen_realm.unwrap_or(u32::MAX);
-                    if layer.realm_id < current_realm {
-                        chosen_realm = Some(layer.realm_id);
+                    if *layer_realm_id < current_realm {
+                        chosen_realm = Some(*layer_realm_id);
                     }
                 }
             }
@@ -281,6 +287,19 @@ fn infer_parent_from_layers(
 
     let window_id = chosen_window?;
     window_targets.get(&window_id).copied()
+}
+
+fn collect_layers_by_target(
+    layers: &HashMap<(u32, TargetId), TargetLayerState>,
+) -> HashMap<TargetId, Vec<u32>> {
+    let mut by_target: HashMap<TargetId, Vec<u32>> = HashMap::new();
+    for ((realm_id, target_id), _layer) in layers {
+        by_target.entry(*target_id).or_default().push(*realm_id);
+    }
+    for realms in by_target.values_mut() {
+        realms.sort_unstable();
+    }
+    by_target
 }
 
 fn topo_with_soft_cuts(
@@ -370,131 +389,4 @@ fn topo_order(targets: &HashSet<TargetId>, edges: &[TargetEdge]) -> Vec<TargetId
     }
 
     order
-}
-
-fn hash_targets_layers_and_realms(
-    targets: &HashMap<TargetId, TargetState>,
-    layers: &HashMap<(u32, TargetId), TargetLayerState>,
-    realms: &RealmTable,
-) -> u64 {
-    let mut hasher = std::collections::hash_map::DefaultHasher::new();
-
-    let mut target_hashes: Vec<_> = targets
-        .iter()
-        .map(|(id, state)| (*id, hash_target_state(state)))
-        .collect();
-    target_hashes.sort_by_key(|(id, _)| id.0);
-    for (id, entry_hash) in target_hashes {
-        id.hash(&mut hasher);
-        entry_hash.hash(&mut hasher);
-    }
-
-    let mut layer_hashes: Vec<_> = layers
-        .iter()
-        .map(|((realm_id, target_id), layer)| ((*realm_id, *target_id), hash_layer_state(layer)))
-        .collect();
-    layer_hashes.sort_by_key(|((realm_id, target_id), _)| (*realm_id, target_id.0));
-    for ((realm_id, target_id), entry_hash) in layer_hashes {
-        realm_id.hash(&mut hasher);
-        target_id.hash(&mut hasher);
-        entry_hash.hash(&mut hasher);
-    }
-
-    let mut realm_hashes: Vec<_> = realms
-        .entries
-        .iter()
-        .map(|(realm_id, entry)| (*realm_id, hash_realm_host(entry.value.host_window_id)))
-        .collect();
-    realm_hashes.sort_by_key(|(realm_id, _)| realm_id.0);
-    for (realm_id, entry_hash) in realm_hashes {
-        realm_id.hash(&mut hasher);
-        entry_hash.hash(&mut hasher);
-    }
-
-    hasher.finish()
-}
-
-fn hash_entries(
-    targets: &HashMap<TargetId, TargetState>,
-    layers: &HashMap<(u32, TargetId), TargetLayerState>,
-    realms: &RealmTable,
-) -> (
-    HashMap<TargetId, u64>,
-    HashMap<(u32, TargetId), u64>,
-    HashMap<RealmId, u64>,
-) {
-    let mut target_hashes = HashMap::new();
-    for (id, state) in targets {
-        target_hashes.insert(*id, hash_target_state(state));
-    }
-
-    let mut layer_hashes = HashMap::new();
-    for (key, layer) in layers {
-        layer_hashes.insert(*key, hash_layer_state(layer));
-    }
-
-    let mut realm_hashes = HashMap::new();
-    for (realm_id, entry) in &realms.entries {
-        realm_hashes.insert(*realm_id, hash_realm_host(entry.value.host_window_id));
-    }
-
-    (target_hashes, layer_hashes, realm_hashes)
-}
-
-fn hash_target_state(state: &TargetState) -> u64 {
-    let mut hasher = std::collections::hash_map::DefaultHasher::new();
-    state.kind.hash(&mut hasher);
-    state.window_id.hash(&mut hasher);
-    if let Some(size) = state.size {
-        size.x.hash(&mut hasher);
-        size.y.hash(&mut hasher);
-    }
-    hash_texture_format(state.format_policy, &mut hasher);
-    hash_alpha_mode(state.alpha_policy, &mut hasher);
-    state.msaa_samples.hash(&mut hasher);
-    hasher.finish()
-}
-
-fn hash_layer_state(layer: &TargetLayerState) -> u64 {
-    let mut hasher = std::collections::hash_map::DefaultHasher::new();
-    hash_layout(&layer.layout, &mut hasher);
-    hasher.finish()
-}
-
-fn hash_realm_host(window_id: Option<u32>) -> u64 {
-    let mut hasher = std::collections::hash_map::DefaultHasher::new();
-    window_id.hash(&mut hasher);
-    hasher.finish()
-}
-
-fn hash_layout(layout: &TargetLayerLayout, hasher: &mut impl Hasher) {
-    hash_f32(layout.rect.x, hasher);
-    hash_f32(layout.rect.y, hasher);
-    hash_f32(layout.rect.z, hasher);
-    hash_f32(layout.rect.w, hasher);
-    layout.z_index.hash(hasher);
-    layout.blend_mode.hash(hasher);
-    if let Some(clip) = layout.clip {
-        hash_f32(clip.x, hasher);
-        hash_f32(clip.y, hasher);
-        hash_f32(clip.z, hasher);
-        hash_f32(clip.w, hasher);
-    }
-    layout.input_flags.hash(hasher);
-}
-
-fn hash_f32(value: f32, hasher: &mut impl Hasher) {
-    value.to_bits().hash(hasher);
-}
-
-fn hash_texture_format(value: Option<wgpu::TextureFormat>, hasher: &mut impl Hasher) {
-    if let Some(format) = value {
-        std::mem::discriminant(&format).hash(hasher);
-    }
-}
-
-fn hash_alpha_mode(value: Option<wgpu::CompositeAlphaMode>, hasher: &mut impl Hasher) {
-    if let Some(mode) = value {
-        std::mem::discriminant(&mode).hash(hasher);
-    }
 }

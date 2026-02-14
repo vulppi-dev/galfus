@@ -23,6 +23,7 @@ pub struct FrameReport {
     pub target_layers_updated: Vec<TargetLayerReportKey>,
     pub target_dirty: Vec<u64>,
     pub target_plan_dirty: bool,
+    pub target_autolink_failures: Vec<TargetAutoLinkFailure>,
 }
 
 impl FrameReport {
@@ -68,6 +69,7 @@ impl FrameReport {
             target_layers_updated: Vec::new(),
             target_dirty: Vec::new(),
             target_plan_dirty: false,
+            target_autolink_failures: Vec::new(),
         }
     }
 
@@ -147,4 +149,12 @@ pub struct SurfaceCacheEntry {
 pub struct TargetLayerReportKey {
     pub realm_id: u32,
     pub target_id: u64,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct TargetAutoLinkFailure {
+    pub realm_id: u32,
+    pub target_id: u64,
+    pub reason: String,
 }

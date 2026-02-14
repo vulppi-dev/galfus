@@ -217,12 +217,23 @@ fn apply_uv_scale_bias(uv: Vec2, scale_bias: Vec4) -> Vec2 {
 }
 
 fn resolve_target_ui_realm(engine_state: &EngineState, target_id: TargetId) -> Option<RealmId> {
-    for bind in engine_state.universal_state.target_layers.entries.values() {
-        if bind.target_id != target_id {
+    if let Some(realm_id) = engine_state
+        .universal_state
+        .target_ui_realm_index
+        .get(&target_id)
+        .copied()
+    {
+        return Some(realm_id);
+    }
+
+    for layer in engine_state.universal_state.target_layers.entries.values() {
+        if layer.target_id != target_id {
             continue;
         }
-        let realm_id = RealmId(bind.realm_id);
-        let realm = engine_state.universal_state.realms.entries.get(&realm_id)?;
+        let realm_id = RealmId(layer.realm_id);
+        let Some(realm) = engine_state.universal_state.realms.entries.get(&realm_id) else {
+            continue;
+        };
         if realm.value.kind == crate::core::realm::RealmKind::TwoD {
             return Some(realm_id);
         }

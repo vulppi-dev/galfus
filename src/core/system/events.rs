@@ -4,6 +4,14 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(tag = "event", content = "data", rename_all = "kebab-case")]
 pub enum SystemEvent {
+    /// Diagnostic error forwarded to host event pool
+    Error {
+        scope: String,
+        message: String,
+        command_id: Option<u64>,
+        command_type: Option<String>,
+    },
+
     /// Application was resumed (from suspended state)
     OnResume,
 

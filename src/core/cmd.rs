@@ -232,12 +232,143 @@ pub type EngineBatchEvents = Vec<EngineEvent>;
 
 pub type EngineBatchResponses = Vec<CommandResponseEnvelope>;
 
+fn maybe_emit_response_error_event(
+    engine: &mut EngineState,
+    command_id: u64,
+    response: &CommandResponse,
+) {
+    macro_rules! failure_case {
+        ($result:expr, $name:literal) => {{
+            let result = $result;
+            if !result.success {
+                Some(($name, result.message.as_str()))
+            } else {
+                None
+            }
+        }};
+    }
+
+    let failure = match response {
+        CommandResponse::UploadBufferDiscardAll(result) => {
+            failure_case!(result, "upload-buffer-discard-all")
+        }
+        CommandResponse::WindowCreate(result) => failure_case!(result, "window-create"),
+        CommandResponse::CameraCreate(result) => failure_case!(result, "camera-create"),
+        CommandResponse::CameraUpdate(result) => failure_case!(result, "camera-update"),
+        CommandResponse::CameraDispose(result) => failure_case!(result, "camera-dispose"),
+        CommandResponse::ModelCreate(result) => failure_case!(result, "model-create"),
+        CommandResponse::ModelUpdate(result) => failure_case!(result, "model-update"),
+        CommandResponse::PoseUpdate(result) => failure_case!(result, "pose-update"),
+        CommandResponse::ModelDispose(result) => failure_case!(result, "model-dispose"),
+        CommandResponse::LightCreate(result) => failure_case!(result, "light-create"),
+        CommandResponse::LightUpdate(result) => failure_case!(result, "light-update"),
+        CommandResponse::LightDispose(result) => failure_case!(result, "light-dispose"),
+        CommandResponse::MaterialCreate(result) => failure_case!(result, "material-create"),
+        CommandResponse::MaterialUpdate(result) => failure_case!(result, "material-update"),
+        CommandResponse::MaterialDispose(result) => failure_case!(result, "material-dispose"),
+        CommandResponse::TextureCreateFromBuffer(result) => {
+            failure_case!(result, "texture-create-from-buffer")
+        }
+        CommandResponse::TextureCreateSolidColor(result) => {
+            failure_case!(result, "texture-create-solid-color")
+        }
+        CommandResponse::TextureDispose(result) => failure_case!(result, "texture-dispose"),
+        CommandResponse::TextureBindTarget(result) => failure_case!(result, "texture-bind-target"),
+        CommandResponse::AudioListenerUpdate(result) => {
+            failure_case!(result, "audio-listener-update")
+        }
+        CommandResponse::AudioListenerCreate(result) => {
+            failure_case!(result, "audio-listener-create")
+        }
+        CommandResponse::AudioListenerDispose(result) => {
+            failure_case!(result, "audio-listener-dispose")
+        }
+        CommandResponse::AudioResourceCreate(result) => {
+            failure_case!(result, "audio-resource-create")
+        }
+        CommandResponse::AudioResourcePush(result) => failure_case!(result, "audio-resource-push"),
+        CommandResponse::AudioSourceCreate(result) => failure_case!(result, "audio-source-create"),
+        CommandResponse::AudioSourceUpdate(result) => failure_case!(result, "audio-source-update"),
+        CommandResponse::AudioSourcePlay(result) => failure_case!(result, "audio-source-play"),
+        CommandResponse::AudioSourcePause(result) => failure_case!(result, "audio-source-pause"),
+        CommandResponse::AudioSourceStop(result) => failure_case!(result, "audio-source-stop"),
+        CommandResponse::AudioSourceDispose(result) => {
+            failure_case!(result, "audio-source-dispose")
+        }
+        CommandResponse::AudioResourceDispose(result) => {
+            failure_case!(result, "audio-resource-dispose")
+        }
+        CommandResponse::GeometryCreate(result) => failure_case!(result, "geometry-create"),
+        CommandResponse::GeometryUpdate(result) => failure_case!(result, "geometry-update"),
+        CommandResponse::GeometryDispose(result) => failure_case!(result, "geometry-dispose"),
+        CommandResponse::PrimitiveGeometryCreate(result) => {
+            failure_case!(result, "primitive-geometry-create")
+        }
+        CommandResponse::EnvironmentCreate(result) => failure_case!(result, "environment-create"),
+        CommandResponse::EnvironmentUpdate(result) => failure_case!(result, "environment-update"),
+        CommandResponse::EnvironmentDispose(result) => {
+            failure_case!(result, "environment-dispose")
+        }
+        CommandResponse::ShadowConfigure(result) => failure_case!(result, "shadow-configure"),
+        CommandResponse::RealmCreate(result) => failure_case!(result, "realm-create"),
+        CommandResponse::RealmDispose(result) => failure_case!(result, "realm-dispose"),
+        CommandResponse::TargetUpsert(result) => failure_case!(result, "target-upsert"),
+        CommandResponse::TargetDispose(result) => failure_case!(result, "target-dispose"),
+        CommandResponse::TargetLayerUpsert(result) => {
+            failure_case!(result, "target-layer-upsert")
+        }
+        CommandResponse::TargetLayerDispose(result) => {
+            failure_case!(result, "target-layer-dispose")
+        }
+        CommandResponse::UiThemeDefine(result) => failure_case!(result, "ui-theme-define"),
+        CommandResponse::UiThemeDispose(result) => failure_case!(result, "ui-theme-dispose"),
+        CommandResponse::UiDocumentCreate(result) => failure_case!(result, "ui-document-create"),
+        CommandResponse::UiDocumentDispose(result) => {
+            failure_case!(result, "ui-document-dispose")
+        }
+        CommandResponse::UiDocumentSetRect(result) => {
+            failure_case!(result, "ui-document-set-rect")
+        }
+        CommandResponse::UiDocumentSetTheme(result) => {
+            failure_case!(result, "ui-document-set-theme")
+        }
+        CommandResponse::UiApplyOps(result) => failure_case!(result, "ui-apply-ops"),
+        CommandResponse::UiDebugSet(result) => failure_case!(result, "ui-debug-set"),
+        CommandResponse::UiImageCreateFromBuffer(result) => {
+            failure_case!(result, "ui-image-create-from-buffer")
+        }
+        CommandResponse::UiImageDispose(result) => failure_case!(result, "ui-image-dispose"),
+        CommandResponse::ModelList(result) => failure_case!(result, "model-list"),
+        CommandResponse::MaterialList(result) => failure_case!(result, "material-list"),
+        CommandResponse::TextureList(result) => failure_case!(result, "texture-list"),
+        CommandResponse::GeometryList(result) => failure_case!(result, "geometry-list"),
+        CommandResponse::LightList(result) => failure_case!(result, "light-list"),
+        CommandResponse::CameraList(result) => failure_case!(result, "camera-list"),
+        _ => None,
+    };
+
+    let Some((command_type, message)) = failure else {
+        return;
+    };
+
+    engine
+        .event_queue
+        .push(EngineEvent::System(SystemEvent::Error {
+            scope: "command".into(),
+            message: message.to_string(),
+            command_id: Some(command_id),
+            command_type: Some(command_type.to_string()),
+        }));
+}
+
 pub fn engine_process_batch(
     engine: &mut EngineState,
     platform: &mut dyn PlatformProxy,
     batch: EngineBatchCmds,
 ) -> VulframResult {
     for pack in batch {
+        let response_count_before = engine.response_queue.len();
+        let command_id = pack.id;
         match pack.cmd {
             EngineCmd::CmdNotificationSend(args) => {
                 let result =
@@ -848,6 +979,11 @@ pub fn engine_process_batch(
                     }),
                 });
             }
+        }
+        if engine.response_queue.len() > response_count_before
+            && let Some(last_response) = engine.response_queue.last().cloned()
+        {
+            maybe_emit_response_error_event(engine, command_id, &last_response.response);
         }
     }
 

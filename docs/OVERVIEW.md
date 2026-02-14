@@ -250,6 +250,8 @@ forwards pointer input to the bound UI realm.
 Pointer routing now propagates through multiple realm/target hops per event (including
 `RealmViewport -> 3D -> UIPlane -> UI`). Cycles are handled with bounded step propagation
 to keep the frame loop non-blocking.
+Command failures and internal diagnostic errors are forwarded to host through
+`SystemEvent::Error`.
 
 ---
 

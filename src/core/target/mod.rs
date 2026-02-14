@@ -1,5 +1,6 @@
 pub mod cmd;
 pub mod graph;
+mod graph_hash;
 pub mod resolve;
 pub mod state;
 

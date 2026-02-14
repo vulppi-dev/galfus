@@ -93,6 +93,7 @@ pub struct EngineState {
 - `realms`, `surfaces`, `connectors`, `presents`
 - `surface_cache` for cycle-breaking (`LastGoodSurface`/`FallbackSurface`)
 - `frame_report` for RealmGraph diagnostics
+- `host_realm_index` and `target_ui_realm_index` for auto-graph/raycast routing
 
 ---
 
@@ -154,6 +155,7 @@ Async texture decode:
 
 - `CmdTextureCreateFromBuffer` returns `{ pending: true }` when decode is queued.
 - The engine later emits `SystemEvent::TextureReady { windowId, textureId, success, message }`.
+- Diagnostic failures also emit `SystemEvent::Error { scope, message, commandId?, commandType? }`.
 
 `PostProcessConfig` highlights:
 
@@ -454,7 +456,8 @@ On `vulfram_receive_events`, the core:
   - `totalEventsDispatched`
   - `totalEventsCached`
 - `frameReport` with the RealmGraph execution order, cut edges, cached surface
-  entries, and any throttled/no-progress realms detected during the frame.
+  entries, any throttled/no-progress realms, plus target auto-link diagnostics
+  (`targetAutolinkFailures`).
 
 On `vulfram_get_profiling`, the core:
 

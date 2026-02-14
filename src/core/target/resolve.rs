@@ -1,24 +1,28 @@
 use std::collections::{HashMap, HashSet};
 
+use crate::core::cmd::EngineEvent;
 use crate::core::realm::{
     AutoLink, ConnectorId, ConnectorState, PresentState, RealmId, SurfaceKind, SurfaceState,
     UniversalState,
 };
 use crate::core::state::EngineState;
+use crate::core::system::SystemEvent;
 use crate::core::target::{TargetLayerState, TargetId, TargetKind};
 
 pub fn sync_auto_graph(engine_state: &mut EngineState) {
-    let mut desired_binds: Vec<TargetLayerState> = engine_state
+    rebuild_target_indexes(&mut engine_state.universal_state);
+
+    let mut desired_layers: Vec<TargetLayerState> = engine_state
         .universal_state
         .target_layers
         .entries
         .values()
         .cloned()
         .collect();
-    desired_binds.sort_by_key(|bind| (bind.realm_id, bind.target_id.0));
-    let desired_keys: HashSet<(u32, TargetId)> = desired_binds
+    desired_layers.sort_by_key(|layer| (layer.realm_id, layer.target_id.0));
+    let desired_keys: HashSet<(u32, TargetId)> = desired_layers
         .iter()
-        .map(|bind| (bind.realm_id, bind.target_id))
+        .map(|layer| (layer.realm_id, layer.target_id))
         .collect();
 
     let existing_keys: Vec<_> = engine_state
@@ -34,47 +38,58 @@ pub fn sync_auto_graph(engine_state: &mut EngineState) {
     }
 
     let mut primary_targets: HashMap<u32, TargetId> = HashMap::new();
+    let mut auto_link_failures = Vec::new();
 
-    for bind in desired_binds {
-        let key = (bind.realm_id, bind.target_id);
+    for layer in desired_layers {
+        let key = (layer.realm_id, layer.target_id);
+        let realm_id = RealmId(layer.realm_id);
+        let Some(realm_entry) = engine_state.universal_state.realms.entries.get(&realm_id) else {
+            auto_link_failures.push(crate::core::realm::TargetAutoLinkFailure {
+                realm_id: layer.realm_id,
+                target_id: layer.target_id.0,
+                reason: "realm-not-found".into(),
+            });
+            remove_auto_link(&mut engine_state.universal_state, key);
+            continue;
+        };
         let target = match engine_state
             .universal_state
             .targets
             .entries
-            .get(&bind.target_id)
+            .get(&layer.target_id)
         {
             Some(target) => target.clone(),
             None => {
+                auto_link_failures.push(crate::core::realm::TargetAutoLinkFailure {
+                    realm_id: layer.realm_id,
+                    target_id: layer.target_id.0,
+                    reason: "target-not-found".into(),
+                });
                 remove_auto_link(&mut engine_state.universal_state, key);
                 continue;
             }
         };
 
         let primary_target = primary_targets
-            .entry(bind.realm_id)
-            .or_insert(bind.target_id);
-        let is_primary = *primary_target == bind.target_id;
+            .entry(layer.realm_id)
+            .or_insert(layer.target_id);
+        let is_primary = *primary_target == layer.target_id;
 
-        let mut surface_id = engine_state
-            .universal_state
-            .realms
-            .entries
-            .get(&RealmId(bind.realm_id))
-            .and_then(|entry| entry.value.output_surface);
+        let mut surface_id = realm_entry.value.output_surface;
 
         if surface_id.is_none() {
-            let desired_surface = surface_state_for_target(engine_state, &target);
+            let desired_surface = surface_state_for_target(engine_state, &target, Some(&layer));
             surface_id = Some(engine_state.universal_state.surfaces.alloc(desired_surface));
             if let Some(entry) = engine_state
                 .universal_state
                 .realms
                 .entries
-                .get_mut(&RealmId(bind.realm_id))
+                .get_mut(&realm_id)
             {
                 entry.value.output_surface = surface_id;
             }
         } else if is_primary {
-            let desired_surface = surface_state_for_target(engine_state, &target);
+            let desired_surface = surface_state_for_target(engine_state, &target, Some(&layer));
             if let Some(surface_id) = surface_id {
                 if let Some(entry) = engine_state
                     .universal_state
@@ -108,7 +123,7 @@ pub fn sync_auto_graph(engine_state: &mut EngineState) {
                     update_auto_link_layout(
                         &mut engine_state.universal_state,
                         Some(connector_id),
-                        &bind,
+                        &layer,
                     );
                 }
                 continue;
@@ -129,20 +144,29 @@ pub fn sync_auto_graph(engine_state: &mut EngineState) {
             }
             TargetKind::RealmViewport | TargetKind::UiPlane => {
                 if let Some(window_id) = target.window_id {
-                    if let Some(host_realm) =
-                        find_host_realm_for_window(&engine_state.universal_state, window_id)
+                    if let Some(host_realm) = engine_state
+                        .universal_state
+                        .host_realm_index
+                        .get(&window_id)
+                        .copied()
                     {
                         connector_id = Some(engine_state.universal_state.connectors.alloc(
                             ConnectorState {
                                 target_realm: host_realm,
                                 source_surface: surface_id,
-                                rect: bind.layout.rect,
-                                z_index: bind.layout.z_index,
-                                blend_mode: bind.layout.blend_mode,
-                                clip: bind.layout.clip,
-                                input_flags: bind.layout.input_flags,
+                                rect: layer.layout.rect,
+                                z_index: layer.layout.z_index,
+                                blend_mode: layer.layout.blend_mode,
+                                clip: layer.layout.clip,
+                                input_flags: layer.layout.input_flags,
                             },
                         ));
+                    } else {
+                        auto_link_failures.push(crate::core::realm::TargetAutoLinkFailure {
+                            realm_id: layer.realm_id,
+                            target_id: layer.target_id.0,
+                            reason: "host-realm-not-found".into(),
+                        });
                     }
                 }
             }
@@ -158,6 +182,22 @@ pub fn sync_auto_graph(engine_state: &mut EngineState) {
             },
         );
     }
+    if auto_link_failures != engine_state.universal_state.target_autolink_failures {
+        for failure in &auto_link_failures {
+            engine_state
+                .event_queue
+                .push(EngineEvent::System(SystemEvent::Error {
+                    scope: "target-auto-link".into(),
+                    message: format!(
+                        "realm_id={} target_id={} reason={}",
+                        failure.realm_id, failure.target_id, failure.reason
+                    ),
+                    command_id: None,
+                    command_type: None,
+                }));
+        }
+    }
+    engine_state.universal_state.target_autolink_failures = auto_link_failures;
 }
 
 pub(crate) fn remove_auto_link_for_layer(
@@ -171,7 +211,7 @@ pub(crate) fn remove_auto_link_for_layer(
 fn update_auto_link_layout(
     universal: &mut UniversalState,
     connector_id: Option<ConnectorId>,
-    bind: &TargetLayerState,
+    layer: &TargetLayerState,
 ) {
     let Some(connector_id) = connector_id else {
         return;
@@ -180,11 +220,11 @@ fn update_auto_link_layout(
         return;
     };
 
-    entry.value.rect = bind.layout.rect;
-    entry.value.z_index = bind.layout.z_index;
-    entry.value.blend_mode = bind.layout.blend_mode;
-    entry.value.clip = bind.layout.clip;
-    entry.value.input_flags = bind.layout.input_flags;
+    entry.value.rect = layer.layout.rect;
+    entry.value.z_index = layer.layout.z_index;
+    entry.value.blend_mode = layer.layout.blend_mode;
+    entry.value.clip = layer.layout.clip;
+    entry.value.input_flags = layer.layout.input_flags;
 }
 
 fn remove_auto_link(universal: &mut UniversalState, key: (u32, TargetId)) {
@@ -235,34 +275,77 @@ fn remove_auto_link(universal: &mut UniversalState, key: (u32, TargetId)) {
     }
 }
 
-fn find_host_realm_for_window(universal: &UniversalState, window_id: u32) -> Option<RealmId> {
-    let mut chosen: Option<RealmId> = None;
-    for (realm_id, entry) in universal.realms.entries.iter() {
-        if entry.value.host_window_id != Some(window_id) {
+fn rebuild_target_indexes(universal: &mut UniversalState) {
+    universal.host_realm_index.clear();
+    for (realm_id, entry) in &universal.realms.entries {
+        let Some(window_id) = entry.value.host_window_id else {
             continue;
-        }
-        if let Some(current) = chosen {
-            if realm_id.0 < current.0 {
-                chosen = Some(*realm_id);
+        };
+        match universal.host_realm_index.get_mut(&window_id) {
+            Some(existing) => {
+                if realm_id.0 < existing.0 {
+                    *existing = *realm_id;
+                }
             }
-        } else {
-            chosen = Some(*realm_id);
+            None => {
+                universal.host_realm_index.insert(window_id, *realm_id);
+            }
         }
     }
-    chosen
+
+    universal.target_ui_realm_index.clear();
+    for layer in universal.target_layers.entries.values() {
+        let realm_id = RealmId(layer.realm_id);
+        let Some(realm_entry) = universal.realms.entries.get(&realm_id) else {
+            continue;
+        };
+        if realm_entry.value.kind != crate::core::realm::RealmKind::TwoD {
+            continue;
+        }
+        match universal.target_ui_realm_index.get_mut(&layer.target_id) {
+            Some(existing) => {
+                if realm_id.0 < existing.0 {
+                    *existing = realm_id;
+                }
+            }
+            None => {
+                universal.target_ui_realm_index.insert(layer.target_id, realm_id);
+            }
+        }
+    }
 }
 
 fn surface_state_for_target(
     engine_state: &EngineState,
     target: &crate::core::target::TargetState,
+    layer: Option<&TargetLayerState>,
 ) -> SurfaceState {
     let size = match target.kind {
         TargetKind::Texture => target.size.unwrap_or_else(|| glam::UVec2::new(1, 1)),
-        TargetKind::Window | TargetKind::RealmViewport | TargetKind::UiPlane => target
+        TargetKind::Window => target
             .window_id
             .and_then(|window_id| engine_state.window.states.get(&window_id))
             .map(|state| state.inner_size)
             .unwrap_or_else(|| glam::UVec2::new(1, 1)),
+        TargetKind::RealmViewport | TargetKind::UiPlane => {
+            let layer_size = layer.and_then(|layer| {
+                let width = layer.layout.rect.z.max(1.0).round() as u32;
+                let height = layer.layout.rect.w.max(1.0).round() as u32;
+                if width > 0 && height > 0 {
+                    Some(glam::UVec2::new(width, height))
+                } else {
+                    None
+                }
+            });
+            layer_size
+                .or_else(|| {
+                    target
+                        .window_id
+                        .and_then(|window_id| engine_state.window.states.get(&window_id))
+                        .map(|state| state.inner_size)
+                })
+                .unwrap_or_else(|| glam::UVec2::new(1, 1))
+        }
     };
 
     SurfaceState {
