@@ -42,7 +42,8 @@ pub fn engine_cmd_ui_image_create_from_buffer(
     args: &CmdUiImageCreateFromBufferArgs,
 ) -> CmdResultUiImageCreateFromBuffer {
     let ui_state = &mut engine.universal_state.ui;
-    if ui_state.images.contains_key(&args.image_id) || ui_state.image_async.is_pending(args.image_id)
+    if ui_state.images.contains_key(&args.image_id)
+        || ui_state.image_async.is_pending(args.image_id)
     {
         return CmdResultUiImageCreateFromBuffer {
             success: false,

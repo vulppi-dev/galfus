@@ -2,7 +2,7 @@ use glam::Vec4;
 
 use crate::core::cmd::EngineCmd;
 use crate::core::target::cmd::{CmdTargetLayerUpsertArgs, CmdTargetUpsertArgs};
-use crate::core::target::{TargetLayerLayout, TargetKind};
+use crate::core::target::{TargetKind, TargetLayerLayout};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Demo006TargetIds {
@@ -90,7 +90,6 @@ pub fn build_bind_cmds(targets: Demo006TargetIds, realms: Demo006BindRealms) -> 
                 1,
                 0,
                 Some(Vec4::new(0.0, 0.0, 640.0, 720.0)),
-                0,
             ),
         },
         CmdTargetLayerUpsertArgs {
@@ -101,7 +100,6 @@ pub fn build_bind_cmds(targets: Demo006TargetIds, realms: Demo006BindRealms) -> 
                 2,
                 0,
                 Some(Vec4::new(20.0, 430.0, 600.0, 260.0)),
-                0,
             ),
         },
         CmdTargetLayerUpsertArgs {
@@ -118,16 +116,11 @@ pub fn build_bind_cmds(targets: Demo006TargetIds, realms: Demo006BindRealms) -> 
     cmds
 }
 
-fn bind_layout(
-    rect: Vec4,
-    z_index: i32,
-    blend_mode: u32,
-    clip: Option<Vec4>
-) -> TargetLayerLayout {
+fn bind_layout(rect: Vec4, z_index: i32, blend_mode: u32, clip: Option<Vec4>) -> TargetLayerLayout {
     TargetLayerLayout {
         rect,
         z_index,
         blend_mode,
-        clip
+        clip,
     }
 }

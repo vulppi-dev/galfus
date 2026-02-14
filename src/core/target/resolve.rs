@@ -7,7 +7,7 @@ use crate::core::realm::{
 };
 use crate::core::state::EngineState;
 use crate::core::system::SystemEvent;
-use crate::core::target::{TargetLayerState, TargetId, TargetKind};
+use crate::core::target::{TargetId, TargetKind, TargetLayerState};
 
 const INPUT_FLAG_RAYCAST: u32 = 1 << 0;
 
@@ -111,12 +111,10 @@ pub fn sync_auto_graph(engine_state: &mut EngineState) {
         };
 
         if let Some(link) = engine_state.universal_state.auto_links.get(&key).cloned() {
-            let needs_rebuild =
-                link.surface_id != surface_id
-                    || link.present_id.is_none()
-                        && matches!(target.kind, TargetKind::Window)
-                    || link.connector_id.is_none()
-                        && matches!(target.kind, TargetKind::RealmViewport | TargetKind::UiPlane);
+            let needs_rebuild = link.surface_id != surface_id
+                || link.present_id.is_none() && matches!(target.kind, TargetKind::Window)
+                || link.connector_id.is_none()
+                    && matches!(target.kind, TargetKind::RealmViewport | TargetKind::UiPlane);
 
             if needs_rebuild {
                 remove_auto_link(&mut engine_state.universal_state, key);
@@ -320,7 +318,9 @@ fn rebuild_target_indexes(universal: &mut UniversalState) {
                 }
             }
             None => {
-                universal.target_ui_realm_index.insert(layer.target_id, realm_id);
+                universal
+                    .target_ui_realm_index
+                    .insert(layer.target_id, realm_id);
             }
         }
     }

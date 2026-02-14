@@ -70,7 +70,9 @@ pub fn run(ctx: DemoContext, setup: &Demo006Setup, _realms: &Demo006RealmIds) ->
             match event {
                 EngineEvent::Ui(ui_event) if ui_event.document_id == ids.ui_panel_document_id => {
                     match (ui_event.node_id, ui_event.kind) {
-                        (node_id, UiEventKind::ChangeCommit) if node_id == ids.ui_panel_input_id => {
+                        (node_id, UiEventKind::ChangeCommit)
+                            if node_id == ids.ui_panel_input_id =>
+                        {
                             if let Some(text) = ui_event.label {
                                 ui_panel_version += 1;
                                 let _ = send_commands(vec![EngineCmd::CmdUiApplyOps(
@@ -92,8 +94,8 @@ pub fn run(ctx: DemoContext, setup: &Demo006Setup, _realms: &Demo006RealmIds) ->
                         (node_id, UiEventKind::Click) if node_id == ids.ui_panel_button_add_id => {
                             panel_counter += 1;
                             ui_panel_version += 1;
-                            let _ = send_commands(vec![EngineCmd::CmdUiApplyOps(
-                                CmdUiApplyOpsArgs {
+                            let _ =
+                                send_commands(vec![EngineCmd::CmdUiApplyOps(CmdUiApplyOpsArgs {
                                     document_id: ids.ui_panel_document_id,
                                     version: ui_panel_version,
                                     ops: vec![UiOp::Set {
@@ -104,16 +106,15 @@ pub fn run(ctx: DemoContext, setup: &Demo006Setup, _realms: &Demo006RealmIds) ->
                                             color: None,
                                         },
                                     }],
-                                },
-                            )]);
+                                })]);
                         }
                         (node_id, UiEventKind::Click)
                             if node_id == ids.ui_panel_button_remove_id =>
                         {
                             panel_counter -= 1;
                             ui_panel_version += 1;
-                            let _ = send_commands(vec![EngineCmd::CmdUiApplyOps(
-                                CmdUiApplyOpsArgs {
+                            let _ =
+                                send_commands(vec![EngineCmd::CmdUiApplyOps(CmdUiApplyOpsArgs {
                                     document_id: ids.ui_panel_document_id,
                                     version: ui_panel_version,
                                     ops: vec![UiOp::Set {
@@ -124,8 +125,7 @@ pub fn run(ctx: DemoContext, setup: &Demo006Setup, _realms: &Demo006RealmIds) ->
                                             color: None,
                                         },
                                     }],
-                                },
-                            )]);
+                                })]);
                         }
                         _ => {}
                     }
@@ -159,8 +159,8 @@ pub fn run(ctx: DemoContext, setup: &Demo006Setup, _realms: &Demo006RealmIds) ->
                             } else {
                                 "[ ] Habilitar efeito"
                             };
-                            let _ = send_commands(vec![EngineCmd::CmdUiApplyOps(
-                                CmdUiApplyOpsArgs {
+                            let _ =
+                                send_commands(vec![EngineCmd::CmdUiApplyOps(CmdUiApplyOpsArgs {
                                     document_id: ids.ui_document_id,
                                     version: ui_version,
                                     ops: vec![UiOp::Set {
@@ -170,14 +170,13 @@ pub fn run(ctx: DemoContext, setup: &Demo006Setup, _realms: &Demo006RealmIds) ->
                                             enabled: Some(true),
                                         },
                                     }],
-                                },
-                            )]);
+                                })]);
                         }
                         (node_id, UiEventKind::Click) if node_id == ids.ui_button_add_id => {
                             counter += 1;
                             ui_version += 1;
-                            let _ = send_commands(vec![EngineCmd::CmdUiApplyOps(
-                                CmdUiApplyOpsArgs {
+                            let _ =
+                                send_commands(vec![EngineCmd::CmdUiApplyOps(CmdUiApplyOpsArgs {
                                     document_id: ids.ui_document_id,
                                     version: ui_version,
                                     ops: vec![UiOp::Set {
@@ -188,14 +187,13 @@ pub fn run(ctx: DemoContext, setup: &Demo006Setup, _realms: &Demo006RealmIds) ->
                                             color: None,
                                         },
                                     }],
-                                },
-                            )]);
+                                })]);
                         }
                         (node_id, UiEventKind::Click) if node_id == ids.ui_button_remove_id => {
                             counter -= 1;
                             ui_version += 1;
-                            let _ = send_commands(vec![EngineCmd::CmdUiApplyOps(
-                                CmdUiApplyOpsArgs {
+                            let _ =
+                                send_commands(vec![EngineCmd::CmdUiApplyOps(CmdUiApplyOpsArgs {
                                     document_id: ids.ui_document_id,
                                     version: ui_version,
                                     ops: vec![UiOp::Set {
@@ -206,8 +204,7 @@ pub fn run(ctx: DemoContext, setup: &Demo006Setup, _realms: &Demo006RealmIds) ->
                                             color: None,
                                         },
                                     }],
-                                },
-                            )]);
+                                })]);
                         }
                         _ => {}
                     }
@@ -224,9 +221,10 @@ pub fn run(ctx: DemoContext, setup: &Demo006Setup, _realms: &Demo006RealmIds) ->
                     ..
                 }) if id == window_id => {
                     if key_code == 106 || key_code == 94 {
-                        let _ = send_commands(vec![EngineCmd::CmdWindowClose(CmdWindowCloseArgs {
-                            window_id,
-                        })]);
+                        let _ =
+                            send_commands(vec![EngineCmd::CmdWindowClose(CmdWindowCloseArgs {
+                                window_id,
+                            })]);
                         return true;
                     }
                 }

@@ -2,16 +2,15 @@ use std::time::Duration;
 
 use glam::{Mat4, Vec2, Vec3, Vec4};
 
-use super::maps::{build_bind_cmds, build_target_cmds, Demo006BindRealms};
+use super::maps::{Demo006BindRealms, build_bind_cmds, build_target_cmds};
 use crate::core::VulframResult;
 use crate::core::cmd::{CommandResponse, EngineCmd};
 use crate::core::realm::cmd::{CmdRealmCreateArgs, RealmKindDto};
 use crate::core::resources::{
-    CameraKind, CmdCameraCreateArgs, CmdEnvironmentUpdateArgs, CmdModelCreateArgs,
-    CmdPrimitiveGeometryCreateArgs, CmdTextureBindTargetArgs, EnvironmentConfig, MsaaConfig,
-    PostProcessConfig, PrimitiveShape, SkyboxConfig, SkyboxMode,
-    CmdMaterialCreateArgs, MaterialKind, MaterialOptions, MaterialSampler, StandardOptions,
-    SurfaceType,
+    CameraKind, CmdCameraCreateArgs, CmdEnvironmentUpdateArgs, CmdMaterialCreateArgs,
+    CmdModelCreateArgs, CmdPrimitiveGeometryCreateArgs, CmdTextureBindTargetArgs,
+    EnvironmentConfig, MaterialKind, MaterialOptions, MaterialSampler, MsaaConfig,
+    PostProcessConfig, PrimitiveShape, SkyboxConfig, SkyboxMode, StandardOptions, SurfaceType,
 };
 use crate::core::ui::cmd::{CmdUiApplyOpsArgs, CmdUiDocumentCreateArgs, CmdUiThemeDefineArgs};
 use crate::core::ui::types::{
@@ -180,7 +179,11 @@ impl Demo006Setup {
                 Vec4::new(0.85, 0.9, 1.0, 1.0),
                 1.25,
             ),
-            create_point_light_cmd(window_main, self.ids.light_key_id, Vec4::new(3.5, 4.5, 5.5, 1.0)),
+            create_point_light_cmd(
+                window_main,
+                self.ids.light_key_id,
+                Vec4::new(3.5, 4.5, 5.5, 1.0),
+            ),
             EngineCmd::CmdTextureBindTarget(CmdTextureBindTargetArgs {
                 window_id: window_main,
                 texture_id: self.ids.texture_ui_panel_id,
@@ -238,8 +241,7 @@ impl Demo006Setup {
                 label: Some(format!("Demo 006 Cube {}", index + 1)),
                 geometry_id: self.ids.geometry_cube_id,
                 material_id: Some(self.ids.material_cube_id),
-                transform: Mat4::from_translation(*position)
-                    * Mat4::from_scale(Vec3::splat(1.4)),
+                transform: Mat4::from_translation(*position) * Mat4::from_scale(Vec3::splat(1.4)),
                 layer_mask: 0xFFFFFFFF,
                 cast_shadow: true,
                 receive_shadow: true,

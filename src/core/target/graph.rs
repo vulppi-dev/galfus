@@ -1,10 +1,8 @@
 use std::collections::{HashMap, HashSet, VecDeque};
 
 use crate::core::realm::{RealmId, RealmTable};
-use crate::core::target::{
-    TargetId, TargetKind, TargetLayerState, TargetState,
-};
 use crate::core::target::graph_hash::{hash_entries, hash_targets_layers_and_realms};
+use crate::core::target::{TargetId, TargetKind, TargetLayerState, TargetState};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct TargetEdge {
@@ -42,8 +40,7 @@ impl TargetGraphPlanner {
                         realms,
                         *target_id,
                         &window_targets,
-                    )
-                    {
+                    ) {
                         parents.insert(*target_id, parent);
                     }
                 }
@@ -191,8 +188,10 @@ fn diff_targets_layers_and_realms(
     diff.removed_targets.sort_by_key(|id| id.0);
     diff.updated_targets.sort_by_key(|id| id.0);
     diff.added_layers.sort_by_key(|(realm, id)| (*realm, id.0));
-    diff.removed_layers.sort_by_key(|(realm, id)| (*realm, id.0));
-    diff.updated_layers.sort_by_key(|(realm, id)| (*realm, id.0));
+    diff.removed_layers
+        .sort_by_key(|(realm, id)| (*realm, id.0));
+    diff.updated_layers
+        .sort_by_key(|(realm, id)| (*realm, id.0));
     diff.updated_layers.dedup();
 
     let mut dirty_targets: HashSet<TargetId> = HashSet::new();

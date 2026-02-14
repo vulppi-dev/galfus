@@ -1,11 +1,11 @@
 use crate::core::realm::{AutoLink, RealmId, SurfaceId, SurfaceTable};
+use crate::core::render::RenderState;
 use crate::core::resources::RenderTarget;
 use crate::core::target::{TargetId, TargetKind, TargetTable};
-use crate::core::render::RenderState;
+use crate::core::ui::UiState;
 use crate::core::ui::events::UiEvent;
 use crate::core::ui::render::{hash_shapes, render_realm_documents, sync_ui_images};
 use crate::core::ui::renderer::ExternalTextureInput;
-use crate::core::ui::UiState;
 use std::collections::HashMap;
 use std::time::Instant;
 
@@ -28,8 +28,14 @@ pub fn pass_ui(
     time_seconds: f64,
 ) {
     ui_state.ensure_realm(realm_id);
-    let external_inputs =
-        collect_external_textures(ui_state, targets, surfaces, auto_links, surface_targets, realm_id);
+    let external_inputs = collect_external_textures(
+        ui_state,
+        targets,
+        surfaces,
+        auto_links,
+        surface_targets,
+        realm_id,
+    );
     let (context, pixels_per_point, input_events, modifiers) = {
         let Some(ui_realm) = ui_state.realm_mut(realm_id) else {
             return;
@@ -74,8 +80,8 @@ pub fn pass_ui(
                 && output.textures_delta.set.is_empty()
         })
         .map(|cache| cache.clipped.clone());
-    let clipped_primitives = cached
-        .unwrap_or_else(|| context.tessellate(output.shapes, output.pixels_per_point));
+    let clipped_primitives =
+        cached.unwrap_or_else(|| context.tessellate(output.shapes, output.pixels_per_point));
     let tess_ms = tess_start.elapsed().as_secs_f32() * 1000.0;
     if let Some(realm) = ui_state.realm_mut(realm_id) {
         realm.profile.layout_ms = layout_ms;

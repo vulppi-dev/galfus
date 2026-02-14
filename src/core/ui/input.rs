@@ -1,5 +1,7 @@
 use crate::core::cmd::EngineEvent;
-use crate::core::input::events::{ElementState, KeyboardEvent, PointerEvent, ScrollDelta, TouchPhase};
+use crate::core::input::events::{
+    ElementState, KeyboardEvent, PointerEvent, ScrollDelta, TouchPhase,
+};
 use crate::core::realm::{RealmId, UniversalState};
 use crate::core::state::EngineState;
 use crate::core::ui::state::UiRealmState;
@@ -14,8 +16,7 @@ pub fn process_ui_input(engine: &mut EngineState) {
             EngineEvent::Pointer(pointer_event) => {
                 if let Some((realm_id, pos)) = resolve_pointer_realm(engine, pointer_event) {
                     let modifiers = current_modifiers(engine, realm_id);
-                    if let Some(pointer_event) =
-                        build_pointer_event(pointer_event, pos, modifiers)
+                    if let Some(pointer_event) = build_pointer_event(pointer_event, pos, modifiers)
                     {
                         pointer_updates.push((realm_id, pointer_event));
                     }
@@ -25,11 +26,10 @@ pub fn process_ui_input(engine: &mut EngineState) {
                         PointerEvent::OnButton {
                             state: ElementState::Pressed,
                             ..
+                        } | PointerEvent::OnTouch {
+                            phase: TouchPhase::Started,
+                            ..
                         }
-                            | PointerEvent::OnTouch {
-                                phase: TouchPhase::Started,
-                                ..
-                            }
                     ) {
                         focus_updates.push((pointer_window_id(pointer_event), realm_id));
                     }
@@ -70,7 +70,10 @@ pub fn process_ui_input(engine: &mut EngineState) {
     }
 }
 
-fn ensure_realm(ui_state: &mut crate::core::ui::UiState, realm_id: RealmId) -> Option<&mut UiRealmState> {
+fn ensure_realm(
+    ui_state: &mut crate::core::ui::UiState,
+    realm_id: RealmId,
+) -> Option<&mut UiRealmState> {
     ui_state.ensure_realm(realm_id);
     ui_state.realm_mut(realm_id)
 }
@@ -142,7 +145,10 @@ fn connector_source_size(
 fn realm_output_size(universal: &UniversalState, realm_id: RealmId) -> Option<glam::UVec2> {
     let realm = universal.realms.get(realm_id)?;
     let surface_id = realm.value.output_surface?;
-    universal.surfaces.get(surface_id).map(|entry| entry.value.size)
+    universal
+        .surfaces
+        .get(surface_id)
+        .map(|entry| entry.value.size)
 }
 
 fn build_pointer_event(
@@ -154,9 +160,7 @@ fn build_pointer_event(
         PointerEvent::OnMove { .. } => Some(egui::Event::PointerMoved(pos)),
         PointerEvent::OnEnter { .. } => Some(egui::Event::PointerMoved(pos)),
         PointerEvent::OnLeave { .. } => Some(egui::Event::PointerGone),
-        PointerEvent::OnButton {
-            button, state, ..
-        } => {
+        PointerEvent::OnButton { button, state, .. } => {
             let button = pointer_button(*button)?;
             Some(egui::Event::PointerButton {
                 pos,
@@ -203,8 +207,15 @@ fn build_keyboard_event(
     event: &KeyboardEvent,
 ) -> Option<(RealmId, egui::Modifiers, Vec<egui::Event>)> {
     let (window_id, modifiers_state) = match event {
-        KeyboardEvent::OnInput { window_id, modifiers, .. } => (*window_id, *modifiers),
-        KeyboardEvent::OnModifiersChange { window_id, modifiers } => (*window_id, *modifiers),
+        KeyboardEvent::OnInput {
+            window_id,
+            modifiers,
+            ..
+        } => (*window_id, *modifiers),
+        KeyboardEvent::OnModifiersChange {
+            window_id,
+            modifiers,
+        } => (*window_id, *modifiers),
         KeyboardEvent::OnImeEnable { window_id }
         | KeyboardEvent::OnImePreedit { window_id, .. }
         | KeyboardEvent::OnImeCommit { window_id, .. }

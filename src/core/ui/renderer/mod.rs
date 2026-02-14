@@ -35,9 +35,19 @@ pub struct UiRenderer {
 }
 
 impl UiRenderer {
-    pub fn new(device: &wgpu::Device, queue: &wgpu::Queue, target_format: wgpu::TextureFormat) -> Self {
+    pub fn new(
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        target_format: wgpu::TextureFormat,
+    ) -> Self {
         let pipeline = UiPipeline::new(device, target_format);
-        let textures = UiTextureStore::new(device, queue, pipeline.bind_group_layout(), pipeline.sampler(), pipeline.uniform_buffer());
+        let textures = UiTextureStore::new(
+            device,
+            queue,
+            pipeline.bind_group_layout(),
+            pipeline.sampler(),
+            pipeline.uniform_buffer(),
+        );
         Self {
             pipeline,
             textures,
@@ -51,8 +61,14 @@ impl UiRenderer {
         queue: &wgpu::Queue,
         delta: &egui::TexturesDelta,
     ) {
-        self.textures
-            .update_textures(device, queue, delta, self.pipeline.bind_group_layout(), self.pipeline.sampler(), self.pipeline.uniform_buffer());
+        self.textures.update_textures(
+            device,
+            queue,
+            delta,
+            self.pipeline.bind_group_layout(),
+            self.pipeline.sampler(),
+            self.pipeline.uniform_buffer(),
+        );
     }
 
     pub fn update_external_textures(
@@ -102,8 +118,7 @@ impl UiRenderer {
             }
         }
 
-        self.external_textures
-            .retain(|id, _| keep_ids.contains(id));
+        self.external_textures.retain(|id, _| keep_ids.contains(id));
     }
 
     pub fn render(
@@ -144,7 +159,11 @@ impl UiRenderer {
 
         render_pass.set_pipeline(self.pipeline.pipeline());
 
-        for ClippedPrimitive { clip_rect, primitive } in clipped_primitives {
+        for ClippedPrimitive {
+            clip_rect,
+            primitive,
+        } in clipped_primitives
+        {
             let egui::epaint::Primitive::Mesh(mesh) = primitive else {
                 continue;
             };

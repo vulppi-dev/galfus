@@ -66,10 +66,7 @@ pub enum SystemEvent {
         message: String,
     },
     /// Async UI image decode started
-    UiImageProcessingStarted {
-        image_id: u32,
-        total_bytes: u64,
-    },
+    UiImageProcessingStarted { image_id: u32, total_bytes: u64 },
     /// Async UI image decode progress
     UiImageProcessingProgress {
         image_id: u32,

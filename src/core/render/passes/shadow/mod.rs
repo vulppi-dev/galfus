@@ -382,7 +382,8 @@ pub fn pass_shadow_update(
             rpass.set_scissor_rect(vx as u32, vy as u32, vw as u32, vh as u32);
 
             if let Some(shared_group) = bindings.shadow_shared_group.as_ref() {
-                let camera_offset = bindings.shadow_camera_pool.get_offset(page.shadow_cam_id) as u32;
+                let camera_offset =
+                    bindings.shadow_camera_pool.get_offset(page.shadow_cam_id) as u32;
                 rpass.set_bind_group(0, shared_group, &[camera_offset, 0]);
             }
 

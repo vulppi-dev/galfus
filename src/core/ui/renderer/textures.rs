@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use egui::{ImageData, TexturesDelta, TextureId};
+use egui::{ImageData, TextureId, TexturesDelta};
 use half::f16;
 
 pub struct UiTexture {
@@ -22,7 +22,8 @@ impl UiTextureStore {
         sampler: &wgpu::Sampler,
         uniform_buffer: &wgpu::Buffer,
     ) -> Self {
-        let fallback = create_fallback_texture(device, queue, bind_group_layout, sampler, uniform_buffer);
+        let fallback =
+            create_fallback_texture(device, queue, bind_group_layout, sampler, uniform_buffer);
         Self {
             textures: HashMap::new(),
             fallback,
@@ -51,17 +52,15 @@ impl UiTextureStore {
                     y: pos[1] as u32,
                     z: 0,
                 };
-                let target_size = existing
-                    .map(|tex| tex.size)
-                    .unwrap_or_else(|| [pos[0] as u32 + image_size[0], pos[1] as u32 + image_size[1]]);
+                let target_size = existing.map(|tex| tex.size).unwrap_or_else(|| {
+                    [pos[0] as u32 + image_size[0], pos[1] as u32 + image_size[1]]
+                });
                 (target_size, origin)
             } else {
                 (image_size, wgpu::Origin3d::ZERO)
             };
 
-            let needs_new = existing
-                .map(|tex| tex.size != texture_size)
-                .unwrap_or(true);
+            let needs_new = existing.map(|tex| tex.size != texture_size).unwrap_or(true);
 
             if needs_new {
                 let texture = create_texture(

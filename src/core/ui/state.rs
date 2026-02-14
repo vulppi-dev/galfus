@@ -58,7 +58,6 @@ impl UiRealmState {
     pub fn drain_events(&mut self) -> Vec<egui::Event> {
         std::mem::take(&mut self.pending_events)
     }
-
 }
 
 #[derive(Debug)]
@@ -330,11 +329,13 @@ impl UiDocument {
 
     fn insert_child(&mut self, parent: Option<UiNodeId>, node_id: UiNodeId, index: Option<u32>) {
         let list = match parent {
-            Some(parent_id) => &mut self
-                .nodes
-                .get_mut(&parent_id)
-                .expect("parent checked")
-                .children,
+            Some(parent_id) => {
+                &mut self
+                    .nodes
+                    .get_mut(&parent_id)
+                    .expect("parent checked")
+                    .children
+            }
             None => &mut self.root_children,
         };
         let insert_index = index

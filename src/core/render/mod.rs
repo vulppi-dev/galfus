@@ -6,10 +6,10 @@ mod realm_graph;
 pub mod state;
 
 use crate::core::realm::{FrameReport, RealmGraphPlanner, RealmId};
-use crate::core::ui::events::UiEvent;
 use crate::core::render::graph::RenderGraphPlan;
 use crate::core::state::EngineState;
 use crate::core::target::{TargetId, TargetKind, TargetTable};
+use crate::core::ui::events::UiEvent;
 use realm_graph::{
     collect_connectors_by_realm, collect_cut_connectors, collect_present_sizes,
     collect_surface_views, compose_realm_connectors, ensure_surface_target, map_realms_to_windows,
@@ -153,8 +153,10 @@ pub fn render_frames(engine_state: &mut EngineState) {
     let mut frame_report =
         FrameReport::from_plan(&realm_plan, &engine_state.universal_state.surface_cache);
     frame_report.apply_target_graph_stats(&target_plan, target_diff.as_ref());
-    frame_report.target_autolink_failures =
-        engine_state.universal_state.target_autolink_failures.clone();
+    frame_report.target_autolink_failures = engine_state
+        .universal_state
+        .target_autolink_failures
+        .clone();
     let realm_windows = map_realms_to_windows(&engine_state.universal_state);
     collect_present_sizes(
         &engine_state.universal_state,
@@ -480,7 +482,10 @@ fn execute_graph_to_view(
         (u32, crate::core::target::TargetId),
         crate::core::realm::AutoLink,
     >,
-    surface_targets: &std::collections::HashMap<crate::core::realm::SurfaceId, crate::core::resources::RenderTarget>,
+    surface_targets: &std::collections::HashMap<
+        crate::core::realm::SurfaceId,
+        crate::core::resources::RenderTarget,
+    >,
     device: &wgpu::Device,
     queue: &wgpu::Queue,
     encoder: &mut wgpu::CommandEncoder,
@@ -502,7 +507,8 @@ fn execute_graph_to_view(
                 continue;
             }
             "skybox" => {
-                skybox_done = passes::pass_skybox(render_state, device, queue, encoder, frame_index);
+                skybox_done =
+                    passes::pass_skybox(render_state, device, queue, encoder, frame_index);
             }
             "light-cull" => {
                 if let Some(base) = gpu_base {
@@ -641,7 +647,12 @@ fn apply_target_size_requests(
 
     for (target_id, size) in requests {
         let target_id = TargetId(*target_id);
-        let Some(target) = engine_state.universal_state.targets.entries.get_mut(&target_id) else {
+        let Some(target) = engine_state
+            .universal_state
+            .targets
+            .entries
+            .get_mut(&target_id)
+        else {
             continue;
         };
         if target.kind == TargetKind::Window {

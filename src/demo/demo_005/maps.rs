@@ -2,9 +2,7 @@ use glam::Vec4;
 
 use crate::core::cmd::EngineCmd;
 use crate::core::target::cmd::{CmdTargetLayerUpsertArgs, CmdTargetUpsertArgs};
-use crate::core::target::{TargetLayerLayout, TargetKind};
-
-const INPUT_FLAG_RAYCAST: u32 = 1 << 0;
+use crate::core::target::{TargetKind, TargetLayerLayout};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Demo005TargetIds {
@@ -117,13 +115,7 @@ pub fn build_bind_cmds(targets: Demo005TargetIds, realms: Demo005BindRealms) -> 
         CmdTargetLayerUpsertArgs {
             realm_id: realms.viewport_main,
             target_id: targets.viewport_main,
-            layout: bind_layout(
-                Vec4::new(40.0, 40.0, 320.0, 220.0),
-                2,
-                0,
-                None,
-                INPUT_FLAG_RAYCAST,
-            ),
+            layout: bind_layout(Vec4::new(40.0, 40.0, 320.0, 220.0), 2, 0, None),
         },
         CmdTargetLayerUpsertArgs {
             realm_id: realms.ui,
@@ -133,7 +125,6 @@ pub fn build_bind_cmds(targets: Demo005TargetIds, realms: Demo005BindRealms) -> 
                 3,
                 1,
                 Some(Vec4::new(720.0, 120.0, 160.0, 140.0)),
-                0,
             ),
         },
         CmdTargetLayerUpsertArgs {
@@ -159,12 +150,12 @@ pub fn build_bind_cmds(targets: Demo005TargetIds, realms: Demo005BindRealms) -> 
         CmdTargetLayerUpsertArgs {
             realm_id: realms.host_main,
             target_id: targets.viewport_main,
-            layout: bind_layout(Vec4::new(60.0, 360.0, 220.0, 160.0), 1, 0, None, 0),
+            layout: bind_layout(Vec4::new(60.0, 360.0, 220.0, 160.0), 1, 0, None),
         },
         CmdTargetLayerUpsertArgs {
             realm_id: realms.host_main,
             target_id: targets.viewport_aux,
-            layout: bind_layout(Vec4::new(1020.0, 40.0, 180.0, 120.0), 0, 0, None, 0),
+            layout: bind_layout(Vec4::new(1020.0, 40.0, 180.0, 120.0), 0, 0, None),
         },
         CmdTargetLayerUpsertArgs {
             realm_id: realms.host_aux,
@@ -180,16 +171,11 @@ pub fn build_bind_cmds(targets: Demo005TargetIds, realms: Demo005BindRealms) -> 
     cmds
 }
 
-fn bind_layout(
-    rect: Vec4,
-    z_index: i32,
-    blend_mode: u32,
-    clip: Option<Vec4>
-) -> TargetLayerLayout {
+fn bind_layout(rect: Vec4, z_index: i32, blend_mode: u32, clip: Option<Vec4>) -> TargetLayerLayout {
     TargetLayerLayout {
         rect,
         z_index,
         blend_mode,
-        clip
+        clip,
     }
 }

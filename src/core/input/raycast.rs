@@ -32,7 +32,11 @@ pub(super) fn resolve_ui_plane_hit(
     pointer_position: Vec2,
     pointer_surface_size: glam::UVec2,
 ) -> Option<UiPlaneHit> {
-    let realm_entry = engine_state.universal_state.realms.entries.get(&target_realm)?;
+    let realm_entry = engine_state
+        .universal_state
+        .realms
+        .entries
+        .get(&target_realm)?;
     if realm_entry.value.kind != crate::core::realm::RealmKind::ThreeD {
         return None;
     }

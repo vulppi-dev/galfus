@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::core::audio::{AudioListenerBinding, AudioSourceParams, AudioStreamState};
-use crate::core::target::{TargetLayerTable, TargetGraphCache, TargetTable};
+use crate::core::target::{TargetGraphCache, TargetLayerTable, TargetTable};
 use crate::core::ui::UiState;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

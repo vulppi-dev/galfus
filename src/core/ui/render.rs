@@ -179,10 +179,26 @@ fn render_node(
             let mut rect = ui.available_rect_before_wrap();
             rect = rect.translate(egui::vec2(0.0, translate_y));
             ui.allocate_new_ui(egui::UiBuilder::new().max_rect(rect), |ui| {
-                render_node_inner(ui, document, entry, ui_state, realm_id, ui_events, time_seconds);
+                render_node_inner(
+                    ui,
+                    document,
+                    entry,
+                    ui_state,
+                    realm_id,
+                    ui_events,
+                    time_seconds,
+                );
             });
         } else {
-            render_node_inner(ui, document, entry, ui_state, realm_id, ui_events, time_seconds);
+            render_node_inner(
+                ui,
+                document,
+                entry,
+                ui_state,
+                realm_id,
+                ui_events,
+                time_seconds,
+            );
         }
     });
 
@@ -193,7 +209,10 @@ fn render_node(
             painter.rect_stroke(
                 rect,
                 0.0,
-                egui::Stroke::new(1.0, egui::Color32::from_rgba_premultiplied(0, 200, 255, 140)),
+                egui::Stroke::new(
+                    1.0,
+                    egui::Color32::from_rgba_premultiplied(0, 200, 255, 140),
+                ),
             );
         }
         if debug.show_ids {
@@ -230,8 +249,7 @@ fn render_node_inner(
                 apply_size(ui, size);
                 let spacing = ui.spacing().item_spacing;
                 if layout.gap > 0.0 {
-                    ui.spacing_mut().item_spacing =
-                        egui::vec2(layout.gap, layout.gap);
+                    ui.spacing_mut().item_spacing = egui::vec2(layout.gap, layout.gap);
                 }
                 if scroll_x || scroll_y {
                     let mut scroll = egui::ScrollArea::new([scroll_x, scroll_y]);
@@ -340,10 +358,8 @@ fn render_node_inner(
                             size.y.max(1.0).round() as u32,
                         ),
                     );
-                    let texture = egui::load::SizedTexture::new(
-                        egui::TextureId::User(target_id),
-                        size,
-                    );
+                    let texture =
+                        egui::load::SizedTexture::new(egui::TextureId::User(target_id), size);
                     ui.add(egui::Image::from_texture(texture).fit_to_exact_size(size));
                 } else {
                     ui.label("Target missing");
@@ -414,7 +430,9 @@ fn render_layout(
         }
     };
 
-    layout_def = layout_def.with_main_align(justify).with_main_wrap(layout.wrap);
+    layout_def = layout_def
+        .with_main_align(justify)
+        .with_main_wrap(layout.wrap);
     if layout.wrap {
         if let Some(limit) = layout.wrap_limit {
             if layout_def.is_horizontal() {
@@ -555,7 +573,9 @@ fn parse_color_string(value: &str) -> Option<egui::Color32> {
     if let Some(hex) = trimmed.strip_prefix('#') {
         let parsed = match hex.len() {
             6 => u32::from_str_radix(hex, 16).ok().map(|v| (v, 255u8)),
-            8 => u32::from_str_radix(hex, 16).ok().map(|v| (v >> 8, (v & 0xFF) as u8)),
+            8 => u32::from_str_radix(hex, 16)
+                .ok()
+                .map(|v| (v >> 8, (v & 0xFF) as u8)),
             _ => None,
         };
         if let Some((rgb, a)) = parsed {

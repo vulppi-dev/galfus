@@ -164,15 +164,13 @@ pub fn route_pointer_events(engine_state: &mut EngineState) {
                     });
                 }
             } else if source_realm_id.is_none() {
-                if let Some(ui_plane_hit) =
-                    resolve_ui_plane_hit(
-                        engine_state,
-                        window_id,
-                        realm_id,
-                        position,
-                        window_size.unwrap_or(glam::UVec2::new(1, 1)),
-                    )
-                {
+                if let Some(ui_plane_hit) = resolve_ui_plane_hit(
+                    engine_state,
+                    window_id,
+                    realm_id,
+                    position,
+                    window_size.unwrap_or(glam::UVec2::new(1, 1)),
+                ) {
                     source_realm_id = Some(ui_plane_hit.source_realm_id);
                     target_id = Some(ui_plane_hit.target_id);
                     uv = Some(ui_plane_hit.uv);
@@ -193,7 +191,9 @@ pub fn route_pointer_events(engine_state: &mut EngineState) {
                 if !visited.insert(key) {
                     break;
                 }
-                let Some(surface_size) = realm_surface_size(&engine_state.universal_state, current_realm) else {
+                let Some(surface_size) =
+                    realm_surface_size(&engine_state.universal_state, current_realm)
+                else {
                     break;
                 };
                 let current_position = Vec2::new(
@@ -208,7 +208,10 @@ pub fn route_pointer_events(engine_state: &mut EngineState) {
                     Some(surface_size),
                 ) {
                     connector_id = Some(hit.connector_id);
-                    target_id = connector_targets.get(&hit.connector_id).copied().or(target_id);
+                    target_id = connector_targets
+                        .get(&hit.connector_id)
+                        .copied()
+                        .or(target_id);
                     let connector = engine_state
                         .universal_state
                         .connectors
@@ -219,15 +222,13 @@ pub fn route_pointer_events(engine_state: &mut EngineState) {
                         break;
                     };
                     let next_realm = realm_by_surface.get(&connector.source_surface).copied();
-                    let next_uv = hit
-                        .uv
-                        .or_else(|| {
-                            resolve_connector_uv(
-                                &engine_state.universal_state,
-                                connector,
-                                current_position,
-                            )
-                        });
+                    let next_uv = hit.uv.or_else(|| {
+                        resolve_connector_uv(
+                            &engine_state.universal_state,
+                            connector,
+                            current_position,
+                        )
+                    });
                     match (next_realm, next_uv) {
                         (Some(next_realm), Some(next_uv)) => {
                             source_realm_id = Some(next_realm);

@@ -188,7 +188,11 @@ pub fn engine_cmd_ui_apply_ops(
     let mut scratch = doc.clone();
     for op in &args.ops {
         let result = match op {
-            UiOp::Add { parent, node, index } => scratch.add_node(*parent, node.clone(), *index),
+            UiOp::Add {
+                parent,
+                node,
+                index,
+            } => scratch.add_node(*parent, node.clone(), *index),
             UiOp::Remove { node_id } => scratch.remove_node(*node_id),
             UiOp::Clear { parent } => scratch.clear_children(*parent),
             UiOp::Set { node_id, props } => scratch.set_props(*node_id, props.clone()),

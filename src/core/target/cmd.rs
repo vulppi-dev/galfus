@@ -4,8 +4,8 @@ use serde::{Deserialize, Serialize};
 use crate::core::state::EngineState;
 use crate::core::target::resolve::remove_auto_link_for_layer;
 use crate::core::target::{
-    SurfaceAlphaModeDto, SurfaceFormatDto, TargetLayerLayout, TargetLayerState, TargetId, TargetKind,
-    TargetState,
+    SurfaceAlphaModeDto, SurfaceFormatDto, TargetId, TargetKind, TargetLayerLayout,
+    TargetLayerState, TargetState,
 };
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -187,7 +187,12 @@ pub fn engine_cmd_target_layer_upsert(
         };
     }
     let target_id = TargetId(args.target_id);
-    if !engine.universal_state.targets.entries.contains_key(&target_id) {
+    if !engine
+        .universal_state
+        .targets
+        .entries
+        .contains_key(&target_id)
+    {
         return CmdResultTargetLayerUpsert {
             success: false,
             message: format!("Target {} not found", args.target_id),

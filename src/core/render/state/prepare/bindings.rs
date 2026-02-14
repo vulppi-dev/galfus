@@ -31,7 +31,7 @@ impl RenderState {
                             offset: 0,
                             size: Some(
                                 std::num::NonZeroU64::new(
-                                    std::mem::size_of::<FrameComponent>() as u64,
+                                    std::mem::size_of::<FrameComponent>() as u64
                                 )
                                 .unwrap(),
                             ),
@@ -44,7 +44,7 @@ impl RenderState {
                             offset: 0,
                             size: Some(
                                 std::num::NonZeroU64::new(
-                                    std::mem::size_of::<CameraComponent>() as u64,
+                                    std::mem::size_of::<CameraComponent>() as u64
                                 )
                                 .unwrap(),
                             ),
@@ -56,10 +56,10 @@ impl RenderState {
                             buffer: light_system.light_params.buffer(),
                             offset: 0,
                             size: Some(
-                                std::num::NonZeroU64::new(
-                                    std::mem::size_of::<super::super::light::LightDrawParams>()
-                                        as u64,
-                                )
+                                std::num::NonZeroU64::new(std::mem::size_of::<
+                                    super::super::light::LightDrawParams,
+                                >()
+                                    as u64)
                                 .unwrap(),
                             ),
                         }),

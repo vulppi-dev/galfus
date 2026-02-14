@@ -8,12 +8,12 @@ pub mod prepare;
 pub mod scene;
 pub mod skinning;
 
+use crate::core::realm::RealmId;
 use crate::core::render::cache::RenderCache;
 use crate::core::render::gizmos::GizmoSystem;
 use crate::core::resources::EnvironmentConfig;
 use crate::core::resources::VertexAllocatorSystem;
 use crate::core::resources::shadow::ShadowManager;
-use crate::core::realm::RealmId;
 use crate::core::ui::UiRenderer;
 
 pub use self::binding::BindingSystem;
@@ -29,7 +29,8 @@ pub use crate::core::render::graph::RenderGraphState;
 pub struct RenderState {
     pub scene: RenderScene,
     pub camera_order: Vec<u32>,
-    pub target_texture_binds: std::collections::HashMap<u32, crate::core::resources::TargetTextureBinding>,
+    pub target_texture_binds:
+        std::collections::HashMap<u32, crate::core::resources::TargetTextureBinding>,
     pub external_textures: std::collections::HashMap<u32, wgpu::TextureView>,
     pub bindings: Option<BindingSystem>,
     pub library: Option<ResourceLibrary>,
