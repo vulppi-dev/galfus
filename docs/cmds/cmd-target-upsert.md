@@ -7,8 +7,8 @@ Upserts a logical target used by the auto-graph system.
 | Field         | Type                  | Description                                   |
 | ------------- | --------------------- | --------------------------------------------- |
 | targetId      | u64                   | Logical target ID                             |
-| kind          | TargetKind            | "window", "realm-viewport", "ui-plane", "texture" |
-| windowId | Option<u32>           | Required for `window`, `realm-viewport`, `ui-plane` |
+| kind          | TargetKind            | "window", "ui-plane", "texture" |
+| windowId | Option<u32>           | Required for `window`, `ui-plane` |
 | size  | Option<UVec2>         | Valid only for `texture` targets |
 | formatPolicy  | Option<SurfaceFormat> | Optional color/depth format policy            |
 | alphaPolicy   | Option<AlphaMode>     | Optional alpha policy                         |
@@ -25,7 +25,7 @@ Returns `CmdResultTargetUpsert`:
 
 ## Validation Rules
 
-- `windowId` is required for `kind = "window"`, `"realm-viewport"`, `"ui-plane"`.
+- `windowId` is required for `kind = "window"` and `"ui-plane"`.
 - `windowId` must reference an existing window.
 - `windowId` is not accepted for `kind = "texture"`.
 - `size` is accepted only for `kind = "texture"`.

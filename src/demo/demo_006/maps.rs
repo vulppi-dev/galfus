@@ -1,5 +1,3 @@
-use glam::Vec4;
-
 use crate::core::cmd::EngineCmd;
 use crate::core::target::cmd::{CmdTargetLayerUpsertArgs, CmdTargetUpsertArgs};
 use crate::core::target::{DimensionValue, TargetKind, TargetLayerLayout};
@@ -49,7 +47,7 @@ pub fn build_target_cmds(window_main: u32) -> (Demo006TargetIds, Vec<EngineCmd>)
         },
         CmdTargetUpsertArgs {
             target_id: target_ids.realm_viewport_ui,
-            kind: TargetKind::RealmViewport,
+            kind: TargetKind::Window,
             window_id: Some(window_main),
             size: None,
             format_policy: None,
@@ -85,22 +83,28 @@ pub fn build_bind_cmds(targets: Demo006TargetIds, realms: Demo006BindRealms) -> 
         CmdTargetLayerUpsertArgs {
             realm_id: realms.ui,
             target_id: targets.panel_ui,
-            layout: bind_layout(
-                Vec4::new(0.0, 0.0, 640.0, 720.0),
-                1,
-                0,
-                Some(Vec4::new(0.0, 0.0, 640.0, 720.0)),
-            ),
+            layout: TargetLayerLayout {
+                left: DimensionValue::Px(0.0),
+                top: DimensionValue::Px(0.0),
+                width: DimensionValue::Px(360.0),
+                height: DimensionValue::Percent(100.0),
+                z_index: 1,
+                blend_mode: 0,
+                clip: None,
+            },
         },
         CmdTargetLayerUpsertArgs {
             realm_id: realms.ui_viewport,
             target_id: targets.realm_viewport_ui,
-            layout: bind_layout(
-                Vec4::new(20.0, 430.0, 600.0, 260.0),
-                2,
-                0,
-                Some(Vec4::new(20.0, 430.0, 600.0, 260.0)),
-            ),
+            layout: TargetLayerLayout {
+                left: DimensionValue::Px(100.0),
+                top: DimensionValue::Px(430.0),
+                width: DimensionValue::Px(360.0),
+                height: DimensionValue::Px(260.0),
+                z_index: 2,
+                blend_mode: 0,
+                clip: None,
+            },
         },
         CmdTargetLayerUpsertArgs {
             realm_id: realms.ui_panel_3d,
@@ -114,16 +118,4 @@ pub fn build_bind_cmds(targets: Demo006TargetIds, realms: Demo006BindRealms) -> 
         cmds.push(EngineCmd::CmdTargetLayerUpsert(bind));
     }
     cmds
-}
-
-fn bind_layout(rect: Vec4, z_index: i32, blend_mode: u32, clip: Option<Vec4>) -> TargetLayerLayout {
-    TargetLayerLayout {
-        left: DimensionValue::Px(rect.x),
-        top: DimensionValue::Px(rect.y),
-        width: DimensionValue::Px(rect.z),
-        height: DimensionValue::Px(rect.w),
-        z_index,
-        blend_mode,
-        clip,
-    }
 }

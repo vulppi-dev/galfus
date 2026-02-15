@@ -56,7 +56,7 @@ pub fn build_target_cmds(window_main: u32, window_aux: u32) -> (Demo005TargetIds
         },
         CmdTargetUpsertArgs {
             target_id: target_ids.viewport_main,
-            kind: TargetKind::RealmViewport,
+            kind: TargetKind::Window,
             window_id: Some(window_main),
             size: None,
             format_policy: None,
@@ -74,7 +74,7 @@ pub fn build_target_cmds(window_main: u32, window_aux: u32) -> (Demo005TargetIds
         },
         CmdTargetUpsertArgs {
             target_id: target_ids.viewport_aux,
-            kind: TargetKind::RealmViewport,
+            kind: TargetKind::Window,
             window_id: Some(window_aux),
             size: None,
             format_policy: None,

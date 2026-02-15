@@ -29,28 +29,27 @@ impl TargetGraphPlanner {
     ) -> TargetGraphPlan {
         let window_targets = collect_window_targets(targets);
         let layers_by_target = collect_layers_by_target(layers);
-        let mut parents: HashMap<TargetId, TargetId> = HashMap::new();
+        let mut edges = Vec::with_capacity(targets.len());
 
         for (target_id, target) in targets {
             match target.kind {
                 TargetKind::Window | TargetKind::Texture => {}
-                TargetKind::RealmViewport | TargetKind::UiPlane => {
+                TargetKind::UiPlane => {
                     if let Some(parent) = infer_parent_from_layers(
                         &layers_by_target,
                         realms,
                         *target_id,
                         &window_targets,
                     ) {
-                        parents.insert(*target_id, parent);
+                        edges.push(TargetEdge {
+                            parent,
+                            child: *target_id,
+                        });
                     }
                 }
             }
         }
 
-        let mut edges = Vec::new();
-        for (child, parent) in parents {
-            edges.push(TargetEdge { parent, child });
-        }
         edges.sort_by_key(|edge| (edge.parent.0, edge.child.0));
 
         let all_targets: HashSet<TargetId> = targets.keys().copied().collect();
@@ -295,9 +294,6 @@ fn collect_layers_by_target(
     for ((realm_id, target_id), _layer) in layers {
         by_target.entry(*target_id).or_default().push(*realm_id);
     }
-    for realms in by_target.values_mut() {
-        realms.sort_unstable();
-    }
     by_target
 }
 
@@ -348,7 +344,7 @@ fn topo_order(targets: &HashSet<TargetId>, edges: &[TargetEdge]) -> Vec<TargetId
     let mut incoming: HashMap<TargetId, usize> = targets.iter().map(|id| (*id, 0)).collect();
 
     for edge in edges {
-        if targets.contains(&edge.child) {
+        if incoming.contains_key(&edge.child) {
             *incoming.entry(edge.child).or_insert(0) += 1;
         }
     }
@@ -367,9 +363,6 @@ fn topo_order(targets: &HashSet<TargetId>, edges: &[TargetEdge]) -> Vec<TargetId
             .entry(edge.parent)
             .or_default()
             .push(edge.child);
-    }
-    for children in edges_by_parent.values_mut() {
-        children.sort_by_key(|id| id.0);
     }
 
     let mut order = Vec::new();

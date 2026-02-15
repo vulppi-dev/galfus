@@ -44,6 +44,8 @@ pub(super) fn resolve_ui_plane_hit(
     let window_state = engine_state.window.states.get(&window_id)?;
     let camera = pick_camera_for_pointer(window_state, pointer_position, pointer_surface_size)?;
     let ray = screen_ray_from_pointer(pointer_position, pointer_surface_size, camera)?;
+    let mut ui_source_cache: std::collections::HashMap<u32, Option<UiTextureSource>> =
+        std::collections::HashMap::new();
 
     let mut best_hit: Option<(f32, UiPlaneHit)> = None;
     let vertex = window_state.render_state.vertex.as_ref()?;
@@ -52,9 +54,17 @@ pub(super) fn resolve_ui_plane_hit(
         if (model.layer_mask & camera.layer_mask) == 0 {
             continue;
         }
-        let Some(ui_source) =
-            resolve_ui_source_for_model(engine_state, window_id, model.material_id)
-        else {
+        let Some(material_id) = model.material_id else {
+            continue;
+        };
+        let ui_source = if let Some(cached) = ui_source_cache.get(&material_id) {
+            *cached
+        } else {
+            let resolved = resolve_ui_source_for_model(engine_state, window_id, Some(material_id));
+            ui_source_cache.insert(material_id, resolved);
+            resolved
+        };
+        let Some(ui_source) = ui_source else {
             continue;
         };
         let Some(aabb) = vertex.aabb(model.geometry_id) else {
@@ -88,10 +98,8 @@ fn pick_camera_for_pointer(
     pointer_position: Vec2,
     surface_size: glam::UVec2,
 ) -> Option<&crate::core::resources::CameraRecord> {
-    let mut cameras: Vec<_> = window_state.render_state.scene.cameras.iter().collect();
-    cameras.sort_by_key(|(id, record)| (record.order, **id));
-    cameras.reverse();
-    for (_, camera) in cameras {
+    let mut picked: Option<(&crate::core::resources::CameraRecord, i32, u32)> = None;
+    for (camera_id, camera) in &window_state.render_state.scene.cameras {
         let (viewport_x, viewport_y, viewport_w, viewport_h) =
             resolve_camera_viewport_in_surface(surface_size, camera);
         if pointer_position.x >= viewport_x
@@ -99,10 +107,19 @@ fn pick_camera_for_pointer(
             && pointer_position.y >= viewport_y
             && pointer_position.y <= viewport_y + viewport_h
         {
-            return Some(camera);
+            match picked {
+                None => picked = Some((camera, camera.order, *camera_id)),
+                Some((_, best_order, best_id)) => {
+                    if camera.order > best_order
+                        || (camera.order == best_order && *camera_id > best_id)
+                    {
+                        picked = Some((camera, camera.order, *camera_id));
+                    }
+                }
+            }
         }
     }
-    None
+    picked.map(|(camera, _, _)| camera)
 }
 
 fn screen_ray_from_pointer(

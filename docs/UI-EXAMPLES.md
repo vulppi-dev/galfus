@@ -70,7 +70,7 @@ Bind a UI panel on the left and a 3D viewport on the right:
 
 ```text
 CmdTargetUpsert { targetId: 9201, kind: "ui-plane", windowId: 1 }
-CmdTargetUpsert { targetId: 9202, kind: "realm-viewport", windowId: 1 }
+CmdTargetUpsert { targetId: 9202, kind: "window", windowId: 1 }
 CmdTargetLayerUpsert { realmId: <uiRealm>, targetId: 9201, layout: { left: { unit: "px", value: 0 }, top: { unit: "px", value: 0 }, width: { unit: "px", value: 640 }, height: { unit: "px", value: 720 }, zIndex: 1 } }
 CmdTargetLayerUpsert { realmId: <viewRealm>, targetId: 9202, layout: { left: { unit: "px", value: 640 }, top: { unit: "px", value: 0 }, width: { unit: "px", value: 640 }, height: { unit: "px", value: 720 }, zIndex: 0 } }
 ```

@@ -2,8 +2,8 @@ use std::collections::{HashMap, HashSet};
 
 use crate::core::cmd::EngineEvent;
 use crate::core::realm::{
-    AutoLink, ConnectorId, ConnectorState, PresentState, RealmId, SurfaceKind, SurfaceState,
-    UniversalState,
+    AutoLink, ConnectorId, ConnectorState, PresentState, RealmId, RealmKind, SurfaceKind,
+    SurfaceState, UniversalState,
 };
 use crate::core::state::EngineState;
 use crate::core::system::SystemEvent;
@@ -54,15 +54,19 @@ pub fn sync_auto_graph(engine_state: &mut EngineState) {
     for layer in desired_layers {
         let key = (layer.realm_id, layer.target_id);
         let realm_id = RealmId(layer.realm_id);
-        let Some(realm_entry) = engine_state.universal_state.realms.entries.get(&realm_id) else {
-            auto_link_failures.push(crate::core::realm::TargetAutoLinkFailure {
-                realm_id: layer.realm_id,
-                target_id: layer.target_id.0,
-                reason: "realm-not-found".into(),
-            });
-            remove_auto_link(&mut engine_state.universal_state, key);
-            continue;
-        };
+        let (realm_kind, mut surface_id) =
+            match engine_state.universal_state.realms.entries.get(&realm_id) {
+                Some(entry) => (entry.value.kind, entry.value.output_surface),
+                None => {
+                    auto_link_failures.push(crate::core::realm::TargetAutoLinkFailure {
+                        realm_id: layer.realm_id,
+                        target_id: layer.target_id.0,
+                        reason: "realm-not-found".into(),
+                    });
+                    remove_auto_link(&mut engine_state.universal_state, key);
+                    continue;
+                }
+            };
         let target = match engine_state
             .universal_state
             .targets
@@ -86,8 +90,6 @@ pub fn sync_auto_graph(engine_state: &mut EngineState) {
             .entry(layer.realm_id)
             .or_insert(layer.target_id);
         let is_primary = *primary_target == layer.target_id;
-
-        let mut surface_id = realm_entry.value.output_surface;
 
         if surface_id.is_none() {
             let desired_surface = surface_state_for_target(engine_state, &target, Some(&layer));
@@ -121,10 +123,22 @@ pub fn sync_auto_graph(engine_state: &mut EngineState) {
         };
 
         if let Some(link) = engine_state.universal_state.auto_links.get(&key).cloned() {
+            let host_realm = target
+                .window_id
+                .and_then(|window_id| {
+                    engine_state
+                        .universal_state
+                        .host_realm_index
+                        .get(&window_id)
+                })
+                .copied();
+            let is_host_layer = host_realm == Some(RealmId(layer.realm_id));
+            let expects_present = matches!(target.kind, TargetKind::Window) && is_host_layer;
+            let expects_connector = matches!(target.kind, TargetKind::UiPlane)
+                || (matches!(target.kind, TargetKind::Window) && !is_host_layer);
             let needs_rebuild = link.surface_id != surface_id
-                || link.present_id.is_none() && matches!(target.kind, TargetKind::Window)
-                || link.connector_id.is_none()
-                    && matches!(target.kind, TargetKind::RealmViewport | TargetKind::UiPlane);
+                || (expects_present && link.present_id.is_none())
+                || (expects_connector && link.connector_id.is_none());
 
             if needs_rebuild {
                 remove_auto_link(&mut engine_state.universal_state, key);
@@ -134,6 +148,7 @@ pub fn sync_auto_graph(engine_state: &mut EngineState) {
                         &mut engine_state.universal_state,
                         Some(connector_id),
                         target.kind,
+                        realm_kind,
                         resolved_layout,
                     );
                 }
@@ -147,13 +162,39 @@ pub fn sync_auto_graph(engine_state: &mut EngineState) {
         match target.kind {
             TargetKind::Window => {
                 if let Some(window_id) = target.window_id {
-                    present_id = Some(engine_state.universal_state.presents.alloc(PresentState {
-                        window_id,
-                        surface: surface_id,
-                    }));
+                    let host_realm = engine_state
+                        .universal_state
+                        .host_realm_index
+                        .get(&window_id)
+                        .copied();
+                    if host_realm == Some(realm_id) {
+                        present_id =
+                            Some(engine_state.universal_state.presents.alloc(PresentState {
+                                window_id,
+                                surface: surface_id,
+                            }));
+                    } else if let Some(host_realm) = host_realm {
+                        connector_id = Some(engine_state.universal_state.connectors.alloc(
+                            ConnectorState {
+                                target_realm: host_realm,
+                                source_surface: surface_id,
+                                rect: resolved_layout.rect,
+                                z_index: resolved_layout.z_index,
+                                blend_mode: resolved_layout.blend_mode,
+                                clip: resolved_layout.clip,
+                                input_flags: infer_layer_input_flags(target.kind, realm_kind),
+                            },
+                        ));
+                    } else {
+                        auto_link_failures.push(crate::core::realm::TargetAutoLinkFailure {
+                            realm_id: layer.realm_id,
+                            target_id: layer.target_id.0,
+                            reason: "host-realm-not-found".into(),
+                        });
+                    }
                 }
             }
-            TargetKind::RealmViewport | TargetKind::UiPlane => {
+            TargetKind::UiPlane => {
                 if let Some(window_id) = target.window_id {
                     if let Some(host_realm) = engine_state
                         .universal_state
@@ -169,7 +210,7 @@ pub fn sync_auto_graph(engine_state: &mut EngineState) {
                                 z_index: resolved_layout.z_index,
                                 blend_mode: resolved_layout.blend_mode,
                                 clip: resolved_layout.clip,
-                                input_flags: infer_layer_input_flags(target.kind),
+                                input_flags: infer_layer_input_flags(target.kind, realm_kind),
                             },
                         ));
                     } else {
@@ -223,6 +264,7 @@ fn update_auto_link_layout(
     universal: &mut UniversalState,
     connector_id: Option<ConnectorId>,
     target_kind: TargetKind,
+    source_realm_kind: RealmKind,
     layout: ResolvedLayerLayout,
 ) {
     let Some(connector_id) = connector_id else {
@@ -236,13 +278,13 @@ fn update_auto_link_layout(
     entry.value.z_index = layout.z_index;
     entry.value.blend_mode = layout.blend_mode;
     entry.value.clip = layout.clip;
-    entry.value.input_flags = infer_layer_input_flags(target_kind);
+    entry.value.input_flags = infer_layer_input_flags(target_kind, source_realm_kind);
 }
 
-fn infer_layer_input_flags(target_kind: TargetKind) -> u32 {
+fn infer_layer_input_flags(target_kind: TargetKind, source_realm_kind: RealmKind) -> u32 {
     match target_kind {
-        TargetKind::RealmViewport => INPUT_FLAG_RAYCAST,
-        TargetKind::Window | TargetKind::UiPlane | TargetKind::Texture => 0,
+        TargetKind::Window if source_realm_kind == RealmKind::ThreeD => INPUT_FLAG_RAYCAST,
+        TargetKind::UiPlane | TargetKind::Window | TargetKind::Texture => 0,
     }
 }
 
@@ -341,41 +383,64 @@ fn surface_state_for_target(
     target: &TargetState,
     layer: Option<&TargetLayerState>,
 ) -> SurfaceState {
+    let layer_size = layer.and_then(|layer| {
+        let resolved = resolve_layer_layout(engine_state, target, &layer.layout);
+        let width = resolved.rect.z.max(1.0).round() as u32;
+        let height = resolved.rect.w.max(1.0).round() as u32;
+        if width > 0 && height > 0 {
+            Some(glam::UVec2::new(width, height))
+        } else {
+            None
+        }
+    });
     let size = match target.kind {
         TargetKind::Texture => target.size.unwrap_or_else(|| glam::UVec2::new(1, 1)),
-        TargetKind::Window => target
-            .window_id
-            .and_then(|window_id| engine_state.window.states.get(&window_id))
-            .map(|state| state.inner_size)
-            .unwrap_or_else(|| glam::UVec2::new(1, 1)),
-        TargetKind::RealmViewport | TargetKind::UiPlane => {
-            let layer_size = layer.and_then(|layer| {
-                let resolved = resolve_layer_layout(engine_state, target, &layer.layout);
-                let width = resolved.rect.z.max(1.0).round() as u32;
-                let height = resolved.rect.w.max(1.0).round() as u32;
-                if width > 0 && height > 0 {
-                    Some(glam::UVec2::new(width, height))
-                } else {
-                    None
-                }
-            });
-            layer_size
-                .or_else(|| {
+        TargetKind::Window => {
+            let is_window_connector = layer
+                .and_then(|layer| {
                     target
                         .window_id
-                        .and_then(|window_id| engine_state.window.states.get(&window_id))
-                        .map(|state| state.inner_size)
+                        .map(|window_id| (layer.realm_id, window_id))
                 })
-                .unwrap_or_else(|| glam::UVec2::new(1, 1))
+                .and_then(|(layer_realm_id, window_id)| {
+                    engine_state
+                        .universal_state
+                        .host_realm_index
+                        .get(&window_id)
+                        .map(|host_realm| host_realm.0 != layer_realm_id)
+                })
+                .unwrap_or(false);
+            if is_window_connector {
+                layer_size
+                    .or_else(|| {
+                        target
+                            .window_id
+                            .and_then(|window_id| engine_state.window.states.get(&window_id))
+                            .map(|state| state.inner_size)
+                    })
+                    .unwrap_or_else(|| glam::UVec2::new(1, 1))
+            } else {
+                target
+                    .window_id
+                    .and_then(|window_id| engine_state.window.states.get(&window_id))
+                    .map(|state| state.inner_size)
+                    .unwrap_or_else(|| glam::UVec2::new(1, 1))
+            }
         }
+        TargetKind::UiPlane => layer_size
+            .or_else(|| {
+                target
+                    .window_id
+                    .and_then(|window_id| engine_state.window.states.get(&window_id))
+                    .map(|state| state.inner_size)
+            })
+            .unwrap_or_else(|| glam::UVec2::new(1, 1)),
     };
 
     SurfaceState {
         kind: match target.kind {
             TargetKind::Window => SurfaceKind::Onscreen,
-            TargetKind::RealmViewport | TargetKind::UiPlane | TargetKind::Texture => {
-                SurfaceKind::Offscreen
-            }
+            TargetKind::UiPlane | TargetKind::Texture => SurfaceKind::Offscreen,
         },
         size,
         format_policy: target.format_policy,

@@ -489,7 +489,7 @@ fn build_ui_cmds(ids: Demo006Ids, realm_ui: u32) -> Vec<EngineCmd> {
     cmds.push(EngineCmd::CmdUiDocumentCreate(CmdUiDocumentCreateArgs {
         document_id: ids.ui_document_id,
         realm_id: realm_ui,
-        rect: glam::Vec4::new(0.0, 0.0, 640.0, 720.0),
+        rect: glam::Vec4::new(0.0, 0.0, 360.0, 720.0),
         theme_id: Some(1),
     }));
 

@@ -51,6 +51,15 @@ pub fn route_pointer_events(engine_state: &mut EngineState) {
 
     let mut connectors_by_realm: HashMap<RealmId, Vec<ConnectorHit>> = HashMap::new();
     for (connector_id, entry) in engine_state.universal_state.connectors.entries.iter() {
+        let Some(source_size) = engine_state
+            .universal_state
+            .surfaces
+            .entries
+            .get(&entry.value.source_surface)
+            .map(|surface| surface.value.size)
+        else {
+            continue;
+        };
         let target_id = connector_targets.get(connector_id).copied();
         let rank = target_id
             .and_then(|id| target_rank.get(&id).copied())
@@ -61,6 +70,7 @@ pub fn route_pointer_events(engine_state: &mut EngineState) {
             .push(ConnectorHit {
                 id: *connector_id,
                 state: entry.value.clone(),
+                source_size,
                 target_id,
                 target_rank: rank,
             });
@@ -68,11 +78,16 @@ pub fn route_pointer_events(engine_state: &mut EngineState) {
 
     for connectors in connectors_by_realm.values_mut() {
         connectors.sort_by(|a, b| {
-            let rank_cmp = b.target_rank.cmp(&a.target_rank);
-            if rank_cmp == Ordering::Equal {
-                b.state.z_index.cmp(&a.state.z_index)
+            let z_cmp = b.state.z_index.cmp(&a.state.z_index);
+            if z_cmp == Ordering::Equal {
+                let rank_cmp = b.target_rank.cmp(&a.target_rank);
+                if rank_cmp == Ordering::Equal {
+                    b.id.0.cmp(&a.id.0)
+                } else {
+                    rank_cmp
+                }
             } else {
-                rank_cmp
+                z_cmp
             }
         });
     }
@@ -83,15 +98,23 @@ pub fn route_pointer_events(engine_state: &mut EngineState) {
         };
 
         let window_id = pointer_window_id(pointer_event);
-        let Some((realm_id, _surface_id)) = realm_by_window.get(&window_id).copied() else {
+        let Some((realm_id, root_surface_id)) = realm_by_window.get(&window_id).copied() else {
             continue;
         };
 
-        let window_size = engine_state
-            .window
-            .states
-            .get(&window_id)
-            .map(|state| state.inner_size);
+        let root_surface_size = engine_state
+            .universal_state
+            .surfaces
+            .entries
+            .get(&root_surface_id)
+            .map(|entry| entry.value.size)
+            .or_else(|| {
+                engine_state
+                    .window
+                    .states
+                    .get(&window_id)
+                    .map(|state| state.inner_size)
+            });
         let pointer_id = pointer_id(pointer_event);
         let position = pointer_position(pointer_event).or_else(|| {
             engine_state
@@ -125,10 +148,9 @@ pub fn route_pointer_events(engine_state: &mut EngineState) {
                     })
                 };
             } else if let Some(hit) = resolve_hit_connector(
-                &engine_state.universal_state,
                 connectors_by_realm.get(&realm_id),
                 position,
-                window_size,
+                root_surface_size,
             ) {
                 connector_id = Some(hit.connector_id);
                 uv_override = hit.uv;
@@ -160,7 +182,12 @@ pub fn route_pointer_events(engine_state: &mut EngineState) {
                 if let Some(connector) = connector {
                     source_realm_id = realm_by_surface.get(&connector.source_surface).copied();
                     uv = uv_override.or_else(|| {
-                        resolve_connector_uv(&engine_state.universal_state, connector, position)
+                        resolve_connector_uv(
+                            &engine_state.universal_state,
+                            connector,
+                            position,
+                            root_surface_size.unwrap_or(glam::UVec2::new(1, 1)),
+                        )
                     });
                 }
             } else if source_realm_id.is_none() {
@@ -169,7 +196,7 @@ pub fn route_pointer_events(engine_state: &mut EngineState) {
                     window_id,
                     realm_id,
                     position,
-                    window_size.unwrap_or(glam::UVec2::new(1, 1)),
+                    root_surface_size.unwrap_or(glam::UVec2::new(1, 1)),
                 ) {
                     source_realm_id = Some(ui_plane_hit.source_realm_id);
                     target_id = Some(ui_plane_hit.target_id);
@@ -202,7 +229,6 @@ pub fn route_pointer_events(engine_state: &mut EngineState) {
                 );
 
                 if let Some(hit) = resolve_hit_connector(
-                    &engine_state.universal_state,
                     connectors_by_realm.get(&current_realm),
                     current_position,
                     Some(surface_size),
@@ -227,6 +253,7 @@ pub fn route_pointer_events(engine_state: &mut EngineState) {
                             &engine_state.universal_state,
                             connector,
                             current_position,
+                            surface_size,
                         )
                     });
                     match (next_realm, next_uv) {
@@ -360,37 +387,29 @@ fn resolve_captured_connector(
 }
 
 fn resolve_hit_connector(
-    universal: &UniversalState,
     connectors: Option<&Vec<ConnectorHit>>,
     position: Vec2,
     window_size: Option<UVec2>,
 ) -> Option<HitResult> {
     let connectors = connectors?;
+    let target_size = window_size.unwrap_or_else(|| UVec2::new(1, 1));
     for connector in connectors {
         if connector.state.input_flags & INPUT_FLAG_RAYCAST != 0 {
-            if let Some(window_size) = window_size {
-                if let Some(uv) = normalize_window_uv(position, window_size) {
-                    return Some(HitResult {
-                        connector_id: connector.id,
-                        uv: Some(uv),
-                    });
-                }
+            if hit_test_rect_clip(position, connector.state.rect, connector.state.clip) {
+                let uv = resolve_rect_uv(position, connector.state.rect);
+                return Some(HitResult {
+                    connector_id: connector.id,
+                    uv,
+                });
             }
             continue;
         }
-        let source_size = universal
-            .surfaces
-            .entries
-            .get(&connector.state.source_surface)
-            .map(|entry| entry.value.size);
-        let Some(source_size) = source_size else {
-            continue;
-        };
         if hit_test_connector(
             position,
             connector.state.rect,
             connector.state.clip,
-            source_size,
+            connector.source_size,
+            target_size,
         ) {
             return Some(HitResult {
                 connector_id: connector.id,
@@ -405,24 +424,26 @@ fn resolve_connector_uv(
     universal: &UniversalState,
     connector: &ConnectorState,
     position: Vec2,
+    target_size: UVec2,
 ) -> Option<Vec2> {
     let source_size = universal
         .surfaces
         .entries
         .get(&connector.source_surface)
         .map(|entry| entry.value.size)?;
-    let rect_height = connector.rect.w;
-    if rect_height <= 0.0 {
+    let (viewport, _) =
+        resolve_overlay_geometry(connector.rect, connector.clip, source_size, target_size)?;
+    let u = ((position.x - viewport.x) / viewport.z.max(1.0)).clamp(0.0, 1.0);
+    let v = ((position.y - viewport.y) / viewport.w.max(1.0)).clamp(0.0, 1.0);
+    Some(Vec2::new(u, v))
+}
+
+fn resolve_rect_uv(position: Vec2, rect: glam::Vec4) -> Option<Vec2> {
+    if rect.z <= 0.0 || rect.w <= 0.0 {
         return None;
     }
-
-    let source_height = source_size.y.max(1) as f32;
-    let scale = rect_height / source_height;
-    let draw_width = (source_size.x.max(1) as f32 * scale).max(1.0);
-    let viewport_x = connector.rect.x + (connector.rect.z - draw_width) * 0.5;
-
-    let u = ((position.x - viewport_x) / draw_width).clamp(0.0, 1.0);
-    let v = ((position.y - connector.rect.y) / rect_height).clamp(0.0, 1.0);
+    let u = ((position.x - rect.x) / rect.z).clamp(0.0, 1.0);
+    let v = ((position.y - rect.y) / rect.w).clamp(0.0, 1.0);
     Some(Vec2::new(u, v))
 }
 
@@ -542,6 +563,7 @@ fn resolve_connector_for_target(
 struct ConnectorHit {
     id: ConnectorId,
     state: ConnectorState,
+    source_size: UVec2,
     target_id: Option<TargetId>,
     target_rank: i32,
 }
@@ -550,17 +572,6 @@ struct ConnectorHit {
 struct HitResult {
     connector_id: ConnectorId,
     uv: Option<Vec2>,
-}
-
-fn normalize_window_uv(position: Vec2, window_size: UVec2) -> Option<Vec2> {
-    let width = window_size.x.max(1) as f32;
-    let height = window_size.y.max(1) as f32;
-    if position.x < 0.0 || position.y < 0.0 || position.x > width || position.y > height {
-        return None;
-    }
-    let u = (position.x / width).clamp(0.0, 1.0);
-    let v = (position.y / height).clamp(0.0, 1.0);
-    Some(Vec2::new(u, v))
 }
 
 fn realm_surface_size(universal: &UniversalState, realm_id: RealmId) -> Option<UVec2> {
@@ -580,22 +591,13 @@ fn hit_test_connector(
     rect: glam::Vec4,
     clip: Option<glam::Vec4>,
     source_size: glam::UVec2,
+    target_size: UVec2,
 ) -> bool {
-    let rect_height = rect.w;
-    if rect_height <= 0.0 {
+    let Some((viewport, clip_rect)) =
+        resolve_overlay_geometry(rect, clip, source_size, target_size)
+    else {
         return false;
-    }
-
-    let source_height = source_size.y.max(1) as f32;
-    let scale = rect_height / source_height;
-    let draw_width = (source_size.x.max(1) as f32 * scale).max(1.0);
-    let viewport_x = rect.x + (rect.z - draw_width) * 0.5;
-
-    let viewport = glam::Vec4::new(viewport_x, rect.y, draw_width, rect_height);
-    let mut clip_rect = glam::Vec4::new(rect.x, rect.y, rect.z, rect.w);
-    if let Some(clip) = clip {
-        clip_rect = intersect_rect(clip_rect, clip);
-    }
+    };
 
     let inside_viewport = position.x >= viewport.x
         && position.y >= viewport.y
@@ -606,6 +608,65 @@ fn hit_test_connector(
         && position.x <= clip_rect.x + clip_rect.z
         && position.y <= clip_rect.y + clip_rect.w;
     inside_viewport && inside_clip
+}
+
+fn hit_test_rect_clip(position: Vec2, rect: glam::Vec4, clip: Option<glam::Vec4>) -> bool {
+    let mut clip_rect = glam::Vec4::new(rect.x, rect.y, rect.z, rect.w);
+    if let Some(clip) = clip {
+        clip_rect = intersect_rect(clip_rect, clip);
+    }
+    position.x >= clip_rect.x
+        && position.y >= clip_rect.y
+        && position.x <= clip_rect.x + clip_rect.z
+        && position.y <= clip_rect.y + clip_rect.w
+}
+
+fn resolve_overlay_geometry(
+    rect: glam::Vec4,
+    clip: Option<glam::Vec4>,
+    source_size: glam::UVec2,
+    target_size: UVec2,
+) -> Option<(glam::Vec4, glam::Vec4)> {
+    if rect.z <= 0.0 || rect.w <= 0.0 {
+        return None;
+    }
+
+    let source_width = source_size.x.max(1) as f32;
+    let source_height = source_size.y.max(1) as f32;
+    let scale = rect.w / source_height;
+    let draw_width = (source_width * scale).max(1.0);
+
+    let mut viewport_x = rect.x + (rect.z - draw_width) * 0.5;
+    let mut viewport_y = rect.y;
+    let mut viewport_width = draw_width;
+    let mut viewport_height = rect.w.max(1.0);
+
+    if viewport_x < 0.0 {
+        viewport_width = (viewport_width + viewport_x).max(0.0);
+        viewport_x = 0.0;
+    }
+    if viewport_y < 0.0 {
+        viewport_height = (viewport_height + viewport_y).max(0.0);
+        viewport_y = 0.0;
+    }
+
+    let max_width = target_size.x as f32 - viewport_x;
+    let max_height = target_size.y as f32 - viewport_y;
+    if max_width <= 0.0 || max_height <= 0.0 {
+        return None;
+    }
+    viewport_width = viewport_width.min(max_width);
+    viewport_height = viewport_height.min(max_height);
+    if viewport_width <= 0.0 || viewport_height <= 0.0 {
+        return None;
+    }
+
+    let viewport = glam::Vec4::new(viewport_x, viewport_y, viewport_width, viewport_height);
+    let mut clip_rect = rect;
+    if let Some(clip) = clip {
+        clip_rect = intersect_rect(clip_rect, clip);
+    }
+    Some((viewport, clip_rect))
 }
 
 fn intersect_rect(a: glam::Vec4, b: glam::Vec4) -> glam::Vec4 {

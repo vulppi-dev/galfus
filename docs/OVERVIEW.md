@@ -228,31 +228,32 @@ Example flow (host-side):
 
 ```text
 CmdTargetUpsert(targetId=9000, kind=window, windowId=1)
-CmdTargetUpsert(targetId=9002, kind=realm-viewport, windowId=1)
+CmdTargetUpsert(targetId=9002, kind=window, windowId=1)
 CmdTargetUpsert(targetId=9003, kind=texture, size=640x360)
 CmdTargetLayerUpsert(realmId=10, targetId=9000, layout=...)
 CmdTargetLayerUpsert(realmId=11, targetId=9002, layout=left/top/width/height/zIndex/clip)
 ```
 
 Rules:
-- `windowId` is mandatory for `window`, `realm-viewport`, and `ui-plane`.
+- `windowId` is mandatory for `window` and `ui-plane`.
 - `size` is accepted only for `texture`.
-- For `realm-viewport` and `ui-plane`, output surface size follows
+- For `window` connector layers and `ui-plane`, output surface size follows
   `TargetLayerLayout.width` and `TargetLayerLayout.height`.
 - `TargetLayerLayout.left/top/width/height` accept `DimensionValue` units:
   `px`, `percent`, `character` (`ch`), and `display` (`dp`, 4px grid).
 
 Input routing uses the same connector graph to emit `eventTrace` metadata
 (`windowId`, `realmId`, `targetId`, `connectorId`, `sourceRealmId`, and UV coordinates when available).
-For `realm-viewport` layers, routing treats the connector as a plane hit-test,
-using window-space UVs to drive raycast-like interactions in 3D.
+For `window` connector layers sourced from `Realm3D`, routing treats the
+connector as a plane hit-test, using window-space UVs to drive raycast-like
+interactions in 3D.
 
 Additionally, `UIPlane` behavior is available for 3D models that use textures bound to
 `texture` targets produced by a `TwoD` realm: routing raycasts the model plane/hitbox and
 forwards pointer input to the bound UI realm.
 
 Pointer routing now propagates through multiple realm/target hops per event (including
-`RealmViewport -> 3D -> UIPlane -> UI`). Cycles are handled with bounded step propagation
+`Window connector -> 3D -> UIPlane -> UI`). Cycles are handled with bounded step propagation
 to keep the frame loop non-blocking.
 Command failures (`success=false`) and diagnostic errors are forwarded to host through
 `SystemEvent::Error`.

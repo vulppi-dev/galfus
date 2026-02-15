@@ -3,7 +3,7 @@ use glam::{Mat4, Vec3};
 use crate::core::cmd::{EngineCmd, EngineEvent};
 use crate::core::input::events::{ElementState, KeyboardEvent};
 use crate::core::resources::CmdModelUpdateArgs;
-use crate::core::ui::cmd::CmdUiApplyOpsArgs;
+use crate::core::ui::cmd::{CmdUiApplyOpsArgs, CmdUiDocumentSetRectArgs};
 use crate::core::ui::events::UiEventKind;
 use crate::core::ui::types::{UiNodeProps, UiOp};
 use crate::core::window::{CmdWindowCloseArgs, WindowEvent};
@@ -217,6 +217,18 @@ pub fn run(ctx: DemoContext, setup: &Demo006Setup, _realms: &Demo006RealmIds) ->
                     if id == window_id =>
                 {
                     return true;
+                }
+                EngineEvent::Window(WindowEvent::OnResize {
+                    window_id: id,
+                    width: _,
+                    height,
+                }) if id == window_id => {
+                    let _ = send_commands(vec![EngineCmd::CmdUiDocumentSetRect(
+                        CmdUiDocumentSetRectArgs {
+                            document_id: ids.ui_document_id,
+                            rect: glam::Vec4::new(0.0, 0.0, 360.0, height as f32),
+                        },
+                    )]);
                 }
                 EngineEvent::Keyboard(KeyboardEvent::OnInput {
                     window_id: id,

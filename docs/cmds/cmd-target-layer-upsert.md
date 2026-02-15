@@ -36,7 +36,7 @@ Upserts a logical layer between a realm and a target.
 - `display`: display unit (`dp`, resolved as `value * 4px`)
 
 Pointer routing mode is inferred internally by the core from target kind.
-`realm-viewport` enables raycast routing automatically.
+For window layers sourced from `Realm3D`, raycast routing is enabled automatically.
 
 ## Response
 

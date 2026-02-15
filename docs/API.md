@@ -330,16 +330,16 @@ Example:
 
 ```text
 CmdTargetUpsert(targetId=9000, kind=window, windowId=1)
-CmdTargetUpsert(targetId=9002, kind=realm-viewport, windowId=1)
+CmdTargetUpsert(targetId=9002, kind=window, windowId=1)
 CmdTargetUpsert(targetId=9003, kind=texture, size=640x360)
 CmdTargetLayerUpsert(realmId=10, targetId=9000, layout=...)
 CmdTargetLayerUpsert(realmId=11, targetId=9002, layout=left/top/width/height/zIndex/clip)
 ```
 
 Rules:
-- `windowId` is mandatory for `window`, `realm-viewport`, and `ui-plane`.
+- `windowId` is mandatory for `window` and `ui-plane`.
 - `size` is accepted only for `texture`.
-- For `realm-viewport` and `ui-plane`, surface size is derived from
+- For `window` and `ui-plane` connector layers, surface size is derived from
   `TargetLayerLayout.width` and `TargetLayerLayout.height` when the layer is
   resolved.
 - `TargetLayerLayout.left/top/width/height` accept `DimensionValue`:
@@ -421,8 +421,8 @@ provides the resolved `windowId`, `realmId`, `targetId`, `connectorId`,
 `sourceRealmId`, and UV coordinates when a connector hit-test succeeds. This
 metadata is optional and omitted when routing is not available.
 
-For `realm-viewport` layers, connector input routing uses raycast mode
-automatically. Other layer kinds use rect/clip hit-test routing.
+For `window` connector layers sourced from `Realm3D`, connector input routing
+uses raycast mode automatically. Other layer kinds use rect/clip hit-test routing.
 
 For `UIPlane`-style usage, when a 3D model material samples a texture bound to a
 `texture` target that is also bound by a `TwoD` realm, pointer routing performs
