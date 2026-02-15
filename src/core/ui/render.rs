@@ -379,7 +379,10 @@ fn render_node_inner(
                 let texture = egui::load::SizedTexture::new(egui::TextureId::User(target_id), size);
                 ui.add(egui::Image::from_texture(texture).fit_to_exact_size(size));
             } else {
-                ui.label("Realm viewport missing");
+                let fallback = resolve_size(size, [320, 180]);
+                let (rect, _) = ui.allocate_exact_size(fallback, egui::Sense::hover());
+                ui.painter()
+                    .rect_filled(rect, 0.0, egui::Color32::from_rgb(28, 32, 40));
             }
         }
         UiNodeProps::Separator => {

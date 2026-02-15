@@ -295,6 +295,7 @@ pub fn render_frames(engine_state: &mut EngineState) {
             let universal = &mut engine_state.universal_state;
             let ui_state = &mut universal.ui;
             let targets = &universal.targets;
+            let target_layers = &universal.target_layers;
             let surfaces = &universal.surfaces;
             let auto_links = &universal.auto_links;
             gpu_written |= execute_graph_to_view(
@@ -304,6 +305,7 @@ pub fn render_frames(engine_state: &mut EngineState) {
                 *realm_id,
                 &mut ui_events,
                 targets,
+                target_layers,
                 surfaces,
                 auto_links,
                 &engine_state.surface_targets,
@@ -477,6 +479,7 @@ fn execute_graph_to_view(
     realm_id: RealmId,
     ui_events: &mut Vec<UiEvent>,
     targets: &crate::core::target::TargetTable,
+    target_layers: &crate::core::target::TargetLayerTable,
     surfaces: &crate::core::realm::SurfaceTable,
     auto_links: &std::collections::HashMap<
         (u32, crate::core::target::TargetId),
@@ -576,6 +579,7 @@ fn execute_graph_to_view(
                     realm_id,
                     ui_events,
                     targets,
+                    target_layers,
                     surfaces,
                     auto_links,
                     surface_targets,

@@ -1,7 +1,7 @@
 use crate::core::realm::{AutoLink, RealmId, SurfaceId, SurfaceTable};
 use crate::core::render::RenderState;
 use crate::core::resources::RenderTarget;
-use crate::core::target::{TargetId, TargetKind, TargetTable};
+use crate::core::target::{TargetId, TargetKind, TargetLayerTable, TargetTable};
 use crate::core::ui::UiState;
 use crate::core::ui::events::UiEvent;
 use crate::core::ui::render::{hash_shapes, render_realm_documents, sync_ui_images};
@@ -15,6 +15,7 @@ pub fn pass_ui(
     realm_id: RealmId,
     ui_events: &mut Vec<UiEvent>,
     targets: &TargetTable,
+    target_layers: &TargetLayerTable,
     surfaces: &SurfaceTable,
     auto_links: &HashMap<(u32, TargetId), AutoLink>,
     surface_targets: &HashMap<SurfaceId, RenderTarget>,
@@ -29,8 +30,10 @@ pub fn pass_ui(
 ) {
     ui_state.ensure_realm(realm_id);
     let external_inputs = collect_external_textures(
+        render_state,
         ui_state,
         targets,
+        target_layers,
         surfaces,
         auto_links,
         surface_targets,
@@ -129,16 +132,19 @@ pub fn pass_ui(
     }
 }
 
-fn collect_external_textures<'a>(
+fn collect_external_textures(
+    render_state: &RenderState,
     ui_state: &mut UiState,
     targets: &TargetTable,
+    target_layers: &TargetLayerTable,
     surfaces: &SurfaceTable,
     auto_links: &HashMap<(u32, TargetId), AutoLink>,
-    surface_targets: &'a HashMap<SurfaceId, RenderTarget>,
+    surface_targets: &HashMap<SurfaceId, RenderTarget>,
     realm_id: RealmId,
-) -> Vec<ExternalTextureInput<'a>> {
+) -> Vec<ExternalTextureInput> {
     ui_state.external_textures.clear();
     let mut target_surfaces: HashMap<TargetId, SurfaceId> = HashMap::new();
+    let first_camera_id = first_camera_id(render_state);
 
     for ((link_realm, target_id), link) in auto_links.iter() {
         let Some(target) = targets.entries.get(target_id) else {
@@ -163,6 +169,42 @@ fn collect_external_textures<'a>(
     let mut inputs = Vec::new();
 
     for (target_id, surface_id) in target_surfaces {
+        if let Some(target_state) = targets.entries.get(&target_id) {
+            if target_state.kind == TargetKind::WidgetRealmViewport {
+                let camera_id = target_layers
+                    .entries
+                    .iter()
+                    .find_map(|((layer_realm, layer_target), layer)| {
+                        if *layer_target == target_id {
+                            if *layer_realm == realm_id.0 {
+                                return layer.camera_id;
+                            }
+                            if layer.camera_id.is_some() {
+                                return layer.camera_id;
+                            }
+                        }
+                        None
+                    })
+                    .or(first_camera_id);
+                if let Some(camera_id) = camera_id {
+                    if let Some(camera) = render_state.scene.cameras.get(&camera_id) {
+                        if let Some(camera_target) = camera.render_target.as_ref() {
+                            let texture_size = camera_target._texture.size();
+                            let size = [texture_size.width.max(1), texture_size.height.max(1)];
+                            ui_state.external_textures.insert(target_id.0, size);
+                            inputs.push(ExternalTextureInput {
+                                id: target_id.0,
+                                view: camera_target.view.clone(),
+                                size,
+                                source_ptr: camera_target as *const RenderTarget as usize,
+                            });
+                            continue;
+                        }
+                    }
+                }
+            }
+        }
+
         let Some(surface_state) = surfaces.entries.get(&surface_id) else {
             continue;
         };
@@ -175,11 +217,20 @@ fn collect_external_textures<'a>(
 
         inputs.push(ExternalTextureInput {
             id: target_id.0,
-            view: &surface_target.view,
+            view: surface_target.view.clone(),
             size,
             source_ptr: surface_target as *const RenderTarget as usize,
         });
     }
 
     inputs
+}
+
+fn first_camera_id(render_state: &RenderState) -> Option<u32> {
+    if let Some(camera_id) = render_state.camera_order.first().copied() {
+        return Some(camera_id);
+    }
+    let mut keys: Vec<u32> = render_state.scene.cameras.keys().copied().collect();
+    keys.sort_unstable();
+    keys.first().copied()
 }

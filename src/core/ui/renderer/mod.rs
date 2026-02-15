@@ -8,9 +8,9 @@ use egui::ClippedPrimitive;
 use crate::core::ui::renderer::pipeline::UiPipeline;
 use crate::core::ui::renderer::textures::UiTextureStore;
 
-pub struct ExternalTextureInput<'a> {
+pub struct ExternalTextureInput {
     pub id: u64,
-    pub view: &'a wgpu::TextureView,
+    pub view: wgpu::TextureView,
     pub size: [u32; 2],
     pub source_ptr: usize,
 }
@@ -74,7 +74,7 @@ impl UiRenderer {
     pub fn update_external_textures(
         &mut self,
         device: &wgpu::Device,
-        inputs: &[ExternalTextureInput<'_>],
+        inputs: &[ExternalTextureInput],
     ) {
         let mut keep_ids = HashSet::with_capacity(inputs.len());
 
@@ -93,7 +93,7 @@ impl UiRenderer {
                     entries: &[
                         wgpu::BindGroupEntry {
                             binding: 0,
-                            resource: wgpu::BindingResource::TextureView(input.view),
+                            resource: wgpu::BindingResource::TextureView(&input.view),
                         },
                         wgpu::BindGroupEntry {
                             binding: 1,

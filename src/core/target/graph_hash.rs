@@ -92,6 +92,7 @@ fn hash_target_state(state: &TargetState) -> u64 {
 fn hash_layer_state(layer: &TargetLayerState) -> u64 {
     let mut hasher = std::collections::hash_map::DefaultHasher::new();
     hash_layout(&layer.layout, &mut hasher);
+    layer.camera_id.hash(&mut hasher);
     hasher.finish()
 }
 

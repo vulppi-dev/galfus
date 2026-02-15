@@ -332,7 +332,7 @@ Example:
 CmdTargetUpsert(targetId=9000, kind=window, windowId=1)
 CmdTargetUpsert(targetId=9002, kind=window, windowId=1)
 CmdTargetUpsert(targetId=9003, kind=texture, size=640x360)
-CmdTargetLayerUpsert(realmId=10, targetId=9000, layout=...)
+CmdTargetLayerUpsert(realmId=10, targetId=9000, layout=..., cameraId=1)
 CmdTargetLayerUpsert(realmId=11, targetId=9002, layout=left/top/width/height/zIndex/clip)
 ```
 
@@ -340,6 +340,10 @@ Rules:
 - `windowId` is mandatory for `window`, `widget-realm-viewport`, and `realm-plane`.
   `widget-realm-viewport` is intended to be consumed by `UiNodeProps::WidgetRealmViewport`.
 - `size` is accepted only for `texture`.
+- `cameraId` on `CmdTargetLayerUpsert` is optional:
+  - when set, that camera is used for `Realm3D` sampling on the layer;
+  - when omitted, core uses the first available camera;
+  - when no camera exists, output remains `clearColor`.
 - For `window`/`widget-realm-viewport` connector layers and `realm-plane`,
   surface size is derived from
   `TargetLayerLayout.width` and `TargetLayerLayout.height` when the layer is

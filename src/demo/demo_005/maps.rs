@@ -106,16 +106,19 @@ pub fn build_layer_cmds(targets: Demo005TargetIds, realms: Demo005LayerRealms) -
             realm_id: realms.host_main,
             target_id: targets.window_main,
             layout: TargetLayerLayout::default(),
+            camera_id: None,
         },
         CmdTargetLayerUpsertArgs {
             realm_id: realms.host_aux,
             target_id: targets.window_aux,
             layout: TargetLayerLayout::default(),
+            camera_id: None,
         },
         CmdTargetLayerUpsertArgs {
             realm_id: realms.window_layer_main,
             target_id: targets.window_layer_main,
             layout: layer_layout(Vec4::new(40.0, 40.0, 320.0, 220.0), 2, 0, None),
+            camera_id: None,
         },
         CmdTargetLayerUpsertArgs {
             realm_id: realms.ui,
@@ -126,41 +129,49 @@ pub fn build_layer_cmds(targets: Demo005TargetIds, realms: Demo005LayerRealms) -
                 1,
                 Some(Vec4::new(720.0, 120.0, 160.0, 140.0)),
             ),
+            camera_id: None,
         },
         CmdTargetLayerUpsertArgs {
             realm_id: realms.texture_main,
             target_id: targets.texture_shared,
             layout: TargetLayerLayout::default(),
+            camera_id: None,
         },
         CmdTargetLayerUpsertArgs {
             realm_id: realms.texture_aux,
             target_id: targets.texture_shared,
             layout: TargetLayerLayout::default(),
+            camera_id: None,
         },
         CmdTargetLayerUpsertArgs {
             realm_id: realms.conflict,
             target_id: targets.window_layer_main,
             layout: TargetLayerLayout::default(),
+            camera_id: None,
         },
         CmdTargetLayerUpsertArgs {
             realm_id: realms.conflict,
             target_id: targets.texture_shared,
             layout: TargetLayerLayout::default(),
+            camera_id: None,
         },
         CmdTargetLayerUpsertArgs {
             realm_id: realms.host_main,
             target_id: targets.window_layer_main,
             layout: layer_layout(Vec4::new(60.0, 360.0, 220.0, 160.0), 1, 0, None),
+            camera_id: None,
         },
         CmdTargetLayerUpsertArgs {
             realm_id: realms.host_main,
             target_id: targets.window_layer_aux,
             layout: layer_layout(Vec4::new(1020.0, 40.0, 180.0, 120.0), 0, 0, None),
+            camera_id: None,
         },
         CmdTargetLayerUpsertArgs {
             realm_id: realms.host_aux,
             target_id: targets.window_layer_main,
             layout: layer_layout(Vec4::new(20.0, 40.0, 200.0, 140.0), 0, 0, None),
+            camera_id: None,
         },
     ];
 

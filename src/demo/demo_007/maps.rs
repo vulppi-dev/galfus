@@ -3,27 +3,28 @@ use crate::core::target::cmd::{CmdTargetLayerUpsertArgs, CmdTargetUpsertArgs};
 use crate::core::target::{DimensionValue, TargetKind, TargetLayerLayout};
 
 #[derive(Debug, Clone, Copy)]
-pub struct Demo006TargetIds {
+pub struct Demo007TargetIds {
     pub window_main: u64,
-    pub realm_plane_layer: u64,
-    pub widget_realm_viewport: u64,
-    pub texture_ui_panel_3d: u64,
+    pub widget_view_a: u64,
+    pub widget_view_b: u64,
+    pub widget_view_c: u64,
+    pub widget_view_d: u64,
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct Demo006LayerRealms {
+pub struct Demo007LayerRealms {
     pub host_main: u32,
     pub ui: u32,
-    pub realm_3d_embed: u32,
-    pub ui_panel_3d: u32,
+    pub realm_3d: u32,
 }
 
-pub fn build_target_cmds(window_main: u32) -> (Demo006TargetIds, Vec<EngineCmd>) {
-    let target_ids = Demo006TargetIds {
-        window_main: 9200,
-        realm_plane_layer: 9201,
-        widget_realm_viewport: 9202,
-        texture_ui_panel_3d: 9203,
+pub fn build_target_cmds(window_main: u32) -> (Demo007TargetIds, Vec<EngineCmd>) {
+    let target_ids = Demo007TargetIds {
+        window_main: 9700,
+        widget_view_a: 9701,
+        widget_view_b: 9702,
+        widget_view_c: 9703,
+        widget_view_d: 9704,
     };
 
     let targets = vec![
@@ -37,31 +38,40 @@ pub fn build_target_cmds(window_main: u32) -> (Demo006TargetIds, Vec<EngineCmd>)
             msaa_samples: None,
         },
         CmdTargetUpsertArgs {
-            target_id: target_ids.realm_plane_layer,
-            kind: TargetKind::RealmPlane,
-            window_id: Some(window_main),
-            size: None,
-            format_policy: None,
-            alpha_policy: None,
-            msaa_samples: None,
-        },
-        CmdTargetUpsertArgs {
-            target_id: target_ids.widget_realm_viewport,
+            target_id: target_ids.widget_view_a,
             kind: TargetKind::WidgetRealmViewport,
             window_id: Some(window_main),
             size: None,
             format_policy: None,
             alpha_policy: None,
-            msaa_samples: Some(4),
+            msaa_samples: Some(1),
         },
         CmdTargetUpsertArgs {
-            target_id: target_ids.texture_ui_panel_3d,
-            kind: TargetKind::Texture,
-            window_id: None,
-            size: Some(glam::UVec2::new(280, 180)),
+            target_id: target_ids.widget_view_b,
+            kind: TargetKind::WidgetRealmViewport,
+            window_id: Some(window_main),
+            size: None,
             format_policy: None,
             alpha_policy: None,
-            msaa_samples: None,
+            msaa_samples: Some(1),
+        },
+        CmdTargetUpsertArgs {
+            target_id: target_ids.widget_view_c,
+            kind: TargetKind::WidgetRealmViewport,
+            window_id: Some(window_main),
+            size: None,
+            format_policy: None,
+            alpha_policy: None,
+            msaa_samples: Some(1),
+        },
+        CmdTargetUpsertArgs {
+            target_id: target_ids.widget_view_d,
+            kind: TargetKind::WidgetRealmViewport,
+            window_id: Some(window_main),
+            size: None,
+            format_policy: None,
+            alpha_policy: None,
+            msaa_samples: Some(1),
         },
     ];
 
@@ -73,7 +83,7 @@ pub fn build_target_cmds(window_main: u32) -> (Demo006TargetIds, Vec<EngineCmd>)
     (target_ids, cmds)
 }
 
-pub fn build_layer_cmds(targets: Demo006TargetIds, realms: Demo006LayerRealms) -> Vec<EngineCmd> {
+pub fn build_layer_cmds(targets: Demo007TargetIds, realms: Demo007LayerRealms) -> Vec<EngineCmd> {
     let layers = vec![
         CmdTargetLayerUpsertArgs {
             realm_id: realms.host_main,
@@ -83,37 +93,41 @@ pub fn build_layer_cmds(targets: Demo006TargetIds, realms: Demo006LayerRealms) -
         },
         CmdTargetLayerUpsertArgs {
             realm_id: realms.ui,
-            target_id: targets.realm_plane_layer,
+            target_id: targets.window_main,
             layout: TargetLayerLayout {
                 left: DimensionValue::Px(0.0),
                 top: DimensionValue::Px(0.0),
-                width: DimensionValue::Px(360.0),
+                width: DimensionValue::Percent(100.0),
                 height: DimensionValue::Percent(100.0),
-                z_index: 1,
+                z_index: 5,
                 blend_mode: 0,
                 clip: None,
             },
             camera_id: None,
         },
         CmdTargetLayerUpsertArgs {
-            realm_id: realms.realm_3d_embed,
-            target_id: targets.widget_realm_viewport,
-            layout: TargetLayerLayout {
-                left: DimensionValue::Px(20.0),
-                top: DimensionValue::Px(430.0),
-                width: DimensionValue::Px(320.0),
-                height: DimensionValue::Px(240.0),
-                z_index: 2,
-                blend_mode: 0,
-                clip: None,
-            },
-            camera_id: None,
-        },
-        CmdTargetLayerUpsertArgs {
-            realm_id: realms.ui_panel_3d,
-            target_id: targets.texture_ui_panel_3d,
+            realm_id: realms.realm_3d,
+            target_id: targets.widget_view_a,
             layout: TargetLayerLayout::default(),
-            camera_id: None,
+            camera_id: Some(7101),
+        },
+        CmdTargetLayerUpsertArgs {
+            realm_id: realms.realm_3d,
+            target_id: targets.widget_view_b,
+            layout: TargetLayerLayout::default(),
+            camera_id: Some(7102),
+        },
+        CmdTargetLayerUpsertArgs {
+            realm_id: realms.realm_3d,
+            target_id: targets.widget_view_c,
+            layout: TargetLayerLayout::default(),
+            camera_id: Some(7103),
+        },
+        CmdTargetLayerUpsertArgs {
+            realm_id: realms.realm_3d,
+            target_id: targets.widget_view_d,
+            layout: TargetLayerLayout::default(),
+            camera_id: Some(7104),
         },
     ];
 

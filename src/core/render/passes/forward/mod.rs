@@ -15,7 +15,14 @@ pub fn pass_forward(
 ) {
     let scene = &render_state.scene;
 
-    let sample_count = render_state.msaa_sample_count();
+    // Shared MSAA intermediates are singletons in RenderState. With multiple cameras
+    // in the same realm this causes cross-camera accumulation. Disable MSAA in forward
+    // for multi-camera passes to keep each camera isolated.
+    let sample_count = if render_state.camera_order.len() > 1 {
+        1
+    } else {
+        render_state.msaa_sample_count()
+    };
 
     // Split borrows
     let (vertex_sys, bindings, library, light_system, collector, cache, gizmos) = (
