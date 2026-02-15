@@ -78,7 +78,11 @@ pub fn engine_cmd_target_upsert(
     engine: &mut EngineState,
     args: &CmdTargetUpsertArgs,
 ) -> CmdResultTargetUpsert {
-    if matches!(args.kind, TargetKind::Window | TargetKind::UiPlane) && args.window_id.is_none() {
+    if matches!(
+        args.kind,
+        TargetKind::Window | TargetKind::WidgetRealmViewport | TargetKind::RealmPlane
+    ) && args.window_id.is_none()
+    {
         return CmdResultTargetUpsert {
             success: false,
             message: format!("Target {:?} requires windowId", args.kind),

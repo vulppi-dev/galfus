@@ -144,7 +144,7 @@ fn collect_external_textures<'a>(
         let Some(target) = targets.entries.get(target_id) else {
             continue;
         };
-        if target.kind != TargetKind::Texture {
+        if target.kind != TargetKind::Texture && target.kind != TargetKind::WidgetRealmViewport {
             continue;
         }
 

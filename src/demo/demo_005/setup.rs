@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use glam::{Mat4, Quat, Vec3, Vec4};
 
-use super::maps::{Demo005BindRealms, build_bind_cmds, build_target_cmds};
+use super::maps::{Demo005LayerRealms, build_layer_cmds, build_target_cmds};
 use crate::core::VulframResult;
 use crate::core::audio::{
     CmdAudioListenerCreateArgs, CmdAudioResourceCreateArgs, CmdAudioResourcePushArgs,
@@ -48,16 +48,16 @@ pub struct Demo005RealmIds {
     pub window_aux: u32,
     pub host_realm_main: u32,
     pub host_realm_aux: u32,
-    pub realm_viewport_main: u32,
+    pub realm_3d_layer_main: u32,
     pub realm_ui: u32,
     pub realm_texture_main: u32,
     pub realm_texture_aux: u32,
     pub realm_conflict: u32,
     pub target_window_main: u64,
     pub target_window_aux: u64,
-    pub target_viewport_main: u64,
-    pub target_viewport_aux: u64,
-    pub target_panel_ui: u64,
+    pub target_window_layer_main: u64,
+    pub target_window_layer_aux: u64,
+    pub target_realm_plane_layer: u64,
     pub target_texture_shared: u64,
 }
 
@@ -118,26 +118,26 @@ impl Demo005Setup {
         let aux_binding = create_window(window_aux, "Vulfram Demo 005 Aux");
         let host_realm_aux = aux_binding.realm_id;
 
-        let realm_viewport_main = create_realm(RealmKindDto::ThreeD, Some(window_main));
+        let realm_3d_layer_main = create_realm(RealmKindDto::ThreeD, Some(window_main));
         let realm_ui = create_realm(RealmKindDto::TwoD, Some(window_main));
         let realm_texture_main = create_realm(RealmKindDto::ThreeD, Some(window_main));
         let realm_texture_aux = create_realm(RealmKindDto::ThreeD, Some(window_aux));
         let realm_conflict = create_realm(RealmKindDto::ThreeD, Some(window_main));
 
         let (target_ids, mut map_cmds) = build_target_cmds(window_main, window_aux);
-        let bind_cmds = build_bind_cmds(
+        let layer_cmds = build_layer_cmds(
             target_ids,
-            Demo005BindRealms {
+            Demo005LayerRealms {
                 host_main: host_realm_main,
                 host_aux: host_realm_aux,
-                viewport_main: realm_viewport_main,
+                window_layer_main: realm_3d_layer_main,
                 ui: realm_ui,
                 texture_main: realm_texture_main,
                 texture_aux: realm_texture_aux,
                 conflict: realm_conflict,
             },
         );
-        map_cmds.extend(bind_cmds);
+        map_cmds.extend(layer_cmds);
 
         assert_eq!(send_commands(map_cmds), VulframResult::Success);
 
@@ -412,16 +412,16 @@ impl Demo005Setup {
             window_aux,
             host_realm_main,
             host_realm_aux,
-            realm_viewport_main,
+            realm_3d_layer_main,
             realm_ui,
             realm_texture_main,
             realm_texture_aux,
             realm_conflict,
             target_window_main: target_ids.window_main,
             target_window_aux: target_ids.window_aux,
-            target_viewport_main: target_ids.viewport_main,
-            target_viewport_aux: target_ids.viewport_aux,
-            target_panel_ui: target_ids.panel_ui,
+            target_window_layer_main: target_ids.window_layer_main,
+            target_window_layer_aux: target_ids.window_layer_aux,
+            target_realm_plane_layer: target_ids.realm_plane_layer,
             target_texture_shared: target_ids.texture_shared,
         }
     }

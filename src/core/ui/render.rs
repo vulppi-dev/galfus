@@ -366,6 +366,22 @@ fn render_node_inner(
                 }
             }
         },
+        UiNodeProps::WidgetRealmViewport { target_id, size } => {
+            if let Some(target_size) = ui_state.external_textures.get(&target_id).copied() {
+                let size = resolve_size(size, target_size);
+                ui_state.target_size_requests.insert(
+                    target_id,
+                    glam::UVec2::new(
+                        size.x.max(1.0).round() as u32,
+                        size.y.max(1.0).round() as u32,
+                    ),
+                );
+                let texture = egui::load::SizedTexture::new(egui::TextureId::User(target_id), size);
+                ui.add(egui::Image::from_texture(texture).fit_to_exact_size(size));
+            } else {
+                ui.label("Realm viewport missing");
+            }
+        }
         UiNodeProps::Separator => {
             ui.separator();
         }

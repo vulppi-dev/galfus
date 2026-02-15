@@ -134,8 +134,11 @@ pub fn sync_auto_graph(engine_state: &mut EngineState) {
                 .copied();
             let is_host_layer = host_realm == Some(RealmId(layer.realm_id));
             let expects_present = matches!(target.kind, TargetKind::Window) && is_host_layer;
-            let expects_connector = matches!(target.kind, TargetKind::UiPlane)
-                || (matches!(target.kind, TargetKind::Window) && !is_host_layer);
+            let expects_connector = matches!(
+                target.kind,
+                TargetKind::WidgetRealmViewport | TargetKind::RealmPlane
+            ) || (matches!(target.kind, TargetKind::Window)
+                && !is_host_layer);
             let needs_rebuild = link.surface_id != surface_id
                 || (expects_present && link.present_id.is_none())
                 || (expects_connector && link.connector_id.is_none());
@@ -194,7 +197,7 @@ pub fn sync_auto_graph(engine_state: &mut EngineState) {
                     }
                 }
             }
-            TargetKind::UiPlane => {
+            TargetKind::WidgetRealmViewport | TargetKind::RealmPlane => {
                 if let Some(window_id) = target.window_id {
                     if let Some(host_realm) = engine_state
                         .universal_state
@@ -283,8 +286,15 @@ fn update_auto_link_layout(
 
 fn infer_layer_input_flags(target_kind: TargetKind, source_realm_kind: RealmKind) -> u32 {
     match target_kind {
-        TargetKind::Window if source_realm_kind == RealmKind::ThreeD => INPUT_FLAG_RAYCAST,
-        TargetKind::UiPlane | TargetKind::Window | TargetKind::Texture => 0,
+        TargetKind::Window | TargetKind::WidgetRealmViewport
+            if source_realm_kind == RealmKind::ThreeD =>
+        {
+            INPUT_FLAG_RAYCAST
+        }
+        TargetKind::RealmPlane
+        | TargetKind::Window
+        | TargetKind::WidgetRealmViewport
+        | TargetKind::Texture => 0,
     }
 }
 
@@ -427,7 +437,7 @@ fn surface_state_for_target(
                     .unwrap_or_else(|| glam::UVec2::new(1, 1))
             }
         }
-        TargetKind::UiPlane => layer_size
+        TargetKind::WidgetRealmViewport | TargetKind::RealmPlane => layer_size
             .or_else(|| {
                 target
                     .window_id
@@ -440,7 +450,9 @@ fn surface_state_for_target(
     SurfaceState {
         kind: match target.kind {
             TargetKind::Window => SurfaceKind::Onscreen,
-            TargetKind::UiPlane | TargetKind::Texture => SurfaceKind::Offscreen,
+            TargetKind::WidgetRealmViewport | TargetKind::RealmPlane | TargetKind::Texture => {
+                SurfaceKind::Offscreen
+            }
         },
         size,
         format_policy: target.format_policy,

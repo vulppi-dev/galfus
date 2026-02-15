@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use glam::{Mat4, Vec2, Vec3, Vec4};
 
-use super::maps::{Demo006BindRealms, build_bind_cmds, build_target_cmds};
+use super::maps::{Demo006LayerRealms, build_layer_cmds, build_target_cmds};
 use crate::core::VulframResult;
 use crate::core::cmd::{CommandResponse, EngineCmd};
 use crate::core::realm::cmd::{CmdRealmCreateArgs, RealmKindDto};
@@ -14,7 +14,8 @@ use crate::core::resources::{
 };
 use crate::core::ui::cmd::{CmdUiApplyOpsArgs, CmdUiDocumentCreateArgs, CmdUiThemeDefineArgs};
 use crate::core::ui::types::{
-    UiLayout, UiLayoutDirection, UiNode, UiNodeKind, UiNodeProps, UiOp, UiPadding, UiThemeValue,
+    UiLayout, UiLayoutDirection, UiLength, UiNode, UiNodeKind, UiNodeProps, UiOp, UiPadding,
+    UiSize, UiThemeValue,
 };
 use crate::demo::io::{receive_responses, send_commands};
 use crate::demo::{
@@ -29,10 +30,10 @@ pub struct Demo006Ids {
     pub geometry_cube_id: u32,
     pub material_cube_id: u32,
     pub model_cube_id: u32,
-    pub geometry_ui_plane_id: u32,
+    pub geometry_realm_plane_id: u32,
     pub texture_ui_panel_id: u32,
-    pub material_ui_plane_id: u32,
-    pub model_ui_plane_id: u32,
+    pub material_realm_plane_id: u32,
+    pub model_realm_plane_id: u32,
     pub ui_document_id: u32,
     pub ui_root_id: u32,
     pub ui_title_id: u32,
@@ -41,6 +42,9 @@ pub struct Demo006Ids {
     pub ui_button_add_id: u32,
     pub ui_button_remove_id: u32,
     pub ui_toggle_checkbox_id: u32,
+    pub ui_viewport_document_id: u32,
+    pub ui_viewport_root_id: u32,
+    pub ui_viewport_node_id: u32,
     pub ui_panel_document_id: u32,
     pub ui_panel_root_id: u32,
     pub ui_panel_title_id: u32,
@@ -53,7 +57,7 @@ pub struct Demo006Ids {
 #[derive(Debug, Clone, Copy)]
 pub struct Demo006RealmIds {
     pub _realm_ui: u32,
-    pub _realm_ui_viewport: u32,
+    pub _realm_3d_embed: u32,
     pub _realm_ui_panel_3d: u32,
 }
 
@@ -71,10 +75,10 @@ impl Demo006Setup {
             geometry_cube_id: 1200,
             material_cube_id: 1210,
             model_cube_id: 1300,
-            geometry_ui_plane_id: 1220,
+            geometry_realm_plane_id: 1220,
             texture_ui_panel_id: 1221,
-            material_ui_plane_id: 1222,
-            model_ui_plane_id: 1320,
+            material_realm_plane_id: 1222,
+            model_realm_plane_id: 1320,
             ui_document_id: 1500,
             ui_root_id: 1501,
             ui_title_id: 1502,
@@ -83,6 +87,9 @@ impl Demo006Setup {
             ui_button_add_id: 1505,
             ui_button_remove_id: 1506,
             ui_toggle_checkbox_id: 1507,
+            ui_viewport_document_id: 1508,
+            ui_viewport_root_id: 1509,
+            ui_viewport_node_id: 1510,
             ui_panel_document_id: 1600,
             ui_panel_root_id: 1601,
             ui_panel_title_id: 1602,
@@ -102,20 +109,20 @@ impl Demo006Setup {
         let host_realm_main = ctx.realm_id;
 
         let realm_ui = create_realm(RealmKindDto::TwoD, Some(window_main));
-        let realm_ui_viewport = create_realm(RealmKindDto::ThreeD, Some(window_main));
+        let realm_3d_embed = create_realm(RealmKindDto::ThreeD, Some(window_main));
         let realm_ui_panel_3d = create_realm(RealmKindDto::TwoD, Some(window_main));
 
         let (target_ids, mut map_cmds) = build_target_cmds(window_main);
-        let bind_cmds = build_bind_cmds(
+        let layer_cmds = build_layer_cmds(
             target_ids,
-            Demo006BindRealms {
+            Demo006LayerRealms {
                 host_main: host_realm_main,
                 ui: realm_ui,
-                ui_viewport: realm_ui_viewport,
+                realm_3d_embed: realm_3d_embed,
                 ui_panel_3d: realm_ui_panel_3d,
             },
         );
-        map_cmds.extend(bind_cmds);
+        map_cmds.extend(layer_cmds);
         assert_eq!(send_commands(map_cmds), VulframResult::Success);
 
         let mut setup_cmds = vec![
@@ -164,8 +171,8 @@ impl Demo006Setup {
             }),
             EngineCmd::CmdPrimitiveGeometryCreate(CmdPrimitiveGeometryCreateArgs {
                 window_id: window_main,
-                geometry_id: self.ids.geometry_ui_plane_id,
-                label: Some("Demo 006 UI Plane".into()),
+                geometry_id: self.ids.geometry_realm_plane_id,
+                label: Some("Demo 006 RealmPlane".into()),
                 shape: PrimitiveShape::Plane,
                 options: None,
             }),
@@ -197,8 +204,8 @@ impl Demo006Setup {
             EngineCmd::CmdMaterialUpsert(crate::core::cmd::CmdMaterialUpsertArgs::Create(
                 CmdMaterialCreateArgs {
                     window_id: window_main,
-                    material_id: self.ids.material_ui_plane_id,
-                    label: Some("Demo 006 UI Plane Material".into()),
+                    material_id: self.ids.material_realm_plane_id,
+                    label: Some("Demo 006 RealmPlane Material".into()),
                     kind: MaterialKind::Standard,
                     options: Some(MaterialOptions::Standard(StandardOptions {
                         base_color: Vec4::ONE,
@@ -212,10 +219,10 @@ impl Demo006Setup {
             EngineCmd::CmdModelUpsert(crate::core::cmd::CmdModelUpsertArgs::Create(
                 CmdModelCreateArgs {
                     window_id: window_main,
-                    model_id: self.ids.model_ui_plane_id,
-                    label: Some("Demo 006 UI Plane Model".into()),
-                    geometry_id: self.ids.geometry_ui_plane_id,
-                    material_id: Some(self.ids.material_ui_plane_id),
+                    model_id: self.ids.model_realm_plane_id,
+                    label: Some("Demo 006 RealmPlane Model".into()),
+                    geometry_id: self.ids.geometry_realm_plane_id,
+                    material_id: Some(self.ids.material_realm_plane_id),
                     transform: Mat4::from_translation(Vec3::new(1.0, 2.0, 3.8))
                         * Mat4::from_rotation_y(std::f32::consts::PI - 0.35)
                         * Mat4::from_rotation_x(-0.08)
@@ -264,14 +271,14 @@ impl Demo006Setup {
         assert_eq!(send_commands(setup_cmds), VulframResult::Success);
         assert_command_batch_success(20, "setup");
 
-        let mut ui_cmds = build_ui_cmds(self.ids, realm_ui);
+        let mut ui_cmds = build_ui_cmds(self.ids, realm_ui, target_ids.widget_realm_viewport);
         ui_cmds.extend(build_ui_panel_3d_cmds(self.ids, realm_ui_panel_3d));
         assert_eq!(send_commands(ui_cmds), VulframResult::Success);
-        assert_command_batch_success(5, "ui");
+        assert_command_batch_success(7, "ui");
 
         Demo006RealmIds {
             _realm_ui: realm_ui,
-            _realm_ui_viewport: realm_ui_viewport,
+            _realm_3d_embed: realm_3d_embed,
             _realm_ui_panel_3d: realm_ui_panel_3d,
         }
     }
@@ -472,7 +479,11 @@ fn assert_command_batch_success(expected_responses: usize, tag: &str) {
     );
 }
 
-fn build_ui_cmds(ids: Demo006Ids, realm_ui: u32) -> Vec<EngineCmd> {
+fn build_ui_cmds(
+    ids: Demo006Ids,
+    realm_ui: u32,
+    widget_realm_viewport_target: u64,
+) -> Vec<EngineCmd> {
     let mut cmds = Vec::new();
 
     cmds.push(EngineCmd::CmdUiThemeDefine(CmdUiThemeDefineArgs {
@@ -490,6 +501,13 @@ fn build_ui_cmds(ids: Demo006Ids, realm_ui: u32) -> Vec<EngineCmd> {
         document_id: ids.ui_document_id,
         realm_id: realm_ui,
         rect: glam::Vec4::new(0.0, 0.0, 360.0, 720.0),
+        theme_id: Some(1),
+    }));
+
+    cmds.push(EngineCmd::CmdUiDocumentCreate(CmdUiDocumentCreateArgs {
+        document_id: ids.ui_viewport_document_id,
+        realm_id: realm_ui,
+        rect: glam::Vec4::new(20.0, 430.0, 320.0, 240.0),
         theme_id: Some(1),
     }));
 
@@ -644,6 +662,60 @@ fn build_ui_cmds(ids: Demo006Ids, realm_ui: u32) -> Vec<EngineCmd> {
             UiOp::Add {
                 parent: Some(ids.ui_root_id),
                 node: toggle_checkbox,
+                index: None,
+            },
+        ],
+    }));
+
+    let viewport_root = UiNode {
+        id: ids.ui_viewport_root_id,
+        kind: UiNodeKind::Container,
+        props: UiNodeProps::Container {
+            layout: UiLayout::default(),
+            padding: None,
+            size: Some(UiSize {
+                width: UiLength::Fill,
+                height: UiLength::Fill,
+            }),
+            scroll_x: false,
+            scroll_y: false,
+        },
+        anim: None,
+        display: None,
+        visible: None,
+        opacity: Some(1.0),
+        z_index: None,
+    };
+
+    let viewport_node = UiNode {
+        id: ids.ui_viewport_node_id,
+        kind: UiNodeKind::WidgetRealmViewport,
+        props: UiNodeProps::WidgetRealmViewport {
+            target_id: widget_realm_viewport_target,
+            size: Some(UiSize {
+                width: UiLength::Fill,
+                height: UiLength::Fill,
+            }),
+        },
+        anim: None,
+        display: None,
+        visible: None,
+        opacity: None,
+        z_index: None,
+    };
+
+    cmds.push(EngineCmd::CmdUiApplyOps(CmdUiApplyOpsArgs {
+        document_id: ids.ui_viewport_document_id,
+        version: 1,
+        ops: vec![
+            UiOp::Add {
+                parent: None,
+                node: viewport_root,
+                index: None,
+            },
+            UiOp::Add {
+                parent: Some(ids.ui_viewport_root_id),
+                node: viewport_node,
                 index: None,
             },
         ],

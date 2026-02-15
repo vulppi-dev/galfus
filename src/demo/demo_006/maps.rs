@@ -5,24 +5,24 @@ use crate::core::target::{DimensionValue, TargetKind, TargetLayerLayout};
 #[derive(Debug, Clone, Copy)]
 pub struct Demo006TargetIds {
     pub window_main: u64,
-    pub panel_ui: u64,
-    pub realm_viewport_ui: u64,
+    pub realm_plane_layer: u64,
+    pub widget_realm_viewport: u64,
     pub texture_ui_panel_3d: u64,
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct Demo006BindRealms {
+pub struct Demo006LayerRealms {
     pub host_main: u32,
     pub ui: u32,
-    pub ui_viewport: u32,
+    pub realm_3d_embed: u32,
     pub ui_panel_3d: u32,
 }
 
 pub fn build_target_cmds(window_main: u32) -> (Demo006TargetIds, Vec<EngineCmd>) {
     let target_ids = Demo006TargetIds {
         window_main: 9200,
-        panel_ui: 9201,
-        realm_viewport_ui: 9202,
+        realm_plane_layer: 9201,
+        widget_realm_viewport: 9202,
         texture_ui_panel_3d: 9203,
     };
 
@@ -37,8 +37,8 @@ pub fn build_target_cmds(window_main: u32) -> (Demo006TargetIds, Vec<EngineCmd>)
             msaa_samples: None,
         },
         CmdTargetUpsertArgs {
-            target_id: target_ids.panel_ui,
-            kind: TargetKind::UiPlane,
+            target_id: target_ids.realm_plane_layer,
+            kind: TargetKind::RealmPlane,
             window_id: Some(window_main),
             size: None,
             format_policy: None,
@@ -46,8 +46,8 @@ pub fn build_target_cmds(window_main: u32) -> (Demo006TargetIds, Vec<EngineCmd>)
             msaa_samples: None,
         },
         CmdTargetUpsertArgs {
-            target_id: target_ids.realm_viewport_ui,
-            kind: TargetKind::Window,
+            target_id: target_ids.widget_realm_viewport,
+            kind: TargetKind::WidgetRealmViewport,
             window_id: Some(window_main),
             size: None,
             format_policy: None,
@@ -73,8 +73,8 @@ pub fn build_target_cmds(window_main: u32) -> (Demo006TargetIds, Vec<EngineCmd>)
     (target_ids, cmds)
 }
 
-pub fn build_bind_cmds(targets: Demo006TargetIds, realms: Demo006BindRealms) -> Vec<EngineCmd> {
-    let binds = vec![
+pub fn build_layer_cmds(targets: Demo006TargetIds, realms: Demo006LayerRealms) -> Vec<EngineCmd> {
+    let layers = vec![
         CmdTargetLayerUpsertArgs {
             realm_id: realms.host_main,
             target_id: targets.window_main,
@@ -82,7 +82,7 @@ pub fn build_bind_cmds(targets: Demo006TargetIds, realms: Demo006BindRealms) -> 
         },
         CmdTargetLayerUpsertArgs {
             realm_id: realms.ui,
-            target_id: targets.panel_ui,
+            target_id: targets.realm_plane_layer,
             layout: TargetLayerLayout {
                 left: DimensionValue::Px(0.0),
                 top: DimensionValue::Px(0.0),
@@ -94,13 +94,13 @@ pub fn build_bind_cmds(targets: Demo006TargetIds, realms: Demo006BindRealms) -> 
             },
         },
         CmdTargetLayerUpsertArgs {
-            realm_id: realms.ui_viewport,
-            target_id: targets.realm_viewport_ui,
+            realm_id: realms.realm_3d_embed,
+            target_id: targets.widget_realm_viewport,
             layout: TargetLayerLayout {
-                left: DimensionValue::Px(100.0),
+                left: DimensionValue::Px(20.0),
                 top: DimensionValue::Px(430.0),
-                width: DimensionValue::Px(360.0),
-                height: DimensionValue::Px(260.0),
+                width: DimensionValue::Px(320.0),
+                height: DimensionValue::Px(240.0),
                 z_index: 2,
                 blend_mode: 0,
                 clip: None,
@@ -114,8 +114,8 @@ pub fn build_bind_cmds(targets: Demo006TargetIds, realms: Demo006BindRealms) -> 
     ];
 
     let mut cmds = Vec::new();
-    for bind in binds {
-        cmds.push(EngineCmd::CmdTargetLayerUpsert(bind));
+    for layer in layers {
+        cmds.push(EngineCmd::CmdTargetLayerUpsert(layer));
     }
     cmds
 }

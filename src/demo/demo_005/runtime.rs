@@ -22,12 +22,12 @@ pub fn run(ctx: DemoContext, setup: &Demo005Setup, realms: &Demo005RealmIds) -> 
     let state_event = Rc::clone(&state);
 
     println!(
-        "Demo 005 targets: window_main={} window_aux={} viewport_main={} viewport_aux={} panel_ui={} texture_shared={}",
+        "Demo 005 targets: window_main={} window_aux={} window_layer_main={} window_layer_aux={} realm_plane_layer={} texture_shared={}",
         realms.target_window_main,
         realms.target_window_aux,
-        realms.target_viewport_main,
-        realms.target_viewport_aux,
-        realms.target_panel_ui,
+        realms.target_window_layer_main,
+        realms.target_window_layer_aux,
+        realms.target_realm_plane_layer,
         realms.target_texture_shared
     );
 
@@ -203,10 +203,10 @@ pub fn run(ctx: DemoContext, setup: &Demo005Setup, realms: &Demo005RealmIds) -> 
                 }) if id == window_id => {
                     if key_code == 36 {
                         println!(
-                            "KeyR pressed: host_main={} host_aux={} viewport_main={} ui={} texture_main={} texture_aux={} conflict={}",
+                            "KeyR pressed: host_main={} host_aux={} window_layer_main={} ui={} texture_main={} texture_aux={} conflict={}",
                             realms.host_realm_main,
                             realms.host_realm_aux,
-                            realms.realm_viewport_main,
+                            realms.realm_3d_layer_main,
                             realms.realm_ui,
                             realms.realm_texture_main,
                             realms.realm_texture_aux,

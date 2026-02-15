@@ -126,7 +126,7 @@ and `UiImageId`.
 The host does not construct graphs directly. Instead it provides logical maps:
 
 - `RealmMap`: logical realm IDs and kinds
-- `TargetMap`: logical targets (`Window`, `UiPlane`, `Texture`)
+- `TargetMap`: logical targets (`Window`, `WidgetRealmViewport`, `RealmPlane`, `Texture`)
 - `TargetLayerMap`: `realmId -> targetId` with `layout` (left/top/width/height, zIndex, clip, blendMode)
 
 The core builds `TargetGraph` and `RealmGraph` automatically and creates or updates
@@ -138,7 +138,8 @@ The core builds `TargetGraph` and `RealmGraph` automatically and creates or upda
 - Each `TargetLayer(realm -> target)` produces a `Surface`.
 - The Realm output surface is set automatically from its primary layer.
 - If target is `Window` and the source realm is the window host realm, the core creates a `Present`.
-- If target is `Window` (non-host realm layer) or `UiPlane`, the core creates a `Connector`
+- If target is `Window` (non-host realm layer), `WidgetRealmViewport`, or `RealmPlane`,
+  the core creates a `Connector`
   targeting the host realm for that window.
 - Layout (`left/top/width/height`, `zIndex`, `clip`, `blendMode`) is applied on
   connector creation and updated when layers change.
@@ -148,7 +149,7 @@ The core builds `TargetGraph` and `RealmGraph` automatically and creates or upda
 
 - `Window` targets act as presentation roots.
 - `Texture` targets are offscreen roots.
-- `Window` connectors and `UiPlane` are resolved automatically by the core.
+- `Window` connectors, `WidgetRealmViewport`, and `RealmPlane` are resolved automatically by the core.
 - Conflicts are resolved deterministically and surfaced via diagnostics/events.
 
 ---

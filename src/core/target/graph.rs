@@ -34,7 +34,7 @@ impl TargetGraphPlanner {
         for (target_id, target) in targets {
             match target.kind {
                 TargetKind::Window | TargetKind::Texture => {}
-                TargetKind::UiPlane => {
+                TargetKind::WidgetRealmViewport | TargetKind::RealmPlane => {
                     if let Some(parent) = infer_parent_from_layers(
                         &layers_by_target,
                         realms,

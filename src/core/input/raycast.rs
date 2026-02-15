@@ -6,7 +6,7 @@ use crate::core::state::EngineState;
 use crate::core::target::TargetId;
 
 #[derive(Debug, Clone, Copy)]
-pub(super) struct UiPlaneHit {
+pub(super) struct RealmPlaneHit {
     pub source_realm_id: RealmId,
     pub target_id: TargetId,
     pub uv: Vec2,
@@ -25,13 +25,13 @@ struct Ray {
     direction: Vec3,
 }
 
-pub(super) fn resolve_ui_plane_hit(
+pub(super) fn resolve_realm_plane_hit(
     engine_state: &EngineState,
     window_id: u32,
     target_realm: RealmId,
     pointer_position: Vec2,
     pointer_surface_size: glam::UVec2,
-) -> Option<UiPlaneHit> {
+) -> Option<RealmPlaneHit> {
     let realm_entry = engine_state
         .universal_state
         .realms
@@ -47,7 +47,7 @@ pub(super) fn resolve_ui_plane_hit(
     let mut ui_source_cache: std::collections::HashMap<u32, Option<UiTextureSource>> =
         std::collections::HashMap::new();
 
-    let mut best_hit: Option<(f32, UiPlaneHit)> = None;
+    let mut best_hit: Option<(f32, RealmPlaneHit)> = None;
     let vertex = window_state.render_state.vertex.as_ref()?;
 
     for model in window_state.render_state.scene.models.values() {
@@ -79,7 +79,7 @@ pub(super) fn resolve_ui_plane_hit(
         };
 
         let mapped_uv = apply_uv_scale_bias(uv, ui_source.uv_scale_bias);
-        let hit = UiPlaneHit {
+        let hit = RealmPlaneHit {
             source_realm_id: ui_source.source_realm_id,
             target_id: ui_source.target_id,
             uv: mapped_uv,

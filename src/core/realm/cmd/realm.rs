@@ -138,16 +138,16 @@ pub fn engine_cmd_realm_dispose(
         .target_layers
         .entries
         .keys()
-        .filter(|(bind_realm, _)| *bind_realm == realm_id.0)
+        .filter(|(layer_realm, _)| *layer_realm == realm_id.0)
         .copied()
         .collect();
-    for (bind_realm, bind_target) in removed_layers {
+    for (layer_realm, layer_target) in removed_layers {
         engine
             .universal_state
             .target_layers
             .entries
-            .remove(&(bind_realm, bind_target));
-        remove_auto_link_for_layer(&mut engine.universal_state, bind_realm, bind_target);
+            .remove(&(layer_realm, layer_target));
+        remove_auto_link_for_layer(&mut engine.universal_state, layer_realm, layer_target);
     }
 
     if let Some(surface_id) = entry.value.output_surface {

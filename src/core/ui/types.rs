@@ -28,6 +28,7 @@ pub enum UiNodeKind {
     Button,
     Input,
     Image,
+    WidgetRealmViewport,
     Separator,
     Spacer,
 }
@@ -167,6 +168,11 @@ pub enum UiNodeProps {
     },
     Image {
         source: UiImageSource,
+        #[serde(default)]
+        size: Option<UiSize>,
+    },
+    WidgetRealmViewport {
+        target_id: u64,
         #[serde(default)]
         size: Option<UiSize>,
     },

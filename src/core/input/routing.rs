@@ -5,7 +5,7 @@ use glam::{UVec2, Vec2};
 
 use crate::core::cmd::EngineEvent;
 use crate::core::input::events::{ElementState, PointerEvent, PointerEventTrace, TouchPhase};
-use crate::core::input::raycast::resolve_ui_plane_hit;
+use crate::core::input::raycast::resolve_realm_plane_hit;
 use crate::core::realm::{ConnectorId, ConnectorState, InputCapture, RealmId, UniversalState};
 use crate::core::state::EngineState;
 use crate::core::target::TargetId;
@@ -191,16 +191,16 @@ pub fn route_pointer_events(engine_state: &mut EngineState) {
                     });
                 }
             } else if source_realm_id.is_none() {
-                if let Some(ui_plane_hit) = resolve_ui_plane_hit(
+                if let Some(realm_plane_hit) = resolve_realm_plane_hit(
                     engine_state,
                     window_id,
                     realm_id,
                     position,
                     root_surface_size.unwrap_or(glam::UVec2::new(1, 1)),
                 ) {
-                    source_realm_id = Some(ui_plane_hit.source_realm_id);
-                    target_id = Some(ui_plane_hit.target_id);
-                    uv = Some(ui_plane_hit.uv);
+                    source_realm_id = Some(realm_plane_hit.source_realm_id);
+                    target_id = Some(realm_plane_hit.target_id);
+                    uv = Some(realm_plane_hit.uv);
                 }
             }
 
@@ -266,16 +266,16 @@ pub fn route_pointer_events(engine_state: &mut EngineState) {
                     }
                 }
 
-                if let Some(ui_plane_hit) = resolve_ui_plane_hit(
+                if let Some(realm_plane_hit) = resolve_realm_plane_hit(
                     engine_state,
                     window_id,
                     current_realm,
                     current_position,
                     surface_size,
                 ) {
-                    source_realm_id = Some(ui_plane_hit.source_realm_id);
-                    target_id = Some(ui_plane_hit.target_id);
-                    uv = Some(ui_plane_hit.uv);
+                    source_realm_id = Some(realm_plane_hit.source_realm_id);
+                    target_id = Some(realm_plane_hit.target_id);
+                    uv = Some(realm_plane_hit.uv);
                     continue;
                 }
                 break;

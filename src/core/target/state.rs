@@ -10,7 +10,8 @@ pub struct TargetId(pub u64);
 #[serde(rename_all = "kebab-case")]
 pub enum TargetKind {
     Window,
-    UiPlane,
+    WidgetRealmViewport,
+    RealmPlane,
     Texture,
 }
 

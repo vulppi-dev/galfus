@@ -337,9 +337,11 @@ CmdTargetLayerUpsert(realmId=11, targetId=9002, layout=left/top/width/height/zIn
 ```
 
 Rules:
-- `windowId` is mandatory for `window` and `ui-plane`.
+- `windowId` is mandatory for `window`, `widget-realm-viewport`, and `realm-plane`.
+  `widget-realm-viewport` is intended to be consumed by `UiNodeProps::WidgetRealmViewport`.
 - `size` is accepted only for `texture`.
-- For `window` and `ui-plane` connector layers, surface size is derived from
+- For `window`/`widget-realm-viewport` connector layers and `realm-plane`,
+  surface size is derived from
   `TargetLayerLayout.width` and `TargetLayerLayout.height` when the layer is
   resolved.
 - `TargetLayerLayout.left/top/width/height` accept `DimensionValue`:
@@ -421,10 +423,11 @@ provides the resolved `windowId`, `realmId`, `targetId`, `connectorId`,
 `sourceRealmId`, and UV coordinates when a connector hit-test succeeds. This
 metadata is optional and omitted when routing is not available.
 
-For `window` connector layers sourced from `Realm3D`, connector input routing
-uses raycast mode automatically. Other layer kinds use rect/clip hit-test routing.
+For `window`/`widget-realm-viewport` connector layers sourced from `Realm3D`,
+connector input routing uses raycast mode automatically. Other layer kinds use
+rect/clip hit-test routing.
 
-For `UIPlane`-style usage, when a 3D model material samples a texture bound to a
+For `RealmPlane`-style usage, when a 3D model material samples a texture bound to a
 `texture` target that is also bound by a `TwoD` realm, pointer routing performs
 raycast + hitbox test against the model plane and forwards events to that UI realm.
 

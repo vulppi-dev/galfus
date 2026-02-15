@@ -48,7 +48,7 @@ pub fn run(ctx: DemoContext, setup: &Demo006Setup, _realms: &Demo006RealmIds) ->
             cmds.push(EngineCmd::CmdModelUpsert(
                 crate::core::cmd::CmdModelUpsertArgs::Update(CmdModelUpdateArgs {
                     window_id,
-                    model_id: ids.model_ui_plane_id,
+                    model_id: ids.model_realm_plane_id,
                     label: None,
                     geometry_id: None,
                     material_id: None,
