@@ -4,6 +4,7 @@ mod draw;
 
 use crate::core::render::RenderState;
 use crate::core::render::cache::{PipelineKey, ShaderId};
+use crate::core::resources::SkyboxMode;
 
 pub fn pass_forward(
     render_state: &mut RenderState,
@@ -14,6 +15,18 @@ pub fn pass_forward(
     clear_color: bool,
 ) {
     let scene = &render_state.scene;
+    let default_clear_color = render_state.environment.clear_color;
+    let default_skybox_mode = render_state.environment.skybox.mode;
+    let camera_clear_colors: std::collections::HashMap<u32, glam::Vec3> = render_state
+        .camera_environment_overrides
+        .iter()
+        .map(|(camera_id, env)| (*camera_id, env.clear_color))
+        .collect();
+    let camera_skybox_modes: std::collections::HashMap<u32, SkyboxMode> = render_state
+        .camera_environment_overrides
+        .iter()
+        .map(|(camera_id, env)| (*camera_id, env.skybox.mode))
+        .collect();
 
     // Shared MSAA intermediates are singletons in RenderState. With multiple cameras
     // in the same realm this causes cross-camera accumulation. Disable MSAA in forward
@@ -147,6 +160,24 @@ pub fn pass_forward(
         };
         light_system.write_draw_params(camera_index as u32, light_system.max_lights_per_camera);
 
+        let clear_rgb = camera_clear_colors
+            .get(&camera_id)
+            .copied()
+            .unwrap_or(default_clear_color);
+        let has_skybox_for_camera = !matches!(
+            camera_skybox_modes
+                .get(&camera_id)
+                .copied()
+                .unwrap_or(default_skybox_mode),
+            SkyboxMode::None
+        );
+        let clear_wgpu = wgpu::Color {
+            r: clear_rgb.x as f64,
+            g: clear_rgb.y as f64,
+            b: clear_rgb.z as f64,
+            a: 1.0,
+        };
+
         // 2. Get render target view
         let target_view = match &camera_record.render_target {
             Some(target) => &target.view,
@@ -183,14 +214,11 @@ pub fn pass_forward(
                         resolve_target,
                         ops: wgpu::Operations {
                             load: if clear_color {
-                                wgpu::LoadOp::Clear(wgpu::Color {
-                                    r: 0.0,
-                                    g: 0.0,
-                                    b: 0.0,
-                                    a: 1.0,
-                                })
-                            } else {
+                                wgpu::LoadOp::Clear(clear_wgpu)
+                            } else if has_skybox_for_camera {
                                 wgpu::LoadOp::Load
+                            } else {
+                                wgpu::LoadOp::Clear(clear_wgpu)
                             },
                             store: wgpu::StoreOp::Store,
                         },

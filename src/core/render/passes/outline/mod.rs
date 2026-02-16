@@ -18,7 +18,8 @@ pub fn pass_outline(
     encoder: &mut wgpu::CommandEncoder,
     frame_index: u64,
 ) {
-    let post_config = render_state.environment.post.clone();
+    let default_post = render_state.environment.post.clone();
+    let camera_posts = render_state.camera_environment_overrides.clone();
     let scene = &render_state.scene;
     if scene.cameras.is_empty() {
         return;
@@ -44,6 +45,10 @@ pub fn pass_outline(
     };
 
     for (camera_index, camera_id) in render_state.camera_order.iter().copied().enumerate() {
+        let post_config = camera_posts
+            .get(&camera_id)
+            .map(|env| env.post.clone())
+            .unwrap_or_else(|| default_post.clone());
         let Some(camera_record) = scene.cameras.get(&camera_id) else {
             continue;
         };

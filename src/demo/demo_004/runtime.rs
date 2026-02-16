@@ -103,7 +103,7 @@ pub fn run(ctx: DemoContext, setup: &Demo004Setup) -> bool {
                     cmds.push(EngineCmd::CmdEnvironmentUpsert(
                         crate::core::cmd::CmdEnvironmentUpsertArgs::Update(
                             CmdEnvironmentUpdateArgs {
-                                window_id,
+                                environment_id: window_id,
                                 config: EnvironmentConfig {
                                     msaa: MsaaConfig {
                                         enabled: true,
@@ -118,6 +118,7 @@ pub fn run(ctx: DemoContext, setup: &Demo004Setup) -> bool {
                                         sky_color: Vec3::new(0.18, 0.32, 0.55),
                                         cubemap_texture_id: Some(ids.skybox_texture_id),
                                     },
+                                    clear_color: Vec3::new(0.0, 0.0, 0.0),
                                     post: post_config.clone(),
                                 },
                             },

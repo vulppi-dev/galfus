@@ -6,21 +6,21 @@ use crate::core::state::EngineState;
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CmdEnvironmentCreateArgs {
-    pub window_id: u32,
+    pub environment_id: u32,
     pub config: EnvironmentConfig,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CmdEnvironmentUpdateArgs {
-    pub window_id: u32,
+    pub environment_id: u32,
     pub config: EnvironmentConfig,
 }
 
 #[derive(Debug, Default, Deserialize, Serialize, Clone)]
 #[serde(default, rename_all = "camelCase")]
 pub struct CmdEnvironmentDisposeArgs {
-    pub window_id: u32,
+    pub environment_id: u32,
 }
 
 #[derive(Debug, Default, Deserialize, Serialize, Clone)]
@@ -34,25 +34,22 @@ pub fn engine_cmd_environment_create(
     engine: &mut EngineState,
     args: &CmdEnvironmentCreateArgs,
 ) -> CmdResultEnvironment {
-    let window_state = match engine.window.states.get_mut(&args.window_id) {
-        Some(state) => state,
-        None => {
-            return CmdResultEnvironment {
-                success: false,
-                message: format!("Window {} not found", args.window_id),
-            };
-        }
-    };
-
-    if window_state.render_state.environment_is_configured {
+    if engine
+        .universal_state
+        .environment_profiles
+        .contains_key(&args.environment_id)
+    {
         return CmdResultEnvironment {
             success: false,
-            message: "Environment already configured for this window".into(),
+            message: format!("Environment {} already exists", args.environment_id),
         };
     }
 
-    window_state.render_state.environment = args.config.clone();
-    window_state.render_state.environment_is_configured = true;
+    engine
+        .universal_state
+        .environment_profiles
+        .insert(args.environment_id, args.config.clone());
+    engine.universal_state.default_environment_id = Some(args.environment_id);
 
     CmdResultEnvironment {
         success: true,
@@ -64,18 +61,11 @@ pub fn engine_cmd_environment_update(
     engine: &mut EngineState,
     args: &CmdEnvironmentUpdateArgs,
 ) -> CmdResultEnvironment {
-    let window_state = match engine.window.states.get_mut(&args.window_id) {
-        Some(state) => state,
-        None => {
-            return CmdResultEnvironment {
-                success: false,
-                message: format!("Window {} not found", args.window_id),
-            };
-        }
-    };
-
-    window_state.render_state.environment = args.config.clone();
-    window_state.render_state.environment_is_configured = true;
+    engine
+        .universal_state
+        .environment_profiles
+        .insert(args.environment_id, args.config.clone());
+    engine.universal_state.default_environment_id = Some(args.environment_id);
 
     CmdResultEnvironment {
         success: true,
@@ -87,18 +77,32 @@ pub fn engine_cmd_environment_dispose(
     engine: &mut EngineState,
     args: &CmdEnvironmentDisposeArgs,
 ) -> CmdResultEnvironment {
-    let window_state = match engine.window.states.get_mut(&args.window_id) {
-        Some(state) => state,
-        None => {
-            return CmdResultEnvironment {
-                success: false,
-                message: format!("Window {} not found", args.window_id),
-            };
-        }
-    };
+    if engine
+        .universal_state
+        .environment_profiles
+        .remove(&args.environment_id)
+        .is_none()
+    {
+        return CmdResultEnvironment {
+            success: false,
+            message: format!("Environment {} not found", args.environment_id),
+        };
+    }
 
-    window_state.render_state.environment = EnvironmentConfig::default();
-    window_state.render_state.environment_is_configured = false;
+    if engine.universal_state.default_environment_id == Some(args.environment_id) {
+        engine.universal_state.default_environment_id = engine
+            .universal_state
+            .environment_profiles
+            .keys()
+            .copied()
+            .min();
+    }
+
+    for layer in engine.universal_state.target_layers.entries.values_mut() {
+        if layer.environment_id == Some(args.environment_id) {
+            layer.environment_id = None;
+        }
+    }
 
     CmdResultEnvironment {
         success: true,

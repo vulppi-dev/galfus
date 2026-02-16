@@ -66,6 +66,7 @@ impl RenderState {
             ui_renderers: HashMap::new(),
             environment: crate::core::resources::EnvironmentConfig::default(),
             environment_is_configured: false,
+            camera_environment_overrides: HashMap::new(),
         }
     }
 
@@ -108,6 +109,7 @@ impl RenderState {
         self.ui_renderers.clear();
         self.environment = crate::core::resources::EnvironmentConfig::default();
         self.environment_is_configured = false;
+        self.camera_environment_overrides.clear();
     }
 
     pub fn begin_frame(&mut self, frame_index: u64) {

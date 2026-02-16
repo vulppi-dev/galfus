@@ -128,7 +128,7 @@ impl Demo006Setup {
         let mut setup_cmds = vec![
             EngineCmd::CmdEnvironmentUpsert(crate::core::cmd::CmdEnvironmentUpsertArgs::Update(
                 CmdEnvironmentUpdateArgs {
-                    window_id: window_main,
+                    environment_id: window_main,
                     config: EnvironmentConfig {
                         msaa: MsaaConfig {
                             enabled: true,
@@ -143,6 +143,7 @@ impl Demo006Setup {
                             sky_color: Vec3::new(0.12, 0.22, 0.4),
                             cubemap_texture_id: None,
                         },
+                        clear_color: Vec3::new(0.0, 0.0, 0.0),
                         post: self.post_config.clone(),
                     },
                 },

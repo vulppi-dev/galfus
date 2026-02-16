@@ -4,11 +4,13 @@ Upserts a logical layer between a realm and a target.
 
 ## Arguments
 
-| Field    | Type       | Description                     |
-| -------- | ---------- | ------------------------------- |
-| realmId  | u32        | Logical realm ID                |
-| targetId | u64        | Logical target ID               |
-| layout   | TargetLayerLayout | Layout and routing configuration |
+| Field         | Type              | Description |
+| ------------- | ----------------- | ----------- |
+| realmId       | u32               | Logical realm ID |
+| targetId      | u64               | Logical target ID |
+| layout        | TargetLayerLayout | Layout and routing configuration |
+| cameraId      | Option<u32>       | Optional camera override for Realm3D sampling |
+| environmentId | Option<u32>       | Optional environment profile override |
 
 ### TargetLayerLayout
 
@@ -38,6 +40,11 @@ Upserts a logical layer between a realm and a target.
 Pointer routing mode is inferred internally by the core from target kind.
 For `window` and `widget-realm-viewport` layers sourced from `Realm3D`,
 raycast routing is enabled automatically.
+
+Environment selection priority per layer:
+1. `environmentId` from the layer (if set);
+2. current default environment profile;
+3. core internal hardcoded default.
 
 ## Response
 

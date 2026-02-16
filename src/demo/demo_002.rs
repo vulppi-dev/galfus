@@ -33,7 +33,7 @@ pub fn run(ctx: DemoContext) -> bool {
     let mut setup_cmds = vec![
         EngineCmd::CmdEnvironmentUpsert(crate::core::cmd::CmdEnvironmentUpsertArgs::Update(
             CmdEnvironmentUpdateArgs {
-                window_id,
+                environment_id: window_id,
                 config: EnvironmentConfig {
                     msaa: MsaaConfig {
                         enabled: true,
@@ -48,6 +48,7 @@ pub fn run(ctx: DemoContext) -> bool {
                         sky_color: Vec3::new(0.2, 0.35, 0.6),
                         cubemap_texture_id: None,
                     },
+                    clear_color: Vec3::new(0.0, 0.0, 0.0),
                     post: PostProcessConfig {
                         filter_enabled: true,
                         filter_exposure: 1.0,

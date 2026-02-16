@@ -134,6 +134,7 @@ pub struct TargetLayerState {
     pub target_id: TargetId,
     pub layout: TargetLayerLayout,
     pub camera_id: Option<u32>,
+    pub environment_id: Option<u32>,
 }
 
 #[derive(Debug, Clone, Default)]

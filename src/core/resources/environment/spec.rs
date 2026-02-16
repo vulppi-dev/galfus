@@ -57,6 +57,7 @@ impl Default for SkyboxConfig {
 pub struct EnvironmentConfig {
     pub msaa: MsaaConfig,
     pub skybox: SkyboxConfig,
+    pub clear_color: Vec3,
     pub post: PostProcessConfig,
 }
 
@@ -65,6 +66,7 @@ impl Default for EnvironmentConfig {
         Self {
             msaa: MsaaConfig::default(),
             skybox: SkyboxConfig::default(),
+            clear_color: Vec3::new(0.0, 0.0, 0.0),
             post: PostProcessConfig::default(),
         }
     }

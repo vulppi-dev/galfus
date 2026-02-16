@@ -64,12 +64,10 @@ pub fn pass_compose_to_view(
         None => return,
     };
 
-    let post_config = render_state.environment.post.clone();
     let uniform_buffer = match render_state.post_uniform_buffer.as_ref() {
         Some(buffer) => buffer,
         None => return,
     };
-    update_post_uniform_buffer(&post_config, uniform_buffer, queue, frame_index);
 
     // 1. Sort cameras by order
 
@@ -143,6 +141,8 @@ pub fn pass_compose_to_view(
     render_pass.set_pipeline(pipeline);
 
     for camera_id in render_state.camera_order.iter().copied() {
+        let post_config = render_state.environment_for_camera(camera_id).post.clone();
+        update_post_uniform_buffer(&post_config, uniform_buffer, queue, frame_index);
         let Some(record) = render_state.scene.cameras.get(&camera_id) else {
             continue;
         };

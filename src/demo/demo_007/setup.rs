@@ -2,11 +2,14 @@ use std::time::Duration;
 
 use glam::{Mat4, Vec2, Vec3, Vec4};
 
-use super::maps::{Demo007LayerRealms, build_layer_cmds, build_target_cmds};
+use super::maps::{
+    Demo007LayerRealms, ENV_PROFILE_BIND_B_MSAA4, ENV_PROFILE_BIND_C_PROCEDURAL,
+    ENV_PROFILE_BIND_D_PURPLE_CLEAR, build_layer_cmds, build_target_cmds,
+};
 use super::ui::build_ui_cmds;
 use crate::core::VulframResult;
 use crate::core::cmd::{CommandResponse, EngineCmd};
-use crate::core::realm::cmd::{CmdRealmCreateArgs, RealmKindDto};
+use crate::core::realm::cmd::{CmdRealmCreateArgs, CmdRealmDisposeArgs, RealmKindDto};
 use crate::core::resources::{
     CameraKind, CmdCameraCreateArgs, CmdEnvironmentUpdateArgs, CmdMaterialCreateArgs,
     CmdModelCreateArgs, CmdPrimitiveGeometryCreateArgs, EnvironmentConfig, MaterialKind,
@@ -68,20 +71,20 @@ impl Demo007Setup {
         let window_main = ctx.window_id;
         let host_realm_main = ctx.realm_id;
 
+        assert_eq!(
+            send_commands(vec![EngineCmd::CmdRealmDispose(CmdRealmDisposeArgs {
+                realm_id: host_realm_main,
+            })]),
+            VulframResult::Success
+        );
+        assert_command_batch_success(1, "dispose-host-realm");
+
         let realm_ui = create_realm(RealmKindDto::TwoD, Some(window_main));
         let realm_3d = create_realm(RealmKindDto::ThreeD, Some(window_main));
 
-        let (target_ids, mut map_cmds) = build_target_cmds(window_main);
-        let layer_cmds = build_layer_cmds(
-            target_ids,
-            Demo007LayerRealms {
-                host_main: host_realm_main,
-                ui: realm_ui,
-                realm_3d,
-            },
-        );
-        map_cmds.extend(layer_cmds);
-        assert_eq!(send_commands(map_cmds), VulframResult::Success);
+        let (target_ids, target_cmds) = build_target_cmds(window_main);
+        assert_eq!(send_commands(target_cmds), VulframResult::Success);
+        assert_command_batch_success(5, "targets");
 
         let post_config = PostProcessConfig {
             filter_enabled: false,
@@ -119,22 +122,90 @@ impl Demo007Setup {
         let mut cmds = vec![
             EngineCmd::CmdEnvironmentUpsert(crate::core::cmd::CmdEnvironmentUpsertArgs::Update(
                 CmdEnvironmentUpdateArgs {
-                    window_id: window_main,
+                    environment_id: ENV_PROFILE_BIND_B_MSAA4,
                     config: EnvironmentConfig {
                         msaa: MsaaConfig {
                             enabled: true,
                             sample_count: 4,
                         },
                         skybox: SkyboxConfig {
-                            mode: SkyboxMode::Procedural,
-                            intensity: 0.9,
+                            mode: SkyboxMode::None,
+                            intensity: 1.0,
                             rotation: 0.0,
-                            ground_color: Vec3::new(0.04, 0.05, 0.08),
-                            horizon_color: Vec3::new(0.18, 0.23, 0.34),
-                            sky_color: Vec3::new(0.14, 0.24, 0.42),
+                            ground_color: Vec3::new(0.02, 0.03, 0.04),
+                            horizon_color: Vec3::new(0.12, 0.16, 0.22),
+                            sky_color: Vec3::new(0.2, 0.35, 0.6),
                             cubemap_texture_id: None,
                         },
-                        post: post_config,
+                        clear_color: Vec3::new(0.0, 0.0, 0.0),
+                        post: post_config.clone(),
+                    },
+                },
+            )),
+            EngineCmd::CmdEnvironmentUpsert(crate::core::cmd::CmdEnvironmentUpsertArgs::Update(
+                CmdEnvironmentUpdateArgs {
+                    environment_id: ENV_PROFILE_BIND_C_PROCEDURAL,
+                    config: EnvironmentConfig {
+                        msaa: MsaaConfig {
+                            enabled: false,
+                            sample_count: 1,
+                        },
+                        skybox: SkyboxConfig {
+                            mode: SkyboxMode::Procedural,
+                            intensity: 1.2,
+                            rotation: 0.0,
+                            ground_color: Vec3::new(0.12, 0.04, 0.02),
+                            horizon_color: Vec3::new(0.68, 0.28, 0.08),
+                            sky_color: Vec3::new(0.16, 0.44, 0.88),
+                            cubemap_texture_id: None,
+                        },
+                        clear_color: Vec3::new(0.0, 0.0, 0.0),
+                        post: post_config.clone(),
+                    },
+                },
+            )),
+            EngineCmd::CmdEnvironmentUpsert(crate::core::cmd::CmdEnvironmentUpsertArgs::Update(
+                CmdEnvironmentUpdateArgs {
+                    environment_id: ENV_PROFILE_BIND_D_PURPLE_CLEAR,
+                    config: EnvironmentConfig {
+                        msaa: MsaaConfig {
+                            enabled: false,
+                            sample_count: 1,
+                        },
+                        skybox: SkyboxConfig {
+                            mode: SkyboxMode::None,
+                            intensity: 1.0,
+                            rotation: 0.0,
+                            ground_color: Vec3::new(0.02, 0.03, 0.04),
+                            horizon_color: Vec3::new(0.12, 0.16, 0.22),
+                            sky_color: Vec3::new(0.2, 0.35, 0.6),
+                            cubemap_texture_id: None,
+                        },
+                        clear_color: Vec3::new(0.70, 0.05, 0.95),
+                        post: post_config.clone(),
+                    },
+                },
+            )),
+            // Default environment used by bind A (without explicit environment_id).
+            EngineCmd::CmdEnvironmentUpsert(crate::core::cmd::CmdEnvironmentUpsertArgs::Update(
+                CmdEnvironmentUpdateArgs {
+                    environment_id: window_main,
+                    config: EnvironmentConfig {
+                        msaa: MsaaConfig {
+                            enabled: false,
+                            sample_count: 1,
+                        },
+                        skybox: SkyboxConfig {
+                            mode: SkyboxMode::None,
+                            intensity: 1.0,
+                            rotation: 0.0,
+                            ground_color: Vec3::new(0.02, 0.03, 0.04),
+                            horizon_color: Vec3::new(0.12, 0.16, 0.22),
+                            sky_color: Vec3::new(0.2, 0.35, 0.6),
+                            cubemap_texture_id: None,
+                        },
+                        clear_color: Vec3::new(0.0, 0.0, 0.0),
+                        post: post_config.clone(),
                     },
                 },
             )),
@@ -177,11 +248,7 @@ impl Demo007Setup {
                 CmdCameraCreateArgs {
                     camera_id: self.ids.camera_a_id,
                     label: Some("Demo 007 Camera A".into()),
-                    transform: Mat4::look_at_rh(
-                        Vec3::new(0.0, 3.0, 10.0),
-                        Vec3::ZERO,
-                        Vec3::Y,
-                    )
+                    transform: Mat4::look_at_rh(Vec3::new(0.0, 3.0, 10.0), Vec3::ZERO, Vec3::Y)
                         .inverse(),
                     kind: CameraKind::Perspective,
                     flags: 0,
@@ -196,12 +263,8 @@ impl Demo007Setup {
                 CmdCameraCreateArgs {
                     camera_id: self.ids.camera_b_id,
                     label: Some("Demo 007 Camera B".into()),
-                    transform: Mat4::look_at_rh(
-                        Vec3::new(10.0, 3.0, 0.0),
-                        Vec3::ZERO,
-                        Vec3::Y,
-                    )
-                    .inverse(),
+                    transform: Mat4::look_at_rh(Vec3::new(10.0, 3.0, 0.0), Vec3::ZERO, Vec3::Y)
+                        .inverse(),
                     kind: CameraKind::Perspective,
                     flags: 0,
                     near_far: Vec2::new(0.1, 120.0),
@@ -215,12 +278,8 @@ impl Demo007Setup {
                 CmdCameraCreateArgs {
                     camera_id: self.ids.camera_c_id,
                     label: Some("Demo 007 Camera C".into()),
-                    transform: Mat4::look_at_rh(
-                        Vec3::new(0.0, 3.0, -10.0),
-                        Vec3::ZERO,
-                        Vec3::Y,
-                    )
-                    .inverse(),
+                    transform: Mat4::look_at_rh(Vec3::new(0.0, 3.0, -10.0), Vec3::ZERO, Vec3::Y)
+                        .inverse(),
                     kind: CameraKind::Perspective,
                     flags: 0,
                     near_far: Vec2::new(0.1, 120.0),
@@ -234,12 +293,8 @@ impl Demo007Setup {
                 CmdCameraCreateArgs {
                     camera_id: self.ids.camera_d_id,
                     label: Some("Demo 007 Camera D".into()),
-                    transform: Mat4::look_at_rh(
-                        Vec3::new(-10.0, 3.0, 0.0),
-                        Vec3::ZERO,
-                        Vec3::Y,
-                    )
-                    .inverse(),
+                    transform: Mat4::look_at_rh(Vec3::new(-10.0, 3.0, 0.0), Vec3::ZERO, Vec3::Y)
+                        .inverse(),
                     kind: CameraKind::Perspective,
                     flags: 0,
                     near_far: Vec2::new(0.1, 120.0),
@@ -282,11 +337,24 @@ impl Demo007Setup {
         }
 
         assert_eq!(send_commands(cmds), VulframResult::Success);
-        assert_command_batch_success(14, "setup");
+        assert_command_batch_success(17, "setup");
+
+        let layer_cmds = build_layer_cmds(
+            target_ids,
+            Demo007LayerRealms {
+                ui: realm_ui,
+                realm_3d,
+            },
+        );
+        assert_eq!(send_commands(layer_cmds), VulframResult::Success);
+        assert_command_batch_success(5, "layers");
 
         let ui_cmds = build_ui_cmds(self.ids, target_ids, realm_ui);
         assert_eq!(send_commands(ui_cmds), VulframResult::Success);
         assert_command_batch_success(3, "ui");
+        for _ in 0..3 {
+            assert_eq!(crate::core::vulfram_tick(0, 0), VulframResult::Success);
+        }
 
         Demo007RealmIds {
             _realm_ui: realm_ui,
@@ -320,6 +388,9 @@ fn assert_command_batch_success(expected_responses: usize, tag: &str) {
                 CommandResponse::ModelUpsert(result) => {
                     assert!(result.success, "[demo007:{tag}] {}", result.message);
                 }
+                CommandResponse::RealmDispose(result) => {
+                    assert!(result.success, "[demo007:{tag}] {}", result.message);
+                }
                 CommandResponse::UiThemeDefine(result) => {
                     assert!(result.success, "[demo007:{tag}] {}", result.message);
                 }
@@ -327,6 +398,12 @@ fn assert_command_batch_success(expected_responses: usize, tag: &str) {
                     assert!(result.success, "[demo007:{tag}] {}", result.message);
                 }
                 CommandResponse::UiApplyOps(result) => {
+                    assert!(result.success, "[demo007:{tag}] {}", result.message);
+                }
+                CommandResponse::TargetLayerUpsert(result) => {
+                    assert!(result.success, "[demo007:{tag}] {}", result.message);
+                }
+                CommandResponse::TargetUpsert(result) => {
                     assert!(result.success, "[demo007:{tag}] {}", result.message);
                 }
                 _ => {}

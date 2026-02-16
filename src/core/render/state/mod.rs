@@ -50,6 +50,7 @@ pub struct RenderState {
     pub skybox_uniform_buffer: Option<wgpu::Buffer>,
     pub environment: EnvironmentConfig,
     pub environment_is_configured: bool,
+    pub camera_environment_overrides: std::collections::HashMap<u32, EnvironmentConfig>,
     pub skinning: SkinningSystem,
     pub render_graph: RenderGraphState,
     pub ui_renderers: std::collections::HashMap<RealmId, UiRenderer>,
@@ -65,6 +66,12 @@ impl RenderState {
         } else {
             1
         }
+    }
+
+    pub fn environment_for_camera(&self, camera_id: u32) -> &EnvironmentConfig {
+        self.camera_environment_overrides
+            .get(&camera_id)
+            .unwrap_or(&self.environment)
     }
 
     #[cfg(any(not(feature = "wasm"), target_arch = "wasm32"))]

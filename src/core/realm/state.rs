@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use crate::core::audio::{AudioListenerBinding, AudioSourceParams, AudioStreamState};
+use crate::core::resources::EnvironmentConfig;
 use crate::core::target::{TargetGraphCache, TargetLayerTable, TargetTable};
 use crate::core::ui::UiState;
 
@@ -191,6 +192,8 @@ pub struct UniversalState {
     pub host_realm_index: HashMap<u32, RealmId>,
     pub target_ui_realm_index: HashMap<crate::core::target::TargetId, RealmId>,
     pub target_autolink_failures: Vec<super::TargetAutoLinkFailure>,
+    pub environment_profiles: HashMap<u32, EnvironmentConfig>,
+    pub default_environment_id: Option<u32>,
     pub audio: AudioState,
     pub input_routing: InputRoutingState,
     pub surface_cache: SurfaceCache,

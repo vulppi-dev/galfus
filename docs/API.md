@@ -133,7 +133,16 @@ The environment config now includes a post-processing block used by the `post` p
 
 - `msaa`
 - `skybox`
+- `clearColor` (RGB clear used when skybox is disabled)
 - `post`
+
+Environment profiles are host-addressable by `environmentId` via
+`CmdEnvironmentUpsert` and can be assigned per `TargetLayer`
+using `CmdTargetLayerUpsert.environmentId`.
+Selection priority during rendering:
+1. layer `environmentId` (when set);
+2. current default profile;
+3. core fallback defaults.
 
 `SkyboxConfig` highlights:
 
@@ -344,6 +353,10 @@ Rules:
   - when set, that camera is used for `Realm3D` sampling on the layer;
   - when omitted, core uses the first available camera;
   - when no camera exists, output remains `clearColor`.
+- `environmentId` on `CmdTargetLayerUpsert` is optional:
+  - when set, that environment profile is used for the layer;
+  - when omitted, current default environment profile is used;
+  - when no profile exists, core fallback defaults are used.
 - For `window`/`widget-realm-viewport` connector layers and `realm-plane`,
   surface size is derived from
   `TargetLayerLayout.width` and `TargetLayerLayout.height` when the layer is

@@ -292,6 +292,11 @@ pub fn render_frames(engine_state: &mut EngineState) {
                     continue;
                 }
             };
+            apply_realm_environment_bindings(
+                render_state,
+                &engine_state.universal_state,
+                *realm_id,
+            );
             let universal = &mut engine_state.universal_state;
             let ui_state = &mut universal.ui;
             let targets = &universal.targets;
@@ -472,6 +477,47 @@ pub fn render_frames(engine_state: &mut EngineState) {
     }
 }
 
+fn apply_realm_environment_bindings(
+    render_state: &mut RenderState,
+    universal: &crate::core::realm::UniversalState,
+    realm_id: RealmId,
+) {
+    render_state.camera_environment_overrides.clear();
+
+    let default_environment = universal
+        .default_environment_id
+        .and_then(|environment_id| universal.environment_profiles.get(&environment_id))
+        .cloned()
+        .unwrap_or_default();
+    render_state.environment = default_environment;
+    render_state.environment_is_configured = true;
+
+    let mut layers: Vec<_> = universal
+        .target_layers
+        .entries
+        .values()
+        .filter(|layer| layer.realm_id == realm_id.0)
+        .collect();
+    layers.sort_by_key(|layer| (layer.layout.z_index, layer.target_id.0));
+
+    for layer in layers {
+        let Some(environment_id) = layer.environment_id else {
+            continue;
+        };
+        let Some(profile) = universal.environment_profiles.get(&environment_id).cloned() else {
+            continue;
+        };
+        if let Some(camera_id) = layer.camera_id {
+            render_state
+                .camera_environment_overrides
+                .insert(camera_id, profile);
+        } else {
+            render_state.environment = profile;
+        }
+    }
+
+}
+
 fn execute_graph_to_view(
     plan: &RenderGraphPlan,
     render_state: &mut RenderState,
@@ -502,6 +548,7 @@ fn execute_graph_to_view(
 ) -> bool {
     let mut gpu_written = false;
     let mut skybox_done = false;
+    let has_skybox_node = plan.nodes.iter().any(|node| node.pass_id == "skybox");
 
     for &node_idx in &plan.order {
         let node = &plan.nodes[node_idx];
@@ -523,6 +570,10 @@ fn execute_graph_to_view(
                 }
             }
             "forward" => {
+                if !has_skybox_node {
+                    skybox_done =
+                        passes::pass_skybox(render_state, device, queue, encoder, frame_index);
+                }
                 if let Some(base) = gpu_base {
                     write_gpu_timestamp(encoder, gpu_profiler, base + 2, &mut gpu_written);
                 }

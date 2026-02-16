@@ -94,7 +94,6 @@ pub fn pass_ssao(
     encoder: &mut wgpu::CommandEncoder,
     frame_index: u64,
 ) {
-    let post_config = render_state.environment.post.clone();
     let library = match render_state.library.as_ref() {
         Some(lib) => lib,
         None => return,
@@ -110,6 +109,7 @@ pub fn pass_ssao(
     };
 
     for camera_id in render_state.camera_order.iter().copied() {
+        let post_config = render_state.environment_for_camera(camera_id).post.clone();
         let Some(record) = render_state.scene.cameras.get(&camera_id) else {
             continue;
         };
@@ -275,7 +275,6 @@ pub fn pass_ssao_blur(
     encoder: &mut wgpu::CommandEncoder,
     frame_index: u64,
 ) {
-    let post_config = render_state.environment.post.clone();
     let library = match render_state.library.as_ref() {
         Some(lib) => lib,
         None => return,
@@ -291,6 +290,7 @@ pub fn pass_ssao_blur(
     };
 
     for camera_id in render_state.camera_order.iter().copied() {
+        let post_config = render_state.environment_for_camera(camera_id).post.clone();
         let Some(record) = render_state.scene.cameras.get(&camera_id) else {
             continue;
         };

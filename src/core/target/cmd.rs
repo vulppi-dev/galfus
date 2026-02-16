@@ -53,6 +53,8 @@ pub struct CmdTargetLayerUpsertArgs {
     pub layout: TargetLayerLayout,
     #[serde(default)]
     pub camera_id: Option<u32>,
+    #[serde(default)]
+    pub environment_id: Option<u32>,
 }
 
 #[derive(Debug, Default, Deserialize, Serialize, Clone)]
@@ -200,6 +202,18 @@ pub fn engine_cmd_target_layer_upsert(
             message: format!("Target {} not found", args.target_id),
         };
     }
+    if let Some(environment_id) = args.environment_id {
+        if !engine
+            .universal_state
+            .environment_profiles
+            .contains_key(&environment_id)
+        {
+            return CmdResultTargetLayerUpsert {
+                success: false,
+                message: format!("Environment {} not found", environment_id),
+            };
+        }
+    }
     engine.universal_state.target_layers.entries.insert(
         (args.realm_id, target_id),
         TargetLayerState {
@@ -207,6 +221,7 @@ pub fn engine_cmd_target_layer_upsert(
             target_id,
             layout: args.layout,
             camera_id: args.camera_id,
+            environment_id: args.environment_id,
         },
     );
 

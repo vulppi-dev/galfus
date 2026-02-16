@@ -213,6 +213,10 @@ pub(crate) fn compose_realm_connectors(
         let Some(connector) = universal.connectors.entries.get(connector_id) else {
             continue;
         };
+        if (connector.value.input_flags & crate::core::target::resolve::INPUT_FLAG_WIDGET_VIEW) != 0
+        {
+            continue;
+        }
         if connector.value.source_surface == target_surface {
             crate::core::realm::FrameReport::push_unique(
                 &mut frame_report.self_sampled_connectors,

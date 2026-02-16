@@ -80,6 +80,7 @@ pub fn build_layer_cmds(targets: Demo006TargetIds, realms: Demo006LayerRealms) -
             target_id: targets.window_main,
             layout: TargetLayerLayout::default(),
             camera_id: None,
+            environment_id: None,
         },
         CmdTargetLayerUpsertArgs {
             realm_id: realms.ui,
@@ -94,6 +95,7 @@ pub fn build_layer_cmds(targets: Demo006TargetIds, realms: Demo006LayerRealms) -
                 clip: None,
             },
             camera_id: None,
+            environment_id: None,
         },
         CmdTargetLayerUpsertArgs {
             realm_id: realms.realm_3d_embed,
@@ -108,12 +110,14 @@ pub fn build_layer_cmds(targets: Demo006TargetIds, realms: Demo006LayerRealms) -
                 clip: None,
             },
             camera_id: None,
+            environment_id: None,
         },
         CmdTargetLayerUpsertArgs {
             realm_id: realms.ui_panel_3d,
             target_id: targets.texture_ui_panel_3d,
             layout: TargetLayerLayout::default(),
             camera_id: None,
+            environment_id: None,
         },
     ];
 

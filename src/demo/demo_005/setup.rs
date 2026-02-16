@@ -147,7 +147,7 @@ impl Demo005Setup {
         let setup_cmds = vec![
             EngineCmd::CmdEnvironmentUpsert(crate::core::cmd::CmdEnvironmentUpsertArgs::Update(
                 CmdEnvironmentUpdateArgs {
-                    window_id,
+                    environment_id: window_id,
                     config: EnvironmentConfig {
                         msaa: MsaaConfig {
                             enabled: true,
@@ -162,6 +162,7 @@ impl Demo005Setup {
                             sky_color: Vec3::new(0.18, 0.32, 0.55),
                             cubemap_texture_id: None,
                         },
+                        clear_color: Vec3::new(0.0, 0.0, 0.0),
                         post: self.post_config.clone(),
                     },
                 },
@@ -329,7 +330,7 @@ impl Demo005Setup {
         let aux_cmds = vec![
             EngineCmd::CmdEnvironmentUpsert(crate::core::cmd::CmdEnvironmentUpsertArgs::Update(
                 CmdEnvironmentUpdateArgs {
-                    window_id: window_aux,
+                    environment_id: window_aux,
                     config: EnvironmentConfig {
                         msaa: MsaaConfig {
                             enabled: true,
@@ -344,6 +345,7 @@ impl Demo005Setup {
                             sky_color: Vec3::new(0.12, 0.22, 0.4),
                             cubemap_texture_id: None,
                         },
+                        clear_color: Vec3::new(0.0, 0.0, 0.0),
                         post: self.post_config.clone(),
                     },
                 },

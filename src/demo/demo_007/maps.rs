@@ -2,6 +2,10 @@ use crate::core::cmd::EngineCmd;
 use crate::core::target::cmd::{CmdTargetLayerUpsertArgs, CmdTargetUpsertArgs};
 use crate::core::target::{DimensionValue, TargetKind, TargetLayerLayout};
 
+pub const ENV_PROFILE_BIND_B_MSAA4: u32 = 9711;
+pub const ENV_PROFILE_BIND_C_PROCEDURAL: u32 = 9712;
+pub const ENV_PROFILE_BIND_D_PURPLE_CLEAR: u32 = 9713;
+
 #[derive(Debug, Clone, Copy)]
 pub struct Demo007TargetIds {
     pub window_main: u64,
@@ -13,7 +17,6 @@ pub struct Demo007TargetIds {
 
 #[derive(Debug, Clone, Copy)]
 pub struct Demo007LayerRealms {
-    pub host_main: u32,
     pub ui: u32,
     pub realm_3d: u32,
 }
@@ -86,12 +89,6 @@ pub fn build_target_cmds(window_main: u32) -> (Demo007TargetIds, Vec<EngineCmd>)
 pub fn build_layer_cmds(targets: Demo007TargetIds, realms: Demo007LayerRealms) -> Vec<EngineCmd> {
     let layers = vec![
         CmdTargetLayerUpsertArgs {
-            realm_id: realms.host_main,
-            target_id: targets.window_main,
-            layout: TargetLayerLayout::default(),
-            camera_id: None,
-        },
-        CmdTargetLayerUpsertArgs {
             realm_id: realms.ui,
             target_id: targets.window_main,
             layout: TargetLayerLayout {
@@ -104,30 +101,35 @@ pub fn build_layer_cmds(targets: Demo007TargetIds, realms: Demo007LayerRealms) -
                 clip: None,
             },
             camera_id: None,
+            environment_id: None,
         },
         CmdTargetLayerUpsertArgs {
             realm_id: realms.realm_3d,
             target_id: targets.widget_view_a,
             layout: TargetLayerLayout::default(),
             camera_id: Some(7101),
+            environment_id: None,
         },
         CmdTargetLayerUpsertArgs {
             realm_id: realms.realm_3d,
             target_id: targets.widget_view_b,
             layout: TargetLayerLayout::default(),
             camera_id: Some(7102),
+            environment_id: Some(ENV_PROFILE_BIND_B_MSAA4),
         },
         CmdTargetLayerUpsertArgs {
             realm_id: realms.realm_3d,
             target_id: targets.widget_view_c,
             layout: TargetLayerLayout::default(),
             camera_id: Some(7103),
+            environment_id: Some(ENV_PROFILE_BIND_C_PROCEDURAL),
         },
         CmdTargetLayerUpsertArgs {
             realm_id: realms.realm_3d,
             target_id: targets.widget_view_d,
             layout: TargetLayerLayout::default(),
             camera_id: Some(7104),
+            environment_id: Some(ENV_PROFILE_BIND_D_PURPLE_CLEAR),
         },
     ];
 
