@@ -67,6 +67,7 @@ impl RenderState {
             environment: crate::core::resources::EnvironmentConfig::default(),
             environment_is_configured: false,
             camera_environment_overrides: HashMap::new(),
+            rgba16f_msaa_supported_mask: RenderState::MSAA_MASK_DEFAULT_SAFE,
         }
     }
 

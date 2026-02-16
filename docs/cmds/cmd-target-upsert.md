@@ -28,6 +28,8 @@ Returns `CmdResultTargetUpsert`:
 - `windowId` is required for `kind = "window"`, `"widget-realm-viewport"`, and `"realm-plane"`.
 - `windowId` must reference an existing window.
 - `windowId` is not accepted for `kind = "texture"`.
+- `widget-realm-viewport` is intended for `UiNodeProps::WidgetRealmViewport` sampling.
+  It participates in auto-graph routing/input, but is not composed as a visible connector overlay on the host UI realm.
 - `size` is accepted only for `kind = "texture"`.
 
 When validation fails:

@@ -34,7 +34,7 @@ pub fn pass_forward(
     let sample_count = if render_state.camera_order.len() > 1 {
         1
     } else {
-        render_state.msaa_sample_count()
+        render_state.msaa_sample_count_for_format(device, wgpu::TextureFormat::Rgba16Float)
     };
 
     // Split borrows

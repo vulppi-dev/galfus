@@ -23,6 +23,7 @@ pub struct EngineState {
     pub wgpu: wgpu::Instance,
     #[cfg(any(not(feature = "wasm"), target_arch = "wasm32"))]
     pub caps: Option<wgpu::SurfaceCapabilities>,
+    pub rgba16f_msaa_supported_mask: u8,
     pub device: Option<wgpu::Device>,
     pub queue: Option<wgpu::Queue>,
 
@@ -79,6 +80,8 @@ impl EngineState {
             wgpu: wgpu::Instance::new(&wgpu_descriptor),
             #[cfg(any(not(feature = "wasm"), target_arch = "wasm32"))]
             caps: None,
+            rgba16f_msaa_supported_mask:
+                crate::core::render::RenderState::MSAA_MASK_DEFAULT_SAFE,
             device: None,
             queue: None,
             buffers: BufferStorage::new(),

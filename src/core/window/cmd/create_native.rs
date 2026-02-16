@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use super::create_shared::register_window_realm;
+use super::create_shared::{register_window_realm, resolve_rgba16f_msaa_supported_mask};
 use super::{CmdResultWindowCreate, CmdWindowCreateArgs};
 use crate::core::platform::ActiveEventLoop;
 use crate::core::platform::Window;
@@ -99,6 +99,11 @@ pub fn engine_cmd_window_create(
             required_features |=
                 wgpu::Features::TIMESTAMP_QUERY | wgpu::Features::TIMESTAMP_QUERY_INSIDE_ENCODERS;
         }
+        let adapter_specific_format_features_supported = adapter_features
+            .contains(wgpu::Features::TEXTURE_ADAPTER_SPECIFIC_FORMAT_FEATURES);
+        if adapter_specific_format_features_supported {
+            required_features |= wgpu::Features::TEXTURE_ADAPTER_SPECIFIC_FORMAT_FEATURES;
+        }
 
         let (device, queue) = match adapter
             .request_device(&wgpu::DeviceDescriptor {
@@ -121,6 +126,10 @@ pub fn engine_cmd_window_create(
                 };
             }
         };
+        engine.rgba16f_msaa_supported_mask = resolve_rgba16f_msaa_supported_mask(
+            &adapter,
+            adapter_specific_format_features_supported,
+        );
 
         engine.caps = Some(surface.get_capabilities(&adapter));
         engine.device = Some(device);
@@ -232,6 +241,7 @@ pub fn engine_cmd_window_create(
 
     // Create render state and initialize blit resources
     let mut render_state = crate::core::render::RenderState::new(format);
+    render_state.rgba16f_msaa_supported_mask = engine.rgba16f_msaa_supported_mask;
     let mut surface_target = None;
     if let Some(device) = &engine.device {
         if let Some(queue) = &engine.queue {

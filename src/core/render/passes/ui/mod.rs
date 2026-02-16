@@ -170,20 +170,21 @@ fn collect_external_textures(
     for (target_id, surface_id) in target_surfaces {
         if let Some(target_state) = targets.entries.get(&target_id) {
             if target_state.kind == TargetKind::WidgetRealmViewport {
-                let camera_id = target_layers
-                    .entries
-                    .iter()
-                    .find_map(|((_layer_realm, layer_target), layer)| {
+                let camera_id = target_layers.entries.iter().find_map(
+                    |((_layer_realm, layer_target), layer)| {
                         if *layer_target == target_id {
                             return layer.camera_id;
                         }
                         None
-                    });
+                    },
+                );
 
                 if let Some(camera_id) = camera_id {
                     if let Some(camera) = render_state.scene.cameras.get(&camera_id) {
-                        let camera_target =
-                            camera.post_target.as_ref().or(camera.render_target.as_ref());
+                        let camera_target = camera
+                            .post_target
+                            .as_ref()
+                            .or(camera.render_target.as_ref());
                         if let Some(camera_target) = camera_target {
                             let texture_size = camera_target._texture.size();
                             let size = [texture_size.width.max(1), texture_size.height.max(1)];

@@ -138,8 +138,7 @@ pub fn sync_auto_graph(engine_state: &mut EngineState) {
             let expects_connector = matches!(
                 target.kind,
                 TargetKind::WidgetRealmViewport | TargetKind::RealmPlane
-            )
-                || (matches!(target.kind, TargetKind::Window)
+            ) || (matches!(target.kind, TargetKind::Window)
                 && !is_host_layer);
             let needs_rebuild = link.surface_id != surface_id
                 || (expects_present && link.present_id.is_none())

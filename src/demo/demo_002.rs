@@ -37,10 +37,10 @@ pub fn run(ctx: DemoContext) -> bool {
                 config: EnvironmentConfig {
                     msaa: MsaaConfig {
                         enabled: true,
-                        sample_count: 4,
+                        sample_count: 8,
                     },
                     skybox: SkyboxConfig {
-                        mode: SkyboxMode::None,
+                        mode: SkyboxMode::Procedural,
                         intensity: 1.0,
                         rotation: 0.0,
                         ground_color: Vec3::new(0.02, 0.03, 0.04),
@@ -50,7 +50,7 @@ pub fn run(ctx: DemoContext) -> bool {
                     },
                     clear_color: Vec3::new(0.0, 0.0, 0.0),
                     post: PostProcessConfig {
-                        filter_enabled: true,
+                        filter_enabled: false,
                         filter_exposure: 1.0,
                         filter_gamma: 2.2,
                         filter_saturation: 1.05,
@@ -61,7 +61,7 @@ pub fn run(ctx: DemoContext) -> bool {
                         filter_blur: 0.0,
                         filter_sharpen: 0.1,
                         filter_tonemap_mode: 1,
-                        outline_enabled: false,
+                        outline_enabled: true,
                         outline_strength: 0.0,
                         outline_threshold: 0.2,
                         outline_width: 1.0,

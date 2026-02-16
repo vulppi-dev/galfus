@@ -32,7 +32,7 @@ pub fn pass_skybox(
     let sample_count = if multi_camera_mode {
         1
     } else {
-        render_state.msaa_sample_count()
+        render_state.msaa_sample_count_for_format(device, wgpu::TextureFormat::Rgba16Float)
     };
 
     if let Some((_, camera)) = render_state.scene.cameras.iter().next() {

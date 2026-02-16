@@ -44,3 +44,38 @@ pub fn register_window_realm(
         present_id,
     }
 }
+
+#[cfg(any(not(feature = "wasm"), target_arch = "wasm32"))]
+pub fn resolve_rgba16f_msaa_supported_mask(
+    adapter: &wgpu::Adapter,
+    adapter_specific_enabled: bool,
+) -> u8 {
+    use crate::core::render::RenderState;
+
+    if !adapter_specific_enabled {
+        return RenderState::MSAA_MASK_DEFAULT_SAFE;
+    }
+
+    let flags = adapter
+        .get_texture_format_features(wgpu::TextureFormat::Rgba16Float)
+        .flags;
+
+    let mut mask = RenderState::MSAA_MASK_1;
+    if flags.contains(wgpu::TextureFormatFeatureFlags::MULTISAMPLE_X2) {
+        mask |= RenderState::MSAA_MASK_2;
+    }
+    if flags.contains(wgpu::TextureFormatFeatureFlags::MULTISAMPLE_X4) {
+        mask |= RenderState::MSAA_MASK_4;
+    }
+    if flags.contains(wgpu::TextureFormatFeatureFlags::MULTISAMPLE_X8) {
+        mask |= RenderState::MSAA_MASK_8;
+    }
+    if flags.contains(wgpu::TextureFormatFeatureFlags::MULTISAMPLE_X16) {
+        mask |= RenderState::MSAA_MASK_16;
+    }
+
+    if (mask & RenderState::MSAA_MASK_4) == 0 {
+        mask |= RenderState::MSAA_MASK_4;
+    }
+    mask
+}

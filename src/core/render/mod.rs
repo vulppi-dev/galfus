@@ -515,7 +515,6 @@ fn apply_realm_environment_bindings(
             render_state.environment = profile;
         }
     }
-
 }
 
 fn execute_graph_to_view(
@@ -723,7 +722,18 @@ fn apply_target_size_requests(
             let msaa = target
                 .window_id
                 .and_then(|window_id| engine_state.window.states.get(&window_id))
-                .map(|state| state.render_state.msaa_sample_count())
+                .map(|state| {
+                    engine_state
+                        .device
+                        .as_ref()
+                        .map(|device| {
+                            state.render_state.msaa_sample_count_for_format(
+                                device,
+                                wgpu::TextureFormat::Rgba16Float,
+                            )
+                        })
+                        .unwrap_or(1)
+                })
                 .unwrap_or(1);
             target.msaa_samples = Some(msaa);
         }
