@@ -68,7 +68,7 @@ pub fn pass_ui(
     sync_ui_images(&context, ui_state);
     let layout_start = Instant::now();
     let output = context.run(input, |ctx| {
-        render_realm_documents(ctx, ui_state, realm_id, ui_events, time_seconds);
+        render_realm_documents(ctx, ui_state, realm_id, target_size, ui_events, time_seconds);
     });
     let layout_ms = layout_start.elapsed().as_secs_f32() * 1000.0;
 

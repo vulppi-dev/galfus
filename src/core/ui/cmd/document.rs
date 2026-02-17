@@ -221,6 +221,18 @@ pub fn engine_cmd_ui_apply_ops(
     ui_state.animations.retain(|key, _| {
         key.document_id != args.document_id || alive_nodes.contains(&key.node_id)
     });
+    ui_state.split_ratios.retain(|(document_id, node_id), _| {
+        *document_id != args.document_id || alive_nodes.contains(node_id)
+    });
+    ui_state.node_open_state.retain(|(document_id, node_id), _| {
+        *document_id != args.document_id || alive_nodes.contains(node_id)
+    });
+    ui_state.area_positions.retain(|(document_id, node_id), _| {
+        *document_id != args.document_id || alive_nodes.contains(node_id)
+    });
+    ui_state.scene_state.retain(|(document_id, node_id), _| {
+        *document_id != args.document_id || alive_nodes.contains(node_id)
+    });
 
     CmdResultUiApplyOps {
         success: true,

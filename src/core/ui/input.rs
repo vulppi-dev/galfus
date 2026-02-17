@@ -111,7 +111,7 @@ fn resolve_pointer_realm(
             .copied(),
     };
 
-    let pos = if let Some(uv) = trace.uv {
+    let (pos, realm_size) = if let Some(uv) = trace.uv {
         let size = if trace.source_realm_id.is_some() {
             realm_output_size(&engine.universal_state, realm_id)
                 .or_else(|| connector_source_size(&engine.universal_state, trace.connector_id))
@@ -119,14 +119,79 @@ fn resolve_pointer_realm(
             connector_source_size(&engine.universal_state, trace.connector_id)
                 .or_else(|| realm_output_size(&engine.universal_state, realm_id))
         }?;
-        egui::pos2(uv.x * size.x as f32, uv.y * size.y as f32)
+        (egui::pos2(uv.x * size.x as f32, uv.y * size.y as f32), size)
     } else if let Some(position) = position {
-        egui::pos2(position.x, position.y)
+        let size = realm_output_size(&engine.universal_state, realm_id)
+            .or_else(|| connector_source_size(&engine.universal_state, trace.connector_id))
+            .unwrap_or(glam::UVec2::new(1, 1));
+        (egui::pos2(position.x, position.y), size)
     } else {
         return None;
     };
 
+    if !hit_test_ui_document(
+        &engine.universal_state.ui,
+        realm_id,
+        pos,
+        realm_size,
+    ) {
+        return None;
+    }
+
     Some((realm_id, pos))
+}
+
+fn hit_test_ui_document(
+    ui_state: &crate::core::ui::UiState,
+    realm_id: RealmId,
+    pos: egui::Pos2,
+    realm_size: glam::UVec2,
+) -> bool {
+    let mut best: Option<(i32, u32)> = None;
+    for document in ui_state.documents.values() {
+        if document.realm_id != realm_id {
+            continue;
+        }
+        let rect = resolve_document_rect(document.rect, realm_size);
+        if !rect.contains(pos) {
+            continue;
+        }
+        let z = document
+            .root_children
+            .iter()
+            .filter_map(|node_id| {
+                document
+                    .nodes
+                    .get(node_id)
+                    .and_then(|entry| entry.node.z_index)
+            })
+            .max()
+            .unwrap_or(0);
+        let key = (z, document.document_id);
+        match best {
+            Some(current) if key <= current => {}
+            _ => best = Some(key),
+        }
+    }
+    best.is_some()
+}
+
+fn resolve_document_rect(rect: glam::Vec4, realm_size: glam::UVec2) -> egui::Rect {
+    let max_w = realm_size.x.max(1) as f32;
+    let max_h = realm_size.y.max(1) as f32;
+    let x = rect.x.max(0.0).min(max_w);
+    let y = rect.y.max(0.0).min(max_h);
+    let mut w = rect.z;
+    let mut h = rect.w;
+    if w <= 0.0 {
+        w = (max_w - x).max(1.0);
+    }
+    if h <= 0.0 {
+        h = (max_h - y).max(1.0);
+    }
+    let clamped_w = w.max(1.0).min((max_w - x).max(1.0));
+    let clamped_h = h.max(1.0).min((max_h - y).max(1.0));
+    egui::Rect::from_min_size(egui::pos2(x, y), egui::vec2(clamped_w, clamped_h))
 }
 
 fn connector_source_size(

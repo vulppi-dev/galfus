@@ -71,6 +71,10 @@ pub struct UiState {
     pub external_textures: HashMap<u64, [u32; 2]>,
     pub target_size_requests: HashMap<u64, glam::UVec2>,
     pub animations: HashMap<UiAnimKey, UiAnimState>,
+    pub split_ratios: HashMap<(UiDocumentId, UiNodeId), f32>,
+    pub node_open_state: HashMap<(UiDocumentId, UiNodeId), bool>,
+    pub area_positions: HashMap<(UiDocumentId, UiNodeId), glam::Vec2>,
+    pub scene_state: HashMap<(UiDocumentId, UiNodeId), UiSceneState>,
     pub debug: UiDebugState,
     pub focus_by_window: HashMap<u32, RealmId>,
 }
@@ -96,6 +100,14 @@ impl UiState {
             .retain(|(entry_document_id, _), _| *entry_document_id != document_id);
         self.animations
             .retain(|key, _| key.document_id != document_id);
+        self.split_ratios
+            .retain(|(entry_document_id, _), _| *entry_document_id != document_id);
+        self.node_open_state
+            .retain(|(entry_document_id, _), _| *entry_document_id != document_id);
+        self.area_positions
+            .retain(|(entry_document_id, _), _| *entry_document_id != document_id);
+        self.scene_state
+            .retain(|(entry_document_id, _), _| *entry_document_id != document_id);
 
         true
     }
@@ -129,6 +141,10 @@ impl Default for UiState {
             external_textures: HashMap::new(),
             target_size_requests: HashMap::new(),
             animations: HashMap::new(),
+            split_ratios: HashMap::new(),
+            node_open_state: HashMap::new(),
+            area_positions: HashMap::new(),
+            scene_state: HashMap::new(),
             debug: UiDebugState::default(),
             focus_by_window: HashMap::new(),
         }
@@ -178,6 +194,12 @@ pub struct UiAnimState {
     pub duration: f32,
     pub finished: bool,
     pub last_value: f32,
+}
+
+#[derive(Debug, Clone, Copy, Default)]
+pub struct UiSceneState {
+    pub pan: glam::Vec2,
+    pub zoom: f32,
 }
 
 #[derive(Debug, Clone)]

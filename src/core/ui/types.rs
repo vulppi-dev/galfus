@@ -24,6 +24,18 @@ pub enum UiThemeValue {
 #[serde(rename_all = "kebab-case")]
 pub enum UiNodeKind {
     Container,
+    Window,
+    Panel,
+    SplitPane,
+    Area,
+    Frame,
+    ScrollArea,
+    Grid,
+    Popup,
+    Tooltip,
+    Modal,
+    Resize,
+    Scene,
     Text,
     Button,
     Input,
@@ -64,6 +76,37 @@ pub enum UiLength {
     Auto,
     Fill,
     Px(f32),
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+pub enum UiPanelKind {
+    SideLeft,
+    SideRight,
+    Top,
+    Bottom,
+    Central,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+pub enum UiSplitDirection {
+    Horizontal,
+    Vertical,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct UiStroke {
+    pub width: f32,
+    pub color: UiColor,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct UiWindowAnchor {
+    pub x: f32,
+    pub y: f32,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
@@ -146,6 +189,127 @@ pub enum UiNodeProps {
         scroll_x: bool,
         #[serde(default)]
         scroll_y: bool,
+    },
+    Window {
+        title: String,
+        #[serde(default)]
+        open: Option<bool>,
+        #[serde(default)]
+        movable: Option<bool>,
+        #[serde(default)]
+        resizable: Option<bool>,
+        #[serde(default)]
+        collapsible: Option<bool>,
+        #[serde(default)]
+        anchored: Option<UiWindowAnchor>,
+        #[serde(default)]
+        size: Option<UiSize>,
+    },
+    Panel {
+        kind: UiPanelKind,
+        #[serde(default)]
+        resizable: Option<bool>,
+        #[serde(default)]
+        size: Option<UiSize>,
+        #[serde(default)]
+        min_size: Option<f32>,
+        #[serde(default)]
+        max_size: Option<f32>,
+    },
+    SplitPane {
+        direction: UiSplitDirection,
+        #[serde(default)]
+        ratio: Option<f32>,
+        #[serde(default)]
+        resizable: Option<bool>,
+        #[serde(default)]
+        min_a: Option<f32>,
+        #[serde(default)]
+        max_a: Option<f32>,
+        #[serde(default)]
+        min_b: Option<f32>,
+        #[serde(default)]
+        max_b: Option<f32>,
+    },
+    Area {
+        #[serde(default)]
+        label: Option<String>,
+        #[serde(default)]
+        x: Option<f32>,
+        #[serde(default)]
+        y: Option<f32>,
+        #[serde(default)]
+        draggable: Option<bool>,
+        #[serde(default)]
+        size: Option<UiSize>,
+    },
+    Frame {
+        #[serde(default)]
+        padding: Option<UiPadding>,
+        #[serde(default)]
+        fill: Option<UiColor>,
+        #[serde(default)]
+        stroke: Option<UiStroke>,
+        #[serde(default)]
+        rounding: Option<f32>,
+        #[serde(default)]
+        size: Option<UiSize>,
+    },
+    ScrollArea {
+        #[serde(default)]
+        scroll_x: bool,
+        #[serde(default)]
+        scroll_y: bool,
+        #[serde(default)]
+        auto_shrink: Option<bool>,
+        #[serde(default)]
+        size: Option<UiSize>,
+    },
+    Grid {
+        #[serde(default)]
+        columns: Option<u32>,
+        #[serde(default)]
+        striped: Option<bool>,
+        #[serde(default)]
+        min_col_width: Option<f32>,
+        #[serde(default)]
+        size: Option<UiSize>,
+    },
+    Popup {
+        #[serde(default)]
+        title: Option<String>,
+        #[serde(default)]
+        open: Option<bool>,
+        #[serde(default)]
+        size: Option<UiSize>,
+    },
+    Tooltip {
+        text: String,
+    },
+    Modal {
+        title: String,
+        #[serde(default)]
+        open: Option<bool>,
+        #[serde(default)]
+        size: Option<UiSize>,
+    },
+    Resize {
+        #[serde(default)]
+        size: Option<UiSize>,
+        #[serde(default)]
+        min_size: Option<UiSize>,
+        #[serde(default)]
+        max_size: Option<UiSize>,
+    },
+    Scene {
+        #[serde(default)]
+        size: Option<UiSize>,
+        #[serde(default)]
+        zoom_min: Option<f32>,
+        #[serde(default)]
+        zoom_max: Option<f32>,
+        #[serde(default)]
+        pan_enabled: Option<bool>,
     },
     Text {
         text: String,

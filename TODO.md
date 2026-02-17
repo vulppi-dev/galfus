@@ -20,19 +20,19 @@ Base de referência (egui):
 - [x] Criar checklist de aceite por fase (funcional, performance, documentação).
 
 ## Fase 1 — Containers e Estrutura de Layout (P0)
-- [ ] Adicionar `UiNodeKind::Window` + props (title, open, movable, resizable, collapsible, anchored).
-- [ ] Adicionar `UiNodeKind::Panel` com variações: side/top-bottom/central.
-- [ ] Implementar `Split Pane` resizable estilo Blender (divisor arrastável por ponteiro, horizontal/vertical, min/max por lado, cursor de resize e persistência de proporção).
-- [ ] Adicionar `UiNodeKind::Area` (posição livre, drag opcional).
-- [ ] Adicionar `UiNodeKind::Frame` (margin, fill, stroke, rounding) para agrupar conteúdo com estilo.
-- [ ] Adicionar `UiNodeKind::ScrollArea` dedicado (em vez de flags no container).
-- [ ] Adicionar `UiNodeKind::Grid` dedicado (com striped/min_col_width etc.).
-- [ ] Adicionar containers de `Popup`, `Tooltip` e `Modal` (abertura/fechamento e ancoragem).
-- [ ] Adicionar `UiNodeKind::Resize` para regiões redimensionáveis fora de panel/window.
-- [ ] Adicionar `UiNodeKind::Scene` (pan/zoom) quando usado como container de visualização.
-- [ ] Garantir persistência de estado de layout (larguras de panel, open/closed de window/header).
-- [ ] Ajustar ordenação/z-index para windows e áreas sobrepostas no mesmo documento.
-- [ ] Validar clipping/hit-test de layout com rects dinâmicos e resize de janela.
+- [x] Adicionar `UiNodeKind::Window` + props (title, open, movable, resizable, collapsible, anchored).
+- [x] Adicionar `UiNodeKind::Panel` com variações: side/top-bottom/central.
+- [x] Implementar `Split Pane` resizable estilo Blender (divisor arrastável por ponteiro, horizontal/vertical, min/max por lado, cursor de resize e persistência de proporção).
+- [x] Adicionar `UiNodeKind::Area` (posição livre, drag opcional).
+- [x] Adicionar `UiNodeKind::Frame` (margin, fill, stroke, rounding) para agrupar conteúdo com estilo.
+- [x] Adicionar `UiNodeKind::ScrollArea` dedicado (em vez de flags no container).
+- [x] Adicionar `UiNodeKind::Grid` dedicado (com striped/min_col_width etc.).
+- [x] Adicionar containers de `Popup`, `Tooltip` e `Modal` (abertura/fechamento e ancoragem).
+- [x] Adicionar `UiNodeKind::Resize` para regiões redimensionáveis fora de panel/window.
+- [x] Adicionar `UiNodeKind::Scene` (pan/zoom) quando usado como container de visualização.
+- [x] Garantir persistência de estado de layout (larguras de panel, open/closed de window/header).
+- [x] Ajustar ordenação/z-index para windows e áreas sobrepostas no mesmo documento.
+- [x] Validar clipping/hit-test de layout com rects dinâmicos e resize de janela.
 
 ## Fase 2 — Widgets Essenciais do egui (P0/P1)
 - [ ] Expandir tipos de widget:
