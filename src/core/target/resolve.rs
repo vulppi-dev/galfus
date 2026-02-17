@@ -1,12 +1,11 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::core::cmd::EngineEvent;
 use crate::core::realm::{
     AutoLink, ConnectorId, ConnectorState, PresentState, RealmId, RealmKind, SurfaceKind,
     SurfaceState, UniversalState,
 };
 use crate::core::state::EngineState;
-use crate::core::system::SystemEvent;
+use crate::core::system::push_error_event;
 use crate::core::target::{TargetId, TargetKind, TargetLayerLayout, TargetLayerState, TargetState};
 
 const INPUT_FLAG_RAYCAST: u32 = 1 << 0;
@@ -269,17 +268,16 @@ pub fn sync_auto_graph(engine_state: &mut EngineState) {
     }
     if auto_link_failures != engine_state.universal_state.target_autolink_failures {
         for failure in &auto_link_failures {
-            engine_state
-                .event_queue
-                .push(EngineEvent::System(SystemEvent::Error {
-                    scope: "target-auto-link".into(),
-                    message: format!(
-                        "realm_id={} target_id={} reason={}",
-                        failure.realm_id, failure.target_id, failure.reason
-                    ),
-                    command_id: None,
-                    command_type: None,
-                }));
+            push_error_event(
+                engine_state,
+                "target-auto-link",
+                format!(
+                    "realm_id={} target_id={} reason={}",
+                    failure.realm_id, failure.target_id, failure.reason
+                ),
+                None,
+                None,
+            );
         }
     }
     engine_state.universal_state.target_autolink_failures = auto_link_failures;

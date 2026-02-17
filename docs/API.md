@@ -265,6 +265,10 @@ During `vulfram_tick`:
 
 3. Update any derived data required for rendering (culling, visibility, etc.).
 
+Diagnostic rule:
+- Any diagnosable failure must also emit `SystemEvent::Error` into the host event pool.
+- Core-side code should use the shared helper `push_error_event(...)` for consistency.
+
 ---
 
 ## 5.4 Asynchronous Resource Linking (Fallback-Driven)

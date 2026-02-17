@@ -13,11 +13,11 @@ Base de referência (egui):
 - https://docs.rs/epaint/latest/epaint/enum.Shape.html
 
 ## Fase 0 — Fundamentos e Contrato (P0)
-- [ ] Congelar escopo da UI API v1 (nós + props + eventos) alinhado ao egui atual.
-- [ ] Definir matriz de cobertura (recurso egui -> suporte no core -> comando/props).
-- [ ] Definir política de compatibilidade temporária (projeto experimental sem retrocompatibilidade).
-- [ ] Formalizar padrão de eventos de erro no pool de eventos ao host para falhas de UI/input/render.
-- [ ] Criar checklist de aceite por fase (funcional, performance, documentação).
+- [x] Congelar escopo da UI API v1 (nós + props + eventos) alinhado ao egui atual.
+- [x] Definir matriz de cobertura (recurso egui -> suporte no core -> comando/props).
+- [x] Definir política de compatibilidade temporária (projeto experimental sem retrocompatibilidade).
+- [x] Formalizar padrão de eventos de erro no pool de eventos ao host para falhas de UI/input/render.
+- [x] Criar checklist de aceite por fase (funcional, performance, documentação).
 
 ## Fase 1 — Containers e Estrutura de Layout (P0)
 - [ ] Adicionar `UiNodeKind::Window` + props (title, open, movable, resizable, collapsible, anchored).

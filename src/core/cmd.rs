@@ -393,14 +393,13 @@ fn maybe_emit_response_error_event(
         return;
     };
 
-    engine
-        .event_queue
-        .push(EngineEvent::System(SystemEvent::Error {
-            scope: "command".into(),
-            message: message.to_string(),
-            command_id: Some(command_id),
-            command_type: Some(command_type.to_string()),
-        }));
+    sys::push_error_event(
+        engine,
+        "command",
+        message.to_string(),
+        Some(command_id),
+        Some(command_type.to_string()),
+    );
 }
 
 pub fn engine_process_batch(
