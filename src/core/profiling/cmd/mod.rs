@@ -1,9 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::core::VulframResult;
-use crate::core::profiling::state::{
-    FrameProfilingSample, ProfilingDetailLevel, TickProfiling,
-};
+use crate::core::profiling::state::{FrameProfilingSample, ProfilingDetailLevel, TickProfiling};
 use crate::core::singleton::with_engine;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -77,7 +75,9 @@ fn to_us(value: u64) -> f64 {
     value as f64 / 1000.0
 }
 
-fn rolling_from_samples(samples: &std::collections::VecDeque<FrameProfilingSample>) -> ProfilingRollingWindow {
+fn rolling_from_samples(
+    samples: &std::collections::VecDeque<FrameProfilingSample>,
+) -> ProfilingRollingWindow {
     if samples.is_empty() {
         return ProfilingRollingWindow {
             sample_count: 0,
@@ -120,7 +120,9 @@ fn domain_from_tick(profiling: &TickProfiling) -> ProfilingDomainUs {
     ProfilingDomainUs {
         command: to_us(profiling.command.processing_ns),
         input: to_us(
-            profiling.input.gamepad_processing_ns
+            profiling
+                .input
+                .gamepad_processing_ns
                 .saturating_add(profiling.input.event_loop_pump_ns),
         ),
         routing: 0.0,

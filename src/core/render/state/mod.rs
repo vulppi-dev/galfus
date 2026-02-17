@@ -73,7 +73,8 @@ impl RenderState {
         _device: &wgpu::Device,
         _format: wgpu::TextureFormat,
     ) -> u32 {
-        let requested = if self.environment.msaa.enabled && self.environment.msaa.sample_count >= 2 {
+        let requested = if self.environment.msaa.enabled && self.environment.msaa.sample_count >= 2
+        {
             self.environment.msaa.sample_count
         } else {
             1

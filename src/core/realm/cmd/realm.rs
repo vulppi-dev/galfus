@@ -194,11 +194,14 @@ pub fn engine_cmd_realm_dispose(
         engine.surface_targets.remove(&surface_id);
         engine.universal_state.surfaces.remove(surface_id);
     }
-    engine.universal_state.target_graph_cache.prune_dead_entries(
-        &engine.universal_state.targets.entries,
-        &engine.universal_state.target_layers.entries,
-        &engine.universal_state.realms,
-    );
+    engine
+        .universal_state
+        .target_graph_cache
+        .prune_dead_entries(
+            &engine.universal_state.targets.entries,
+            &engine.universal_state.target_layers.entries,
+            &engine.universal_state.realms,
+        );
 
     CmdResultRealmDispose {
         success: true,

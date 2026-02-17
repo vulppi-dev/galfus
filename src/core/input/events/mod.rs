@@ -15,4 +15,7 @@ pub use converters::{
 pub use keyboard::KeyboardEvent;
 #[cfg(any(not(feature = "wasm"), target_arch = "wasm32"))]
 pub use pointer::ScrollDelta;
-pub use pointer::{PointerEvent, PointerEventTrace, PointerTraceConfig, PointerTraceLevel};
+pub use pointer::{
+    PointerEvent, PointerEventTrace, PointerTraceConfig, PointerTraceHop, PointerTraceLevel,
+    PointerTraceStage,
+};

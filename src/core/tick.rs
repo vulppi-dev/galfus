@@ -33,7 +33,8 @@ pub fn vulfram_tick(time: u64, delta_time: u32) -> VulframResult {
             let result = engine_process_batch(&mut engine.state, &mut engine.platform, batch);
             #[cfg(not(feature = "wasm"))]
             {
-                engine.state.profiling.command.processing_ns = cmd_start.elapsed().as_nanos() as u64;
+                engine.state.profiling.command.processing_ns =
+                    cmd_start.elapsed().as_nanos() as u64;
             }
             #[cfg(feature = "wasm")]
             {
@@ -70,7 +71,8 @@ pub fn vulfram_tick(time: u64, delta_time: u32) -> VulframResult {
             engine.platform.process_gamepads(&mut engine.state);
 
         // MARK: Event Loop Pump
-        engine.state.profiling.input.event_loop_pump_ns = engine.platform.pump_events(&mut engine.state);
+        engine.state.profiling.input.event_loop_pump_ns =
+            engine.platform.pump_events(&mut engine.state);
         crate::core::input::route_pointer_events(&mut engine.state);
         #[cfg(not(feature = "wasm"))]
         let ui_input_start = Instant::now();

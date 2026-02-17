@@ -60,8 +60,7 @@ pub fn vulfram_receive_queue(out_ptr: *mut *const u8, out_length: *mut usize) ->
         }
         #[cfg(feature = "wasm")]
         {
-            engine.profiling.render.serialization_ns =
-                now_ns().saturating_sub(serialization_start);
+            engine.profiling.render.serialization_ns = now_ns().saturating_sub(serialization_start);
         }
 
         let data_length = serialized_data.len();

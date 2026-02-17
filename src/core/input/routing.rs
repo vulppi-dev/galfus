@@ -5,8 +5,8 @@ use glam::{UVec2, Vec2};
 
 use crate::core::cmd::EngineEvent;
 use crate::core::input::events::{
-    ElementState, PointerEvent, PointerEventTrace, PointerTraceConfig, PointerTraceLevel,
-    TouchPhase,
+    ElementState, PointerEvent, PointerEventTrace, PointerTraceConfig, PointerTraceHop,
+    PointerTraceLevel, PointerTraceStage, TouchPhase,
 };
 use crate::core::input::raycast::resolve_realm_plane_hit;
 use crate::core::realm::{ConnectorId, ConnectorState, InputCapture, RealmId, UniversalState};
@@ -52,6 +52,12 @@ pub fn route_pointer_events(engine_state: &mut EngineState) {
         if let Some(connector_id) = link.connector_id {
             connector_targets.insert(connector_id, *target_id);
         }
+    }
+    let mut layer_camera_by_key: HashMap<(u32, TargetId), Option<u32>> = HashMap::new();
+    for ((layer_realm_id, layer_target_id), layer) in
+        engine_state.universal_state.target_layers.entries.iter()
+    {
+        layer_camera_by_key.insert((*layer_realm_id, *layer_target_id), layer.camera_id);
     }
 
     let mut connectors_by_realm: HashMap<RealmId, Vec<ConnectorHit>> = HashMap::new();
@@ -134,6 +140,17 @@ pub fn route_pointer_events(engine_state: &mut EngineState) {
         let mut source_realm_id = None;
         let mut uv = None;
         let mut uv_override = None;
+        let mut hops: Vec<PointerTraceHop> = Vec::new();
+        hops.push(PointerTraceHop {
+            stage: PointerTraceStage::RootWindow,
+            realm_id: Some(realm_id.0),
+            target_id: None,
+            layer_realm_id: None,
+            connector_id: None,
+            surface_id: Some(root_surface_id.0),
+            camera_id: None,
+            uv: None,
+        });
 
         if let (Some(pointer_id), Some(position)) = (pointer_id_value, position) {
             if let Some(capture) =
@@ -152,6 +169,17 @@ pub fn route_pointer_events(engine_state: &mut EngineState) {
                         resolve_connector_for_target(connectors_by_realm.get(&realm_id), target_id)
                     })
                 };
+                hops.push(PointerTraceHop {
+                    stage: PointerTraceStage::Capture,
+                    realm_id: Some(realm_id.0),
+                    target_id: target_id.map(|id| id.0),
+                    layer_realm_id: Some(realm_id.0),
+                    connector_id: connector_id.map(|id| id.0),
+                    surface_id: None,
+                    camera_id: target_id
+                        .and_then(|id| layer_camera_by_key.get(&(realm_id.0, id)).copied().flatten()),
+                    uv: None,
+                });
             } else if let Some(hit) = resolve_hit_connector(
                 connectors_by_realm.get(&realm_id),
                 position,
@@ -159,6 +187,18 @@ pub fn route_pointer_events(engine_state: &mut EngineState) {
             ) {
                 connector_id = Some(hit.connector_id);
                 uv_override = hit.uv;
+                hops.push(PointerTraceHop {
+                    stage: PointerTraceStage::ConnectorHit,
+                    realm_id: Some(realm_id.0),
+                    target_id: connector_targets.get(&hit.connector_id).map(|id| id.0),
+                    layer_realm_id: Some(realm_id.0),
+                    connector_id: Some(hit.connector_id.0),
+                    surface_id: None,
+                    camera_id: connector_targets
+                        .get(&hit.connector_id)
+                        .and_then(|id| layer_camera_by_key.get(&(realm_id.0, *id)).copied().flatten()),
+                    uv: hit.uv,
+                });
             }
 
             if connector_id.is_none() {
@@ -170,6 +210,19 @@ pub fn route_pointer_events(engine_state: &mut EngineState) {
                         connectors_by_realm.get(&realm_id),
                         focused_target,
                     );
+                    hops.push(PointerTraceHop {
+                        stage: PointerTraceStage::FocusFallback,
+                        realm_id: Some(realm_id.0),
+                        target_id: Some(focused_target.0),
+                        layer_realm_id: Some(realm_id.0),
+                        connector_id: connector_id.map(|id| id.0),
+                        surface_id: None,
+                        camera_id: layer_camera_by_key
+                            .get(&(realm_id.0, focused_target))
+                            .copied()
+                            .flatten(),
+                        uv: None,
+                    });
                 }
             }
 
@@ -194,18 +247,47 @@ pub fn route_pointer_events(engine_state: &mut EngineState) {
                             root_surface_size.unwrap_or(glam::UVec2::new(1, 1)),
                         )
                     });
+                    hops.push(PointerTraceHop {
+                        stage: PointerTraceStage::HopForward,
+                        realm_id: source_realm_id.map(|id| id.0),
+                        target_id: target_id.map(|id| id.0),
+                        layer_realm_id: Some(connector.target_realm.0),
+                        connector_id: Some(connector_id.0),
+                        surface_id: Some(connector.source_surface.0),
+                        camera_id: target_id.and_then(|id| {
+                            layer_camera_by_key
+                                .get(&(connector.target_realm.0, id))
+                                .copied()
+                                .flatten()
+                        }),
+                        uv,
+                    });
                 }
             } else if source_realm_id.is_none() {
                 if let Some(realm_plane_hit) = resolve_realm_plane_hit(
                     engine_state,
                     window_id,
                     realm_id,
+                    target_id.and_then(|id| layer_camera_by_key.get(&(realm_id.0, id)).copied().flatten()),
                     position,
                     root_surface_size.unwrap_or(glam::UVec2::new(1, 1)),
                 ) {
                     source_realm_id = Some(realm_plane_hit.source_realm_id);
                     target_id = Some(realm_plane_hit.target_id);
                     uv = Some(realm_plane_hit.uv);
+                    hops.push(PointerTraceHop {
+                        stage: PointerTraceStage::RealmPlaneHit,
+                        realm_id: Some(realm_plane_hit.source_realm_id.0),
+                        target_id: Some(realm_plane_hit.target_id.0),
+                        layer_realm_id: Some(realm_id.0),
+                        connector_id: None,
+                        surface_id: None,
+                        camera_id: layer_camera_by_key
+                            .get(&(realm_id.0, realm_plane_hit.target_id))
+                            .copied()
+                            .flatten(),
+                        uv: Some(realm_plane_hit.uv),
+                    });
                 }
             }
 
@@ -221,6 +303,16 @@ pub fn route_pointer_events(engine_state: &mut EngineState) {
                     quantize_uv(current_uv.y),
                 );
                 if !visited.insert(key) {
+                    hops.push(PointerTraceHop {
+                        stage: PointerTraceStage::StopCycle,
+                        realm_id: Some(current_realm.0),
+                        target_id: target_id.map(|id| id.0),
+                        layer_realm_id: Some(current_realm.0),
+                        connector_id: connector_id.map(|id| id.0),
+                        surface_id: None,
+                        camera_id: None,
+                        uv: Some(current_uv),
+                    });
                     break;
                 }
                 let Some(surface_size) =
@@ -261,6 +353,21 @@ pub fn route_pointer_events(engine_state: &mut EngineState) {
                             surface_size,
                         )
                     });
+                    hops.push(PointerTraceHop {
+                        stage: PointerTraceStage::HopForward,
+                        realm_id: next_realm.map(|id| id.0),
+                        target_id: target_id.map(|id| id.0),
+                        layer_realm_id: Some(current_realm.0),
+                        connector_id: Some(hit.connector_id.0),
+                        surface_id: Some(connector.source_surface.0),
+                        camera_id: target_id.and_then(|id| {
+                            layer_camera_by_key
+                                .get(&(current_realm.0, id))
+                                .copied()
+                                .flatten()
+                        }),
+                        uv: next_uv,
+                    });
                     match (next_realm, next_uv) {
                         (Some(next_realm), Some(next_uv)) => {
                             source_realm_id = Some(next_realm);
@@ -275,15 +382,57 @@ pub fn route_pointer_events(engine_state: &mut EngineState) {
                     engine_state,
                     window_id,
                     current_realm,
+                    target_id.and_then(|id| {
+                        layer_camera_by_key
+                            .get(&(current_realm.0, id))
+                            .copied()
+                            .flatten()
+                    }),
                     current_position,
                     surface_size,
                 ) {
                     source_realm_id = Some(realm_plane_hit.source_realm_id);
                     target_id = Some(realm_plane_hit.target_id);
                     uv = Some(realm_plane_hit.uv);
+                    hops.push(PointerTraceHop {
+                        stage: PointerTraceStage::RealmPlaneHit,
+                        realm_id: Some(realm_plane_hit.source_realm_id.0),
+                        target_id: Some(realm_plane_hit.target_id.0),
+                        layer_realm_id: Some(current_realm.0),
+                        connector_id: None,
+                        surface_id: None,
+                        camera_id: layer_camera_by_key
+                            .get(&(current_realm.0, realm_plane_hit.target_id))
+                            .copied()
+                            .flatten(),
+                        uv: Some(realm_plane_hit.uv),
+                    });
                     continue;
                 }
+                hops.push(PointerTraceHop {
+                    stage: PointerTraceStage::StopNoHit,
+                    realm_id: Some(current_realm.0),
+                    target_id: target_id.map(|id| id.0),
+                    layer_realm_id: Some(current_realm.0),
+                    connector_id: connector_id.map(|id| id.0),
+                    surface_id: None,
+                    camera_id: None,
+                    uv: Some(current_uv),
+                });
                 break;
+            }
+
+            if visited.len() >= MAX_ROUTE_STEPS {
+                hops.push(PointerTraceHop {
+                    stage: PointerTraceStage::StopStepBudget,
+                    realm_id: source_realm_id.map(|id| id.0),
+                    target_id: target_id.map(|id| id.0),
+                    layer_realm_id: source_realm_id.map(|id| id.0),
+                    connector_id: connector_id.map(|id| id.0),
+                    surface_id: None,
+                    camera_id: None,
+                    uv,
+                });
             }
 
             update_capture_state(
@@ -309,6 +458,7 @@ pub fn route_pointer_events(engine_state: &mut EngineState) {
             connector_id: connector_id.map(|id| id.0),
             source_realm_id: source_realm_id.map(|id| id.0),
             uv,
+            hops,
         };
 
         let trace = select_trace_payload(
@@ -405,6 +555,7 @@ fn select_trace_payload(
             connector_id: None,
             source_realm_id: None,
             uv: None,
+            hops: Vec::new(),
         }),
         PointerTraceLevel::Full => Some(full),
     }
@@ -425,7 +576,9 @@ fn trace_is_sampled(
     }
     let seed = frame_index
         ^ window_id as u64
-        ^ pointer_id.unwrap_or_default().wrapping_mul(11400714819323198485);
+        ^ pointer_id
+            .unwrap_or_default()
+            .wrapping_mul(11400714819323198485);
     seed % 100 < percent as u64
 }
 

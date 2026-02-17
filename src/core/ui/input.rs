@@ -6,8 +6,10 @@ use crate::core::realm::{RealmId, UniversalState};
 use crate::core::state::EngineState;
 use crate::core::ui::state::UiRealmState;
 use crate::core::window::WindowEvent;
+use std::collections::HashMap;
 
 pub fn process_ui_input(engine: &mut EngineState) {
+    let realms_by_window = collect_ui_realms_by_window(engine);
     let mut pointer_updates: Vec<(RealmId, egui::Event)> = Vec::new();
     let mut modifier_updates: Vec<(RealmId, egui::Modifiers)> = Vec::new();
     let mut focus_updates: Vec<(u32, RealmId, u32)> = Vec::new();
@@ -94,7 +96,7 @@ pub fn process_ui_input(engine: &mut EngineState) {
             }
             EngineEvent::Keyboard(keyboard_event) => {
                 if let Some((realm_id, modifiers, events)) =
-                    build_keyboard_event(engine, keyboard_event)
+                    build_keyboard_event(engine, keyboard_event, &realms_by_window)
                 {
                     modifier_updates.push((realm_id, modifiers));
                     for event in events {
@@ -103,7 +105,11 @@ pub fn process_ui_input(engine: &mut EngineState) {
                 }
             }
             EngineEvent::Window(WindowEvent::OnFocus { window_id, focused }) => {
-                if let Some(realm_id) = engine
+                if let Some(realms) = realms_by_window.get(window_id) {
+                    for realm_id in realms {
+                        pointer_updates.push((*realm_id, egui::Event::WindowFocused(*focused)));
+                    }
+                } else if let Some(realm_id) = engine
                     .universal_state
                     .ui
                     .focus_by_window
@@ -353,6 +359,7 @@ fn build_pointer_event(
 fn build_keyboard_event(
     engine: &EngineState,
     event: &KeyboardEvent,
+    realms_by_window: &HashMap<u32, Vec<RealmId>>,
 ) -> Option<(RealmId, egui::Modifiers, Vec<egui::Event>)> {
     let (window_id, modifiers_state) = match event {
         KeyboardEvent::OnInput {
@@ -375,7 +382,12 @@ fn build_keyboard_event(
         .ui
         .focus_by_window
         .get(&window_id)
-        .copied()?;
+        .copied()
+        .or_else(|| {
+            realms_by_window
+                .get(&window_id)
+                .and_then(|realms| realms.first().copied())
+        })?;
 
     let modifiers = modifiers_from_state(modifiers_state);
     let events = match event {
@@ -425,6 +437,49 @@ fn build_keyboard_event(
     };
 
     Some((realm_id, modifiers, events))
+}
+
+fn collect_ui_realms_by_window(engine: &EngineState) -> HashMap<u32, Vec<RealmId>> {
+    let mut map: HashMap<u32, Vec<RealmId>> = HashMap::new();
+    for ((layer_realm_id, layer_target_id), _layer) in &engine.universal_state.target_layers.entries {
+        let Some(target) = engine.universal_state.targets.entries.get(layer_target_id) else {
+            continue;
+        };
+        let Some(window_id) = target.window_id else {
+            continue;
+        };
+        let realm_id = RealmId(*layer_realm_id);
+        let is_ui_realm = engine
+            .universal_state
+            .realms
+            .entries
+            .get(&realm_id)
+            .map(|entry| entry.value.kind == crate::core::realm::RealmKind::TwoD)
+            .unwrap_or(false);
+        if !is_ui_realm {
+            continue;
+        }
+        map.entry(window_id).or_default().push(realm_id);
+    }
+
+    for (window_id, realm_id) in &engine.universal_state.host_realm_index {
+        let is_ui_realm = engine
+            .universal_state
+            .realms
+            .entries
+            .get(realm_id)
+            .map(|entry| entry.value.kind == crate::core::realm::RealmKind::TwoD)
+            .unwrap_or(false);
+        if is_ui_realm {
+            map.entry(*window_id).or_default().push(*realm_id);
+        }
+    }
+
+    for realms in map.values_mut() {
+        realms.sort_by_key(|id| id.0);
+        realms.dedup();
+    }
+    map
 }
 
 fn modifiers_from_state(state: crate::core::input::events::ModifiersState) -> egui::Modifiers {

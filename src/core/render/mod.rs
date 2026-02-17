@@ -298,6 +298,7 @@ pub fn render_frames(engine_state: &mut EngineState) {
                 render_state,
                 &engine_state.universal_state,
                 *realm_id,
+                *window_id,
             );
             let universal = &mut engine_state.universal_state;
             let ui_state = &mut universal.ui;
@@ -497,6 +498,7 @@ fn apply_realm_environment_bindings(
     render_state: &mut RenderState,
     universal: &crate::core::realm::UniversalState,
     realm_id: RealmId,
+    window_id: u32,
 ) {
     render_state.camera_environment_overrides.clear();
 
@@ -512,7 +514,15 @@ fn apply_realm_environment_bindings(
         .target_layers
         .entries
         .values()
-        .filter(|layer| layer.realm_id == realm_id.0)
+        .filter(|layer| {
+            if layer.realm_id != realm_id.0 {
+                return false;
+            }
+            let Some(target) = universal.targets.entries.get(&layer.target_id) else {
+                return false;
+            };
+            target.window_id == Some(window_id)
+        })
         .collect();
     layers.sort_by_key(|layer| (layer.layout.z_index, layer.target_id.0));
 
@@ -757,6 +767,107 @@ fn apply_ui_platform_actions(engine_state: &mut EngineState, actions: Vec<UiPlat
                     crate::core::system::SystemEvent::UiScreenshotRequest {
                         window_id,
                         realm_id,
+                    },
+                ));
+            }
+            UiPlatformAction::SetWindowTitle { window_id, title } => {
+                let _ = crate::core::window::engine_cmd_window_set_title(
+                    engine_state,
+                    &crate::core::window::CmdWindowSetTitleArgs { window_id, title },
+                );
+            }
+            UiPlatformAction::SetWindowSize {
+                window_id,
+                width,
+                height,
+            } => {
+                let _ = crate::core::window::engine_cmd_window_set_size(
+                    engine_state,
+                    &crate::core::window::CmdWindowSetSizeArgs {
+                        window_id,
+                        size: glam::UVec2::new(width.max(1), height.max(1)),
+                    },
+                );
+            }
+            UiPlatformAction::SetWindowPosition { window_id, x, y } => {
+                let _ = crate::core::window::engine_cmd_window_set_position(
+                    engine_state,
+                    &crate::core::window::CmdWindowSetPositionArgs {
+                        window_id,
+                        position: glam::IVec2::new(x, y),
+                    },
+                );
+            }
+            UiPlatformAction::SetWindowResizable { window_id, value } => {
+                let _ = crate::core::window::engine_cmd_window_set_resizable(
+                    engine_state,
+                    &crate::core::window::CmdWindowSetResizableArgs {
+                        window_id,
+                        resizable: value,
+                    },
+                );
+            }
+            UiPlatformAction::SetWindowDecorations { window_id, value } => {
+                let _ = crate::core::window::engine_cmd_window_set_decorations(
+                    engine_state,
+                    &crate::core::window::CmdWindowSetDecorationsArgs {
+                        window_id,
+                        decorations: value,
+                    },
+                );
+            }
+            UiPlatformAction::SetWindowState { window_id, state } => {
+                let _ = crate::core::window::engine_cmd_window_set_state(
+                    engine_state,
+                    &crate::core::window::CmdWindowSetStateArgs { window_id, state },
+                );
+            }
+            UiPlatformAction::EmitViewportSync {
+                window_id,
+                realm_id,
+                viewport_id,
+                parent_viewport_id,
+                class,
+                title,
+            } => {
+                engine_state.event_queue.push(crate::core::cmd::EngineEvent::System(
+                    crate::core::system::SystemEvent::UiViewportSync {
+                        window_id,
+                        realm_id,
+                        viewport_id,
+                        parent_viewport_id,
+                        class,
+                        title,
+                    },
+                ));
+            }
+            UiPlatformAction::EmitViewportCommand {
+                window_id,
+                realm_id,
+                viewport_id,
+                command,
+            } => {
+                engine_state.event_queue.push(crate::core::cmd::EngineEvent::System(
+                    crate::core::system::SystemEvent::UiViewportCommand {
+                        window_id,
+                        realm_id,
+                        viewport_id,
+                        command,
+                    },
+                ));
+            }
+            UiPlatformAction::EmitViewportFallbackEmbedded {
+                window_id,
+                realm_id,
+                viewport_id,
+                parent_viewport_id,
+            } => {
+                engine_state.event_queue.push(crate::core::cmd::EngineEvent::System(
+                    crate::core::system::SystemEvent::UiViewportFallbackEmbedded {
+                        window_id,
+                        realm_id,
+                        viewport_id,
+                        parent_viewport_id,
                     },
                 ));
             }

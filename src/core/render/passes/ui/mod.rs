@@ -1,13 +1,15 @@
 use crate::core::realm::{AutoLink, RealmId, SurfaceId, SurfaceTable};
 use crate::core::render::RenderState;
 use crate::core::resources::RenderTarget;
+use crate::core::system::{UiViewportClass, UiViewportCommand};
 use crate::core::target::{TargetId, TargetKind, TargetLayerTable, TargetTable};
-use crate::core::window::{CursorIcon, UserAttentionType};
+use crate::core::window::{CursorIcon, EngineWindowState, UserAttentionType};
 use crate::core::ui::UiState;
 use crate::core::ui::events::UiEvent;
 use crate::core::ui::render::{hash_shapes, render_realm_documents, sync_ui_images};
 use crate::core::ui::renderer::ExternalTextureInput;
 use std::collections::HashMap;
+use std::hash::{Hash, Hasher};
 use std::time::Instant;
 
 #[derive(Debug, Clone)]
@@ -49,6 +51,52 @@ pub enum UiPlatformAction {
     ScreenshotRequest {
         window_id: u32,
         realm_id: u32,
+    },
+    SetWindowTitle {
+        window_id: u32,
+        title: String,
+    },
+    SetWindowSize {
+        window_id: u32,
+        width: u32,
+        height: u32,
+    },
+    SetWindowPosition {
+        window_id: u32,
+        x: i32,
+        y: i32,
+    },
+    SetWindowResizable {
+        window_id: u32,
+        value: bool,
+    },
+    SetWindowDecorations {
+        window_id: u32,
+        value: bool,
+    },
+    SetWindowState {
+        window_id: u32,
+        state: EngineWindowState,
+    },
+    EmitViewportSync {
+        window_id: u32,
+        realm_id: u32,
+        viewport_id: u64,
+        parent_viewport_id: Option<u64>,
+        class: UiViewportClass,
+        title: Option<String>,
+    },
+    EmitViewportCommand {
+        window_id: u32,
+        realm_id: u32,
+        viewport_id: u64,
+        command: UiViewportCommand,
+    },
+    EmitViewportFallbackEmbedded {
+        window_id: u32,
+        realm_id: u32,
+        viewport_id: u64,
+        parent_viewport_id: Option<u64>,
     },
 }
 
@@ -211,9 +259,100 @@ fn collect_platform_actions(
             text: output.platform_output.copied_text.clone(),
         });
     }
-    for viewport in output.viewport_output.values() {
+    for (viewport_id, viewport) in &output.viewport_output {
+        let viewport_id = viewport_id_key(*viewport_id);
+        let parent_viewport_id = Some(viewport_id_key(viewport.parent));
+        actions.push(UiPlatformAction::EmitViewportSync {
+            window_id,
+            realm_id: realm_id.0,
+            viewport_id,
+            parent_viewport_id,
+            class: map_viewport_class(viewport.class),
+            title: viewport.builder.title.clone(),
+        });
+        if !matches!(viewport.class, egui::ViewportClass::Root) {
+            actions.push(UiPlatformAction::EmitViewportFallbackEmbedded {
+                window_id,
+                realm_id: realm_id.0,
+                viewport_id,
+                parent_viewport_id,
+            });
+        }
         for command in &viewport.commands {
+            if !matches!(viewport.class, egui::ViewportClass::Root) {
+                if let Some(command) = map_viewport_command(command) {
+                    actions.push(UiPlatformAction::EmitViewportCommand {
+                        window_id,
+                        realm_id: realm_id.0,
+                        viewport_id,
+                        command,
+                    });
+                }
+                continue;
+            }
             match command {
+                egui::ViewportCommand::Title(title) => {
+                    actions.push(UiPlatformAction::SetWindowTitle {
+                        window_id,
+                        title: title.clone(),
+                    });
+                }
+                egui::ViewportCommand::InnerSize(size) => {
+                    actions.push(UiPlatformAction::SetWindowSize {
+                        window_id,
+                        width: size.x.max(1.0).round() as u32,
+                        height: size.y.max(1.0).round() as u32,
+                    });
+                }
+                egui::ViewportCommand::OuterPosition(pos) => {
+                    actions.push(UiPlatformAction::SetWindowPosition {
+                        window_id,
+                        x: pos.x.round() as i32,
+                        y: pos.y.round() as i32,
+                    });
+                }
+                egui::ViewportCommand::Resizable(value) => {
+                    actions.push(UiPlatformAction::SetWindowResizable {
+                        window_id,
+                        value: *value,
+                    });
+                }
+                egui::ViewportCommand::Decorations(value) => {
+                    actions.push(UiPlatformAction::SetWindowDecorations {
+                        window_id,
+                        value: *value,
+                    });
+                }
+                egui::ViewportCommand::Fullscreen(value) => {
+                    actions.push(UiPlatformAction::SetWindowState {
+                        window_id,
+                        state: if *value {
+                            EngineWindowState::Fullscreen
+                        } else {
+                            EngineWindowState::Windowed
+                        },
+                    });
+                }
+                egui::ViewportCommand::Minimized(value) => {
+                    actions.push(UiPlatformAction::SetWindowState {
+                        window_id,
+                        state: if *value {
+                            EngineWindowState::Minimized
+                        } else {
+                            EngineWindowState::Windowed
+                        },
+                    });
+                }
+                egui::ViewportCommand::Maximized(value) => {
+                    actions.push(UiPlatformAction::SetWindowState {
+                        window_id,
+                        state: if *value {
+                            EngineWindowState::Maximized
+                        } else {
+                            EngineWindowState::Windowed
+                        },
+                    });
+                }
                 egui::ViewportCommand::RequestCopy => {
                     actions.push(UiPlatformAction::ClipboardRequestCopy {
                         window_id,
@@ -247,7 +386,16 @@ fn collect_platform_actions(
                         realm_id: realm_id.0,
                     });
                 }
-                _ => {}
+                _ => {
+                    if let Some(command) = map_viewport_command(command) {
+                        actions.push(UiPlatformAction::EmitViewportCommand {
+                            window_id,
+                            realm_id: realm_id.0,
+                            viewport_id,
+                            command,
+                        });
+                    }
+                }
             }
         }
     }
@@ -259,6 +407,71 @@ fn map_attention_type(attention: egui::UserAttentionType) -> Option<UserAttentio
         egui::UserAttentionType::Critical => Some(UserAttentionType::Critical),
         egui::UserAttentionType::Informational => Some(UserAttentionType::Informational),
         egui::UserAttentionType::Reset => None,
+    }
+}
+
+fn map_viewport_class(class: egui::ViewportClass) -> UiViewportClass {
+    match class {
+        egui::ViewportClass::Root => UiViewportClass::Root,
+        egui::ViewportClass::Deferred => UiViewportClass::Deferred,
+        egui::ViewportClass::Immediate => UiViewportClass::Immediate,
+        egui::ViewportClass::Embedded => UiViewportClass::Embedded,
+    }
+}
+
+fn viewport_id_key(viewport_id: egui::ViewportId) -> u64 {
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    viewport_id.hash(&mut hasher);
+    hasher.finish()
+}
+
+fn map_viewport_command(command: &egui::ViewportCommand) -> Option<UiViewportCommand> {
+    match command {
+        egui::ViewportCommand::Close => Some(UiViewportCommand::Close),
+        egui::ViewportCommand::Title(title) => Some(UiViewportCommand::Title {
+            title: title.clone(),
+        }),
+        egui::ViewportCommand::InnerSize(size) => Some(UiViewportCommand::InnerSize {
+            width: size.x,
+            height: size.y,
+        }),
+        egui::ViewportCommand::OuterPosition(pos) => Some(UiViewportCommand::OuterPosition {
+            x: pos.x,
+            y: pos.y,
+        }),
+        egui::ViewportCommand::Resizable(value) => {
+            Some(UiViewportCommand::Resizable { value: *value })
+        }
+        egui::ViewportCommand::Decorations(value) => {
+            Some(UiViewportCommand::Decorations { value: *value })
+        }
+        egui::ViewportCommand::Fullscreen(value) => {
+            Some(UiViewportCommand::Fullscreen { value: *value })
+        }
+        egui::ViewportCommand::Minimized(value) => {
+            Some(UiViewportCommand::Minimized { value: *value })
+        }
+        egui::ViewportCommand::Maximized(value) => {
+            Some(UiViewportCommand::Maximized { value: *value })
+        }
+        egui::ViewportCommand::Focus => Some(UiViewportCommand::Focus),
+        egui::ViewportCommand::Screenshot => Some(UiViewportCommand::Screenshot),
+        egui::ViewportCommand::CursorVisible(value) => {
+            Some(UiViewportCommand::CursorVisible { value: *value })
+        }
+        egui::ViewportCommand::CursorGrab(mode) => Some(UiViewportCommand::CursorGrab {
+            mode: format!("{:?}", mode),
+        }),
+        egui::ViewportCommand::IMEAllowed(value) => {
+            Some(UiViewportCommand::ImeAllowed { value: *value })
+        }
+        egui::ViewportCommand::IMERect(rect) => Some(UiViewportCommand::ImeRect {
+            min_x: rect.min.x,
+            min_y: rect.min.y,
+            max_x: rect.max.x,
+            max_y: rect.max.y,
+        }),
+        _ => None,
     }
 }
 
@@ -341,33 +554,21 @@ fn collect_external_textures(
         if let Some(target_state) = targets.entries.get(&target_id) {
             if target_state.kind == TargetKind::WidgetRealmViewport {
                 let camera_id = target_layers.entries.iter().find_map(
-                    |((_layer_realm, layer_target), layer)| {
-                        if *layer_target == target_id {
+                    |((layer_realm, layer_target), layer)| {
+                        if *layer_target == target_id && *layer_realm == realm_id.0 {
                             return layer.camera_id;
                         }
                         None
                     },
                 );
-
-                if let Some(camera_id) = camera_id {
-                    if let Some(camera) = render_state.scene.cameras.get(&camera_id) {
-                        let camera_target = camera
-                            .post_target
-                            .as_ref()
-                            .or(camera.render_target.as_ref());
-                        if let Some(camera_target) = camera_target {
-                            let texture_size = camera_target._texture.size();
-                            let size = [texture_size.width.max(1), texture_size.height.max(1)];
-                            ui_state.external_textures.insert(target_id.0, size);
-                            inputs.push(ExternalTextureInput {
-                                id: target_id.0,
-                                view: camera_target.view.clone(),
-                                size,
-                                source_ptr: camera_target as *const RenderTarget as usize,
-                            });
-                            continue;
-                        }
-                    }
+                if let Some(input) = camera_texture_input(
+                    render_state,
+                    target_id.0,
+                    camera_id.or_else(|| render_state.camera_order.first().copied()),
+                ) {
+                    ui_state.external_textures.insert(target_id.0, input.size);
+                    inputs.push(input);
+                    continue;
                 }
             }
         }
@@ -391,4 +592,22 @@ fn collect_external_textures(
     }
 
     inputs
+}
+
+fn camera_texture_input(
+    render_state: &RenderState,
+    target_id: u64,
+    camera_id: Option<u32>,
+) -> Option<ExternalTextureInput> {
+    let camera_id = camera_id?;
+    let camera = render_state.scene.cameras.get(&camera_id)?;
+    let camera_target = camera.post_target.as_ref().or(camera.render_target.as_ref())?;
+    let texture_size = camera_target._texture.size();
+    let size = [texture_size.width.max(1), texture_size.height.max(1)];
+    Some(ExternalTextureInput {
+        id: target_id,
+        view: camera_target.view.clone(),
+        size,
+        source_ptr: camera_target as *const RenderTarget as usize,
+    })
 }

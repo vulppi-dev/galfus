@@ -29,6 +29,7 @@ pub(super) fn resolve_realm_plane_hit(
     engine_state: &EngineState,
     window_id: u32,
     target_realm: RealmId,
+    preferred_camera_id: Option<u32>,
     pointer_position: Vec2,
     pointer_surface_size: glam::UVec2,
 ) -> Option<RealmPlaneHit> {
@@ -42,7 +43,12 @@ pub(super) fn resolve_realm_plane_hit(
     }
 
     let window_state = engine_state.window.states.get(&window_id)?;
-    let camera = pick_camera_for_pointer(window_state, pointer_position, pointer_surface_size)?;
+    let camera = pick_camera_for_pointer(
+        window_state,
+        preferred_camera_id,
+        pointer_position,
+        pointer_surface_size,
+    )?;
     let ray = screen_ray_from_pointer(pointer_position, pointer_surface_size, camera)?;
     let mut ui_source_cache: std::collections::HashMap<u32, Option<UiTextureSource>> =
         std::collections::HashMap::new();
@@ -95,9 +101,15 @@ pub(super) fn resolve_realm_plane_hit(
 
 fn pick_camera_for_pointer(
     window_state: &crate::core::window::WindowState,
+    preferred_camera_id: Option<u32>,
     pointer_position: Vec2,
     surface_size: glam::UVec2,
 ) -> Option<&crate::core::resources::CameraRecord> {
+    if let Some(camera_id) = preferred_camera_id {
+        if let Some(camera) = window_state.render_state.scene.cameras.get(&camera_id) {
+            return Some(camera);
+        }
+    }
     let mut picked: Option<(&crate::core::resources::CameraRecord, i32, u32)> = None;
     for (camera_id, camera) in &window_state.render_state.scene.cameras {
         let (viewport_x, viewport_y, viewport_w, viewport_h) =

@@ -184,12 +184,18 @@ pub fn engine_cmd_target_dispose(
         .ui
         .target_size_requests
         .remove(&target_id.0);
-    engine.universal_state.target_ui_realm_index.remove(&target_id);
-    engine.universal_state.target_graph_cache.prune_dead_entries(
-        &engine.universal_state.targets.entries,
-        &engine.universal_state.target_layers.entries,
-        &engine.universal_state.realms,
-    );
+    engine
+        .universal_state
+        .target_ui_realm_index
+        .remove(&target_id);
+    engine
+        .universal_state
+        .target_graph_cache
+        .prune_dead_entries(
+            &engine.universal_state.targets.entries,
+            &engine.universal_state.target_layers.entries,
+            &engine.universal_state.realms,
+        );
 
     CmdResultTargetDispose {
         success: true,
@@ -288,11 +294,14 @@ pub fn engine_cmd_target_layer_dispose(
             .focus_targets
             .retain(|_, focus_target_id| *focus_target_id != target_id);
     }
-    engine.universal_state.target_graph_cache.prune_dead_entries(
-        &engine.universal_state.targets.entries,
-        &engine.universal_state.target_layers.entries,
-        &engine.universal_state.realms,
-    );
+    engine
+        .universal_state
+        .target_graph_cache
+        .prune_dead_entries(
+            &engine.universal_state.targets.entries,
+            &engine.universal_state.target_layers.entries,
+            &engine.universal_state.realms,
+        );
 
     CmdResultTargetLayerDispose {
         success: true,

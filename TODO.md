@@ -83,24 +83,24 @@ Base de referência (egui):
 - [x] Garantir respeito ao z-index em roteamento de eventos.
 
 ## Fase 5 — Integração Realm/Target/Layer (P0)
-- [ ] Revisar arquitetura de composição UI em targets:
-- [ ] `window`, `texture`, `widget-realm-viewport`, `realm-plane`.
-- [ ] Garantir contrato único de tamanho efetivo (host rect vs size real renderizado).
-- [ ] Garantir cadeia de eventos cíclica entre realms/targets sem bloqueio.
-- [ ] Consolidar roteamento pointer:
-- [ ] host window -> target layer -> realm -> widget viewport -> realm 3D -> realm plane -> UI doc.
-- [ ] Expor no trace hops detalhados com ids lógicos (realm/target/layer/surface/camera).
-- [ ] Validar fallback de camera por layer (`camera_id` opcional).
-- [ ] Validar environment por layer (`environment_id`) sem vazar entre binds.
-- [ ] Garantir isolamento de render por camera/layer (sem acumulação indevida).
+- [x] Revisar arquitetura de composição UI em targets:
+- [x] `window`, `texture`, `widget-realm-viewport`, `realm-plane`.
+- [x] Garantir contrato único de tamanho efetivo (host rect vs size real renderizado).
+- [x] Garantir cadeia de eventos cíclica entre realms/targets sem bloqueio.
+- [x] Consolidar roteamento pointer:
+- [x] host window -> target layer -> realm -> widget viewport -> realm 3D -> realm plane -> UI doc.
+- [x] Expor no trace hops detalhados com ids lógicos (realm/target/layer/surface/camera).
+- [x] Validar fallback de camera por layer (`camera_id` opcional).
+- [x] Validar environment por layer (`environment_id`) sem vazar entre binds.
+- [x] Garantir isolamento de render por camera/layer (sem acumulação indevida).
 
 ## Fase 6 — Multi-Viewport e Subjanelas do egui (P1/P2)
-- [ ] Suportar `Context::show_viewport_*` quando houver backend capability.
-- [ ] Mapear viewport egui <-> window/target do core.
-- [ ] Definir modo fallback quando multi-viewport nativo não estiver disponível.
-- [ ] Sincronizar ciclo de vida (create/update/close) entre egui viewport e window manager.
-- [ ] Garantir input/foco corretos entre viewports múltiplos.
-- [ ] Cobrir comandos principais de viewport: `Title`, `InnerSize`, `OuterPosition`, `Resizable`, `Decorations`, `Fullscreen`, `Minimized`, `Maximized`, `Cursor*`, `IME*`, `Focus`, `Screenshot`.
+- [x] Suportar `Context::show_viewport_*` quando houver backend capability.
+- [x] Mapear viewport egui <-> window/target do core.
+- [x] Definir modo fallback quando multi-viewport nativo não estiver disponível.
+- [x] Sincronizar ciclo de vida (create/update/close) entre egui viewport e window manager.
+- [x] Garantir input/foco corretos entre viewports múltiplos.
+- [x] Cobrir comandos principais de viewport: `Title`, `InnerSize`, `OuterPosition`, `Resizable`, `Decorations`, `Fullscreen`, `Minimized`, `Maximized`, `Cursor*`, `IME*`, `Focus`, `Screenshot`.
 
 ## Fase 7 — Tema, Estilo e Tipografia (P1)
 - [ ] Expandir tema para cobrir `Style`/`Visuals` de forma abrangente.

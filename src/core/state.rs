@@ -80,8 +80,7 @@ impl EngineState {
             wgpu: wgpu::Instance::new(&wgpu_descriptor),
             #[cfg(any(not(feature = "wasm"), target_arch = "wasm32"))]
             caps: None,
-            rgba16f_msaa_supported_mask:
-                crate::core::render::RenderState::MSAA_MASK_DEFAULT_SAFE,
+            rgba16f_msaa_supported_mask: crate::core::render::RenderState::MSAA_MASK_DEFAULT_SAFE,
             device: None,
             queue: None,
             buffers: BufferStorage::new(),
@@ -156,11 +155,15 @@ impl EngineState {
                 self.universal_state
                     .ui
                     .external_textures
-                    .retain(|target_id, _| !targets_to_remove.contains(&crate::core::target::TargetId(*target_id)));
+                    .retain(|target_id, _| {
+                        !targets_to_remove.contains(&crate::core::target::TargetId(*target_id))
+                    });
                 self.universal_state
                     .ui
                     .target_size_requests
-                    .retain(|target_id, _| !targets_to_remove.contains(&crate::core::target::TargetId(*target_id)));
+                    .retain(|target_id, _| {
+                        !targets_to_remove.contains(&crate::core::target::TargetId(*target_id))
+                    });
                 self.universal_state
                     .target_ui_realm_index
                     .retain(|target_id, _| !targets_to_remove.contains(target_id));

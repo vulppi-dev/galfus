@@ -1,5 +1,39 @@
 use serde::{Deserialize, Serialize};
 
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+pub enum UiViewportClass {
+    Root,
+    Deferred,
+    Immediate,
+    Embedded,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
+#[serde(tag = "type", content = "content", rename_all = "kebab-case")]
+pub enum UiViewportCommand {
+    Close,
+    Title { title: String },
+    InnerSize { width: f32, height: f32 },
+    OuterPosition { x: f32, y: f32 },
+    Resizable { value: bool },
+    Decorations { value: bool },
+    Fullscreen { value: bool },
+    Minimized { value: bool },
+    Maximized { value: bool },
+    Focus,
+    Screenshot,
+    CursorVisible { value: bool },
+    CursorGrab { mode: String },
+    ImeAllowed { value: bool },
+    ImeRect {
+        min_x: f32,
+        min_y: f32,
+        max_x: f32,
+        max_y: f32,
+    },
+}
+
 /// System-level events
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(tag = "event", content = "data", rename_all = "kebab-case")]
@@ -128,4 +162,33 @@ pub enum SystemEvent {
     /// UI requested screenshot capture for the current viewport.
     #[serde(rename_all = "camelCase")]
     UiScreenshotRequest { window_id: u32, realm_id: u32 },
+
+    /// UI viewport output emitted by egui to allow host/window-manager integration.
+    #[serde(rename_all = "camelCase")]
+    UiViewportSync {
+        window_id: u32,
+        realm_id: u32,
+        viewport_id: u64,
+        parent_viewport_id: Option<u64>,
+        class: UiViewportClass,
+        title: Option<String>,
+    },
+
+    /// UI viewport command not handled natively by this runtime (or for non-root viewport).
+    #[serde(rename_all = "camelCase")]
+    UiViewportCommand {
+        window_id: u32,
+        realm_id: u32,
+        viewport_id: u64,
+        command: UiViewportCommand,
+    },
+
+    /// Runtime fallback mode for additional viewports when native multi-viewport is unavailable.
+    #[serde(rename_all = "camelCase")]
+    UiViewportFallbackEmbedded {
+        window_id: u32,
+        realm_id: u32,
+        viewport_id: u64,
+        parent_viewport_id: Option<u64>,
+    },
 }
