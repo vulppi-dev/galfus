@@ -336,7 +336,8 @@ fn render_node_inner(
             let fallback = resolve_size(size, [240, 180]);
             match kind {
                 UiPanelKind::SideLeft => {
-                    let mut panel = egui::SidePanel::left(panel_id).resizable(resizable.unwrap_or(true));
+                    let mut panel =
+                        egui::SidePanel::left(panel_id).resizable(resizable.unwrap_or(true));
                     panel = panel.default_width(fallback.x);
                     if let Some(min_size) = min_size {
                         panel = panel.min_width(min_size.max(0.0));
@@ -358,7 +359,8 @@ fn render_node_inner(
                     });
                 }
                 UiPanelKind::SideRight => {
-                    let mut panel = egui::SidePanel::right(panel_id).resizable(resizable.unwrap_or(true));
+                    let mut panel =
+                        egui::SidePanel::right(panel_id).resizable(resizable.unwrap_or(true));
                     panel = panel.default_width(fallback.x);
                     if let Some(min_size) = min_size {
                         panel = panel.min_width(min_size.max(0.0));
@@ -554,8 +556,12 @@ fn render_node_inner(
             size,
         } => {
             apply_size(ui, size);
-            let mut grid = egui::Grid::new(egui::Id::new((document.document_id, entry.node.id, "grid-v2")))
-                .num_columns(columns.unwrap_or(2).max(1) as usize);
+            let mut grid = egui::Grid::new(egui::Id::new((
+                document.document_id,
+                entry.node.id,
+                "grid-v2",
+            )))
+            .num_columns(columns.unwrap_or(2).max(1) as usize);
             if let Some(striped) = striped {
                 grid = grid.striped(striped);
             }
@@ -699,6 +705,11 @@ fn render_node_inner(
                 pan_enabled.unwrap_or(true),
             );
         }
+        UiNodeProps::Canvas { ops, size, clip } => {
+            let fallback = resolve_size(size, [320, 180]);
+            let (rect, _) = ui.allocate_exact_size(fallback, egui::Sense::hover());
+            crate::core::ui::paint::paint_ops(ui, rect, &ops, clip.unwrap_or(true));
+        }
         UiNodeProps::Text { text, size, color } => {
             let mut rich = egui::RichText::new(text);
             if let Some(size) = size {
@@ -798,7 +809,10 @@ fn render_node_inner(
         } => {
             let key = (document.document_id, entry.node.id);
             let value = ui_state.bool_values.entry(key).or_insert(checked);
-            let response = ui.add_enabled(enabled.unwrap_or(true), egui::Checkbox::new(value, label.clone()));
+            let response = ui.add_enabled(
+                enabled.unwrap_or(true),
+                egui::Checkbox::new(value, label.clone()),
+            );
             emit_interaction_events(
                 response.clone(),
                 realm_id,
@@ -887,7 +901,10 @@ fn render_node_inner(
         } => {
             let key = (document.document_id, entry.node.id);
             let state = ui_state.bool_values.entry(key).or_insert(value);
-            let response = ui.add_enabled(enabled.unwrap_or(true), egui::Checkbox::new(state, label.clone()));
+            let response = ui.add_enabled(
+                enabled.unwrap_or(true),
+                egui::Checkbox::new(state, label.clone()),
+            );
             emit_interaction_events(
                 response.clone(),
                 realm_id,
@@ -1045,7 +1062,8 @@ fn render_node_inner(
                     .selected_text(current.clone())
                     .show_ui(ui, |ui| {
                         for option in options {
-                            let response = ui.selectable_value(current, option.clone(), option.clone());
+                            let response =
+                                ui.selectable_value(current, option.clone(), option.clone());
                             if response.clicked() {
                                 changed = true;
                             }
@@ -1162,7 +1180,8 @@ fn render_node_inner(
                 let size = resolve_size(size, texture_size);
                 let image = egui::Image::from_texture(egui::load::SizedTexture::new(texture, size))
                     .fit_to_exact_size(size);
-                let response = ui.add_enabled(enabled.unwrap_or(true), egui::ImageButton::new(image));
+                let response =
+                    ui.add_enabled(enabled.unwrap_or(true), egui::ImageButton::new(image));
                 emit_interaction_events(
                     response,
                     realm_id,
@@ -1257,8 +1276,7 @@ fn render_node_inner(
                     None,
                 );
             }
-            let submitted = response.lost_focus()
-                && ui.input(|i| i.key_pressed(egui::Key::Enter));
+            let submitted = response.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter));
             if submitted {
                 push_ui_event(
                     ui_events,
@@ -1790,14 +1808,30 @@ fn render_split_pane(
         && let Some(child) = document.nodes.get(first_id)
     {
         ui.allocate_new_ui(egui::UiBuilder::new().max_rect(rect_a), |ui| {
-            render_node(ui, document, child, ui_state, realm_id, ui_events, time_seconds);
+            render_node(
+                ui,
+                document,
+                child,
+                ui_state,
+                realm_id,
+                ui_events,
+                time_seconds,
+            );
         });
     }
     if let Some(second_id) = children.get(1)
         && let Some(child) = document.nodes.get(second_id)
     {
         ui.allocate_new_ui(egui::UiBuilder::new().max_rect(rect_b), |ui| {
-            render_node(ui, document, child, ui_state, realm_id, ui_events, time_seconds);
+            render_node(
+                ui,
+                document,
+                child,
+                ui_state,
+                realm_id,
+                ui_events,
+                time_seconds,
+            );
         });
     }
 }
@@ -1817,14 +1851,12 @@ fn render_scene_node(
     pan_enabled: bool,
 ) {
     let scene_key = (document.document_id, entry.node.id);
-    let initial_scene = ui_state
-        .scene_state
-        .get(&scene_key)
-        .copied()
-        .unwrap_or(crate::core::ui::state::UiSceneState {
+    let initial_scene = ui_state.scene_state.get(&scene_key).copied().unwrap_or(
+        crate::core::ui::state::UiSceneState {
             pan: glam::Vec2::ZERO,
             zoom: 1.0,
-        });
+        },
+    );
     let mut zoom = initial_scene.zoom;
     let mut pan = initial_scene.pan;
     let fallback = resolve_size(size, [320, 220]);
@@ -1861,12 +1893,17 @@ fn render_scene_node(
             );
         });
     });
-    ui_state
-        .scene_state
-        .insert(scene_key, crate::core::ui::state::UiSceneState { pan, zoom });
+    ui_state.scene_state.insert(
+        scene_key,
+        crate::core::ui::state::UiSceneState { pan, zoom },
+    );
 }
 
-fn child_ids_ordered(document: &UiDocument, parent_id: UiNodeId, fallback: &[UiNodeId]) -> Vec<UiNodeId> {
+fn child_ids_ordered(
+    document: &UiDocument,
+    parent_id: UiNodeId,
+    fallback: &[UiNodeId],
+) -> Vec<UiNodeId> {
     document
         .ordered_children
         .get(&parent_id)
@@ -1891,7 +1928,10 @@ fn resolve_size(size: Option<UiSize>, fallback: [u32; 2]) -> egui::Vec2 {
     egui::vec2(width.max(0.0), height.max(0.0))
 }
 
-fn resolve_ui_texture(source: UiImageSource, ui_state: &UiState) -> Option<(egui::TextureId, [u32; 2])> {
+fn resolve_ui_texture(
+    source: UiImageSource,
+    ui_state: &UiState,
+) -> Option<(egui::TextureId, [u32; 2])> {
     match source {
         UiImageSource::UiImage(image_id) => {
             let record = ui_state.images.get(&image_id)?;

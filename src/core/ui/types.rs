@@ -36,6 +36,7 @@ pub enum UiNodeKind {
     Modal,
     Resize,
     Scene,
+    Canvas,
     Text,
     RichText,
     Link,
@@ -191,6 +192,97 @@ pub struct UiColor {
     pub a: u8,
 }
 
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+pub enum UiTextAlign {
+    LeftTop,
+    LeftCenter,
+    LeftBottom,
+    CenterTop,
+    CenterCenter,
+    CenterBottom,
+    RightTop,
+    RightCenter,
+    RightBottom,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct UiPaintStroke {
+    pub width: f32,
+    pub color: UiColor,
+    #[serde(default)]
+    pub join: Option<String>,
+    #[serde(default)]
+    pub cap: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(tag = "type", content = "content", rename_all = "kebab-case")]
+pub enum UiPaintOp {
+    LineSegment {
+        from: glam::Vec2,
+        to: glam::Vec2,
+        stroke: UiPaintStroke,
+    },
+    Polyline {
+        points: Vec<glam::Vec2>,
+        stroke: UiPaintStroke,
+    },
+    Rect {
+        min: glam::Vec2,
+        max: glam::Vec2,
+        rounding: Option<f32>,
+        stroke: UiPaintStroke,
+    },
+    RectFilled {
+        min: glam::Vec2,
+        max: glam::Vec2,
+        rounding: Option<f32>,
+        fill: UiColor,
+    },
+    Circle {
+        center: glam::Vec2,
+        radius: f32,
+        stroke: UiPaintStroke,
+    },
+    CircleFilled {
+        center: glam::Vec2,
+        radius: f32,
+        fill: UiColor,
+    },
+    ConvexPolygon {
+        points: Vec<glam::Vec2>,
+        fill: UiColor,
+        #[serde(default)]
+        stroke: Option<UiPaintStroke>,
+    },
+    QuadraticBezier {
+        from: glam::Vec2,
+        ctrl: glam::Vec2,
+        to: glam::Vec2,
+        steps: Option<u32>,
+        stroke: UiPaintStroke,
+    },
+    CubicBezier {
+        from: glam::Vec2,
+        ctrl1: glam::Vec2,
+        ctrl2: glam::Vec2,
+        to: glam::Vec2,
+        steps: Option<u32>,
+        stroke: UiPaintStroke,
+    },
+    Text {
+        position: glam::Vec2,
+        text: String,
+        #[serde(default)]
+        size: Option<f32>,
+        color: UiColor,
+        #[serde(default)]
+        align: Option<UiTextAlign>,
+    },
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(tag = "type", content = "content", rename_all = "kebab-case")]
 pub enum UiNodeProps {
@@ -326,6 +418,13 @@ pub enum UiNodeProps {
         zoom_max: Option<f32>,
         #[serde(default)]
         pan_enabled: Option<bool>,
+    },
+    Canvas {
+        ops: Vec<UiPaintOp>,
+        #[serde(default)]
+        size: Option<UiSize>,
+        #[serde(default)]
+        clip: Option<bool>,
     },
     Text {
         text: String,

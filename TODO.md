@@ -52,17 +52,17 @@ Base de referência (egui):
 - [x] Suportar tooltips e context menus em nós interativos.
 
 ## Fase 3 — Painter e Paths (P1)
-- [ ] Adicionar nó/comando de desenho vetorial (`UiNodeKind::Canvas` ou `UiPaintOps`).
-- [ ] Cobrir primitivas de path:
-- [ ] line segment/polyline.
-- [ ] rect/rect_filled/rounded rect.
-- [ ] circle/circle_filled.
-- [ ] convex polygon fill + stroke.
-- [ ] bezier/quadratic path.
-- [ ] text paint com alinhamento, font, cor.
-- [ ] Expor stroke/fill styles (espessura, join, cap, alpha).
-- [ ] Integrar draw order do painter com z-index da árvore declarativa.
-- [ ] Suportar clipping por nó para painter.
+- [x] Adicionar nó/comando de desenho vetorial (`UiNodeKind::Canvas` ou `UiPaintOps`).
+- [x] Cobrir primitivas de path:
+- [x] line segment/polyline.
+- [x] rect/rect_filled/rounded rect.
+- [x] circle/circle_filled.
+- [x] convex polygon fill + stroke.
+- [x] bezier/quadratic path.
+- [x] text paint com alinhamento, font, cor.
+- [x] Expor stroke/fill styles (espessura, join, cap, alpha).
+- [x] Integrar draw order do painter com z-index da árvore declarativa.
+- [x] Suportar clipping por nó para painter.
 
 ## Fase 4 — Input Completo e Output de Plataforma (P0/P1)
 - [ ] Revisar mapeamento completo de `egui::Event`:
