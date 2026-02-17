@@ -65,22 +65,22 @@ Base de referência (egui):
 - [x] Suportar clipping por nó para painter.
 
 ## Fase 4 — Input Completo e Output de Plataforma (P0/P1)
-- [ ] Revisar mapeamento completo de `egui::Event`:
-- [ ] pointer moved/button/wheel/touch.
-- [ ] key/modifiers/text/IME.
-- [ ] zoom/pinch/pan/rotation gestures.
-- [ ] copy/cut/paste, `MouseMoved`, `WindowFocused`, `Screenshot` reply event.
-- [ ] `AccessKitActionRequest` (acessibilidade) com fallback quando indisponível.
-- [ ] Implementar processamento completo de `PlatformOutput`/`OutputCommand`:
-- [ ] cursor icon -> comandos de cursor da janela.
-- [ ] copy/cut/paste -> integração clipboard host.
-- [ ] copy image (`OutputCommand::CopyImage`) -> clipboard image do host.
-- [ ] open_url -> evento para host decidir.
-- [ ] request focus/attention -> encaminhar ao window subsystem.
-- [ ] Definir foco/captura por `windowId + realmId + documentId`.
-- [ ] Remover inconsistências entre posição real do ponteiro e UV convertida.
-- [ ] Garantir precisão do hit-test em targets com rect e cover-fit.
-- [ ] Garantir respeito ao z-index em roteamento de eventos.
+- [x] Revisar mapeamento completo de `egui::Event`:
+- [x] pointer moved/button/wheel/touch.
+- [x] key/modifiers/text/IME.
+- [x] zoom/pinch/pan/rotation gestures.
+- [x] copy/cut/paste, `MouseMoved`, `WindowFocused`, `Screenshot` reply event.
+- [x] `AccessKitActionRequest` (acessibilidade) com fallback quando indisponível.
+- [x] Implementar processamento completo de `PlatformOutput`/`OutputCommand`:
+- [x] cursor icon -> comandos de cursor da janela.
+- [x] copy/cut/paste -> integração clipboard host.
+- [x] copy image (`OutputCommand::CopyImage`) -> clipboard image do host.
+- [x] open_url -> evento para host decidir.
+- [x] request focus/attention -> encaminhar ao window subsystem.
+- [x] Definir foco/captura por `windowId + realmId + documentId`.
+- [x] Remover inconsistências entre posição real do ponteiro e UV convertida.
+- [x] Garantir precisão do hit-test em targets com rect e cover-fit.
+- [x] Garantir respeito ao z-index em roteamento de eventos.
 
 ## Fase 5 — Integração Realm/Target/Layer (P0)
 - [ ] Revisar arquitetura de composição UI em targets:

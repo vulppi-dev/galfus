@@ -1,6 +1,7 @@
 mod debug;
 mod document;
 mod image;
+mod input_events;
 mod theme;
 
 pub use debug::{CmdResultUiDebugSet, CmdUiDebugSetArgs, engine_cmd_ui_debug_set};
@@ -16,6 +17,11 @@ pub use image::{
     CmdResultUiImageCreateFromBuffer, CmdResultUiImageDispose, CmdUiImageCreateFromBufferArgs,
     CmdUiImageDisposeArgs, engine_cmd_ui_image_create_from_buffer, engine_cmd_ui_image_dispose,
     process_async_ui_image_results,
+};
+pub use input_events::{
+    CmdResultUiInputEvent, CmdUiAccessKitActionRequestArgs, CmdUiClipboardPasteArgs,
+    CmdUiScreenshotReplyArgs, engine_cmd_ui_accesskit_action_request,
+    engine_cmd_ui_clipboard_paste, engine_cmd_ui_screenshot_reply,
 };
 pub use theme::{
     CmdResultUiThemeDefine, CmdResultUiThemeDispose, CmdUiThemeDefineArgs, CmdUiThemeDisposeArgs,

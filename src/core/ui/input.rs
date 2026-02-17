@@ -5,20 +5,45 @@ use crate::core::input::events::{
 use crate::core::realm::{RealmId, UniversalState};
 use crate::core::state::EngineState;
 use crate::core::ui::state::UiRealmState;
+use crate::core::window::WindowEvent;
 
 pub fn process_ui_input(engine: &mut EngineState) {
     let mut pointer_updates: Vec<(RealmId, egui::Event)> = Vec::new();
     let mut modifier_updates: Vec<(RealmId, egui::Modifiers)> = Vec::new();
-    let mut focus_updates: Vec<(u32, RealmId)> = Vec::new();
+    let mut focus_updates: Vec<(u32, RealmId, u32)> = Vec::new();
+    let mut pointer_pos_updates: Vec<(RealmId, Option<egui::Pos2>)> = Vec::new();
 
     for event in engine.event_queue.iter() {
         match event {
             EngineEvent::Pointer(pointer_event) => {
-                if let Some((realm_id, pos)) = resolve_pointer_realm(engine, pointer_event) {
+                if let Some((realm_id, document_id, pos)) = resolve_pointer_realm(engine, pointer_event) {
                     let modifiers = current_modifiers(engine, realm_id);
+                    if matches!(pointer_event, PointerEvent::OnMove { .. }) {
+                        let previous = engine
+                            .universal_state
+                            .ui
+                            .realms
+                            .get(&realm_id)
+                            .and_then(|realm| realm.last_pointer_pos);
+                        if let Some(previous) = previous {
+                            let delta = pos - previous;
+                            if delta != egui::Vec2::ZERO {
+                                pointer_updates.push((realm_id, egui::Event::MouseMoved(delta)));
+                            }
+                        }
+                    }
                     if let Some(pointer_event) = build_pointer_event(pointer_event, pos, modifiers)
                     {
                         pointer_updates.push((realm_id, pointer_event));
+                    }
+                    if matches!(
+                        pointer_event,
+                        PointerEvent::OnMove { .. }
+                            | PointerEvent::OnEnter { .. }
+                            | PointerEvent::OnButton { .. }
+                            | PointerEvent::OnTouch { .. }
+                    ) {
+                        pointer_pos_updates.push((realm_id, Some(pos)));
                     }
 
                     if matches!(
@@ -31,7 +56,39 @@ pub fn process_ui_input(engine: &mut EngineState) {
                             ..
                         }
                     ) {
-                        focus_updates.push((pointer_window_id(pointer_event), realm_id));
+                        let window_id = pointer_window_id(pointer_event);
+                        focus_updates.push((window_id, realm_id, document_id));
+                        engine.universal_state.ui.capture_by_window.insert(
+                            window_id,
+                            (realm_id, document_id, 0),
+                        );
+                    } else if matches!(
+                        pointer_event,
+                        PointerEvent::OnButton {
+                            state: ElementState::Released,
+                            ..
+                        } | PointerEvent::OnTouch {
+                            phase: TouchPhase::Ended,
+                            ..
+                        } | PointerEvent::OnTouch {
+                            phase: TouchPhase::Cancelled,
+                            ..
+                        }
+                    ) {
+                        let window_id = pointer_window_id(pointer_event);
+                        engine.universal_state.ui.capture_by_window.remove(&window_id);
+                    }
+                }
+                if matches!(pointer_event, PointerEvent::OnLeave { .. }) {
+                    let window_id = pointer_window_id(pointer_event);
+                    if let Some(realm_id) = engine
+                        .universal_state
+                        .ui
+                        .focus_by_window
+                        .get(&window_id)
+                        .copied()
+                    {
+                        pointer_pos_updates.push((realm_id, None));
                     }
                 }
             }
@@ -45,16 +102,37 @@ pub fn process_ui_input(engine: &mut EngineState) {
                     }
                 }
             }
+            EngineEvent::Window(WindowEvent::OnFocus { window_id, focused }) => {
+                if let Some(realm_id) = engine
+                    .universal_state
+                    .ui
+                    .focus_by_window
+                    .get(window_id)
+                    .copied()
+                {
+                    pointer_updates.push((realm_id, egui::Event::WindowFocused(*focused)));
+                }
+            }
             _ => {}
         }
     }
 
-    for (window_id, realm_id) in focus_updates {
+    for (window_id, realm_id, document_id) in focus_updates {
         engine
             .universal_state
             .ui
             .focus_by_window
             .insert(window_id, realm_id);
+        engine
+            .universal_state
+            .ui
+            .focus_document_by_window
+            .insert(window_id, document_id);
+        engine
+            .universal_state
+            .ui
+            .focus_node_by_window
+            .insert(window_id, 0);
     }
 
     for (realm_id, modifiers) in modifier_updates {
@@ -66,6 +144,11 @@ pub fn process_ui_input(engine: &mut EngineState) {
     for (realm_id, event) in pointer_updates {
         if let Some(realm) = ensure_realm(&mut engine.universal_state.ui, realm_id) {
             realm.push_event(event);
+        }
+    }
+    for (realm_id, pos) in pointer_pos_updates {
+        if let Some(realm) = ensure_realm(&mut engine.universal_state.ui, realm_id) {
+            realm.last_pointer_pos = pos;
         }
     }
 }
@@ -81,7 +164,7 @@ fn ensure_realm(
 fn resolve_pointer_realm(
     engine: &EngineState,
     event: &PointerEvent,
-) -> Option<(RealmId, egui::Pos2)> {
+) -> Option<(RealmId, u32, egui::Pos2)> {
     let trace = match event {
         PointerEvent::OnMove { trace, .. }
         | PointerEvent::OnEnter { trace, .. }
@@ -129,16 +212,8 @@ fn resolve_pointer_realm(
         return None;
     };
 
-    if !hit_test_ui_document(
-        &engine.universal_state.ui,
-        realm_id,
-        pos,
-        realm_size,
-    ) {
-        return None;
-    }
-
-    Some((realm_id, pos))
+    let document_id = hit_test_ui_document(&engine.universal_state.ui, realm_id, pos, realm_size)?;
+    Some((realm_id, document_id, pos))
 }
 
 fn hit_test_ui_document(
@@ -146,7 +221,7 @@ fn hit_test_ui_document(
     realm_id: RealmId,
     pos: egui::Pos2,
     realm_size: glam::UVec2,
-) -> bool {
+) -> Option<u32> {
     let mut best: Option<(i32, u32)> = None;
     for document in ui_state.documents.values() {
         if document.realm_id != realm_id {
@@ -173,7 +248,7 @@ fn hit_test_ui_document(
             _ => best = Some(key),
         }
     }
-    best.is_some()
+    best.map(|(_, document_id)| document_id)
 }
 
 fn resolve_document_rect(rect: glam::Vec4, realm_size: glam::UVec2) -> egui::Rect {
@@ -263,6 +338,14 @@ fn build_pointer_event(
             force: *pressure,
         }),
         PointerEvent::OnPinchGesture { delta, .. } => Some(egui::Event::Zoom(*delta as f32)),
+        PointerEvent::OnPanGesture { delta, .. } => Some(egui::Event::MouseWheel {
+            unit: egui::MouseWheelUnit::Point,
+            delta: egui::vec2(delta.x, delta.y),
+            modifiers,
+        }),
+        PointerEvent::OnRotationGesture { delta, .. } => Some(egui::Event::Zoom(
+            (1.0 + (*delta * 0.01)).clamp(0.5, 2.0),
+        )),
         _ => None,
     }
 }
@@ -306,9 +389,18 @@ fn build_keyboard_event(
         } => {
             let key = map_key_code(*key_code);
             let mut events = Vec::new();
-            if let Some(text) = text {
-                if *state == ElementState::Pressed {
-                    events.push(egui::Event::Text(text.clone()));
+            if *state == ElementState::Pressed {
+                if let Some(key) = key {
+                    if modifiers.command && key == egui::Key::C {
+                        events.push(egui::Event::Copy);
+                    } else if modifiers.command && key == egui::Key::X {
+                        events.push(egui::Event::Cut);
+                    }
+                }
+                if let Some(text) = text {
+                    if !modifiers.command && !modifiers.ctrl && !modifiers.alt {
+                        events.push(egui::Event::Text(text.clone()));
+                    }
                 }
             }
             if let Some(key) = key {

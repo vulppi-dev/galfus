@@ -95,4 +95,37 @@ pub enum SystemEvent {
         total_bytes: u64,
         complete: bool,
     },
+
+    /// UI requested opening a URL; host decides policy and execution.
+    #[serde(rename_all = "camelCase")]
+    UiOpenUrl {
+        window_id: u32,
+        realm_id: u32,
+        url: String,
+        new_tab: bool,
+    },
+
+    /// UI requested writing text to host clipboard.
+    #[serde(rename_all = "camelCase")]
+    UiClipboardSetText {
+        window_id: u32,
+        realm_id: u32,
+        text: String,
+    },
+
+    /// UI requested host copy command.
+    #[serde(rename_all = "camelCase")]
+    UiClipboardRequestCopy { window_id: u32, realm_id: u32 },
+
+    /// UI requested host cut command.
+    #[serde(rename_all = "camelCase")]
+    UiClipboardRequestCut { window_id: u32, realm_id: u32 },
+
+    /// UI requested host paste command.
+    #[serde(rename_all = "camelCase")]
+    UiClipboardRequestPaste { window_id: u32, realm_id: u32 },
+
+    /// UI requested screenshot capture for the current viewport.
+    #[serde(rename_all = "camelCase")]
+    UiScreenshotRequest { window_id: u32, realm_id: u32 },
 }

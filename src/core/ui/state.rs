@@ -18,6 +18,7 @@ pub struct UiRealmState {
     pub pixels_per_point: f32,
     pub modifiers: egui::Modifiers,
     pub pending_events: Vec<egui::Event>,
+    pub last_pointer_pos: Option<egui::Pos2>,
     pub profile: UiFrameProfile,
     pub tessellation_cache: Option<UiTessellationCache>,
 }
@@ -34,6 +35,7 @@ impl UiRealmState {
             pixels_per_point: 1.0,
             modifiers: egui::Modifiers::default(),
             pending_events: Vec::new(),
+            last_pointer_pos: None,
             profile: UiFrameProfile::default(),
             tessellation_cache: None,
         }
@@ -80,6 +82,9 @@ pub struct UiState {
     pub scene_state: HashMap<(UiDocumentId, UiNodeId), UiSceneState>,
     pub debug: UiDebugState,
     pub focus_by_window: HashMap<u32, RealmId>,
+    pub focus_document_by_window: HashMap<u32, UiDocumentId>,
+    pub focus_node_by_window: HashMap<u32, UiNodeId>,
+    pub capture_by_window: HashMap<u32, (RealmId, UiDocumentId, UiNodeId)>,
 }
 
 impl UiState {
@@ -117,6 +122,12 @@ impl UiState {
             .retain(|(entry_document_id, _), _| *entry_document_id != document_id);
         self.scene_state
             .retain(|(entry_document_id, _), _| *entry_document_id != document_id);
+        self.focus_document_by_window
+            .retain(|_, focus_document_id| *focus_document_id != document_id);
+        self.focus_node_by_window
+            .retain(|window_id, _| self.focus_document_by_window.contains_key(window_id));
+        self.capture_by_window
+            .retain(|_, (_, capture_document_id, _)| *capture_document_id != document_id);
 
         true
     }
@@ -125,6 +136,8 @@ impl UiState {
         self.realms.remove(&realm_id);
         self.focus_by_window
             .retain(|_, focus_realm_id| *focus_realm_id != realm_id);
+        self.capture_by_window
+            .retain(|_, (capture_realm_id, _, _)| *capture_realm_id != realm_id);
 
         let mut docs_to_remove = Vec::new();
         for (document_id, document) in &self.documents {
@@ -135,6 +148,24 @@ impl UiState {
         for document_id in docs_to_remove {
             self.remove_document(document_id);
         }
+        self.focus_document_by_window.retain(|_, document_id| {
+            self.documents.contains_key(document_id)
+        });
+        self.focus_node_by_window.retain(|window_id, node_id| {
+            let Some(document_id) = self.focus_document_by_window.get(window_id) else {
+                return false;
+            };
+            self.documents
+                .get(document_id)
+                .map(|document| document.nodes.contains_key(node_id))
+                .unwrap_or(false)
+        });
+        self.capture_by_window.retain(|_, (_, document_id, node_id)| {
+            self.documents
+                .get(document_id)
+                .map(|document| document.nodes.contains_key(node_id))
+                .unwrap_or(false)
+        });
     }
 }
 
@@ -159,6 +190,9 @@ impl Default for UiState {
             scene_state: HashMap::new(),
             debug: UiDebugState::default(),
             focus_by_window: HashMap::new(),
+            focus_document_by_window: HashMap::new(),
+            focus_node_by_window: HashMap::new(),
+            capture_by_window: HashMap::new(),
         }
     }
 }

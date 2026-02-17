@@ -2,6 +2,7 @@ use crate::core::realm::{AutoLink, RealmId, SurfaceId, SurfaceTable};
 use crate::core::render::RenderState;
 use crate::core::resources::RenderTarget;
 use crate::core::target::{TargetId, TargetKind, TargetLayerTable, TargetTable};
+use crate::core::window::{CursorIcon, UserAttentionType};
 use crate::core::ui::UiState;
 use crate::core::ui::events::UiEvent;
 use crate::core::ui::render::{hash_shapes, render_realm_documents, sync_ui_images};
@@ -9,10 +10,54 @@ use crate::core::ui::renderer::ExternalTextureInput;
 use std::collections::HashMap;
 use std::time::Instant;
 
+#[derive(Debug, Clone)]
+pub enum UiPlatformAction {
+    SetCursorIcon {
+        window_id: u32,
+        icon: CursorIcon,
+    },
+    OpenUrl {
+        window_id: u32,
+        realm_id: u32,
+        url: String,
+        new_tab: bool,
+    },
+    ClipboardSetText {
+        window_id: u32,
+        realm_id: u32,
+        text: String,
+    },
+    ClipboardRequestCopy {
+        window_id: u32,
+        realm_id: u32,
+    },
+    ClipboardRequestCut {
+        window_id: u32,
+        realm_id: u32,
+    },
+    ClipboardRequestPaste {
+        window_id: u32,
+        realm_id: u32,
+    },
+    RequestFocus {
+        window_id: u32,
+    },
+    RequestAttention {
+        window_id: u32,
+        attention: Option<UserAttentionType>,
+    },
+    ScreenshotRequest {
+        window_id: u32,
+        realm_id: u32,
+    },
+}
+
 pub fn pass_ui(
     render_state: &mut RenderState,
     ui_state: &mut UiState,
     realm_id: RealmId,
+    window_id: u32,
+    window_focused: bool,
     ui_events: &mut Vec<UiEvent>,
     targets: &TargetTable,
     target_layers: &TargetLayerTable,
@@ -27,7 +72,7 @@ pub fn pass_ui(
     target_size: glam::UVec2,
     frame_index: u64,
     time_seconds: f64,
-) {
+) -> Vec<UiPlatformAction> {
     ui_state.ensure_realm(realm_id);
     let external_inputs = collect_external_textures(
         render_state,
@@ -41,7 +86,7 @@ pub fn pass_ui(
     );
     let (context, pixels_per_point, input_events, modifiers) = {
         let Some(ui_realm) = ui_state.realm_mut(realm_id) else {
-            return;
+            return Vec::new();
         };
         ui_realm.last_frame_index = frame_index;
         (
@@ -56,11 +101,12 @@ pub fn pass_ui(
     let mut input = egui::RawInput::default();
     let screen_rect = egui::Rect::from_min_size(egui::Pos2::ZERO, screen_size);
     input.screen_rect = Some(screen_rect);
+    input.focused = window_focused;
     if let Some(viewport) = input.viewports.get_mut(&egui::ViewportId::ROOT) {
         viewport.native_pixels_per_point = Some(pixels_per_point);
         viewport.inner_rect = Some(screen_rect);
         viewport.outer_rect = Some(screen_rect);
-        viewport.focused = Some(true);
+        viewport.focused = Some(window_focused);
     }
     input.time = Some(time_seconds);
     input.events = input_events;
@@ -68,8 +114,16 @@ pub fn pass_ui(
     sync_ui_images(&context, ui_state);
     let layout_start = Instant::now();
     let output = context.run(input, |ctx| {
-        render_realm_documents(ctx, ui_state, realm_id, target_size, ui_events, time_seconds);
+        render_realm_documents(
+            ctx,
+            ui_state,
+            realm_id,
+            target_size,
+            ui_events,
+            time_seconds,
+        );
     });
+    let platform_actions = collect_platform_actions(&output, window_id, realm_id);
     let layout_ms = layout_start.elapsed().as_secs_f32() * 1000.0;
 
     let tess_start = Instant::now();
@@ -129,6 +183,122 @@ pub fn pass_ui(
                 egui::Color32::from_rgba_premultiplied(255, 255, 255, 200),
             );
         }
+    }
+    platform_actions
+}
+
+fn collect_platform_actions(
+    output: &egui::FullOutput,
+    window_id: u32,
+    realm_id: RealmId,
+) -> Vec<UiPlatformAction> {
+    let mut actions = Vec::new();
+    if let Some(icon) = map_cursor_icon(output.platform_output.cursor_icon) {
+        actions.push(UiPlatformAction::SetCursorIcon { window_id, icon });
+    }
+    if let Some(open_url) = output.platform_output.open_url.as_ref() {
+        actions.push(UiPlatformAction::OpenUrl {
+            window_id,
+            realm_id: realm_id.0,
+            url: open_url.url.clone(),
+            new_tab: open_url.new_tab,
+        });
+    }
+    if !output.platform_output.copied_text.is_empty() {
+        actions.push(UiPlatformAction::ClipboardSetText {
+            window_id,
+            realm_id: realm_id.0,
+            text: output.platform_output.copied_text.clone(),
+        });
+    }
+    for viewport in output.viewport_output.values() {
+        for command in &viewport.commands {
+            match command {
+                egui::ViewportCommand::RequestCopy => {
+                    actions.push(UiPlatformAction::ClipboardRequestCopy {
+                        window_id,
+                        realm_id: realm_id.0,
+                    });
+                }
+                egui::ViewportCommand::RequestCut => {
+                    actions.push(UiPlatformAction::ClipboardRequestCut {
+                        window_id,
+                        realm_id: realm_id.0,
+                    });
+                }
+                egui::ViewportCommand::RequestPaste => {
+                    actions.push(UiPlatformAction::ClipboardRequestPaste {
+                        window_id,
+                        realm_id: realm_id.0,
+                    });
+                }
+                egui::ViewportCommand::Focus => {
+                    actions.push(UiPlatformAction::RequestFocus { window_id });
+                }
+                egui::ViewportCommand::RequestUserAttention(attention) => {
+                    actions.push(UiPlatformAction::RequestAttention {
+                        window_id,
+                        attention: map_attention_type(*attention),
+                    });
+                }
+                egui::ViewportCommand::Screenshot => {
+                    actions.push(UiPlatformAction::ScreenshotRequest {
+                        window_id,
+                        realm_id: realm_id.0,
+                    });
+                }
+                _ => {}
+            }
+        }
+    }
+    actions
+}
+
+fn map_attention_type(attention: egui::UserAttentionType) -> Option<UserAttentionType> {
+    match attention {
+        egui::UserAttentionType::Critical => Some(UserAttentionType::Critical),
+        egui::UserAttentionType::Informational => Some(UserAttentionType::Informational),
+        egui::UserAttentionType::Reset => None,
+    }
+}
+
+fn map_cursor_icon(icon: egui::CursorIcon) -> Option<CursorIcon> {
+    match icon {
+        egui::CursorIcon::None => None,
+        egui::CursorIcon::Default => Some(CursorIcon::Default),
+        egui::CursorIcon::ContextMenu => Some(CursorIcon::ContextMenu),
+        egui::CursorIcon::Help => Some(CursorIcon::Help),
+        egui::CursorIcon::PointingHand => Some(CursorIcon::Pointer),
+        egui::CursorIcon::Progress => Some(CursorIcon::Progress),
+        egui::CursorIcon::Wait => Some(CursorIcon::Wait),
+        egui::CursorIcon::Cell => Some(CursorIcon::Cell),
+        egui::CursorIcon::Crosshair => Some(CursorIcon::Crosshair),
+        egui::CursorIcon::Text => Some(CursorIcon::Text),
+        egui::CursorIcon::VerticalText => Some(CursorIcon::VerticalText),
+        egui::CursorIcon::Alias => Some(CursorIcon::Alias),
+        egui::CursorIcon::Copy => Some(CursorIcon::Copy),
+        egui::CursorIcon::Move => Some(CursorIcon::Move),
+        egui::CursorIcon::NoDrop => Some(CursorIcon::NoDrop),
+        egui::CursorIcon::NotAllowed => Some(CursorIcon::NotAllowed),
+        egui::CursorIcon::Grab => Some(CursorIcon::Grab),
+        egui::CursorIcon::Grabbing => Some(CursorIcon::Grabbing),
+        egui::CursorIcon::AllScroll => Some(CursorIcon::AllScroll),
+        egui::CursorIcon::ResizeHorizontal => Some(CursorIcon::EwResize),
+        egui::CursorIcon::ResizeNeSw => Some(CursorIcon::NeswResize),
+        egui::CursorIcon::ResizeNwSe => Some(CursorIcon::NwseResize),
+        egui::CursorIcon::ResizeVertical => Some(CursorIcon::NsResize),
+        egui::CursorIcon::ResizeEast => Some(CursorIcon::EResize),
+        egui::CursorIcon::ResizeSouthEast => Some(CursorIcon::SeResize),
+        egui::CursorIcon::ResizeSouth => Some(CursorIcon::SResize),
+        egui::CursorIcon::ResizeSouthWest => Some(CursorIcon::SwResize),
+        egui::CursorIcon::ResizeWest => Some(CursorIcon::WResize),
+        egui::CursorIcon::ResizeNorthWest => Some(CursorIcon::NwResize),
+        egui::CursorIcon::ResizeNorth => Some(CursorIcon::NResize),
+        egui::CursorIcon::ResizeNorthEast => Some(CursorIcon::NeResize),
+        egui::CursorIcon::ResizeColumn => Some(CursorIcon::ColResize),
+        egui::CursorIcon::ResizeRow => Some(CursorIcon::RowResize),
+        egui::CursorIcon::ZoomIn => Some(CursorIcon::ZoomIn),
+        egui::CursorIcon::ZoomOut => Some(CursorIcon::ZoomOut),
     }
 }
 

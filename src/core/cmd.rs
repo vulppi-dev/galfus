@@ -154,6 +154,9 @@ pub enum EngineCmd {
     CmdUiDebugSet(ui::CmdUiDebugSetArgs),
     CmdUiImageCreateFromBuffer(ui::CmdUiImageCreateFromBufferArgs),
     CmdUiImageDispose(ui::CmdUiImageDisposeArgs),
+    CmdUiClipboardPaste(ui::CmdUiClipboardPasteArgs),
+    CmdUiScreenshotReply(ui::CmdUiScreenshotReplyArgs),
+    CmdUiAccessKitActionRequest(ui::CmdUiAccessKitActionRequestArgs),
     CmdModelList(res::CmdModelListArgs),
     CmdMaterialList(res::CmdMaterialListArgs),
     CmdTextureList(res::CmdTextureListArgs),
@@ -249,6 +252,9 @@ pub enum CommandResponse {
     UiDebugSet(ui::CmdResultUiDebugSet),
     UiImageCreateFromBuffer(ui::CmdResultUiImageCreateFromBuffer),
     UiImageDispose(ui::CmdResultUiImageDispose),
+    UiClipboardPaste(ui::CmdResultUiInputEvent),
+    UiScreenshotReply(ui::CmdResultUiInputEvent),
+    UiAccessKitActionRequest(ui::CmdResultUiInputEvent),
     ModelList(res::CmdResultModelList),
     MaterialList(res::CmdResultMaterialList),
     TextureList(res::CmdResultTextureList),
@@ -1023,6 +1029,27 @@ pub fn engine_process_batch(
                 engine.response_queue.push(CommandResponseEnvelope {
                     id: pack.id,
                     response: CommandResponse::UiImageDispose(result),
+                });
+            }
+            EngineCmd::CmdUiClipboardPaste(args) => {
+                let result = ui::engine_cmd_ui_clipboard_paste(engine, &args);
+                engine.response_queue.push(CommandResponseEnvelope {
+                    id: pack.id,
+                    response: CommandResponse::UiClipboardPaste(result),
+                });
+            }
+            EngineCmd::CmdUiScreenshotReply(args) => {
+                let result = ui::engine_cmd_ui_screenshot_reply(engine, &args);
+                engine.response_queue.push(CommandResponseEnvelope {
+                    id: pack.id,
+                    response: CommandResponse::UiScreenshotReply(result),
+                });
+            }
+            EngineCmd::CmdUiAccessKitActionRequest(args) => {
+                let result = ui::engine_cmd_ui_accesskit_action_request(engine, &args);
+                engine.response_queue.push(CommandResponseEnvelope {
+                    id: pack.id,
+                    response: CommandResponse::UiAccessKitActionRequest(result),
                 });
             }
             EngineCmd::CmdModelList(args) => {
