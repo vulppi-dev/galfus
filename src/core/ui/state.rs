@@ -71,6 +71,7 @@ pub struct UiState {
     pub bool_values: HashMap<(UiDocumentId, UiNodeId), bool>,
     pub number_values: HashMap<(UiDocumentId, UiNodeId), f64>,
     pub selection_values: HashMap<(UiDocumentId, UiNodeId), String>,
+    pub layout_rects: HashMap<(UiDocumentId, UiNodeId), glam::Vec4>,
     pub images: HashMap<UiImageId, UiImageRecord>,
     pub image_async: UiImageAsyncManager,
     pub external_textures: HashMap<u64, [u32; 2]>,
@@ -111,6 +112,8 @@ impl UiState {
         self.number_values
             .retain(|(entry_document_id, _), _| *entry_document_id != document_id);
         self.selection_values
+            .retain(|(entry_document_id, _), _| *entry_document_id != document_id);
+        self.layout_rects
             .retain(|(entry_document_id, _), _| *entry_document_id != document_id);
         self.animations
             .retain(|key, _| key.document_id != document_id);
@@ -179,6 +182,7 @@ impl Default for UiState {
             bool_values: HashMap::new(),
             number_values: HashMap::new(),
             selection_values: HashMap::new(),
+            layout_rects: HashMap::new(),
             images: HashMap::new(),
             image_async: UiImageAsyncManager::new(),
             external_textures: HashMap::new(),

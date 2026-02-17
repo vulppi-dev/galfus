@@ -7,6 +7,7 @@ use crate::core::target::{
     SurfaceAlphaModeDto, SurfaceFormatDto, TargetId, TargetKind, TargetLayerLayout,
     TargetLayerState, TargetState,
 };
+use crate::core::realm::RealmKind;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -207,17 +208,16 @@ pub fn engine_cmd_target_layer_upsert(
     engine: &mut EngineState,
     args: &CmdTargetLayerUpsertArgs,
 ) -> CmdResultTargetLayerUpsert {
-    if engine
+    let Some(realm_entry) = engine
         .universal_state
         .realms
         .get(crate::core::realm::RealmId(args.realm_id))
-        .is_none()
-    {
+    else {
         return CmdResultTargetLayerUpsert {
             success: false,
             message: format!("Realm {} not found", args.realm_id),
         };
-    }
+    };
     let target_id = TargetId(args.target_id);
     if !engine
         .universal_state
@@ -241,6 +241,34 @@ pub fn engine_cmd_target_layer_upsert(
                 message: format!("Environment {} not found", environment_id),
             };
         }
+    }
+    if let Some(camera_id) = args.camera_id {
+        let camera_exists = engine
+            .window
+            .states
+            .values()
+            .any(|window_state| window_state.render_state.scene.cameras.contains_key(&camera_id));
+        if !camera_exists {
+            return CmdResultTargetLayerUpsert {
+                success: false,
+                message: format!("Camera {} not found", camera_id),
+            };
+        }
+        if realm_entry.value.kind != RealmKind::ThreeD {
+            return CmdResultTargetLayerUpsert {
+                success: false,
+                message: format!(
+                    "cameraId is only valid for realm kind 3d (realm={})",
+                    args.realm_id
+                ),
+            };
+        }
+    }
+    if args.layout.width.resolve(1.0, 8.0) <= 0.0 || args.layout.height.resolve(1.0, 8.0) <= 0.0 {
+        return CmdResultTargetLayerUpsert {
+            success: false,
+            message: "TargetLayer layout width/height must be > 0".into(),
+        };
     }
     engine.universal_state.target_layers.entries.insert(
         (args.realm_id, target_id),

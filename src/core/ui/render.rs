@@ -251,6 +251,12 @@ fn render_node(
             );
         }
     }
+
+    let rect = response.response.rect;
+    ui_state.layout_rects.insert(
+        (document.document_id, entry.node.id),
+        glam::vec4(rect.min.x, rect.min.y, rect.width(), rect.height()),
+    );
 }
 
 fn render_node_inner(

@@ -430,6 +430,9 @@ fn prune_removed_nodes(
         .selection_values
         .retain(|(entry_doc, node_id), _| *entry_doc != document_id || !removed.contains(node_id));
     ui_state
+        .layout_rects
+        .retain(|(entry_doc, node_id), _| *entry_doc != document_id || !removed.contains(node_id));
+    ui_state
         .animations
         .retain(|key, _| key.document_id != document_id || !removed.contains(&key.node_id));
     ui_state

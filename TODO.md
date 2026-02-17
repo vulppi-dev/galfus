@@ -120,14 +120,14 @@ Base de referência (egui):
 - [x] Bench com cenários: 1k/5k nós, drag de splitter, múltiplos viewports embutidos.
 
 ## Fase 9 — Comandos e API Host (P0)
-- [ ] Padronizar nomenclatura final (target/layer/realm widgets) sem aliases antigos.
-- [ ] Adicionar comandos de introspecção UI:
-- [ ] `CmdUiDocumentGetTree`.
-- [ ] `CmdUiDocumentGetLayoutRects`.
-- [ ] `CmdUiFocusSet/Get`.
-- [ ] `CmdUiEventTraceSet` (nível e sampling).
-- [ ] Revisar validadores de comando para erros explícitos e retorno padronizado.
-- [ ] Garantir que erros diagnósticos sejam emitidos também como eventos no pool host.
+- [x] Padronizar nomenclatura final (target/layer/realm widgets) sem aliases antigos.
+- [x] Adicionar comandos de introspecção UI:
+- [x] `CmdUiDocumentGetTree`.
+- [x] `CmdUiDocumentGetLayoutRects`.
+- [x] `CmdUiFocusSet/Get`.
+- [x] `CmdUiEventTraceSet` (nível e sampling).
+- [x] Revisar validadores de comando para erros explícitos e retorno padronizado.
+- [x] Garantir que erros diagnósticos sejam emitidos também como eventos no pool host.
 
 ## Fase 10 — Testes (P0)
 - [ ] Testes unitários:

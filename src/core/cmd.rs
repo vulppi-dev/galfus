@@ -150,8 +150,13 @@ pub enum EngineCmd {
     CmdUiDocumentDispose(ui::CmdUiDocumentDisposeArgs),
     CmdUiDocumentSetRect(ui::CmdUiDocumentSetRectArgs),
     CmdUiDocumentSetTheme(ui::CmdUiDocumentSetThemeArgs),
+    CmdUiDocumentGetTree(ui::CmdUiDocumentGetTreeArgs),
+    CmdUiDocumentGetLayoutRects(ui::CmdUiDocumentGetLayoutRectsArgs),
     CmdUiApplyOps(ui::CmdUiApplyOpsArgs),
     CmdUiDebugSet(ui::CmdUiDebugSetArgs),
+    CmdUiFocusSet(ui::CmdUiFocusSetArgs),
+    CmdUiFocusGet(ui::CmdUiFocusGetArgs),
+    CmdUiEventTraceSet(ui::CmdUiEventTraceSetArgs),
     CmdUiImageCreateFromBuffer(ui::CmdUiImageCreateFromBufferArgs),
     CmdUiImageDispose(ui::CmdUiImageDisposeArgs),
     CmdUiClipboardPaste(ui::CmdUiClipboardPasteArgs),
@@ -248,8 +253,13 @@ pub enum CommandResponse {
     UiDocumentDispose(ui::CmdResultUiDocumentDispose),
     UiDocumentSetRect(ui::CmdResultUiDocumentSetRect),
     UiDocumentSetTheme(ui::CmdResultUiDocumentSetTheme),
+    UiDocumentGetTree(ui::CmdResultUiDocumentGetTree),
+    UiDocumentGetLayoutRects(ui::CmdResultUiDocumentGetLayoutRects),
     UiApplyOps(ui::CmdResultUiApplyOps),
     UiDebugSet(ui::CmdResultUiDebugSet),
+    UiFocusSet(ui::CmdResultUiFocusSet),
+    UiFocusGet(ui::CmdResultUiFocusGet),
+    UiEventTraceSet(ui::CmdResultUiEventTraceSet),
     UiImageCreateFromBuffer(ui::CmdResultUiImageCreateFromBuffer),
     UiImageDispose(ui::CmdResultUiImageDispose),
     UiClipboardPaste(ui::CmdResultUiInputEvent),
@@ -380,8 +390,19 @@ fn maybe_emit_response_error_event(
         CommandResponse::UiDocumentSetTheme(result) => {
             failure_case!(result, "ui-document-set-theme")
         }
+        CommandResponse::UiDocumentGetTree(result) => {
+            failure_case!(result, "ui-document-get-tree")
+        }
+        CommandResponse::UiDocumentGetLayoutRects(result) => {
+            failure_case!(result, "ui-document-get-layout-rects")
+        }
         CommandResponse::UiApplyOps(result) => failure_case!(result, "ui-apply-ops"),
         CommandResponse::UiDebugSet(result) => failure_case!(result, "ui-debug-set"),
+        CommandResponse::UiFocusSet(result) => failure_case!(result, "ui-focus-set"),
+        CommandResponse::UiFocusGet(result) => failure_case!(result, "ui-focus-get"),
+        CommandResponse::UiEventTraceSet(result) => {
+            failure_case!(result, "ui-event-trace-set")
+        }
         CommandResponse::UiImageCreateFromBuffer(result) => {
             failure_case!(result, "ui-image-create-from-buffer")
         }
@@ -1003,6 +1024,20 @@ pub fn engine_process_batch(
                     response: CommandResponse::UiDocumentSetTheme(result),
                 });
             }
+            EngineCmd::CmdUiDocumentGetTree(args) => {
+                let result = ui::engine_cmd_ui_document_get_tree(engine, &args);
+                engine.response_queue.push(CommandResponseEnvelope {
+                    id: pack.id,
+                    response: CommandResponse::UiDocumentGetTree(result),
+                });
+            }
+            EngineCmd::CmdUiDocumentGetLayoutRects(args) => {
+                let result = ui::engine_cmd_ui_document_get_layout_rects(engine, &args);
+                engine.response_queue.push(CommandResponseEnvelope {
+                    id: pack.id,
+                    response: CommandResponse::UiDocumentGetLayoutRects(result),
+                });
+            }
             EngineCmd::CmdUiApplyOps(args) => {
                 let result = ui::engine_cmd_ui_apply_ops(engine, &args);
                 engine.response_queue.push(CommandResponseEnvelope {
@@ -1015,6 +1050,27 @@ pub fn engine_process_batch(
                 engine.response_queue.push(CommandResponseEnvelope {
                     id: pack.id,
                     response: CommandResponse::UiDebugSet(result),
+                });
+            }
+            EngineCmd::CmdUiFocusSet(args) => {
+                let result = ui::engine_cmd_ui_focus_set(engine, &args);
+                engine.response_queue.push(CommandResponseEnvelope {
+                    id: pack.id,
+                    response: CommandResponse::UiFocusSet(result),
+                });
+            }
+            EngineCmd::CmdUiFocusGet(args) => {
+                let result = ui::engine_cmd_ui_focus_get(engine, &args);
+                engine.response_queue.push(CommandResponseEnvelope {
+                    id: pack.id,
+                    response: CommandResponse::UiFocusGet(result),
+                });
+            }
+            EngineCmd::CmdUiEventTraceSet(args) => {
+                let result = ui::engine_cmd_ui_event_trace_set(engine, &args);
+                engine.response_queue.push(CommandResponseEnvelope {
+                    id: pack.id,
+                    response: CommandResponse::UiEventTraceSet(result),
                 });
             }
             EngineCmd::CmdUiImageCreateFromBuffer(args) => {

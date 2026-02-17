@@ -2,6 +2,7 @@ mod debug;
 mod document;
 mod image;
 mod input_events;
+mod introspection;
 mod theme;
 
 pub use debug::{CmdResultUiDebugSet, CmdUiDebugSetArgs, engine_cmd_ui_debug_set};
@@ -22,6 +23,13 @@ pub use input_events::{
     CmdResultUiInputEvent, CmdUiAccessKitActionRequestArgs, CmdUiClipboardPasteArgs,
     CmdUiScreenshotReplyArgs, engine_cmd_ui_accesskit_action_request,
     engine_cmd_ui_clipboard_paste, engine_cmd_ui_screenshot_reply,
+};
+pub use introspection::{
+    CmdResultUiDocumentGetLayoutRects, CmdResultUiDocumentGetTree, CmdResultUiEventTraceSet,
+    CmdResultUiFocusGet, CmdResultUiFocusSet, CmdUiDocumentGetLayoutRectsArgs,
+    CmdUiDocumentGetTreeArgs, CmdUiEventTraceSetArgs, CmdUiFocusGetArgs, CmdUiFocusSetArgs,
+    engine_cmd_ui_document_get_layout_rects, engine_cmd_ui_document_get_tree,
+    engine_cmd_ui_event_trace_set, engine_cmd_ui_focus_get, engine_cmd_ui_focus_set,
 };
 pub use theme::{
     CmdResultUiThemeDefine, CmdResultUiThemeDispose, CmdUiThemeDefineArgs, CmdUiThemeDisposeArgs,
