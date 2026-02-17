@@ -234,6 +234,8 @@ fn render_node_inner(
     ui_events: &mut Vec<UiEvent>,
     time_seconds: f64,
 ) {
+    let node_tooltip = entry.node.tooltip.as_deref();
+    let node_context_menu = entry.node.context_menu.as_deref();
     match entry.node.props.clone() {
         UiNodeProps::Container {
             layout,
@@ -707,17 +709,575 @@ fn render_node_inner(
             }
             ui.label(rich);
         }
+        UiNodeProps::RichText {
+            text,
+            size,
+            color,
+            strong,
+            italics,
+            underline,
+            strikethrough,
+            monospace,
+        } => {
+            let mut rich = egui::RichText::new(text);
+            if let Some(size) = size {
+                rich = rich.size(size);
+            }
+            if let Some(color) = color {
+                rich = rich.color(color_to_color32(color));
+            }
+            if strong.unwrap_or(false) {
+                rich = rich.strong();
+            }
+            if italics.unwrap_or(false) {
+                rich = rich.italics();
+            }
+            if underline.unwrap_or(false) {
+                rich = rich.underline();
+            }
+            if strikethrough.unwrap_or(false) {
+                rich = rich.strikethrough();
+            }
+            if monospace.unwrap_or(false) {
+                rich = rich.monospace();
+            }
+            ui.label(rich);
+        }
+        UiNodeProps::Link { label, enabled } => {
+            let response = ui.add_enabled(enabled.unwrap_or(true), egui::Link::new(label.clone()));
+            emit_interaction_events(
+                response,
+                realm_id,
+                document.document_id,
+                entry.node.id,
+                Some(label),
+                node_tooltip,
+                node_context_menu,
+                ui_events,
+            );
+        }
+        UiNodeProps::Hyperlink {
+            label,
+            url,
+            enabled,
+        } => {
+            let response = if enabled.unwrap_or(true) {
+                ui.hyperlink_to(label.clone(), url)
+            } else {
+                ui.add_enabled(false, egui::Link::new(label.clone()))
+            };
+            emit_interaction_events(
+                response,
+                realm_id,
+                document.document_id,
+                entry.node.id,
+                Some(label),
+                node_tooltip,
+                node_context_menu,
+                ui_events,
+            );
+        }
         UiNodeProps::Button { label, enabled } => {
             let enabled = enabled.unwrap_or(true);
             let response = ui.add_enabled(enabled, egui::Button::new(label.clone()));
+            emit_interaction_events(
+                response,
+                realm_id,
+                document.document_id,
+                entry.node.id,
+                Some(label),
+                node_tooltip,
+                node_context_menu,
+                ui_events,
+            );
+        }
+        UiNodeProps::Checkbox {
+            label,
+            checked,
+            enabled,
+        } => {
+            let key = (document.document_id, entry.node.id);
+            let value = ui_state.bool_values.entry(key).or_insert(checked);
+            let response = ui.add_enabled(enabled.unwrap_or(true), egui::Checkbox::new(value, label.clone()));
+            emit_interaction_events(
+                response.clone(),
+                realm_id,
+                document.document_id,
+                entry.node.id,
+                Some(label),
+                node_tooltip,
+                node_context_menu,
+                ui_events,
+            );
+            if response.changed() {
+                push_ui_event(
+                    ui_events,
+                    realm_id,
+                    document.document_id,
+                    entry.node.id,
+                    UiEventKind::Changed,
+                    Some(value.to_string()),
+                );
+            }
+        }
+        UiNodeProps::Radio {
+            label,
+            selected,
+            enabled,
+        } => {
+            let key = (document.document_id, entry.node.id);
+            let value = ui_state.bool_values.entry(key).or_insert(selected);
+            let response = ui.add_enabled(
+                enabled.unwrap_or(true),
+                egui::RadioButton::new(*value, label.clone()),
+            );
             if response.clicked() {
-                ui_events.push(UiEvent {
-                    realm_id: realm_id.0,
-                    document_id: document.document_id,
-                    node_id: entry.node.id,
-                    kind: UiEventKind::Click,
-                    label: Some(label),
+                *value = true;
+            }
+            emit_interaction_events(
+                response,
+                realm_id,
+                document.document_id,
+                entry.node.id,
+                Some(label),
+                node_tooltip,
+                node_context_menu,
+                ui_events,
+            );
+        }
+        UiNodeProps::SelectableLabel {
+            label,
+            selected,
+            enabled,
+        } => {
+            let key = (document.document_id, entry.node.id);
+            let value = ui_state.bool_values.entry(key).or_insert(selected);
+            let response = ui.add_enabled(
+                enabled.unwrap_or(true),
+                egui::SelectableLabel::new(*value, label.clone()),
+            );
+            if response.clicked() {
+                *value = !*value;
+            }
+            emit_interaction_events(
+                response.clone(),
+                realm_id,
+                document.document_id,
+                entry.node.id,
+                Some(label),
+                node_tooltip,
+                node_context_menu,
+                ui_events,
+            );
+            if response.changed() {
+                push_ui_event(
+                    ui_events,
+                    realm_id,
+                    document.document_id,
+                    entry.node.id,
+                    UiEventKind::Changed,
+                    Some(value.to_string()),
+                );
+            }
+        }
+        UiNodeProps::Toggle {
+            label,
+            value,
+            enabled,
+        } => {
+            let key = (document.document_id, entry.node.id);
+            let state = ui_state.bool_values.entry(key).or_insert(value);
+            let response = ui.add_enabled(enabled.unwrap_or(true), egui::Checkbox::new(state, label.clone()));
+            emit_interaction_events(
+                response.clone(),
+                realm_id,
+                document.document_id,
+                entry.node.id,
+                Some(label.clone()),
+                node_tooltip,
+                node_context_menu,
+                ui_events,
+            );
+            if response.changed() {
+                push_ui_event(
+                    ui_events,
+                    realm_id,
+                    document.document_id,
+                    entry.node.id,
+                    UiEventKind::Changed,
+                    Some(state.to_string()),
+                );
+            }
+        }
+        UiNodeProps::Slider {
+            value,
+            min,
+            max,
+            step,
+            label,
+            enabled,
+        } => {
+            let key = (document.document_id, entry.node.id);
+            let current = ui_state.number_values.entry(key).or_insert(value);
+            let mut slider =
+                egui::Slider::new(current, min..=max).step_by(step.unwrap_or(0.0).max(0.0));
+            if let Some(label) = label.clone() {
+                slider = slider.text(label);
+            }
+            let response = ui.add_enabled(enabled.unwrap_or(true), slider);
+            emit_interaction_events(
+                response.clone(),
+                realm_id,
+                document.document_id,
+                entry.node.id,
+                label,
+                node_tooltip,
+                node_context_menu,
+                ui_events,
+            );
+            if response.changed() {
+                push_ui_event(
+                    ui_events,
+                    realm_id,
+                    document.document_id,
+                    entry.node.id,
+                    UiEventKind::Changed,
+                    Some(current.to_string()),
+                );
+            }
+            if response.drag_stopped() {
+                push_ui_event(
+                    ui_events,
+                    realm_id,
+                    document.document_id,
+                    entry.node.id,
+                    UiEventKind::ChangeCommit,
+                    Some(current.to_string()),
+                );
+            }
+        }
+        UiNodeProps::DragValue {
+            value,
+            speed,
+            min,
+            max,
+            prefix,
+            suffix,
+            enabled,
+        } => {
+            let key = (document.document_id, entry.node.id);
+            let current = ui_state.number_values.entry(key).or_insert(value);
+            let mut widget = egui::DragValue::new(current).speed(speed.unwrap_or(0.1));
+            if let Some(min) = min {
+                widget = widget.range(min..=max.unwrap_or(f64::MAX));
+            } else if let Some(max) = max {
+                widget = widget.range(f64::MIN..=max);
+            }
+            if let Some(prefix) = prefix {
+                widget = widget.prefix(prefix);
+            }
+            if let Some(suffix) = suffix {
+                widget = widget.suffix(suffix);
+            }
+            let response = ui.add_enabled(enabled.unwrap_or(true), widget);
+            emit_interaction_events(
+                response.clone(),
+                realm_id,
+                document.document_id,
+                entry.node.id,
+                None,
+                node_tooltip,
+                node_context_menu,
+                ui_events,
+            );
+            if response.changed() {
+                push_ui_event(
+                    ui_events,
+                    realm_id,
+                    document.document_id,
+                    entry.node.id,
+                    UiEventKind::Changed,
+                    Some(current.to_string()),
+                );
+            }
+            if response.lost_focus() {
+                push_ui_event(
+                    ui_events,
+                    realm_id,
+                    document.document_id,
+                    entry.node.id,
+                    UiEventKind::ChangeCommit,
+                    Some(current.to_string()),
+                );
+            }
+        }
+        UiNodeProps::ProgressBar {
+            value,
+            text,
+            animate,
+            show_percentage,
+        } => {
+            let mut bar = egui::ProgressBar::new(value.clamp(0.0, 1.0) as f32);
+            if let Some(text) = text {
+                bar = bar.text(text);
+            } else if show_percentage.unwrap_or(true) {
+                bar = bar.show_percentage();
+            }
+            if animate.unwrap_or(false) {
+                bar = bar.animate(true);
+            }
+            ui.add(bar);
+        }
+        UiNodeProps::ComboBox {
+            label,
+            selected,
+            options,
+            enabled,
+        } => {
+            let key = (document.document_id, entry.node.id);
+            let current = ui_state
+                .selection_values
+                .entry(key)
+                .or_insert(selected.clone());
+            let mut changed = false;
+            ui.add_enabled_ui(enabled.unwrap_or(true), |ui| {
+                egui::ComboBox::from_label(label)
+                    .selected_text(current.clone())
+                    .show_ui(ui, |ui| {
+                        for option in options {
+                            let response = ui.selectable_value(current, option.clone(), option.clone());
+                            if response.clicked() {
+                                changed = true;
+                            }
+                        }
+                    });
+            });
+            if changed {
+                push_ui_event(
+                    ui_events,
+                    realm_id,
+                    document.document_id,
+                    entry.node.id,
+                    UiEventKind::Changed,
+                    Some(current.clone()),
+                );
+                push_ui_event(
+                    ui_events,
+                    realm_id,
+                    document.document_id,
+                    entry.node.id,
+                    UiEventKind::ChangeCommit,
+                    Some(current.clone()),
+                );
+            }
+        }
+        UiNodeProps::MenuButton { label, enabled } => {
+            let mut was_clicked = false;
+            let response = ui.add_enabled_ui(enabled.unwrap_or(true), |ui| {
+                ui.menu_button(label.clone(), |ui| {
+                    if ui.button("Action").clicked() {
+                        was_clicked = true;
+                        ui.close_menu();
+                    }
+                    render_children(
+                        ui,
+                        document,
+                        Some(entry.node.id),
+                        &entry.children,
+                        ui_state,
+                        realm_id,
+                        ui_events,
+                        time_seconds,
+                    );
                 });
+            });
+            emit_interaction_events(
+                response.response,
+                realm_id,
+                document.document_id,
+                entry.node.id,
+                Some(label.clone()),
+                node_tooltip,
+                node_context_menu,
+                ui_events,
+            );
+            if was_clicked {
+                push_ui_event(
+                    ui_events,
+                    realm_id,
+                    document.document_id,
+                    entry.node.id,
+                    UiEventKind::Click,
+                    Some(label),
+                );
+            }
+        }
+        UiNodeProps::CollapsingHeader {
+            label,
+            open,
+            enabled,
+        } => {
+            let key = (document.document_id, entry.node.id);
+            let open_state = ui_state
+                .node_open_state
+                .get(&key)
+                .copied()
+                .unwrap_or(open.unwrap_or(true));
+            let mut header = egui::CollapsingHeader::new(label.clone());
+            header = header.default_open(open_state);
+            let response = ui.add_enabled_ui(enabled.unwrap_or(true), |ui| {
+                header.show(ui, |ui| {
+                    render_children(
+                        ui,
+                        document,
+                        Some(entry.node.id),
+                        &entry.children,
+                        ui_state,
+                        realm_id,
+                        ui_events,
+                        time_seconds,
+                    );
+                })
+            });
+            ui_state
+                .node_open_state
+                .insert(key, response.inner.openness > 0.0);
+            emit_interaction_events(
+                response.response,
+                realm_id,
+                document.document_id,
+                entry.node.id,
+                Some(label),
+                node_tooltip,
+                node_context_menu,
+                ui_events,
+            );
+        }
+        UiNodeProps::ImageButton {
+            source,
+            size,
+            enabled,
+        } => {
+            if let Some((texture, texture_size)) = resolve_ui_texture(source, ui_state) {
+                let size = resolve_size(size, texture_size);
+                let image = egui::Image::from_texture(egui::load::SizedTexture::new(texture, size))
+                    .fit_to_exact_size(size);
+                let response = ui.add_enabled(enabled.unwrap_or(true), egui::ImageButton::new(image));
+                emit_interaction_events(
+                    response,
+                    realm_id,
+                    document.document_id,
+                    entry.node.id,
+                    None,
+                    node_tooltip,
+                    node_context_menu,
+                    ui_events,
+                );
+            } else {
+                ui.label("Image missing");
+            }
+        }
+        UiNodeProps::Spinner { size } => {
+            let mut spinner = egui::Spinner::new();
+            if let Some(size) = size {
+                spinner = spinner.size(size.max(4.0));
+            }
+            ui.add(spinner);
+        }
+        UiNodeProps::TextEdit {
+            value,
+            placeholder,
+            multiline,
+            password,
+            char_limit,
+            enabled,
+        } => {
+            let input_key = (document.document_id, entry.node.id);
+            let input_id = egui::Id::new(("ui_text_edit", document.document_id, entry.node.id));
+            let text = ui_state
+                .input_buffers
+                .entry(input_key)
+                .or_insert_with(|| value.clone());
+            if *text != value && !ui.memory(|memory| memory.has_focus(input_id)) {
+                *text = value.clone();
+            }
+            let was_focused = ui.memory(|memory| memory.has_focus(input_id));
+            let mut edit = if multiline.unwrap_or(false) {
+                egui::TextEdit::multiline(text)
+            } else {
+                egui::TextEdit::singleline(text)
+            }
+            .id_source(input_id)
+            .password(password.unwrap_or(false));
+            if let Some(placeholder) = placeholder {
+                edit = edit.hint_text(placeholder);
+            }
+            if let Some(char_limit) = char_limit {
+                edit = edit.char_limit(char_limit);
+            }
+            let response = ui.add_enabled(enabled.unwrap_or(true), edit);
+            emit_interaction_events(
+                response.clone(),
+                realm_id,
+                document.document_id,
+                entry.node.id,
+                None,
+                node_tooltip,
+                node_context_menu,
+                ui_events,
+            );
+            if response.changed() {
+                push_ui_event(
+                    ui_events,
+                    realm_id,
+                    document.document_id,
+                    entry.node.id,
+                    UiEventKind::Changed,
+                    Some(text.clone()),
+                );
+            }
+            let is_focused = ui.memory(|memory| memory.has_focus(input_id));
+            if !was_focused && is_focused {
+                push_ui_event(
+                    ui_events,
+                    realm_id,
+                    document.document_id,
+                    entry.node.id,
+                    UiEventKind::Focus,
+                    None,
+                );
+            }
+            if was_focused && !is_focused {
+                push_ui_event(
+                    ui_events,
+                    realm_id,
+                    document.document_id,
+                    entry.node.id,
+                    UiEventKind::Blur,
+                    None,
+                );
+            }
+            let submitted = response.lost_focus()
+                && ui.input(|i| i.key_pressed(egui::Key::Enter));
+            if submitted {
+                push_ui_event(
+                    ui_events,
+                    realm_id,
+                    document.document_id,
+                    entry.node.id,
+                    UiEventKind::Submit,
+                    Some(text.clone()),
+                );
+            }
+            if response.changed() && response.lost_focus() {
+                push_ui_event(
+                    ui_events,
+                    realm_id,
+                    document.document_id,
+                    entry.node.id,
+                    UiEventKind::ChangeCommit,
+                    Some(text.clone()),
+                );
             }
         }
         UiNodeProps::Input {
@@ -741,14 +1301,35 @@ fn render_node_inner(
             }
             let enabled = enabled.unwrap_or(true);
             let response = ui.add_enabled(enabled, edit);
+            emit_interaction_events(
+                response.clone(),
+                realm_id,
+                document.document_id,
+                entry.node.id,
+                None,
+                node_tooltip,
+                node_context_menu,
+                ui_events,
+            );
+            if response.changed() {
+                push_ui_event(
+                    ui_events,
+                    realm_id,
+                    document.document_id,
+                    entry.node.id,
+                    UiEventKind::Changed,
+                    Some(text.clone()),
+                );
+            }
             if response.changed() && response.lost_focus() {
-                ui_events.push(UiEvent {
-                    realm_id: realm_id.0,
-                    document_id: document.document_id,
-                    node_id: entry.node.id,
-                    kind: UiEventKind::ChangeCommit,
-                    label: Some(text.clone()),
-                });
+                push_ui_event(
+                    ui_events,
+                    realm_id,
+                    document.document_id,
+                    entry.node.id,
+                    UiEventKind::ChangeCommit,
+                    Some(text.clone()),
+                );
             }
         }
         UiNodeProps::Image { source, size } => match source {
@@ -1308,6 +1889,130 @@ fn resolve_size(size: Option<UiSize>, fallback: [u32; 2]) -> egui::Vec2 {
         UiLength::Px(value) => value,
     };
     egui::vec2(width.max(0.0), height.max(0.0))
+}
+
+fn resolve_ui_texture(source: UiImageSource, ui_state: &UiState) -> Option<(egui::TextureId, [u32; 2])> {
+    match source {
+        UiImageSource::UiImage(image_id) => {
+            let record = ui_state.images.get(&image_id)?;
+            let texture = record.texture.as_ref()?;
+            Some((texture.id(), record.size))
+        }
+        UiImageSource::Target(target_id) => {
+            let size = ui_state.external_textures.get(&target_id).copied()?;
+            Some((egui::TextureId::User(target_id), size))
+        }
+    }
+}
+
+fn emit_interaction_events(
+    response: egui::Response,
+    realm_id: RealmId,
+    document_id: u32,
+    node_id: u32,
+    label: Option<String>,
+    tooltip: Option<&str>,
+    context_menu: Option<&[String]>,
+    ui_events: &mut Vec<UiEvent>,
+) {
+    if let Some(tooltip) = tooltip {
+        response.clone().on_hover_text(tooltip.to_string());
+    }
+    if let Some(items) = context_menu {
+        let context_items: Vec<String> = items.to_vec();
+        let _ = response.clone().context_menu(|ui| {
+            for item in context_items {
+                if ui.button(item.clone()).clicked() {
+                    push_ui_event(
+                        ui_events,
+                        realm_id,
+                        document_id,
+                        node_id,
+                        UiEventKind::Click,
+                        Some(format!("context:{}", item)),
+                    );
+                    ui.close_menu();
+                }
+            }
+        });
+    }
+
+    if response.clicked() {
+        push_ui_event(
+            ui_events,
+            realm_id,
+            document_id,
+            node_id,
+            UiEventKind::Click,
+            label.clone(),
+        );
+    }
+    if response.double_clicked() {
+        push_ui_event(
+            ui_events,
+            realm_id,
+            document_id,
+            node_id,
+            UiEventKind::DoubleClick,
+            label.clone(),
+        );
+    }
+    if response.is_pointer_button_down_on() {
+        push_ui_event(
+            ui_events,
+            realm_id,
+            document_id,
+            node_id,
+            UiEventKind::Pressed,
+            label.clone(),
+        );
+    }
+    if response.clicked_elsewhere() {
+        push_ui_event(
+            ui_events,
+            realm_id,
+            document_id,
+            node_id,
+            UiEventKind::Released,
+            label.clone(),
+        );
+    }
+    if response.hovered() {
+        push_ui_event(
+            ui_events,
+            realm_id,
+            document_id,
+            node_id,
+            UiEventKind::HoverEnter,
+            label.clone(),
+        );
+    } else {
+        push_ui_event(
+            ui_events,
+            realm_id,
+            document_id,
+            node_id,
+            UiEventKind::HoverLeave,
+            label,
+        );
+    }
+}
+
+fn push_ui_event(
+    ui_events: &mut Vec<UiEvent>,
+    realm_id: RealmId,
+    document_id: u32,
+    node_id: u32,
+    kind: UiEventKind,
+    label: Option<String>,
+) {
+    ui_events.push(UiEvent {
+        realm_id: realm_id.0,
+        document_id,
+        node_id,
+        kind,
+        label,
+    });
 }
 
 fn resolve_document_rect(rect: glam::Vec4, realm_size: glam::UVec2) -> egui::Rect {

@@ -35,21 +35,21 @@ Base de referência (egui):
 - [x] Validar clipping/hit-test de layout com rects dinâmicos e resize de janela.
 
 ## Fase 2 — Widgets Essenciais do egui (P0/P1)
-- [ ] Expandir tipos de widget:
-- [ ] `Label`/`RichText`/`Link`/`Hyperlink` com estados e eventos.
-- [ ] `Checkbox`, `Radio`, `SelectableLabel`, `Toggle`.
-- [ ] `Slider`, `DragValue`, `ProgressBar`.
-- [ ] `ComboBox`, `MenuButton`.
-- [ ] `CollapsingHeader`.
-- [ ] `ImageButton` e `Spinner`.
-- [ ] `TextEdit` multiline + password + char_limit.
-- [ ] Eventos por widget:
-- [ ] `click`, `doubleClick`, `pressed`, `released`.
-- [ ] `hoverEnter`, `hoverLeave`.
-- [ ] `changed` (contínuo) e `changeCommit`.
-- [ ] `focus`, `blur`, `submit`.
-- [ ] Mapear `enabled/disabled` para todos os novos widgets.
-- [ ] Suportar tooltips e context menus em nós interativos.
+- [x] Expandir tipos de widget:
+- [x] `Label`/`RichText`/`Link`/`Hyperlink` com estados e eventos.
+- [x] `Checkbox`, `Radio`, `SelectableLabel`, `Toggle`.
+- [x] `Slider`, `DragValue`, `ProgressBar`.
+- [x] `ComboBox`, `MenuButton`.
+- [x] `CollapsingHeader`.
+- [x] `ImageButton` e `Spinner`.
+- [x] `TextEdit` multiline + password + char_limit.
+- [x] Eventos por widget:
+- [x] `click`, `doubleClick`, `pressed`, `released`.
+- [x] `hoverEnter`, `hoverLeave`.
+- [x] `changed` (contínuo) e `changeCommit`.
+- [x] `focus`, `blur`, `submit`.
+- [x] Mapear `enabled/disabled` para todos os novos widgets.
+- [x] Suportar tooltips e context menus em nós interativos.
 
 ## Fase 3 — Painter e Paths (P1)
 - [ ] Adicionar nó/comando de desenho vetorial (`UiNodeKind::Canvas` ou `UiPaintOps`).

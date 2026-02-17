@@ -37,7 +37,23 @@ pub enum UiNodeKind {
     Resize,
     Scene,
     Text,
+    RichText,
+    Link,
+    Hyperlink,
     Button,
+    Checkbox,
+    Radio,
+    SelectableLabel,
+    Toggle,
+    Slider,
+    DragValue,
+    ProgressBar,
+    ComboBox,
+    MenuButton,
+    CollapsingHeader,
+    ImageButton,
+    Spinner,
+    TextEdit,
     Input,
     Image,
     WidgetRealmViewport,
@@ -318,8 +334,138 @@ pub enum UiNodeProps {
         #[serde(default)]
         color: Option<UiColor>,
     },
+    RichText {
+        text: String,
+        #[serde(default)]
+        size: Option<f32>,
+        #[serde(default)]
+        color: Option<UiColor>,
+        #[serde(default)]
+        strong: Option<bool>,
+        #[serde(default)]
+        italics: Option<bool>,
+        #[serde(default)]
+        underline: Option<bool>,
+        #[serde(default)]
+        strikethrough: Option<bool>,
+        #[serde(default)]
+        monospace: Option<bool>,
+    },
+    Link {
+        label: String,
+        #[serde(default)]
+        enabled: Option<bool>,
+    },
+    Hyperlink {
+        label: String,
+        url: String,
+        #[serde(default)]
+        enabled: Option<bool>,
+    },
     Button {
         label: String,
+        #[serde(default)]
+        enabled: Option<bool>,
+    },
+    Checkbox {
+        label: String,
+        checked: bool,
+        #[serde(default)]
+        enabled: Option<bool>,
+    },
+    Radio {
+        label: String,
+        selected: bool,
+        #[serde(default)]
+        enabled: Option<bool>,
+    },
+    SelectableLabel {
+        label: String,
+        selected: bool,
+        #[serde(default)]
+        enabled: Option<bool>,
+    },
+    Toggle {
+        label: String,
+        value: bool,
+        #[serde(default)]
+        enabled: Option<bool>,
+    },
+    Slider {
+        value: f64,
+        min: f64,
+        max: f64,
+        #[serde(default)]
+        step: Option<f64>,
+        #[serde(default)]
+        label: Option<String>,
+        #[serde(default)]
+        enabled: Option<bool>,
+    },
+    DragValue {
+        value: f64,
+        #[serde(default)]
+        speed: Option<f64>,
+        #[serde(default)]
+        min: Option<f64>,
+        #[serde(default)]
+        max: Option<f64>,
+        #[serde(default)]
+        prefix: Option<String>,
+        #[serde(default)]
+        suffix: Option<String>,
+        #[serde(default)]
+        enabled: Option<bool>,
+    },
+    ProgressBar {
+        value: f64,
+        #[serde(default)]
+        text: Option<String>,
+        #[serde(default)]
+        animate: Option<bool>,
+        #[serde(default)]
+        show_percentage: Option<bool>,
+    },
+    ComboBox {
+        label: String,
+        selected: String,
+        options: Vec<String>,
+        #[serde(default)]
+        enabled: Option<bool>,
+    },
+    MenuButton {
+        label: String,
+        #[serde(default)]
+        enabled: Option<bool>,
+    },
+    CollapsingHeader {
+        label: String,
+        #[serde(default)]
+        open: Option<bool>,
+        #[serde(default)]
+        enabled: Option<bool>,
+    },
+    ImageButton {
+        source: UiImageSource,
+        #[serde(default)]
+        size: Option<UiSize>,
+        #[serde(default)]
+        enabled: Option<bool>,
+    },
+    Spinner {
+        #[serde(default)]
+        size: Option<f32>,
+    },
+    TextEdit {
+        value: String,
+        #[serde(default)]
+        placeholder: Option<String>,
+        #[serde(default)]
+        multiline: Option<bool>,
+        #[serde(default)]
+        password: Option<bool>,
+        #[serde(default)]
+        char_limit: Option<usize>,
         #[serde(default)]
         enabled: Option<bool>,
     },
@@ -360,6 +506,10 @@ pub struct UiNode {
     pub id: UiNodeId,
     pub kind: UiNodeKind,
     pub props: UiNodeProps,
+    #[serde(default)]
+    pub tooltip: Option<String>,
+    #[serde(default)]
+    pub context_menu: Option<Vec<String>>,
     #[serde(default)]
     pub anim: Option<UiAnim>,
     #[serde(default)]

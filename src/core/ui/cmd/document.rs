@@ -218,6 +218,15 @@ pub fn engine_cmd_ui_apply_ops(
     ui_state.input_buffers.retain(|(document_id, node_id), _| {
         *document_id != args.document_id || alive_nodes.contains(node_id)
     });
+    ui_state.bool_values.retain(|(document_id, node_id), _| {
+        *document_id != args.document_id || alive_nodes.contains(node_id)
+    });
+    ui_state.number_values.retain(|(document_id, node_id), _| {
+        *document_id != args.document_id || alive_nodes.contains(node_id)
+    });
+    ui_state.selection_values.retain(|(document_id, node_id), _| {
+        *document_id != args.document_id || alive_nodes.contains(node_id)
+    });
     ui_state.animations.retain(|key, _| {
         key.document_id != args.document_id || alive_nodes.contains(&key.node_id)
     });

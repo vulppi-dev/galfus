@@ -66,6 +66,9 @@ pub struct UiState {
     pub themes: HashMap<UiThemeId, UiThemeState>,
     pub documents: HashMap<UiDocumentId, UiDocument>,
     pub input_buffers: HashMap<(UiDocumentId, UiNodeId), String>,
+    pub bool_values: HashMap<(UiDocumentId, UiNodeId), bool>,
+    pub number_values: HashMap<(UiDocumentId, UiNodeId), f64>,
+    pub selection_values: HashMap<(UiDocumentId, UiNodeId), String>,
     pub images: HashMap<UiImageId, UiImageRecord>,
     pub image_async: UiImageAsyncManager,
     pub external_textures: HashMap<u64, [u32; 2]>,
@@ -97,6 +100,12 @@ impl UiState {
         }
 
         self.input_buffers
+            .retain(|(entry_document_id, _), _| *entry_document_id != document_id);
+        self.bool_values
+            .retain(|(entry_document_id, _), _| *entry_document_id != document_id);
+        self.number_values
+            .retain(|(entry_document_id, _), _| *entry_document_id != document_id);
+        self.selection_values
             .retain(|(entry_document_id, _), _| *entry_document_id != document_id);
         self.animations
             .retain(|key, _| key.document_id != document_id);
@@ -136,6 +145,9 @@ impl Default for UiState {
             themes: HashMap::new(),
             documents: HashMap::new(),
             input_buffers: HashMap::new(),
+            bool_values: HashMap::new(),
+            number_values: HashMap::new(),
+            selection_values: HashMap::new(),
             images: HashMap::new(),
             image_async: UiImageAsyncManager::new(),
             external_textures: HashMap::new(),

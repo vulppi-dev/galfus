@@ -4,7 +4,16 @@ use serde::{Deserialize, Serialize};
 #[serde(rename_all = "kebab-case")]
 pub enum UiEventKind {
     Click,
+    DoubleClick,
+    Pressed,
+    Released,
+    HoverEnter,
+    HoverLeave,
+    Changed,
     ChangeCommit,
+    Focus,
+    Blur,
+    Submit,
     AnimComplete,
 }
 
