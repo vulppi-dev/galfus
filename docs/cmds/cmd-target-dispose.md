@@ -2,6 +2,13 @@
 
 Removes a logical target from the auto-graph maps.
 
+Dispose semantics:
+- Removes direct dependencies of the target:
+  - all `targetLayer` entries that reference `targetId`
+  - corresponding auto-links (`surface/present/connector`)
+  - direct focus references for input routing
+- Clears UI external texture references and target size requests tied to the target.
+
 ## Arguments
 
 | Field    | Type | Description           |

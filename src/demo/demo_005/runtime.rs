@@ -139,33 +139,35 @@ pub fn run(ctx: DemoContext, setup: &Demo005Setup, realms: &Demo005RealmIds) -> 
                 if total_ms.saturating_sub(runtime.last_report_ms) > 1000 {
                     runtime.last_report_ms = total_ms;
                     if let Some(report) = get_profiling() {
-                        println!(
-                            "FrameReport: order={:?} cut_edges={} blocked={} self_sampled={}",
-                            report.frame_report.order,
-                            report.frame_report.cut_edges.len(),
-                            report.frame_report.blocked_connectors.len(),
-                            report.frame_report.self_sampled_connectors.len()
-                        );
-                        if !report.frame_report.cut_edges.is_empty() {
-                            println!("Cut edges: {:?}", report.frame_report.cut_edges);
-                        }
-                        println!(
-                            "TargetGraph: nodes={} edges={} added={:?} removed={:?} updated={:?} binds_added={} binds_removed={} binds_updated={} plan_dirty={}",
-                            report.frame_report.target_nodes,
-                            report.frame_report.target_edges,
-                            report.frame_report.target_added,
-                            report.frame_report.target_removed,
-                            report.frame_report.target_updated,
-                            report.frame_report.target_layers_added.len(),
-                            report.frame_report.target_layers_removed.len(),
-                            report.frame_report.target_layers_updated.len(),
-                            report.frame_report.target_plan_dirty
-                        );
-                        if report.frame_report.target_nodes < 6 {
+                        if let Some(frame_report) = report.frame_report.as_ref() {
                             println!(
-                                "Warning: expected at least 6 targets, got {}",
-                                report.frame_report.target_nodes
+                                "FrameReport: order={:?} cut_edges={} blocked={} self_sampled={}",
+                                frame_report.order,
+                                frame_report.cut_edges.len(),
+                                frame_report.blocked_connectors.len(),
+                                frame_report.self_sampled_connectors.len()
                             );
+                            if !frame_report.cut_edges.is_empty() {
+                                println!("Cut edges: {:?}", frame_report.cut_edges);
+                            }
+                            println!(
+                                "TargetGraph: nodes={} edges={} added={:?} removed={:?} updated={:?} binds_added={} binds_removed={} binds_updated={} plan_dirty={}",
+                                frame_report.target_nodes,
+                                frame_report.target_edges,
+                                frame_report.target_added,
+                                frame_report.target_removed,
+                                frame_report.target_updated,
+                                frame_report.target_layers_added.len(),
+                                frame_report.target_layers_removed.len(),
+                                frame_report.target_layers_updated.len(),
+                                frame_report.target_plan_dirty
+                            );
+                            if frame_report.target_nodes < 6 {
+                                println!(
+                                    "Warning: expected at least 6 targets, got {}",
+                                    frame_report.target_nodes
+                                );
+                            }
                         }
                     }
                 }

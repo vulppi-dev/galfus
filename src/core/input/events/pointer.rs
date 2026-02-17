@@ -122,3 +122,28 @@ pub struct PointerEventTrace {
     pub source_realm_id: Option<u32>,
     pub uv: Option<Vec2>,
 }
+
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+pub enum PointerTraceLevel {
+    Off,
+    Errors,
+    Basic,
+    Full,
+}
+
+#[derive(Debug, Clone, Copy, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PointerTraceConfig {
+    pub level: PointerTraceLevel,
+    pub sampling_percent: u8,
+}
+
+impl Default for PointerTraceConfig {
+    fn default() -> Self {
+        Self {
+            level: PointerTraceLevel::Full,
+            sampling_percent: 100,
+        }
+    }
+}

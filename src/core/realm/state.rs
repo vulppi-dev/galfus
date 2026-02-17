@@ -223,4 +223,5 @@ pub struct InputCapture {
 pub struct InputRoutingState {
     pub captures: HashMap<(u32, u64), InputCapture>,
     pub focus_targets: HashMap<u32, crate::core::target::TargetId>,
+    pub trace: crate::core::input::events::PointerTraceConfig,
 }

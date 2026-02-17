@@ -251,6 +251,7 @@ Unified upsert commands are available for resource create/update pairs:
 `camera`, `model`, `light`, `material`, `geometry`, `environment`,
 `audio-listener`, and `audio-source`.
 For these families, use only `*Upsert` command variants.
+Diagnostics and trace/profiling runtime policy is configured by `CmdSystemDiagnosticsSet`.
 
 ### 5.3 Command Execution
 

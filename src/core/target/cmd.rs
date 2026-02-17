@@ -169,6 +169,28 @@ pub fn engine_cmd_target_dispose(
         remove_auto_link_for_layer(&mut engine.universal_state, realm_id, layer_target);
     }
 
+    engine
+        .universal_state
+        .input_routing
+        .focus_targets
+        .retain(|_, focus_target_id| *focus_target_id != target_id);
+    engine
+        .universal_state
+        .ui
+        .external_textures
+        .remove(&target_id.0);
+    engine
+        .universal_state
+        .ui
+        .target_size_requests
+        .remove(&target_id.0);
+    engine.universal_state.target_ui_realm_index.remove(&target_id);
+    engine.universal_state.target_graph_cache.prune_dead_entries(
+        &engine.universal_state.targets.entries,
+        &engine.universal_state.target_layers.entries,
+        &engine.universal_state.realms,
+    );
+
     CmdResultTargetDispose {
         success: true,
         message: "Target disposed".into(),
@@ -253,6 +275,24 @@ pub fn engine_cmd_target_layer_dispose(
     }
 
     remove_auto_link_for_layer(&mut engine.universal_state, args.realm_id, target_id);
+    let has_layer_for_target = engine
+        .universal_state
+        .target_layers
+        .entries
+        .keys()
+        .any(|(_, layer_target)| *layer_target == target_id);
+    if !has_layer_for_target {
+        engine
+            .universal_state
+            .input_routing
+            .focus_targets
+            .retain(|_, focus_target_id| *focus_target_id != target_id);
+    }
+    engine.universal_state.target_graph_cache.prune_dead_entries(
+        &engine.universal_state.targets.entries,
+        &engine.universal_state.target_layers.entries,
+        &engine.universal_state.realms,
+    );
 
     CmdResultTargetLayerDispose {
         success: true,

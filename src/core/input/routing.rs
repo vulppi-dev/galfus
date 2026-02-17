@@ -4,7 +4,10 @@ use std::collections::{HashMap, HashSet};
 use glam::{UVec2, Vec2};
 
 use crate::core::cmd::EngineEvent;
-use crate::core::input::events::{ElementState, PointerEvent, PointerEventTrace, TouchPhase};
+use crate::core::input::events::{
+    ElementState, PointerEvent, PointerEventTrace, PointerTraceConfig, PointerTraceLevel,
+    TouchPhase,
+};
 use crate::core::input::raycast::resolve_realm_plane_hit;
 use crate::core::realm::{ConnectorId, ConnectorState, InputCapture, RealmId, UniversalState};
 use crate::core::state::EngineState;
@@ -15,6 +18,8 @@ const MAX_ROUTE_STEPS: usize = 32;
 
 pub fn route_pointer_events(engine_state: &mut EngineState) {
     let mut events = std::mem::take(&mut engine_state.event_queue);
+    let trace_config = engine_state.universal_state.input_routing.trace;
+    let frame_index = engine_state.frame_index;
 
     let mut realm_by_surface = HashMap::new();
     for (realm_id, entry) in engine_state.universal_state.realms.entries.iter() {
@@ -115,7 +120,7 @@ pub fn route_pointer_events(engine_state: &mut EngineState) {
                     .get(&window_id)
                     .map(|state| state.inner_size)
             });
-        let pointer_id = pointer_id(pointer_event);
+        let pointer_id_value = pointer_id(pointer_event);
         let position = pointer_position(pointer_event).or_else(|| {
             engine_state
                 .window
@@ -130,7 +135,7 @@ pub fn route_pointer_events(engine_state: &mut EngineState) {
         let mut uv = None;
         let mut uv_override = None;
 
-        if let (Some(pointer_id), Some(position)) = (pointer_id, position) {
+        if let (Some(pointer_id), Some(position)) = (pointer_id_value, position) {
             if let Some(capture) =
                 resolve_captured_connector(&engine_state.universal_state, window_id, pointer_id)
             {
@@ -297,7 +302,7 @@ pub fn route_pointer_events(engine_state: &mut EngineState) {
             );
         }
 
-        let trace = PointerEventTrace {
+        let full_trace = PointerEventTrace {
             window_id,
             realm_id: realm_id.0,
             target_id: target_id.map(|id| id.0),
@@ -306,6 +311,13 @@ pub fn route_pointer_events(engine_state: &mut EngineState) {
             uv,
         };
 
+        let trace = select_trace_payload(
+            trace_config,
+            frame_index,
+            pointer_window_id(pointer_event),
+            pointer_id_value,
+            full_trace,
+        );
         apply_trace(pointer_event, trace);
     }
 
@@ -357,7 +369,7 @@ fn pointer_position(event: &PointerEvent) -> Option<Vec2> {
     }
 }
 
-fn apply_trace(event: &mut PointerEvent, trace: PointerEventTrace) {
+fn apply_trace(event: &mut PointerEvent, trace: Option<PointerEventTrace>) {
     match event {
         PointerEvent::OnMove { trace: slot, .. }
         | PointerEvent::OnEnter { trace: slot, .. }
@@ -369,9 +381,52 @@ fn apply_trace(event: &mut PointerEvent, trace: PointerEventTrace) {
         | PointerEvent::OnPanGesture { trace: slot, .. }
         | PointerEvent::OnRotationGesture { trace: slot, .. }
         | PointerEvent::OnDoubleTapGesture { trace: slot, .. } => {
-            *slot = Some(trace);
+            *slot = trace;
         }
     }
+}
+
+fn select_trace_payload(
+    config: PointerTraceConfig,
+    frame_index: u64,
+    window_id: u32,
+    pointer_id: Option<u64>,
+    full: PointerEventTrace,
+) -> Option<PointerEventTrace> {
+    if !trace_is_sampled(config, frame_index, window_id, pointer_id) {
+        return None;
+    }
+    match config.level {
+        PointerTraceLevel::Off | PointerTraceLevel::Errors => None,
+        PointerTraceLevel::Basic => Some(PointerEventTrace {
+            window_id: full.window_id,
+            realm_id: full.realm_id,
+            target_id: full.target_id,
+            connector_id: None,
+            source_realm_id: None,
+            uv: None,
+        }),
+        PointerTraceLevel::Full => Some(full),
+    }
+}
+
+fn trace_is_sampled(
+    config: PointerTraceConfig,
+    frame_index: u64,
+    window_id: u32,
+    pointer_id: Option<u64>,
+) -> bool {
+    let percent = config.sampling_percent.min(100);
+    if percent == 0 {
+        return false;
+    }
+    if percent == 100 {
+        return true;
+    }
+    let seed = frame_index
+        ^ window_id as u64
+        ^ pointer_id.unwrap_or_default().wrapping_mul(11400714819323198485);
+    seed % 100 < percent as u64
 }
 
 fn resolve_captured_connector(

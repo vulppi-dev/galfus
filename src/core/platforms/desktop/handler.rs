@@ -55,7 +55,7 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
 
                 // Only dispatch event if size actually changed
                 if !cache.size_changed(new_size) {
-                    self.profiling.total_events_cached += 1;
+                    self.profiling.input.total_events_cached += 1;
                     return;
                 }
 
@@ -123,7 +123,7 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
 
                 // Only dispatch event if position actually changed
                 if !cache.position_changed(new_pos) {
-                    self.profiling.total_events_cached += 1;
+                    self.profiling.input.total_events_cached += 1;
                     return;
                 }
 
@@ -207,7 +207,7 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
 
                 // Only dispatch event if focus state actually changed
                 if cache.focused == focused {
-                    self.profiling.total_events_cached += 1;
+                    self.profiling.input.total_events_cached += 1;
                     return;
                 }
 
@@ -260,7 +260,7 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
 
                 // Only dispatch event if modifiers actually changed
                 if self.input.cache.keyboard.modifiers == new_modifiers {
-                    self.profiling.total_events_cached += 1;
+                    self.profiling.input.total_events_cached += 1;
                     return;
                 }
 
@@ -548,6 +548,6 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
         }
 
         // Track time spent in custom events to exclude from profiling
-        self.profiling.custom_events_ns += start.elapsed().as_nanos() as u64;
+        self.profiling.input.custom_events_ns += start.elapsed().as_nanos() as u64;
     }
 }

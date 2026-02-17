@@ -118,6 +118,20 @@ impl TargetGraphCache {
         self.last_diff = Some(diff);
         self.last_diff.as_ref()
     }
+
+    pub fn prune_dead_entries(
+        &mut self,
+        targets: &HashMap<TargetId, TargetState>,
+        layers: &HashMap<(u32, TargetId), TargetLayerState>,
+        realms: &RealmTable,
+    ) {
+        self.last_target_hashes
+            .retain(|target_id, _| targets.contains_key(target_id));
+        self.last_layer_hashes
+            .retain(|layer_key, _| layers.contains_key(layer_key));
+        self.last_realm_hashes
+            .retain(|realm_id, _| realms.entries.contains_key(realm_id));
+    }
 }
 
 fn diff_targets_layers_and_realms(

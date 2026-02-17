@@ -86,6 +86,7 @@ pub struct CmdResultSimple {
 #[serde(tag = "type", content = "content", rename_all = "kebab-case")]
 pub enum EngineCmd {
     CmdNotificationSend(sys::CmdNotificationSendArgs),
+    CmdSystemDiagnosticsSet(sys::CmdSystemDiagnosticsSetArgs),
     CmdWindowCreate(win::CmdWindowCreateArgs),
     CmdWindowClose(win::CmdWindowCloseArgs),
     CmdWindowSetTitle(win::CmdWindowSetTitleArgs),
@@ -180,6 +181,7 @@ pub enum EngineEvent {
 #[serde(tag = "type", content = "content", rename_all = "kebab-case")]
 pub enum CommandResponse {
     NotificationSend(sys::CmdResultNotificationSend),
+    SystemDiagnosticsSet(sys::CmdResultSystemDiagnosticsSet),
     WindowCreate(win::CmdResultWindowCreate),
     WindowClose(win::CmdResultWindowClose),
     WindowSetTitle(win::CmdResultWindowSetTitle),
@@ -299,6 +301,9 @@ fn maybe_emit_response_error_event(
         CommandResponse::UploadBufferDiscardAll(result) => {
             failure_case!(result, "upload-buffer-discard-all")
         }
+        CommandResponse::SystemDiagnosticsSet(result) => {
+            failure_case!(result, "system-diagnostics-set")
+        }
         CommandResponse::CameraUpsert(result) => failure_case!(result, "camera-upsert"),
         CommandResponse::WindowCreate(result) => failure_case!(result, "window-create"),
         CommandResponse::CameraDispose(result) => failure_case!(result, "camera-dispose"),
@@ -413,6 +418,13 @@ pub fn engine_process_batch(
                 engine.response_queue.push(CommandResponseEnvelope {
                     id: pack.id,
                     response: CommandResponse::NotificationSend(result),
+                });
+            }
+            EngineCmd::CmdSystemDiagnosticsSet(args) => {
+                let result = sys::engine_cmd_system_diagnostics_set(engine, &args);
+                engine.response_queue.push(CommandResponseEnvelope {
+                    id: pack.id,
+                    response: CommandResponse::SystemDiagnosticsSet(result),
                 });
             }
             EngineCmd::CmdWindowCreate(args) => {

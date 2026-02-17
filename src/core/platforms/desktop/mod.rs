@@ -43,6 +43,14 @@ impl PlatformProxy for DesktopProxy {
 
     fn process_gamepads(&mut self, state: &mut EngineState) -> u64 {
         let start = Instant::now();
+        let has_focused_window = state
+            .window
+            .states
+            .values()
+            .any(|window_state| window_state.window.has_focus());
+        if !has_focused_window {
+            return start.elapsed().as_nanos() as u64;
+        }
         let mut gilrs_events = Vec::new();
         if let Some(gilrs) = &mut state.gamepad.gilrs {
             while let Some(event) = gilrs.next_event() {
@@ -62,7 +70,7 @@ impl PlatformProxy for DesktopProxy {
         self.event_loop
             .pump_app_events(Some(Duration::from_millis(16)), state);
         let total_pump_time = pump_start.elapsed().as_nanos() as u64;
-        total_pump_time.saturating_sub(state.profiling.custom_events_ns)
+        total_pump_time.saturating_sub(state.profiling.input.custom_events_ns)
     }
 
     fn render(&mut self, state: &mut EngineState) -> u64 {

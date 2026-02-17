@@ -31,14 +31,14 @@ fn now_ns() -> u64 {
 }
 
 pub fn render_frames(engine_state: &mut EngineState) {
-    engine_state.profiling.render_total_ns = 0;
-    engine_state.profiling.render_shadow_ns = 0;
-    engine_state.profiling.render_windows_ns = 0;
-    engine_state.profiling.gpu_shadow_ns = 0;
-    engine_state.profiling.gpu_light_cull_ns = 0;
-    engine_state.profiling.gpu_forward_ns = 0;
-    engine_state.profiling.gpu_compose_ns = 0;
-    engine_state.profiling.gpu_total_ns = 0;
+    engine_state.profiling.render.total_ns = 0;
+    engine_state.profiling.render.shadow_ns = 0;
+    engine_state.profiling.render.windows_ns = 0;
+    engine_state.profiling.gpu.shadow_ns = 0;
+    engine_state.profiling.gpu.light_cull_ns = 0;
+    engine_state.profiling.gpu.forward_ns = 0;
+    engine_state.profiling.gpu.compose_ns = 0;
+    engine_state.profiling.gpu.total_ns = 0;
 
     let target_size_requests =
         std::mem::take(&mut engine_state.universal_state.ui.target_size_requests);
@@ -136,11 +136,11 @@ pub fn render_frames(engine_state: &mut EngineState) {
             queue.submit(Some(encoder.finish()));
             #[cfg(not(feature = "wasm"))]
             {
-                engine_state.profiling.render_shadow_ns = shadow_start.elapsed().as_nanos() as u64;
+                engine_state.profiling.render.shadow_ns = shadow_start.elapsed().as_nanos() as u64;
             }
             #[cfg(feature = "wasm")]
             {
-                engine_state.profiling.render_shadow_ns = now_ns().saturating_sub(shadow_start);
+                engine_state.profiling.render.shadow_ns = now_ns().saturating_sub(shadow_start);
             }
         }
     }
@@ -466,14 +466,14 @@ pub fn render_frames(engine_state: &mut EngineState) {
             }
         }
     }
-    engine_state.profiling.render_windows_ns = windows_ns;
+    engine_state.profiling.render.windows_ns = windows_ns;
     #[cfg(not(feature = "wasm"))]
     {
-        engine_state.profiling.render_total_ns = total_start.elapsed().as_nanos() as u64;
+        engine_state.profiling.render.total_ns = total_start.elapsed().as_nanos() as u64;
     }
     #[cfg(feature = "wasm")]
     {
-        engine_state.profiling.render_total_ns = now_ns().saturating_sub(total_start);
+        engine_state.profiling.render.total_ns = now_ns().saturating_sub(total_start);
     }
 }
 

@@ -2,6 +2,10 @@
 
 Removes a logical layer between a realm and a target.
 
+Dispose semantics:
+- Removes the direct auto-link generated for (`realmId`, `targetId`).
+- If no remaining layer references the target, direct input focus bindings to this target are cleared.
+
 ## Arguments
 
 | Field    | Type | Description        |

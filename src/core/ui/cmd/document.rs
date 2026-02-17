@@ -211,8 +211,16 @@ pub fn engine_cmd_ui_apply_ops(
         }
     }
 
+    let alive_nodes: std::collections::HashSet<_> = scratch.nodes.keys().copied().collect();
+
     scratch.version = args.version;
     ui_state.documents.insert(args.document_id, scratch);
+    ui_state.input_buffers.retain(|(document_id, node_id), _| {
+        *document_id != args.document_id || alive_nodes.contains(node_id)
+    });
+    ui_state.animations.retain(|key, _| {
+        key.document_id != args.document_id || alive_nodes.contains(&key.node_id)
+    });
 
     CmdResultUiApplyOps {
         success: true,

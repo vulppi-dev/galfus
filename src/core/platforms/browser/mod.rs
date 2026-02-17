@@ -45,6 +45,16 @@ impl PlatformProxy for BrowserProxy {
 
     fn process_gamepads(&mut self, state: &mut EngineState) -> u64 {
         let start = Self::now_ns();
+        if state.window.states.is_empty() {
+            return Self::now_ns().saturating_sub(start);
+        }
+        let has_focus = web_sys::window()
+            .and_then(|window| window.document())
+            .map(|document| document.has_focus().unwrap_or(true))
+            .unwrap_or(true);
+        if !has_focus {
+            return Self::now_ns().saturating_sub(start);
+        }
         crate::core::gamepad::process_web_gamepads(state);
         Self::now_ns().saturating_sub(start)
     }

@@ -111,6 +111,10 @@ pub fn engine_cmd_realm_dispose(
     if entry.value.kind == RealmKind::TwoD {
         engine.universal_state.ui.remove_realm(realm_id);
     }
+    engine
+        .universal_state
+        .host_realm_index
+        .retain(|_, indexed_realm_id| *indexed_realm_id != realm_id);
 
     let mut removed_connectors = Vec::new();
     engine
@@ -131,6 +135,16 @@ pub fn engine_cmd_realm_dispose(
             .input_routing
             .captures
             .retain(|_, capture| !removed_set.contains(&capture.connector_id));
+        engine
+            .universal_state
+            .surface_cache
+            .last_good
+            .retain(|connector_id, _| !removed_set.contains(connector_id));
+        engine
+            .universal_state
+            .surface_cache
+            .fallback
+            .retain(|connector_id, _| !removed_set.contains(connector_id));
     }
 
     let removed_layers: Vec<_> = engine
@@ -151,6 +165,22 @@ pub fn engine_cmd_realm_dispose(
     }
 
     if let Some(surface_id) = entry.value.output_surface {
+        let keys: Vec<_> = engine
+            .universal_state
+            .auto_links
+            .iter()
+            .filter_map(|((layer_realm, layer_target), link)| {
+                if *layer_realm == realm_id.0 || link.surface_id == surface_id {
+                    Some((*layer_realm, *layer_target))
+                } else {
+                    None
+                }
+            })
+            .collect();
+        for (layer_realm, layer_target) in keys {
+            remove_auto_link_for_layer(&mut engine.universal_state, layer_realm, layer_target);
+        }
+
         engine
             .universal_state
             .surface_cache
@@ -161,7 +191,14 @@ pub fn engine_cmd_realm_dispose(
             .surface_cache
             .fallback
             .retain(|_, source| *source != surface_id);
+        engine.surface_targets.remove(&surface_id);
+        engine.universal_state.surfaces.remove(surface_id);
     }
+    engine.universal_state.target_graph_cache.prune_dead_entries(
+        &engine.universal_state.targets.entries,
+        &engine.universal_state.target_layers.entries,
+        &engine.universal_state.realms,
+    );
 
     CmdResultRealmDispose {
         success: true,
