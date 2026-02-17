@@ -103,11 +103,11 @@ Base de referência (egui):
 - [x] Cobrir comandos principais de viewport: `Title`, `InnerSize`, `OuterPosition`, `Resizable`, `Decorations`, `Fullscreen`, `Minimized`, `Maximized`, `Cursor*`, `IME*`, `Focus`, `Screenshot`.
 
 ## Fase 7 — Tema, Estilo e Tipografia (P1)
-- [ ] Expandir tema para cobrir `Style`/`Visuals` de forma abrangente.
-- [ ] Expor tokens de spacing, rounding, stroke, widget states.
-- [ ] Expor text styles por papel (heading/body/monospace/small/button).
-- [ ] Suportar fontes custom por documento/tema.
-- [ ] Suportar troca de tema sem rebuild completo de documento.
+- [x] Expandir tema para cobrir `Style`/`Visuals` de forma abrangente.
+- [x] Expor tokens de spacing, rounding, stroke, widget states.
+- [x] Expor text styles por papel (heading/body/monospace/small/button).
+- [x] Suportar fontes custom por documento/tema.
+- [x] Suportar troca de tema sem rebuild completo de documento.
 
 ## Fase 8 — Performance e Memória (P0/P1)
 - [ ] Substituir alocação por malha/frame no UI renderer por buffers persistentes (ring/suballoc).

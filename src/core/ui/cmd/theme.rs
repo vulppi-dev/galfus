@@ -14,6 +14,10 @@ pub struct CmdUiThemeDefineArgs {
     pub version: Option<u32>,
     #[serde(default)]
     pub data: HashMap<String, UiThemeValue>,
+    #[serde(default)]
+    pub font_data: HashMap<String, Vec<u8>>,
+    #[serde(default)]
+    pub font_families: HashMap<String, Vec<String>>,
 }
 
 #[derive(Debug, Default, Deserialize, Serialize, Clone)]
@@ -53,6 +57,8 @@ pub fn engine_cmd_ui_theme_define(
         UiThemeState {
             version,
             data: args.data.clone(),
+            font_data: args.font_data.clone(),
+            font_families: args.font_families.clone(),
         },
     );
     CmdResultUiThemeDefine {

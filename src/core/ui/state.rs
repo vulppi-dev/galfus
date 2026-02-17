@@ -148,9 +148,8 @@ impl UiState {
         for document_id in docs_to_remove {
             self.remove_document(document_id);
         }
-        self.focus_document_by_window.retain(|_, document_id| {
-            self.documents.contains_key(document_id)
-        });
+        self.focus_document_by_window
+            .retain(|_, document_id| self.documents.contains_key(document_id));
         self.focus_node_by_window.retain(|window_id, node_id| {
             let Some(document_id) = self.focus_document_by_window.get(window_id) else {
                 return false;
@@ -160,12 +159,13 @@ impl UiState {
                 .map(|document| document.nodes.contains_key(node_id))
                 .unwrap_or(false)
         });
-        self.capture_by_window.retain(|_, (_, document_id, node_id)| {
-            self.documents
-                .get(document_id)
-                .map(|document| document.nodes.contains_key(node_id))
-                .unwrap_or(false)
-        });
+        self.capture_by_window
+            .retain(|_, (_, document_id, node_id)| {
+                self.documents
+                    .get(document_id)
+                    .map(|document| document.nodes.contains_key(node_id))
+                    .unwrap_or(false)
+            });
     }
 }
 
@@ -260,6 +260,8 @@ pub struct UiTessellationCache {
 pub struct UiThemeState {
     pub version: u32,
     pub data: HashMap<String, UiThemeValue>,
+    pub font_data: HashMap<String, Vec<u8>>,
+    pub font_families: HashMap<String, Vec<String>>,
 }
 
 #[derive(Debug, Clone)]
