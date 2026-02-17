@@ -176,8 +176,12 @@ pub fn route_pointer_events(engine_state: &mut EngineState) {
                     layer_realm_id: Some(realm_id.0),
                     connector_id: connector_id.map(|id| id.0),
                     surface_id: None,
-                    camera_id: target_id
-                        .and_then(|id| layer_camera_by_key.get(&(realm_id.0, id)).copied().flatten()),
+                    camera_id: target_id.and_then(|id| {
+                        layer_camera_by_key
+                            .get(&(realm_id.0, id))
+                            .copied()
+                            .flatten()
+                    }),
                     uv: None,
                 });
             } else if let Some(hit) = resolve_hit_connector(
@@ -194,9 +198,12 @@ pub fn route_pointer_events(engine_state: &mut EngineState) {
                     layer_realm_id: Some(realm_id.0),
                     connector_id: Some(hit.connector_id.0),
                     surface_id: None,
-                    camera_id: connector_targets
-                        .get(&hit.connector_id)
-                        .and_then(|id| layer_camera_by_key.get(&(realm_id.0, *id)).copied().flatten()),
+                    camera_id: connector_targets.get(&hit.connector_id).and_then(|id| {
+                        layer_camera_by_key
+                            .get(&(realm_id.0, *id))
+                            .copied()
+                            .flatten()
+                    }),
                     uv: hit.uv,
                 });
             }
@@ -268,7 +275,12 @@ pub fn route_pointer_events(engine_state: &mut EngineState) {
                     engine_state,
                     window_id,
                     realm_id,
-                    target_id.and_then(|id| layer_camera_by_key.get(&(realm_id.0, id)).copied().flatten()),
+                    target_id.and_then(|id| {
+                        layer_camera_by_key
+                            .get(&(realm_id.0, id))
+                            .copied()
+                            .flatten()
+                    }),
                     position,
                     root_surface_size.unwrap_or(glam::UVec2::new(1, 1)),
                 ) {
@@ -547,7 +559,8 @@ fn select_trace_payload(
         return None;
     }
     match config.level {
-        PointerTraceLevel::Off | PointerTraceLevel::Errors => None,
+        PointerTraceLevel::Off => None,
+        PointerTraceLevel::Errors => trace_contains_error(&full).then_some(full),
         PointerTraceLevel::Basic => Some(PointerEventTrace {
             window_id: full.window_id,
             realm_id: full.realm_id,
@@ -559,6 +572,15 @@ fn select_trace_payload(
         }),
         PointerTraceLevel::Full => Some(full),
     }
+}
+
+fn trace_contains_error(trace: &PointerEventTrace) -> bool {
+    trace.hops.iter().any(|hop| {
+        matches!(
+            hop.stage,
+            PointerTraceStage::StopStepBudget | PointerTraceStage::StopCycle
+        )
+    })
 }
 
 fn trace_is_sampled(

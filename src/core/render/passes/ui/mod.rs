@@ -3,11 +3,11 @@ use crate::core::render::RenderState;
 use crate::core::resources::RenderTarget;
 use crate::core::system::{UiViewportClass, UiViewportCommand};
 use crate::core::target::{TargetId, TargetKind, TargetLayerTable, TargetTable};
-use crate::core::window::{CursorIcon, EngineWindowState, UserAttentionType};
 use crate::core::ui::UiState;
 use crate::core::ui::events::UiEvent;
 use crate::core::ui::render::{hash_shapes, render_realm_documents, sync_ui_images};
 use crate::core::ui::renderer::ExternalTextureInput;
+use crate::core::window::{CursorIcon, EngineWindowState, UserAttentionType};
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 use std::time::Instant;
@@ -204,7 +204,7 @@ pub fn pass_ui(
         .or_insert_with(|| crate::core::ui::UiRenderer::new(device, queue, target_format));
     renderer.update_textures(device, queue, &output.textures_delta);
     renderer.update_external_textures(device, &external_inputs);
-    renderer.render(
+    let render_stats = renderer.render(
         device,
         queue,
         encoder,
@@ -214,14 +214,22 @@ pub fn pass_ui(
         output.pixels_per_point,
         &clipped_primitives,
     );
+    if let Some(realm) = ui_state.realm_mut(realm_id) {
+        realm.profile.upload_ms = render_stats.upload_ms;
+        realm.profile.draw_ms = render_stats.draw_ms;
+    }
 
     let debug = ui_state.debug;
     if let Some(realm) = ui_state.realm_mut(realm_id) {
         if debug.enabled && debug.show_profile {
             let painter = realm.context.debug_painter();
             let text = format!(
-                "UI layout: {:.2}ms\nUI tess: {:.2}ms",
-                realm.profile.layout_ms, realm.profile.tessellate_ms
+                "UI input: {:.2}ms\nUI layout: {:.2}ms\nUI tess: {:.2}ms\nUI upload: {:.2}ms\nUI draw: {:.2}ms",
+                realm.profile.input_routing_ms,
+                realm.profile.layout_ms,
+                realm.profile.tessellate_ms,
+                realm.profile.upload_ms,
+                realm.profile.draw_ms
             );
             painter.text(
                 egui::pos2(8.0, 8.0),
@@ -435,10 +443,9 @@ fn map_viewport_command(command: &egui::ViewportCommand) -> Option<UiViewportCom
             width: size.x,
             height: size.y,
         }),
-        egui::ViewportCommand::OuterPosition(pos) => Some(UiViewportCommand::OuterPosition {
-            x: pos.x,
-            y: pos.y,
-        }),
+        egui::ViewportCommand::OuterPosition(pos) => {
+            Some(UiViewportCommand::OuterPosition { x: pos.x, y: pos.y })
+        }
         egui::ViewportCommand::Resizable(value) => {
             Some(UiViewportCommand::Resizable { value: *value })
         }
@@ -601,7 +608,10 @@ fn camera_texture_input(
 ) -> Option<ExternalTextureInput> {
     let camera_id = camera_id?;
     let camera = render_state.scene.cameras.get(&camera_id)?;
-    let camera_target = camera.post_target.as_ref().or(camera.render_target.as_ref())?;
+    let camera_target = camera
+        .post_target
+        .as_ref()
+        .or(camera.render_target.as_ref())?;
     let texture_size = camera_target._texture.size();
     let size = [texture_size.width.max(1), texture_size.height.max(1)];
     Some(ExternalTextureInput {

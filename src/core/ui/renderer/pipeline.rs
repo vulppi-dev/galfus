@@ -1,13 +1,12 @@
 use bytemuck::{Pod, Zeroable};
-use egui::epaint::Mesh;
 use wgpu::util::DeviceExt;
 
 #[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable)]
-struct UiVertex {
-    pos: [f32; 2],
-    uv: [f32; 2],
-    color: [u8; 4],
+pub(crate) struct UiVertex {
+    pub pos: [f32; 2],
+    pub uv: [f32; 2],
+    pub color: [u8; 4],
 }
 
 #[repr(C)]
@@ -111,36 +110,6 @@ impl UiPipeline {
             _padding: [0.0, 0.0],
         };
         queue.write_buffer(&self.uniform_buffer, 0, bytemuck::bytes_of(&uniforms));
-    }
-
-    pub fn build_mesh_buffers(
-        &self,
-        device: &wgpu::Device,
-        mesh: &Mesh,
-    ) -> (wgpu::Buffer, wgpu::Buffer, u32) {
-        let vertices: Vec<UiVertex> = mesh
-            .vertices
-            .iter()
-            .map(|v| UiVertex {
-                pos: [v.pos.x, v.pos.y],
-                uv: [v.uv.x, v.uv.y],
-                color: v.color.to_array(),
-            })
-            .collect();
-        let indices: Vec<u32> = mesh.indices.iter().map(|idx| *idx as u32).collect();
-
-        let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("UI Vertex Buffer"),
-            contents: bytemuck::cast_slice(&vertices),
-            usage: wgpu::BufferUsages::VERTEX,
-        });
-        let index_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("UI Index Buffer"),
-            contents: bytemuck::cast_slice(&indices),
-            usage: wgpu::BufferUsages::INDEX,
-        });
-
-        (vertex_buffer, index_buffer, indices.len() as u32)
     }
 
     pub fn pipeline(&self) -> &wgpu::RenderPipeline {

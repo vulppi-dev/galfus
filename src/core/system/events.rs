@@ -13,19 +13,43 @@ pub enum UiViewportClass {
 #[serde(tag = "type", content = "content", rename_all = "kebab-case")]
 pub enum UiViewportCommand {
     Close,
-    Title { title: String },
-    InnerSize { width: f32, height: f32 },
-    OuterPosition { x: f32, y: f32 },
-    Resizable { value: bool },
-    Decorations { value: bool },
-    Fullscreen { value: bool },
-    Minimized { value: bool },
-    Maximized { value: bool },
+    Title {
+        title: String,
+    },
+    InnerSize {
+        width: f32,
+        height: f32,
+    },
+    OuterPosition {
+        x: f32,
+        y: f32,
+    },
+    Resizable {
+        value: bool,
+    },
+    Decorations {
+        value: bool,
+    },
+    Fullscreen {
+        value: bool,
+    },
+    Minimized {
+        value: bool,
+    },
+    Maximized {
+        value: bool,
+    },
     Focus,
     Screenshot,
-    CursorVisible { value: bool },
-    CursorGrab { mode: String },
-    ImeAllowed { value: bool },
+    CursorVisible {
+        value: bool,
+    },
+    CursorGrab {
+        mode: String,
+    },
+    ImeAllowed {
+        value: bool,
+    },
     ImeRect {
         min_x: f32,
         min_y: f32,

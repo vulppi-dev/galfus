@@ -1,3 +1,5 @@
+#[cfg(test)]
+pub mod bench;
 pub mod cmd;
 pub mod events;
 pub mod image_async;

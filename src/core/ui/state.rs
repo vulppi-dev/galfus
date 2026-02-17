@@ -201,6 +201,9 @@ impl Default for UiState {
 pub struct UiFrameProfile {
     pub layout_ms: f32,
     pub tessellate_ms: f32,
+    pub upload_ms: f32,
+    pub draw_ms: f32,
+    pub input_routing_ms: f32,
 }
 
 #[derive(Debug, Default, Clone, Copy)]

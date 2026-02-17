@@ -7,8 +7,10 @@ use crate::core::state::EngineState;
 use crate::core::ui::state::UiRealmState;
 use crate::core::window::WindowEvent;
 use std::collections::HashMap;
+use std::time::Instant;
 
 pub fn process_ui_input(engine: &mut EngineState) {
+    let input_start = Instant::now();
     let realms_by_window = collect_ui_realms_by_window(engine);
     let mut pointer_updates: Vec<(RealmId, egui::Event)> = Vec::new();
     let mut modifier_updates: Vec<(RealmId, egui::Modifiers)> = Vec::new();
@@ -18,7 +20,9 @@ pub fn process_ui_input(engine: &mut EngineState) {
     for event in engine.event_queue.iter() {
         match event {
             EngineEvent::Pointer(pointer_event) => {
-                if let Some((realm_id, document_id, pos)) = resolve_pointer_realm(engine, pointer_event) {
+                if let Some((realm_id, document_id, pos)) =
+                    resolve_pointer_realm(engine, pointer_event)
+                {
                     let modifiers = current_modifiers(engine, realm_id);
                     if matches!(pointer_event, PointerEvent::OnMove { .. }) {
                         let previous = engine
@@ -60,10 +64,11 @@ pub fn process_ui_input(engine: &mut EngineState) {
                     ) {
                         let window_id = pointer_window_id(pointer_event);
                         focus_updates.push((window_id, realm_id, document_id));
-                        engine.universal_state.ui.capture_by_window.insert(
-                            window_id,
-                            (realm_id, document_id, 0),
-                        );
+                        engine
+                            .universal_state
+                            .ui
+                            .capture_by_window
+                            .insert(window_id, (realm_id, document_id, 0));
                     } else if matches!(
                         pointer_event,
                         PointerEvent::OnButton {
@@ -78,7 +83,11 @@ pub fn process_ui_input(engine: &mut EngineState) {
                         }
                     ) {
                         let window_id = pointer_window_id(pointer_event);
-                        engine.universal_state.ui.capture_by_window.remove(&window_id);
+                        engine
+                            .universal_state
+                            .ui
+                            .capture_by_window
+                            .remove(&window_id);
                     }
                 }
                 if matches!(pointer_event, PointerEvent::OnLeave { .. }) {
@@ -156,6 +165,11 @@ pub fn process_ui_input(engine: &mut EngineState) {
         if let Some(realm) = ensure_realm(&mut engine.universal_state.ui, realm_id) {
             realm.last_pointer_pos = pos;
         }
+    }
+
+    let input_ms = input_start.elapsed().as_secs_f32() * 1000.0;
+    for realm in engine.universal_state.ui.realms.values_mut() {
+        realm.profile.input_routing_ms = input_ms;
     }
 }
 
@@ -349,9 +363,9 @@ fn build_pointer_event(
             delta: egui::vec2(delta.x, delta.y),
             modifiers,
         }),
-        PointerEvent::OnRotationGesture { delta, .. } => Some(egui::Event::Zoom(
-            (1.0 + (*delta * 0.01)).clamp(0.5, 2.0),
-        )),
+        PointerEvent::OnRotationGesture { delta, .. } => {
+            Some(egui::Event::Zoom((1.0 + (*delta * 0.01)).clamp(0.5, 2.0)))
+        }
         _ => None,
     }
 }
@@ -441,7 +455,8 @@ fn build_keyboard_event(
 
 fn collect_ui_realms_by_window(engine: &EngineState) -> HashMap<u32, Vec<RealmId>> {
     let mut map: HashMap<u32, Vec<RealmId>> = HashMap::new();
-    for ((layer_realm_id, layer_target_id), _layer) in &engine.universal_state.target_layers.entries {
+    for ((layer_realm_id, layer_target_id), _layer) in &engine.universal_state.target_layers.entries
+    {
         let Some(target) = engine.universal_state.targets.entries.get(layer_target_id) else {
             continue;
         };

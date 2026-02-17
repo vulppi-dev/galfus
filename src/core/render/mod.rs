@@ -698,51 +698,70 @@ fn apply_ui_platform_actions(engine_state: &mut EngineState, actions: Vec<UiPlat
                 url,
                 new_tab,
             } => {
-                engine_state.event_queue.push(crate::core::cmd::EngineEvent::System(
-                    crate::core::system::SystemEvent::UiOpenUrl {
-                        window_id,
-                        realm_id,
-                        url,
-                        new_tab,
-                    },
-                ));
+                engine_state
+                    .event_queue
+                    .push(crate::core::cmd::EngineEvent::System(
+                        crate::core::system::SystemEvent::UiOpenUrl {
+                            window_id,
+                            realm_id,
+                            url,
+                            new_tab,
+                        },
+                    ));
             }
             UiPlatformAction::ClipboardSetText {
                 window_id,
                 realm_id,
                 text,
             } => {
-                engine_state.event_queue.push(crate::core::cmd::EngineEvent::System(
-                    crate::core::system::SystemEvent::UiClipboardSetText {
-                        window_id,
-                        realm_id,
-                        text,
-                    },
-                ));
+                engine_state
+                    .event_queue
+                    .push(crate::core::cmd::EngineEvent::System(
+                        crate::core::system::SystemEvent::UiClipboardSetText {
+                            window_id,
+                            realm_id,
+                            text,
+                        },
+                    ));
             }
-            UiPlatformAction::ClipboardRequestCopy { window_id, realm_id } => {
-                engine_state.event_queue.push(crate::core::cmd::EngineEvent::System(
-                    crate::core::system::SystemEvent::UiClipboardRequestCopy {
-                        window_id,
-                        realm_id,
-                    },
-                ));
+            UiPlatformAction::ClipboardRequestCopy {
+                window_id,
+                realm_id,
+            } => {
+                engine_state
+                    .event_queue
+                    .push(crate::core::cmd::EngineEvent::System(
+                        crate::core::system::SystemEvent::UiClipboardRequestCopy {
+                            window_id,
+                            realm_id,
+                        },
+                    ));
             }
-            UiPlatformAction::ClipboardRequestCut { window_id, realm_id } => {
-                engine_state.event_queue.push(crate::core::cmd::EngineEvent::System(
-                    crate::core::system::SystemEvent::UiClipboardRequestCut {
-                        window_id,
-                        realm_id,
-                    },
-                ));
+            UiPlatformAction::ClipboardRequestCut {
+                window_id,
+                realm_id,
+            } => {
+                engine_state
+                    .event_queue
+                    .push(crate::core::cmd::EngineEvent::System(
+                        crate::core::system::SystemEvent::UiClipboardRequestCut {
+                            window_id,
+                            realm_id,
+                        },
+                    ));
             }
-            UiPlatformAction::ClipboardRequestPaste { window_id, realm_id } => {
-                engine_state.event_queue.push(crate::core::cmd::EngineEvent::System(
-                    crate::core::system::SystemEvent::UiClipboardRequestPaste {
-                        window_id,
-                        realm_id,
-                    },
-                ));
+            UiPlatformAction::ClipboardRequestPaste {
+                window_id,
+                realm_id,
+            } => {
+                engine_state
+                    .event_queue
+                    .push(crate::core::cmd::EngineEvent::System(
+                        crate::core::system::SystemEvent::UiClipboardRequestPaste {
+                            window_id,
+                            realm_id,
+                        },
+                    ));
             }
             UiPlatformAction::RequestFocus { window_id } => {
                 let _ = crate::core::window::engine_cmd_window_focus(
@@ -762,13 +781,18 @@ fn apply_ui_platform_actions(engine_state: &mut EngineState, actions: Vec<UiPlat
                     },
                 );
             }
-            UiPlatformAction::ScreenshotRequest { window_id, realm_id } => {
-                engine_state.event_queue.push(crate::core::cmd::EngineEvent::System(
-                    crate::core::system::SystemEvent::UiScreenshotRequest {
-                        window_id,
-                        realm_id,
-                    },
-                ));
+            UiPlatformAction::ScreenshotRequest {
+                window_id,
+                realm_id,
+            } => {
+                engine_state
+                    .event_queue
+                    .push(crate::core::cmd::EngineEvent::System(
+                        crate::core::system::SystemEvent::UiScreenshotRequest {
+                            window_id,
+                            realm_id,
+                        },
+                    ));
             }
             UiPlatformAction::SetWindowTitle { window_id, title } => {
                 let _ = crate::core::window::engine_cmd_window_set_title(
@@ -830,16 +854,18 @@ fn apply_ui_platform_actions(engine_state: &mut EngineState, actions: Vec<UiPlat
                 class,
                 title,
             } => {
-                engine_state.event_queue.push(crate::core::cmd::EngineEvent::System(
-                    crate::core::system::SystemEvent::UiViewportSync {
-                        window_id,
-                        realm_id,
-                        viewport_id,
-                        parent_viewport_id,
-                        class,
-                        title,
-                    },
-                ));
+                engine_state
+                    .event_queue
+                    .push(crate::core::cmd::EngineEvent::System(
+                        crate::core::system::SystemEvent::UiViewportSync {
+                            window_id,
+                            realm_id,
+                            viewport_id,
+                            parent_viewport_id,
+                            class,
+                            title,
+                        },
+                    ));
             }
             UiPlatformAction::EmitViewportCommand {
                 window_id,
@@ -847,14 +873,16 @@ fn apply_ui_platform_actions(engine_state: &mut EngineState, actions: Vec<UiPlat
                 viewport_id,
                 command,
             } => {
-                engine_state.event_queue.push(crate::core::cmd::EngineEvent::System(
-                    crate::core::system::SystemEvent::UiViewportCommand {
-                        window_id,
-                        realm_id,
-                        viewport_id,
-                        command,
-                    },
-                ));
+                engine_state
+                    .event_queue
+                    .push(crate::core::cmd::EngineEvent::System(
+                        crate::core::system::SystemEvent::UiViewportCommand {
+                            window_id,
+                            realm_id,
+                            viewport_id,
+                            command,
+                        },
+                    ));
             }
             UiPlatformAction::EmitViewportFallbackEmbedded {
                 window_id,
@@ -862,14 +890,16 @@ fn apply_ui_platform_actions(engine_state: &mut EngineState, actions: Vec<UiPlat
                 viewport_id,
                 parent_viewport_id,
             } => {
-                engine_state.event_queue.push(crate::core::cmd::EngineEvent::System(
-                    crate::core::system::SystemEvent::UiViewportFallbackEmbedded {
-                        window_id,
-                        realm_id,
-                        viewport_id,
-                        parent_viewport_id,
-                    },
-                ));
+                engine_state
+                    .event_queue
+                    .push(crate::core::cmd::EngineEvent::System(
+                        crate::core::system::SystemEvent::UiViewportFallbackEmbedded {
+                            window_id,
+                            realm_id,
+                            viewport_id,
+                            parent_viewport_id,
+                        },
+                    ));
             }
         }
     }

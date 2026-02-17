@@ -8,10 +8,16 @@ use crate::core::ui::types::{
     UiAlign, UiAnimEasing, UiAnimSpec, UiColor, UiImageSource, UiLayout, UiLayoutDirection,
     UiLength, UiNodeId, UiNodeProps, UiPadding, UiPanelKind, UiSize, UiSplitDirection, UiStroke,
 };
+use std::collections::HashSet;
 use std::hash::{Hash, Hasher};
 
 pub fn sync_ui_images(ctx: &egui::Context, ui_state: &mut UiState) {
+    let live_image_ids = collect_live_ui_image_ids(ui_state);
     for (image_id, record) in ui_state.images.iter_mut() {
+        if !live_image_ids.contains(image_id) {
+            record.texture = None;
+            continue;
+        }
         if record.texture.is_some() {
             continue;
         }
@@ -23,6 +29,28 @@ pub fn sync_ui_images(ctx: &egui::Context, ui_state: &mut UiState) {
         );
         record.texture = Some(handle);
     }
+}
+
+fn collect_live_ui_image_ids(ui_state: &UiState) -> HashSet<u32> {
+    let mut ids: HashSet<u32> = HashSet::new();
+    for document in ui_state.documents.values() {
+        for entry in document.nodes.values() {
+            match &entry.node.props {
+                UiNodeProps::Image {
+                    source: UiImageSource::UiImage(image_id),
+                    ..
+                }
+                | UiNodeProps::ImageButton {
+                    source: UiImageSource::UiImage(image_id),
+                    ..
+                } => {
+                    ids.insert(*image_id);
+                }
+                _ => {}
+            }
+        }
+    }
+    ids
 }
 
 pub fn render_realm_documents(

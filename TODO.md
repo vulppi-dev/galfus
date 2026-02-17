@@ -110,14 +110,14 @@ Base de referência (egui):
 - [x] Suportar troca de tema sem rebuild completo de documento.
 
 ## Fase 8 — Performance e Memória (P0/P1)
-- [ ] Substituir alocação por malha/frame no UI renderer por buffers persistentes (ring/suballoc).
-- [ ] Reduzir clones em `CmdUiApplyOps` (journal + rollback local em vez de clone completo do doc).
-- [ ] GC de `input_buffers` e `animations` por subtree removida.
-- [ ] GC de texturas externas órfãs e handles de UI image.
-- [ ] Métricas detalhadas de UI:
-- [ ] layout, tessellation, upload de textura, draw, input routing.
-- [ ] Sampling de trace para produção (`off/errors/basic/full`).
-- [ ] Bench com cenários: 1k/5k nós, drag de splitter, múltiplos viewports embutidos.
+- [x] Substituir alocação por malha/frame no UI renderer por buffers persistentes (ring/suballoc).
+- [x] Reduzir clones em `CmdUiApplyOps` (journal + rollback local em vez de clone completo do doc).
+- [x] GC de `input_buffers` e `animations` por subtree removida.
+- [x] GC de texturas externas órfãs e handles de UI image.
+- [x] Métricas detalhadas de UI:
+- [x] layout, tessellation, upload de textura, draw, input routing.
+- [x] Sampling de trace para produção (`off/errors/basic/full`).
+- [x] Bench com cenários: 1k/5k nós, drag de splitter, múltiplos viewports embutidos.
 
 ## Fase 9 — Comandos e API Host (P0)
 - [ ] Padronizar nomenclatura final (target/layer/realm widgets) sem aliases antigos.
