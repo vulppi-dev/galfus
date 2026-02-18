@@ -740,7 +740,7 @@ fn render_node_inner(
             );
         }
         UiNodeProps::Canvas { ops, size, clip } => {
-            let fallback = resolve_size(size, [320, 180]);
+            let fallback = resolve_size_in_ui(ui, size, [320, 180]);
             let (rect, _) = ui.allocate_exact_size(fallback, egui::Sense::hover());
             crate::core::ui::paint::paint_ops(ui, rect, &ops, clip.unwrap_or(true));
         }
@@ -1399,7 +1399,7 @@ fn render_node_inner(
             }
             UiImageSource::Target(target_id) => {
                 if let Some(target_size) = ui_state.external_textures.get(&target_id).copied() {
-                    let size = resolve_size(size, target_size);
+                    let size = resolve_size_in_ui(ui, size, target_size);
                     ui_state.target_size_requests.insert(
                         target_id,
                         glam::UVec2::new(
@@ -1417,7 +1417,7 @@ fn render_node_inner(
         },
         UiNodeProps::WidgetRealmViewport { target_id, size } => {
             if let Some(target_size) = ui_state.external_textures.get(&target_id).copied() {
-                let size = resolve_size(size, target_size);
+                let size = resolve_size_in_ui(ui, size, target_size);
                 ui_state.target_size_requests.insert(
                     target_id,
                     glam::UVec2::new(
@@ -2111,6 +2111,24 @@ fn resolve_size(size: Option<UiSize>, fallback: [u32; 2]) -> egui::Vec2 {
     let height = match size.height {
         UiLength::Auto => fallback.y,
         UiLength::Fill => fallback.y,
+        UiLength::Px(value) => value,
+    };
+    egui::vec2(width.max(0.0), height.max(0.0))
+}
+
+fn resolve_size_in_ui(ui: &egui::Ui, size: Option<UiSize>, fallback: [u32; 2]) -> egui::Vec2 {
+    let fallback = egui::vec2(fallback[0] as f32, fallback[1] as f32);
+    let available = ui.available_size();
+    let Some(size) = size else { return fallback };
+
+    let width = match size.width {
+        UiLength::Auto => fallback.x,
+        UiLength::Fill => available.x.max(0.0),
+        UiLength::Px(value) => value,
+    };
+    let height = match size.height {
+        UiLength::Auto => fallback.y,
+        UiLength::Fill => available.y.max(0.0),
         UiLength::Px(value) => value,
     };
     egui::vec2(width.max(0.0), height.max(0.0))

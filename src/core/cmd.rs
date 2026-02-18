@@ -429,6 +429,12 @@ fn maybe_emit_response_error_event(
     );
 }
 
+fn mark_windows_dirty(engine: &mut EngineState) {
+    for window_state in engine.window.states.values_mut() {
+        window_state.is_dirty = true;
+    }
+}
+
 pub fn engine_process_batch(
     engine: &mut EngineState,
     platform: &mut dyn PlatformProxy,
@@ -942,6 +948,9 @@ pub fn engine_process_batch(
             }
             EngineCmd::CmdRealmCreate(args) => {
                 let result = realm::engine_cmd_realm_create(engine, &args);
+                if result.success {
+                    mark_windows_dirty(engine);
+                }
                 engine.response_queue.push(CommandResponseEnvelope {
                     id: pack.id,
                     response: CommandResponse::RealmCreate(result),
@@ -949,6 +958,9 @@ pub fn engine_process_batch(
             }
             EngineCmd::CmdRealmDispose(args) => {
                 let result = realm::engine_cmd_realm_dispose(engine, &args);
+                if result.success {
+                    mark_windows_dirty(engine);
+                }
                 engine.response_queue.push(CommandResponseEnvelope {
                     id: pack.id,
                     response: CommandResponse::RealmDispose(result),
@@ -956,6 +968,9 @@ pub fn engine_process_batch(
             }
             EngineCmd::CmdTargetUpsert(args) => {
                 let result = target::engine_cmd_target_upsert(engine, &args);
+                if result.success {
+                    mark_windows_dirty(engine);
+                }
                 engine.response_queue.push(CommandResponseEnvelope {
                     id: pack.id,
                     response: CommandResponse::TargetUpsert(result),
@@ -963,6 +978,9 @@ pub fn engine_process_batch(
             }
             EngineCmd::CmdTargetDispose(args) => {
                 let result = target::engine_cmd_target_dispose(engine, &args);
+                if result.success {
+                    mark_windows_dirty(engine);
+                }
                 engine.response_queue.push(CommandResponseEnvelope {
                     id: pack.id,
                     response: CommandResponse::TargetDispose(result),
@@ -970,6 +988,9 @@ pub fn engine_process_batch(
             }
             EngineCmd::CmdTargetLayerUpsert(args) => {
                 let result = target::engine_cmd_target_layer_upsert(engine, &args);
+                if result.success {
+                    mark_windows_dirty(engine);
+                }
                 engine.response_queue.push(CommandResponseEnvelope {
                     id: pack.id,
                     response: CommandResponse::TargetLayerUpsert(result),
@@ -977,6 +998,9 @@ pub fn engine_process_batch(
             }
             EngineCmd::CmdTargetLayerDispose(args) => {
                 let result = target::engine_cmd_target_layer_dispose(engine, &args);
+                if result.success {
+                    mark_windows_dirty(engine);
+                }
                 engine.response_queue.push(CommandResponseEnvelope {
                     id: pack.id,
                     response: CommandResponse::TargetLayerDispose(result),
@@ -998,6 +1022,9 @@ pub fn engine_process_batch(
             }
             EngineCmd::CmdUiDocumentCreate(args) => {
                 let result = ui::engine_cmd_ui_document_create(engine, &args);
+                if result.success {
+                    mark_windows_dirty(engine);
+                }
                 engine.response_queue.push(CommandResponseEnvelope {
                     id: pack.id,
                     response: CommandResponse::UiDocumentCreate(result),
@@ -1005,6 +1032,9 @@ pub fn engine_process_batch(
             }
             EngineCmd::CmdUiDocumentDispose(args) => {
                 let result = ui::engine_cmd_ui_document_dispose(engine, &args);
+                if result.success {
+                    mark_windows_dirty(engine);
+                }
                 engine.response_queue.push(CommandResponseEnvelope {
                     id: pack.id,
                     response: CommandResponse::UiDocumentDispose(result),
@@ -1012,6 +1042,9 @@ pub fn engine_process_batch(
             }
             EngineCmd::CmdUiDocumentSetRect(args) => {
                 let result = ui::engine_cmd_ui_document_set_rect(engine, &args);
+                if result.success {
+                    mark_windows_dirty(engine);
+                }
                 engine.response_queue.push(CommandResponseEnvelope {
                     id: pack.id,
                     response: CommandResponse::UiDocumentSetRect(result),
@@ -1019,6 +1052,9 @@ pub fn engine_process_batch(
             }
             EngineCmd::CmdUiDocumentSetTheme(args) => {
                 let result = ui::engine_cmd_ui_document_set_theme(engine, &args);
+                if result.success {
+                    mark_windows_dirty(engine);
+                }
                 engine.response_queue.push(CommandResponseEnvelope {
                     id: pack.id,
                     response: CommandResponse::UiDocumentSetTheme(result),
@@ -1040,6 +1076,9 @@ pub fn engine_process_batch(
             }
             EngineCmd::CmdUiApplyOps(args) => {
                 let result = ui::engine_cmd_ui_apply_ops(engine, &args);
+                if result.success {
+                    mark_windows_dirty(engine);
+                }
                 engine.response_queue.push(CommandResponseEnvelope {
                     id: pack.id,
                     response: CommandResponse::UiApplyOps(result),

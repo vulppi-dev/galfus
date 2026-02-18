@@ -9,6 +9,7 @@ use crate::core::ui::types::{
 };
 use crate::demo::io::{receive_responses, send_commands};
 use crate::demo::{DemoContext, run_loop};
+use std::time::Duration;
 
 const TARGET_WINDOW: u64 = 100_000;
 const DOC_ID: u32 = 100_100;
@@ -34,27 +35,27 @@ pub fn run(ctx: DemoContext) -> bool {
 }
 
 fn setup(ctx: DemoContext) -> u32 {
-    let _ = send_commands(vec![EngineCmd::CmdRealmDispose(CmdRealmDisposeArgs {
-        realm_id: ctx.realm_id,
-    })]);
-    let _ = receive_responses();
+    drain_responses();
+    assert_eq!(
+        send_commands(vec![EngineCmd::CmdRealmDispose(CmdRealmDisposeArgs {
+            realm_id: ctx.realm_id,
+        })]),
+        VulframResult::Success
+    );
+    wait_for_realm_dispose();
 
-    let _ = send_commands(vec![EngineCmd::CmdRealmCreate(CmdRealmCreateArgs {
-        kind: RealmKindDto::TwoD,
-        output_surface_id: None,
-        host_window_id: Some(ctx.window_id),
-        importance: None,
-        cache_policy: None,
-        flags: None,
-    })]);
-    let mut realm_ui = 0;
-    for response in receive_responses() {
-        if let CommandResponse::RealmCreate(result) = response.response
-            && result.success
-        {
-            realm_ui = result.realm_id.unwrap_or(0);
-        }
-    }
+    assert_eq!(
+        send_commands(vec![EngineCmd::CmdRealmCreate(CmdRealmCreateArgs {
+            kind: RealmKindDto::TwoD,
+            output_surface_id: None,
+            host_window_id: Some(ctx.window_id),
+            importance: None,
+            cache_policy: None,
+            flags: None,
+        })]),
+        VulframResult::Success
+    );
+    let realm_ui = wait_for_realm_create();
 
     assert_eq!(
         send_commands(vec![EngineCmd::CmdTargetUpsert(CmdTargetUpsertArgs {
@@ -88,7 +89,7 @@ fn setup(ctx: DemoContext) -> u32 {
         )]),
         VulframResult::Success
     );
-    let _ = receive_responses();
+    wait_for_setup_responses(2);
 
     let _ = send_commands(vec![EngineCmd::CmdUiDocumentCreate(
         CmdUiDocumentCreateArgs {
@@ -98,7 +99,7 @@ fn setup(ctx: DemoContext) -> u32 {
             theme_id: None,
         },
     )]);
-    let _ = receive_responses();
+    wait_for_setup_responses(1);
 
     let stroke_main = UiPaintStroke {
         width: 2.0,
@@ -234,12 +235,86 @@ fn setup(ctx: DemoContext) -> u32 {
         },
     ];
 
-    let _ = send_commands(vec![EngineCmd::CmdUiApplyOps(CmdUiApplyOpsArgs {
-        document_id: DOC_ID,
-        version: 1,
-        ops,
-    })]);
-    let _ = receive_responses();
+    assert_eq!(
+        send_commands(vec![EngineCmd::CmdUiApplyOps(CmdUiApplyOpsArgs {
+            document_id: DOC_ID,
+            version: 1,
+            ops,
+        })]),
+        VulframResult::Success
+    );
+    wait_for_setup_responses(1);
 
     realm_ui
+}
+
+fn drain_responses() {
+    for _ in 0..16 {
+        if receive_responses().is_empty() {
+            break;
+        }
+    }
+}
+
+fn wait_for_realm_dispose() {
+    for _ in 0..180 {
+        for response in receive_responses() {
+            if let CommandResponse::RealmDispose(result) = response.response {
+                assert!(result.success, "[demo010:realm-dispose] {}", result.message);
+                return;
+            }
+        }
+        std::thread::sleep(Duration::from_millis(10));
+        assert_eq!(crate::core::vulfram_tick(1, 16), VulframResult::Success);
+    }
+    panic!("[demo010:realm-dispose] missing response");
+}
+
+fn wait_for_realm_create() -> u32 {
+    for _ in 0..180 {
+        for response in receive_responses() {
+            if let CommandResponse::RealmCreate(result) = response.response {
+                assert!(result.success, "[demo010:realm-create] {}", result.message);
+                if let Some(realm_id) = result.realm_id {
+                    return realm_id;
+                }
+            }
+        }
+        std::thread::sleep(Duration::from_millis(10));
+        assert_eq!(crate::core::vulfram_tick(1, 16), VulframResult::Success);
+    }
+    panic!("[demo010:realm-create] missing response");
+}
+
+fn wait_for_setup_responses(expected: usize) {
+    let mut count = 0usize;
+    for _ in 0..180 {
+        for response in receive_responses() {
+            match response.response {
+                CommandResponse::TargetUpsert(result) => {
+                    assert!(result.success, "[demo010:target-upsert] {}", result.message);
+                    count += 1;
+                }
+                CommandResponse::TargetLayerUpsert(result) => {
+                    assert!(result.success, "[demo010:target-layer-upsert] {}", result.message);
+                    count += 1;
+                }
+                CommandResponse::UiDocumentCreate(result) => {
+                    assert!(result.success, "[demo010:ui-document-create] {}", result.message);
+                    count += 1;
+                }
+                CommandResponse::UiApplyOps(result) => {
+                    assert!(result.success, "[demo010:ui-apply-ops] {}", result.message);
+                    count += 1;
+                }
+                _ => {}
+            }
+        }
+        if count >= expected {
+            return;
+        }
+        std::thread::sleep(Duration::from_millis(10));
+        assert_eq!(crate::core::vulfram_tick(1, 16), VulframResult::Success);
+    }
+    panic!("[demo010:setup] missing responses");
 }

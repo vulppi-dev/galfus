@@ -258,6 +258,7 @@ pub fn engine_cmd_window_create_async(
                     last_present_ns: 0,
                     last_frame_delta_ns: 0,
                     fps_instant: 0.0,
+                    redraw_force_until_ms: 0,
                     _web_listeners: listeners,
                 },
             );

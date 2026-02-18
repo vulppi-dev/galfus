@@ -171,6 +171,10 @@ pub fn pass_ui(
             time_seconds,
         );
     });
+    let needs_repaint = context.has_requested_repaint();
+    if let Some(realm) = ui_state.realm_mut(realm_id) {
+        realm.needs_repaint = needs_repaint;
+    }
     let platform_actions = collect_platform_actions(&output, window_id, realm_id);
     let layout_ms = layout_start.elapsed().as_secs_f32() * 1000.0;
 
@@ -533,7 +537,7 @@ fn collect_external_textures(
     realm_id: RealmId,
 ) -> Vec<ExternalTextureInput> {
     ui_state.external_textures.clear();
-    let mut target_surfaces: HashMap<TargetId, SurfaceId> = HashMap::new();
+    let mut target_surfaces: HashMap<TargetId, (SurfaceId, u32)> = HashMap::new();
 
     for ((link_realm, target_id), link) in auto_links.iter() {
         let Some(target) = targets.entries.get(target_id) else {
@@ -545,11 +549,11 @@ fn collect_external_textures(
 
         match target_surfaces.entry(*target_id) {
             std::collections::hash_map::Entry::Vacant(entry) => {
-                entry.insert(link.surface_id);
+                entry.insert((link.surface_id, *link_realm));
             }
             std::collections::hash_map::Entry::Occupied(mut entry) => {
                 if *link_realm == realm_id.0 {
-                    entry.insert(link.surface_id);
+                    entry.insert((link.surface_id, *link_realm));
                 }
             }
         }
@@ -557,21 +561,19 @@ fn collect_external_textures(
 
     let mut inputs = Vec::new();
 
-    for (target_id, surface_id) in target_surfaces {
+    for (target_id, (surface_id, source_realm_id)) in target_surfaces {
         if let Some(target_state) = targets.entries.get(&target_id) {
             if target_state.kind == TargetKind::WidgetRealmViewport {
-                let camera_id = target_layers.entries.iter().find_map(
-                    |((layer_realm, layer_target), layer)| {
-                        if *layer_target == target_id && *layer_realm == realm_id.0 {
-                            return layer.camera_id;
-                        }
-                        None
-                    },
+                let camera_id = resolve_widget_camera_id(
+                    render_state,
+                    target_layers,
+                    target_id,
+                    source_realm_id,
                 );
                 if let Some(input) = camera_texture_input(
                     render_state,
                     target_id.0,
-                    camera_id.or_else(|| render_state.camera_order.first().copied()),
+                    camera_id,
                 ) {
                     ui_state.external_textures.insert(target_id.0, input.size);
                     inputs.push(input);
@@ -609,9 +611,9 @@ fn camera_texture_input(
     let camera_id = camera_id?;
     let camera = render_state.scene.cameras.get(&camera_id)?;
     let camera_target = camera
-        .post_target
+        .render_target
         .as_ref()
-        .or(camera.render_target.as_ref())?;
+        .or(camera.post_target.as_ref())?;
     let texture_size = camera_target._texture.size();
     let size = [texture_size.width.max(1), texture_size.height.max(1)];
     Some(ExternalTextureInput {
@@ -620,4 +622,35 @@ fn camera_texture_input(
         size,
         source_ptr: camera_target as *const RenderTarget as usize,
     })
+}
+
+fn resolve_widget_camera_id(
+    render_state: &RenderState,
+    target_layers: &TargetLayerTable,
+    target_id: TargetId,
+    source_realm_id: u32,
+) -> Option<u32> {
+    if let Some(camera_id) = target_layers.entries.iter().find_map(|((layer_realm, layer_target), layer)| {
+        if *layer_target == target_id && *layer_realm == source_realm_id {
+            return layer.camera_id;
+        }
+        None
+    }) {
+        return Some(camera_id);
+    }
+
+    if let Some(camera_id) = target_layers.entries.iter().find_map(|((_, layer_target), layer)| {
+        if *layer_target == target_id {
+            return layer.camera_id;
+        }
+        None
+    }) {
+        return Some(camera_id);
+    }
+
+    render_state
+        .camera_order
+        .first()
+        .copied()
+        .or_else(|| render_state.scene.cameras.keys().min().copied())
 }

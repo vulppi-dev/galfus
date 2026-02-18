@@ -1,18 +1,21 @@
+use std::time::Duration;
+
 use crate::core::VulframResult;
-use crate::core::cmd::{CommandResponse, EngineCmd};
+use crate::core::cmd::{CommandResponse, EngineCmd, EngineEvent};
 use crate::core::realm::cmd::{CmdRealmCreateArgs, CmdRealmDisposeArgs, RealmKindDto};
 use crate::core::target::cmd::{CmdTargetLayerUpsertArgs, CmdTargetUpsertArgs};
 use crate::core::target::{DimensionValue, TargetKind, TargetLayerLayout};
 use crate::core::ui::cmd::{CmdUiApplyOpsArgs, CmdUiDocumentCreateArgs};
+use crate::core::ui::events::UiEventKind;
 use crate::core::ui::types::{
     UiColor, UiLayout, UiLayoutDirection, UiNode, UiNodeKind, UiNodeProps, UiOp, UiPadding,
     UiPanelKind, UiSize,
 };
 use crate::demo::io::{receive_responses, send_commands};
-use crate::demo::{DemoContext, run_loop};
+use crate::demo::{DemoContext, run_loop_with_events};
 
-const TARGET_WINDOW: u64 = 98_000;
 const DOC_ID: u32 = 98_100;
+const TARGET_WINDOW: u64 = 98_000;
 
 fn node(id: u32, kind: UiNodeKind, props: UiNodeProps) -> UiNode {
     UiNode {
@@ -31,35 +34,141 @@ fn node(id: u32, kind: UiNodeKind, props: UiNodeProps) -> UiNode {
 
 pub fn run(ctx: DemoContext) -> bool {
     let _realm_ui = setup(ctx);
-    run_loop(ctx.window_id, None, |_total_ms, _delta_ms| Vec::new())
+    let mut ui_version: u64 = 2;
+    let mut click_count: u32 = 0;
+
+    run_loop_with_events(
+        ctx.window_id,
+        None,
+        |_total_ms, _delta_ms| Vec::new(),
+        move |event| {
+            let EngineEvent::Ui(ui_event) = event else {
+                return false;
+            };
+            if ui_event.document_id != DOC_ID {
+                return false;
+            }
+
+            let mut ops: Vec<UiOp> = Vec::new();
+            if ui_event.node_id == 4 && ui_event.kind == UiEventKind::Click {
+                click_count = click_count.saturating_add(1);
+                ops.push(UiOp::Set {
+                    node_id: 22,
+                    props: UiNodeProps::Text {
+                        text: format!("Clicks: {click_count}"),
+                        size: None,
+                        color: None,
+                    },
+                });
+            }
+            if ui_event.kind == UiEventKind::Changed {
+                if let Some(value) = ui_event.label.clone() {
+                    match ui_event.node_id {
+                        5 => ops.push(UiOp::Set {
+                            node_id: 5,
+                            props: UiNodeProps::Checkbox {
+                                label: "Checkbox".into(),
+                                checked: value == "true",
+                                enabled: Some(true),
+                            },
+                        }),
+                        8 => ops.push(UiOp::Set {
+                            node_id: 8,
+                            props: UiNodeProps::Toggle {
+                                label: "Toggle".into(),
+                                value: value == "true",
+                                enabled: Some(true),
+                            },
+                        }),
+                        9 => {
+                            if let Ok(parsed) = value.parse::<f64>() {
+                                ops.push(UiOp::Set {
+                                    node_id: 9,
+                                    props: UiNodeProps::Slider {
+                                        value: parsed,
+                                        min: 0.0,
+                                        max: 100.0,
+                                        step: Some(1.0),
+                                        label: Some("Slider".into()),
+                                        enabled: Some(true),
+                                    },
+                                });
+                            }
+                        }
+                        10 => {
+                            if let Ok(parsed) = value.parse::<f64>() {
+                                ops.push(UiOp::Set {
+                                    node_id: 10,
+                                    props: UiNodeProps::DragValue {
+                                        value: parsed,
+                                        speed: Some(0.1),
+                                        min: Some(0.0),
+                                        max: Some(10.0),
+                                        prefix: Some("x=".into()),
+                                        suffix: None,
+                                        enabled: Some(true),
+                                    },
+                                });
+                            }
+                        }
+                        12 => ops.push(UiOp::Set {
+                            node_id: 12,
+                            props: UiNodeProps::TextEdit {
+                                value,
+                                placeholder: Some("Digite...".into()),
+                                multiline: Some(false),
+                                password: Some(false),
+                                char_limit: Some(64),
+                                enabled: Some(true),
+                            },
+                        }),
+                        13 => ops.push(UiOp::Set {
+                            node_id: 13,
+                            props: UiNodeProps::Input {
+                                value,
+                                placeholder: Some("Input".into()),
+                                enabled: Some(true),
+                            },
+                        }),
+                        14 => ops.push(UiOp::Set {
+                            node_id: 14,
+                            props: UiNodeProps::ComboBox {
+                                label: "Combo".into(),
+                                selected: value,
+                                options: vec![
+                                    "Opção A".into(),
+                                    "Opção B".into(),
+                                    "Opção C".into(),
+                                ],
+                                enabled: Some(true),
+                            },
+                        }),
+                        _ => {}
+                    }
+                }
+            }
+
+            if ops.is_empty() {
+                return false;
+            }
+            ui_version = ui_version.saturating_add(1);
+            let cmds = vec![EngineCmd::CmdUiApplyOps(CmdUiApplyOpsArgs {
+                document_id: DOC_ID,
+                version: ui_version,
+                ops,
+            })];
+            let _ = send_commands(cmds);
+            false
+        },
+    )
 }
 
 fn setup(ctx: DemoContext) -> u32 {
-    let _ = send_commands(vec![EngineCmd::CmdRealmDispose(CmdRealmDisposeArgs {
-        realm_id: ctx.realm_id,
-    })]);
-    let _ = receive_responses();
+    drain_responses();
+    let realm_ui = create_ui_realm(ctx.window_id, ctx.realm_id);
 
-    let _ = send_commands(vec![EngineCmd::CmdRealmCreate(CmdRealmCreateArgs {
-        kind: RealmKindDto::TwoD,
-        output_surface_id: None,
-        host_window_id: Some(ctx.window_id),
-        importance: None,
-        cache_policy: None,
-        flags: None,
-    })]);
-
-    let mut realm_ui = 0;
-    for response in receive_responses() {
-        if let CommandResponse::RealmCreate(result) = response.response
-            && result.success
-        {
-            realm_ui = result.realm_id.unwrap_or(0);
-        }
-    }
-
-    assert_eq!(
-        send_commands(vec![EngineCmd::CmdTargetUpsert(CmdTargetUpsertArgs {
+    let mut cmds = vec![
+        EngineCmd::CmdTargetUpsert(CmdTargetUpsertArgs {
             target_id: TARGET_WINDOW,
             kind: TargetKind::Window,
             window_id: Some(ctx.window_id),
@@ -67,40 +176,29 @@ fn setup(ctx: DemoContext) -> u32 {
             format_policy: None,
             alpha_policy: None,
             msaa_samples: None,
-        })]),
-        VulframResult::Success
-    );
-    assert_eq!(
-        send_commands(vec![EngineCmd::CmdTargetLayerUpsert(
-            CmdTargetLayerUpsertArgs {
-                realm_id: realm_ui,
-                target_id: TARGET_WINDOW,
-                layout: TargetLayerLayout {
-                    left: DimensionValue::Px(0.0),
-                    top: DimensionValue::Px(0.0),
-                    width: DimensionValue::Percent(100.0),
-                    height: DimensionValue::Percent(100.0),
-                    z_index: 5,
-                    blend_mode: 0,
-                    clip: None,
-                },
-                camera_id: None,
-                environment_id: None,
-            }
-        )]),
-        VulframResult::Success
-    );
-    let _ = receive_responses();
-
-    let _ = send_commands(vec![EngineCmd::CmdUiDocumentCreate(
-        CmdUiDocumentCreateArgs {
+        }),
+        EngineCmd::CmdTargetLayerUpsert(CmdTargetLayerUpsertArgs {
+            realm_id: realm_ui,
+            target_id: TARGET_WINDOW,
+            layout: TargetLayerLayout {
+                left: DimensionValue::Px(0.0),
+                top: DimensionValue::Px(0.0),
+                width: DimensionValue::Percent(100.0),
+                height: DimensionValue::Percent(100.0),
+                z_index: 1,
+                blend_mode: 0,
+                clip: None,
+            },
+            camera_id: None,
+            environment_id: None,
+        }),
+        EngineCmd::CmdUiDocumentCreate(CmdUiDocumentCreateArgs {
             document_id: DOC_ID,
             realm_id: realm_ui,
             rect: glam::vec4(0.0, 0.0, 0.0, 0.0),
             theme_id: None,
-        },
-    )]);
-    let _ = receive_responses();
+        }),
+    ];
 
     let root = node(
         1,
@@ -117,10 +215,7 @@ fn setup(ctx: DemoContext) -> u32 {
                 right: 16.0,
                 bottom: 12.0,
             }),
-            size: Some(UiSize {
-                width: crate::core::ui::types::UiLength::Fill,
-                height: crate::core::ui::types::UiLength::Fill,
-            }),
+            size: Some(UiSize::default()),
             scroll_x: false,
             scroll_y: true,
         },
@@ -131,6 +226,7 @@ fn setup(ctx: DemoContext) -> u32 {
         node: root,
         index: None,
     }];
+
     let nodes: Vec<UiNode> = vec![
         node(
             2,
@@ -163,6 +259,15 @@ fn setup(ctx: DemoContext) -> u32 {
                 underline: Some(false),
                 strikethrough: Some(false),
                 monospace: Some(false),
+            },
+        ),
+        node(
+            22,
+            UiNodeKind::Text,
+            UiNodeProps::Text {
+                text: "Clicks: 0".into(),
+                size: None,
+                color: None,
             },
         ),
         node(
@@ -331,27 +436,128 @@ fn setup(ctx: DemoContext) -> u32 {
         ),
     ]
     .into_iter()
-    .map(|mut node| {
-        node.tooltip = Some(format!("node {}", node.id));
-        node.context_menu = Some(vec!["Ação A".into(), "Ação B".into()]);
-        node
+    .map(|mut item| {
+        item.tooltip = Some(format!("node {}", item.id));
+        item.context_menu = Some(vec!["Ação A".into(), "Ação B".into()]);
+        item
     })
     .collect();
 
-    for node in nodes {
+    for item in nodes {
         ops.push(UiOp::Add {
             parent: Some(1),
-            node,
+            node: item,
             index: None,
         });
     }
 
-    let _ = send_commands(vec![EngineCmd::CmdUiApplyOps(CmdUiApplyOpsArgs {
+    cmds.push(EngineCmd::CmdUiApplyOps(CmdUiApplyOpsArgs {
         document_id: DOC_ID,
         version: 1,
         ops,
-    })]);
-    let _ = receive_responses();
+    }));
+
+    assert_eq!(send_commands(cmds), VulframResult::Success);
+    wait_for_setup_batch();
 
     realm_ui
+}
+
+fn create_ui_realm(window_id: u32, old_realm_id: u32) -> u32 {
+    let dispose_cmds = vec![EngineCmd::CmdRealmDispose(CmdRealmDisposeArgs {
+        realm_id: old_realm_id,
+    })];
+    assert_eq!(send_commands(dispose_cmds), VulframResult::Success);
+    let mut dispose_ok = false;
+    for _ in 0..120 {
+        for response in receive_responses() {
+            if let CommandResponse::RealmDispose(result) = response.response {
+                assert!(result.success, "[demo008:realm-dispose] {}", result.message);
+                dispose_ok = true;
+                break;
+            }
+        }
+        if dispose_ok {
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(5));
+        assert_eq!(crate::core::vulfram_tick(1, 16), VulframResult::Success);
+    }
+    assert!(dispose_ok, "[demo008:realm-dispose] missing response");
+
+    let cmds = vec![EngineCmd::CmdRealmCreate(CmdRealmCreateArgs {
+        kind: RealmKindDto::TwoD,
+        output_surface_id: None,
+        host_window_id: Some(window_id),
+        importance: None,
+        cache_policy: None,
+        flags: None,
+    })];
+    assert_eq!(send_commands(cmds), VulframResult::Success);
+
+    for _ in 0..180 {
+        for response in receive_responses() {
+            if let CommandResponse::RealmCreate(result) = response.response {
+                assert!(result.success, "[demo008:realm-create] {}", result.message);
+                if let Some(realm_id) = result.realm_id {
+                    return realm_id;
+                }
+            }
+        }
+        std::thread::sleep(Duration::from_millis(10));
+        assert_eq!(crate::core::vulfram_tick(1, 16), VulframResult::Success);
+    }
+
+    panic!("[demo008:realm-create] missing response");
+}
+
+fn drain_responses() {
+    for _ in 0..16 {
+        if receive_responses().is_empty() {
+            break;
+        }
+    }
+}
+
+fn wait_for_setup_batch() {
+    let mut got_target = false;
+    let mut got_layer = false;
+    let mut got_doc = false;
+    let mut got_ops = false;
+
+    for _ in 0..180 {
+        for response in receive_responses() {
+            match response.response {
+                CommandResponse::TargetUpsert(result) => {
+                    got_target = true;
+                    assert!(result.success, "[demo008:target-upsert] {}", result.message);
+                }
+                CommandResponse::TargetLayerUpsert(result) => {
+                    got_layer = true;
+                    assert!(result.success, "[demo008:target-layer-upsert] {}", result.message);
+                }
+                CommandResponse::UiDocumentCreate(result) => {
+                    got_doc = true;
+                    assert!(result.success, "[demo008:ui-document-create] {}", result.message);
+                }
+                CommandResponse::UiApplyOps(result) => {
+                    got_ops = true;
+                    assert!(result.success, "[demo008:ui-apply-ops] {}", result.message);
+                }
+                _ => {}
+            }
+        }
+
+        if got_target && got_layer && got_doc && got_ops {
+            return;
+        }
+
+        std::thread::sleep(Duration::from_millis(10));
+        assert_eq!(crate::core::vulfram_tick(1, 16), VulframResult::Success);
+    }
+
+    panic!(
+        "[demo008:setup] missing responses: target={} layer={} doc={} ops={}",
+        got_target, got_layer, got_doc, got_ops
+    );
 }

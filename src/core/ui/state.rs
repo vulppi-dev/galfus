@@ -21,6 +21,7 @@ pub struct UiRealmState {
     pub last_pointer_pos: Option<egui::Pos2>,
     pub profile: UiFrameProfile,
     pub tessellation_cache: Option<UiTessellationCache>,
+    pub needs_repaint: bool,
 }
 
 #[allow(dead_code)]
@@ -38,6 +39,7 @@ impl UiRealmState {
             last_pointer_pos: None,
             profile: UiFrameProfile::default(),
             tessellation_cache: None,
+            needs_repaint: false,
         }
     }
 

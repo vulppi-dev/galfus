@@ -17,6 +17,8 @@ use crate::core::ui::types::{
     UiLayout, UiLayoutDirection, UiLength, UiNode, UiNodeKind, UiNodeProps, UiOp, UiPadding,
     UiSize, UiThemeValue,
 };
+use crate::core::target::{DimensionValue, TargetLayerLayout};
+use crate::core::target::cmd::CmdTargetLayerUpsertArgs;
 use crate::demo::io::{receive_responses, send_commands};
 use crate::demo::{
     DemoContext, create_ambient_light_cmd, create_point_light_cmd, create_standard_material_cmd,
@@ -25,6 +27,7 @@ use crate::demo::{
 #[derive(Debug, Clone, Copy)]
 pub struct Demo006Ids {
     pub camera_main_id: u32,
+    pub camera_embed_id: u32,
     pub light_ambient_id: u32,
     pub light_key_id: u32,
     pub geometry_cube_id: u32,
@@ -70,6 +73,7 @@ impl Demo006Setup {
     pub fn new() -> Self {
         let ids = Demo006Ids {
             camera_main_id: 1,
+            camera_embed_id: 2,
             light_ambient_id: 11,
             light_key_id: 12,
             geometry_cube_id: 1200,
@@ -159,6 +163,21 @@ impl Demo006Setup {
                     near_far: Vec2::new(0.1, 80.0),
                     layer_mask: 0xFFFFFFFF,
                     order: 0,
+                    view_position: None,
+                    ortho_scale: 10.0,
+                },
+            )),
+            EngineCmd::CmdCameraUpsert(crate::core::cmd::CmdCameraUpsertArgs::Create(
+                CmdCameraCreateArgs {
+                    camera_id: self.ids.camera_embed_id,
+                    label: Some("Demo 006 Embed Camera".into()),
+                    transform: Mat4::look_at_rh(Vec3::new(0.0, 3.2, 8.5), Vec3::ZERO, Vec3::Y)
+                        .inverse(),
+                    kind: CameraKind::Perspective,
+                    flags: 0,
+                    near_far: Vec2::new(0.1, 80.0),
+                    layer_mask: 0xFFFFFFFF,
+                    order: 1,
                     view_position: None,
                     ortho_scale: 10.0,
                 },
@@ -270,7 +289,26 @@ impl Demo006Setup {
         }
 
         assert_eq!(send_commands(setup_cmds), VulframResult::Success);
-        assert_command_batch_success(20, "setup");
+        assert_command_batch_success(21, "setup");
+
+        // Ensure widget realm viewport layer uses the intended camera after camera creation.
+        let widget_camera_layer = EngineCmd::CmdTargetLayerUpsert(CmdTargetLayerUpsertArgs {
+            realm_id: realm_3d_embed,
+            target_id: target_ids.widget_realm_viewport,
+            layout: TargetLayerLayout {
+                left: DimensionValue::Px(20.0),
+                top: DimensionValue::Px(430.0),
+                width: DimensionValue::Px(320.0),
+                height: DimensionValue::Px(240.0),
+                z_index: 2,
+                blend_mode: 0,
+                clip: None,
+            },
+            camera_id: Some(self.ids.camera_embed_id),
+            environment_id: None,
+        });
+        assert_eq!(send_commands(vec![widget_camera_layer]), VulframResult::Success);
+        assert_command_batch_success(1, "widget-camera-layer");
 
         let mut ui_cmds = build_ui_cmds(self.ids, realm_ui, target_ids.widget_realm_viewport);
         ui_cmds.extend(build_ui_panel_3d_cmds(self.ids, realm_ui_panel_3d));
@@ -475,6 +513,9 @@ fn assert_command_batch_success(expected_responses: usize, tag: &str) {
                     assert!(result.success, "[demo006:{tag}] {}", result.message);
                 }
                 CommandResponse::UiApplyOps(result) => {
+                    assert!(result.success, "[demo006:{tag}] {}", result.message);
+                }
+                CommandResponse::TargetLayerUpsert(result) => {
                     assert!(result.success, "[demo006:{tag}] {}", result.message);
                 }
                 _ => {}

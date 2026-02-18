@@ -275,6 +275,7 @@ pub fn engine_cmd_window_create(
             last_present_instant: None,
             last_frame_delta_ns: 0,
             fps_instant: 0.0,
+            redraw_force_until_ms: 0,
         },
     );
     let binding = register_window_realm(engine, win_id, UVec2::new(window_width, window_height));

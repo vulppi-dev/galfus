@@ -62,6 +62,10 @@ impl UiImageAsyncManager {
         self.pending.contains(&image_id)
     }
 
+    pub fn has_pending(&self) -> bool {
+        !self.pending.is_empty()
+    }
+
     pub fn enqueue(&mut self, job: UiImageDecodeJob) -> Result<(), String> {
         if !self.pending.insert(job.image_id) {
             return Err(format!("UiImage {} is already pending", job.image_id));

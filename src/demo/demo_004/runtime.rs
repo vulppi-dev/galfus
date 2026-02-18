@@ -3,9 +3,7 @@ use crate::core::cmd::EngineCmd;
 use crate::core::cmd::EngineEvent;
 use crate::core::input::events::{ElementState, KeyboardEvent};
 use crate::core::resources::{
-    CmdCameraUpdateArgs, CmdEnvironmentUpdateArgs, CmdModelUpdateArgs,
-    CmdTextureCreateFromBufferArgs, EnvironmentConfig, MsaaConfig, SkyboxConfig, SkyboxMode,
-    TextureCreateMode,
+    CmdCameraUpdateArgs, CmdModelUpdateArgs, CmdTextureCreateFromBufferArgs, TextureCreateMode,
 };
 use crate::core::system::events::SystemEvent;
 use crate::demo::demo_004::setup::Demo004Setup;
@@ -20,36 +18,26 @@ pub fn run(ctx: DemoContext, setup: &Demo004Setup) -> bool {
     let window_id = ctx.window_id;
     let ids = setup.ids;
     let cube_models = &setup.cube_models;
-    let post_config = setup.post_config.clone();
 
     let skybox_bytes = load_texture_bytes("assets/skybox.exr");
 
     let audio_state = Rc::new(RefCell::new((false, false, false)));
-    let skybox_state = Rc::new(RefCell::new(SkyboxState::default()));
 
     let audio_state_frame = Rc::clone(&audio_state);
     let audio_state_events = Rc::clone(&audio_state);
-    let skybox_state_frame = Rc::clone(&skybox_state);
-    let skybox_state_events = Rc::clone(&skybox_state);
 
-    {
-        let mut state = skybox_state.borrow_mut();
-        if !state.requested {
-            state.requested = true;
-            upload_texture_bytes(&skybox_bytes, ids.skybox_buffer_id);
-            let _ = send_commands(vec![EngineCmd::CmdTextureCreateFromBuffer(
-                CmdTextureCreateFromBufferArgs {
-                    window_id,
-                    texture_id: ids.skybox_texture_id,
-                    label: Some("Skybox Texture".into()),
-                    buffer_id: ids.skybox_buffer_id,
-                    srgb: Some(false),
-                    mode: TextureCreateMode::Standalone,
-                    atlas_options: None,
-                },
-            )]);
-        }
-    }
+    upload_texture_bytes(&skybox_bytes, ids.skybox_buffer_id);
+    let _ = send_commands(vec![EngineCmd::CmdTextureCreateFromBuffer(
+        CmdTextureCreateFromBufferArgs {
+            window_id,
+            texture_id: ids.skybox_texture_id,
+            label: Some("Skybox Texture".into()),
+            buffer_id: ids.skybox_buffer_id,
+            srgb: Some(false),
+            mode: TextureCreateMode::Standalone,
+            atlas_options: None,
+        },
+    )]);
     run_loop_with_events(
         window_id,
         None,
@@ -95,37 +83,6 @@ pub fn run(ctx: DemoContext, setup: &Demo004Setup) -> bool {
                     outline_color: None,
                 }),
             ));
-            {
-                let mut state = skybox_state_frame.borrow_mut();
-                if state.ready && !state.applied {
-                    state.applied = true;
-                    println!("Skybox applying cubemap environment");
-                    cmds.push(EngineCmd::CmdEnvironmentUpsert(
-                        crate::core::cmd::CmdEnvironmentUpsertArgs::Update(
-                            CmdEnvironmentUpdateArgs {
-                                environment_id: window_id,
-                                config: EnvironmentConfig {
-                                    msaa: MsaaConfig {
-                                        enabled: true,
-                                        sample_count: 4,
-                                    },
-                                    skybox: SkyboxConfig {
-                                        mode: SkyboxMode::Cubemap,
-                                        intensity: 1.0,
-                                        rotation: 0.0,
-                                        ground_color: Vec3::new(0.01, 0.02, 0.03),
-                                        horizon_color: Vec3::new(0.08, 0.12, 0.18),
-                                        sky_color: Vec3::new(0.18, 0.32, 0.55),
-                                        cubemap_texture_id: Some(ids.skybox_texture_id),
-                                    },
-                                    clear_color: Vec3::new(0.0, 0.0, 0.0),
-                                    post: post_config.clone(),
-                                },
-                            },
-                        ),
-                    ));
-                }
-            }
             for (index, (model_id, base_pos, _outline)) in cube_models.iter().enumerate() {
                 let wobble = time_f + index as f32 * 0.6;
                 let position = *base_pos + Vec3::new(0.0, wobble.sin() * 0.25, 0.0);
@@ -203,13 +160,7 @@ pub fn run(ctx: DemoContext, setup: &Demo004Setup) -> bool {
                     success,
                     message,
                 }) if *ready_window == window_id && *ready_texture == ids.skybox_texture_id => {
-                    let mut state = skybox_state_events.borrow_mut();
-                    if *success {
-                        if !state.ready {
-                            state.ready = true;
-                        }
-                    } else {
-                        state.failed = true;
+                    if !success {
                         println!("Skybox texture failed: {}", message);
                     }
                 }
@@ -218,12 +169,4 @@ pub fn run(ctx: DemoContext, setup: &Demo004Setup) -> bool {
             false
         },
     )
-}
-
-#[derive(Debug, Default)]
-struct SkyboxState {
-    requested: bool,
-    ready: bool,
-    applied: bool,
-    failed: bool,
 }
