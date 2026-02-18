@@ -1,13 +1,13 @@
 use glam::UVec2;
 use serde::{Deserialize, Serialize};
 
+use crate::core::realm::RealmKind;
 use crate::core::state::EngineState;
 use crate::core::target::resolve::remove_auto_link_for_layer;
 use crate::core::target::{
     SurfaceAlphaModeDto, SurfaceFormatDto, TargetId, TargetKind, TargetLayerLayout,
     TargetLayerState, TargetState,
 };
-use crate::core::realm::RealmKind;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -243,11 +243,13 @@ pub fn engine_cmd_target_layer_upsert(
         }
     }
     if let Some(camera_id) = args.camera_id {
-        let camera_exists = engine
-            .window
-            .states
-            .values()
-            .any(|window_state| window_state.render_state.scene.cameras.contains_key(&camera_id));
+        let camera_exists = engine.window.states.values().any(|window_state| {
+            window_state
+                .render_state
+                .scene
+                .cameras
+                .contains_key(&camera_id)
+        });
         if !camera_exists {
             return CmdResultTargetLayerUpsert {
                 success: false,

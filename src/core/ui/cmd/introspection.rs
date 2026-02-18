@@ -116,7 +116,12 @@ pub fn engine_cmd_ui_document_get_tree(
     engine: &mut EngineState,
     args: &CmdUiDocumentGetTreeArgs,
 ) -> CmdResultUiDocumentGetTree {
-    let Some(doc) = engine.universal_state.ui.documents.get_mut(&args.document_id) else {
+    let Some(doc) = engine
+        .universal_state
+        .ui
+        .documents
+        .get_mut(&args.document_id)
+    else {
         return CmdResultUiDocumentGetTree {
             success: false,
             message: format!("UiDocument {} not found", args.document_id),
@@ -200,7 +205,10 @@ pub fn engine_cmd_ui_focus_set(
         if node_id != 0 && !document.nodes.contains_key(&node_id) {
             return CmdResultUiFocusSet {
                 success: false,
-                message: format!("UiNode {} not found in document {}", node_id, args.document_id),
+                message: format!(
+                    "UiNode {} not found in document {}",
+                    node_id, args.document_id
+                ),
             };
         }
     }
@@ -211,7 +219,9 @@ pub fn engine_cmd_ui_focus_set(
     ui_state
         .focus_document_by_window
         .insert(args.window_id, args.document_id);
-    ui_state.focus_node_by_window.insert(args.window_id, node_id);
+    ui_state
+        .focus_node_by_window
+        .insert(args.window_id, node_id);
 
     CmdResultUiFocusSet {
         success: true,

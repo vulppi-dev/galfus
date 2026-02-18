@@ -8,6 +8,8 @@ pub mod paint;
 pub mod render;
 pub mod renderer;
 pub mod state;
+#[cfg(test)]
+mod tests_phase10;
 pub mod types;
 
 #[allow(unused_imports)]

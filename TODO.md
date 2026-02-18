@@ -130,28 +130,28 @@ Base de referência (egui):
 - [x] Garantir que erros diagnósticos sejam emitidos também como eventos no pool host.
 
 ## Fase 10 — Testes (P0)
-- [ ] Testes unitários:
-- [ ] ops de documento (add/remove/move/set/clear/versionamento).
-- [ ] ordenação z-index.
-- [ ] animações e fim de animação.
-- [ ] conversão input host -> egui events.
-- [ ] Testes de integração:
-- [ ] widget realm viewport com pointer correto.
-- [ ] realm plane com raycast + repasse de input.
-- [ ] side panels resizable por ponteiro.
-- [ ] multi-camera + multi-layer sem bleed.
-- [ ] Testes visuais golden image para painter paths e widgets principais.
-- [ ] Testes de stress (resize contínuo, criação/descarte em loop, 30min memória estável).
+- [x] Testes unitários:
+- [x] ops de documento (add/remove/move/set/clear/versionamento).
+- [x] ordenação z-index.
+- [x] animações e fim de animação.
+- [x] conversão input host -> egui events.
+- [x] Testes de integração:
+- [x] widget realm viewport com pointer correto.
+- [x] realm plane com raycast + repasse de input.
+- [x] side panels resizable por ponteiro.
+- [x] multi-camera + multi-layer sem bleed.
+- [x] Testes visuais golden image para painter paths e widgets principais.
+- [x] Testes de stress (resize contínuo, criação/descarte em loop, 30min memória estável).
 
 ## Fase 11 — Demos de Validação (P1)
-- [ ] Demo UI Widgets Showcase (todos widgets suportados).
-- [ ] Demo Panels + Splitter + Dock-style básico.
-- [ ] Demo Painter/Path.
-- [ ] Demo Multi-Viewport (ou fallback documentado).
-- [ ] Demo integração completa:
-- [ ] UI principal com `WidgetRealmViewport`.
-- [ ] Realm3D com `RealmPlane` interativo.
-- [ ] Eventos ponta-a-ponta e trace habilitável.
+- [x] Demo UI Widgets Showcase (todos widgets suportados).
+- [x] Demo Panels + Splitter + Dock-style básico.
+- [x] Demo Painter/Path.
+- [x] Demo Multi-Viewport (ou fallback documentado).
+- [x] Demo integração completa:
+- [x] UI principal com `WidgetRealmViewport`.
+- [x] Realm3D com `RealmPlane` interativo.
+- [x] Eventos ponta-a-ponta e trace habilitável.
 
 ## Fase 12 — Documentação Final (P0)
 - [ ] Atualizar `docs/API.md` com todos comandos/propriedades novos.
