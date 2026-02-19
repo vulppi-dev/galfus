@@ -74,7 +74,7 @@ impl TextureAsyncManager {
         self.pending.contains(&texture_id)
     }
 
-    pub fn pending_window_ids(&self) -> HashSet<u32> {
+    pub fn pending_texture_window_ids(&self) -> HashSet<u32> {
         self.pending_window.values().copied().collect()
     }
 

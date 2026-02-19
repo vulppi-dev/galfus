@@ -261,7 +261,7 @@ pub fn engine_cmd_window_create_async(
                     last_frame_delta_ns: 0,
                     fps_instant: 0.0,
                     redraw_force_until_ms: 0,
-                    _web_listeners: listeners,
+                    web_listener_registrations: listeners,
                 },
             );
             let binding = register_window_realm(

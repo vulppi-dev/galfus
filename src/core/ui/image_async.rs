@@ -66,7 +66,7 @@ impl UiImageAsyncManager {
         !self.pending.is_empty()
     }
 
-    pub fn pending_ids(&self) -> HashSet<UiImageId> {
+    pub fn pending_image_ids(&self) -> HashSet<UiImageId> {
         self.pending.iter().copied().collect()
     }
 
@@ -80,9 +80,12 @@ impl UiImageAsyncManager {
         Ok(())
     }
 
-    pub fn cancel(&mut self, image_id: UiImageId) {
-        self.pending.remove(&image_id);
-        self.canceled.insert(image_id);
+    pub fn cancel(&mut self, image_id: UiImageId) -> bool {
+        let removed = self.pending.remove(&image_id);
+        if removed {
+            self.canceled.insert(image_id);
+        }
+        removed
     }
 
     pub fn was_canceled(&mut self, image_id: UiImageId) -> bool {

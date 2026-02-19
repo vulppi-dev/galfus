@@ -53,7 +53,7 @@ pub struct WindowState {
     pub(crate) fps_instant: f64,
     pub(crate) redraw_force_until_ms: u64,
     #[cfg(feature = "wasm")]
-    pub _web_listeners: Vec<WebListenerRegistration>,
+    pub web_listener_registrations: Vec<WebListenerRegistration>,
 }
 
 /// Aggregates window state, IDs and caches
@@ -94,7 +94,7 @@ impl WindowManager {
         if let Some(mut window_state) = self.states.remove(&window_id) {
             self.window_id_map.remove(&window_state.window.id());
             self.cursor_positions.remove(&window_id);
-            for registration in window_state._web_listeners.drain(..) {
+            for registration in window_state.web_listener_registrations.drain(..) {
                 let _ = registration.target.remove_event_listener_with_callback(
                     registration.event_type,
                     registration.callback.as_ref().unchecked_ref(),

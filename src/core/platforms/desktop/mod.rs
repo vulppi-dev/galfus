@@ -82,7 +82,7 @@ impl PlatformProxy for DesktopProxy {
         let start = Instant::now();
         let now_ms = state.time;
         let input_windows = active_windows_from_events(&state.event_queue);
-        let pending_texture_windows = state.texture_async.pending_window_ids();
+        let pending_texture_windows = state.texture_async.pending_texture_window_ids();
         let pending_ui_image_windows = windows_with_pending_ui_images(state);
         let has_ui_animations = !state.universal_state.ui.animations.is_empty();
         let has_ui_repaint_request = state
@@ -155,7 +155,7 @@ fn active_windows_from_events(events: &[EngineEvent]) -> std::collections::HashS
 }
 
 fn windows_with_pending_ui_images(state: &EngineState) -> std::collections::HashSet<u32> {
-    let pending_image_ids = state.universal_state.ui.image_async.pending_ids();
+    let pending_image_ids = state.universal_state.ui.image_async.pending_image_ids();
     if pending_image_ids.is_empty() {
         return std::collections::HashSet::new();
     }
