@@ -2,6 +2,7 @@
 name = "vulfram-core"
 version = "0.16.0-alpha"
 edition = "2024"
+license = "MIT"
 default-run = "vulfram-core"
 
 [dependencies]
