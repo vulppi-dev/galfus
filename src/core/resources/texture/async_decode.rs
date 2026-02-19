@@ -72,6 +72,10 @@ impl TextureAsyncManager {
         self.pending.contains(&texture_id)
     }
 
+    pub fn has_pending(&self) -> bool {
+        !self.pending.is_empty()
+    }
+
     pub fn enqueue(&mut self, job: TextureDecodeJob) -> Result<(), String> {
         if !self.pending.insert(job.texture_id) {
             return Err(format!("Texture {} is already pending", job.texture_id));

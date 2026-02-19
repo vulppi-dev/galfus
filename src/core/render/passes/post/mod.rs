@@ -135,6 +135,8 @@ pub fn pass_post(
     encoder: &mut wgpu::CommandEncoder,
     frame_index: u64,
 ) {
+    let default_post = render_state.environment.post.clone();
+    let camera_posts = render_state.camera_environment_overrides.clone();
     let library = match render_state.library.as_ref() {
         Some(l) => l,
         None => return,
@@ -142,14 +144,17 @@ pub fn pass_post(
 
     let cache = &mut render_state.cache;
 
-    let post_config = render_state.environment.post.clone();
     let uniform_buffer = match render_state.post_uniform_buffer.as_ref() {
         Some(buffer) => buffer,
         None => return,
     };
-    update_post_uniform_buffer(&post_config, uniform_buffer, queue, frame_index);
 
     for camera_id in render_state.camera_order.iter().copied() {
+        let post_config = camera_posts
+            .get(&camera_id)
+            .map(|env| env.post.clone())
+            .unwrap_or_else(|| default_post.clone());
+        update_post_uniform_buffer(&post_config, uniform_buffer, queue, frame_index);
         let Some(record) = render_state.scene.cameras.get(&camera_id) else {
             continue;
         };

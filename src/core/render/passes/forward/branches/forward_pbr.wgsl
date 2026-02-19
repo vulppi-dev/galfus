@@ -216,17 +216,16 @@ fn sample_material(tex_slot: u32, sampler_index: u32, uv: vec2<f32>) -> vec4<f32
     }
 
     let source = get_slot(material.tex_sources, tex_slot);
+    let scale_bias = material.atlas_scale_bias[tex_slot];
+    let uv_transformed = uv * scale_bias.xy + scale_bias.zw;
     if (source == TEX_SOURCE_ATLAS) {
-        let scale_bias = material.atlas_scale_bias[tex_slot];
-        let atlas_uv = uv * scale_bias.xy + scale_bias.zw;
         let layer = get_slot(material.atlas_layers, tex_slot);
-        return sample_atlas(sampler_index, atlas_uv, layer);
+        return sample_atlas(sampler_index, uv_transformed, layer);
     }
     if (source == TEX_SOURCE_INVALID) {
         return vec4<f32>(1.0);
     }
-
-    return sample_color(tex_slot, sampler_index, uv);
+    return sample_color(tex_slot, sampler_index, uv_transformed);
 }
 
 // -----------------------------------------------------------------------------

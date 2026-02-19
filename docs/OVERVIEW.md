@@ -88,7 +88,7 @@ The core is implemented in Rust and uses:
 - `web-sys` for browser window/input plumbing (WASM)
 - `image` for texture decoding
 - `glam` + `bytemuck` for math and safe binary packing
-- `serde`, `serde_repr`, `rmp-serde` for MessagePack serialization
+- `serde`, `rmp-serde` for MessagePack serialization
 
 The core is responsible for:
 
@@ -193,6 +193,11 @@ The host generates and owns:
 - `MaterialId` — material asset
 - `TextureId` — texture asset
 - `BufferId` — upload blob identifier
+- `UiThemeId` — UI theme resource
+- `UiFontId` — UI font resource
+- `UiImageId` — UI image resource
+- `UiDocumentId` — UI document ID
+- `UiNodeId` — UI node ID
 
 ---
 
@@ -210,28 +215,48 @@ The host does not build graphs. Instead it provides logical maps:
 
 - `RealmMap` (realmId -> kind)
 - `TargetMap` (targetId -> kind)
-- `TargetBindMap` (realmId -> targetId + layout)
+- `TargetLayerMap` (realmId -> targetId + layout)
 
 The core resolves `TargetGraph` + `RealmGraph` automatically, creating
 `Surface`, `Present`, and `Connector` entries as needed. Parent/child
-relationships between targets are inferred by the core; the bind layout
-defines the composition rectangle, zIndex, clip, and input flags.
+relationships are handled by the core. The layer layout defines the
+composition rectangle, zIndex, and clip.
 - The compositor resolves format/size conversions and MSAA resolves automatically.
 Note: `Surface`, `Present`, and `Connector` are internal and not exposed as host commands.
 
 Example flow (host-side):
 
 ```text
-CmdTargetUpsert(targetId=9000, kind=window, ownerWindowId=1)
-CmdTargetUpsert(targetId=9002, kind=viewport-embed, ownerWindowId=1, sizeOverride=640x360)
-CmdTargetBindUpsert(realmId=10, targetId=9000, layout=...)
-CmdTargetBindUpsert(realmId=11, targetId=9002, layout=rect/zIndex/clip/inputFlags)
+CmdTargetUpsert(targetId=9000, kind=window, windowId=1)
+CmdTargetUpsert(targetId=9002, kind=window, windowId=1)
+CmdTargetUpsert(targetId=9003, kind=texture, size=640x360)
+CmdTargetLayerUpsert(realmId=10, targetId=9000, layout=...)
+CmdTargetLayerUpsert(realmId=11, targetId=9002, layout=left/top/width/height/zIndex/clip)
 ```
+
+Rules:
+- `windowId` is mandatory for `window`, `widget-realm-viewport`, and `realm-plane`.
+- `size` is accepted only for `texture`.
+- For `window`/`widget-realm-viewport` connector layers and `realm-plane`, output surface size follows
+  `TargetLayerLayout.width` and `TargetLayerLayout.height`.
+- `TargetLayerLayout.left/top/width/height` accept `DimensionValue` units:
+  `px`, `percent`, `character` (`ch`), and `display` (`dp`, 4px grid).
 
 Input routing uses the same connector graph to emit `eventTrace` metadata
 (`windowId`, `realmId`, `targetId`, `connectorId`, `sourceRealmId`, and UV coordinates when available).
-When `inputFlags` includes `RAYCAST` (`1`), routing treats the connector as a plane hit-test,
-using window-space UVs to drive raycast-like interactions in 3D.
+For `window`/`widget-realm-viewport` connector layers sourced from `Realm3D`, routing treats the
+connector as a plane hit-test, using window-space UVs to drive raycast-like
+interactions in 3D.
+
+Additionally, `RealmPlane` behavior is available for 3D models that use textures bound to
+`texture` targets produced by a `TwoD` realm: routing raycasts the model plane/hitbox and
+forwards pointer input to the bound UI realm.
+
+Pointer routing now propagates through multiple realm/target hops per event (including
+`Window connector -> 3D -> RealmPlane -> UI`). Cycles are handled with bounded step propagation
+to keep the frame loop non-blocking.
+Command failures (`success=false`) and diagnostic errors are forwarded to host through
+`SystemEvent::Error`.
 
 ---
 
@@ -271,7 +296,7 @@ Heavy data is sent via `vulfram_upload_buffer` using `BufferId`s.
 Typical flow:
 
 1. Host calls `vulfram_upload_buffer(buffer_id, type, bytes, len)` one or more times.
-2. Host sends commands (in `vulfram_send_queue`) like `CmdGeometryCreate` or
+2. Host sends commands (in `vulfram_send_queue`) like `CmdGeometryUpsert` or
    `CmdTextureCreateFromBuffer` that **reference those `BufferId`s**.
 3. The core:
    - looks up each `BufferId` in its internal upload table

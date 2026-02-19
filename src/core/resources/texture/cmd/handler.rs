@@ -3,10 +3,12 @@ use super::utils::*;
 use crate::core::buffers::state::UploadType;
 use crate::core::image::{ImageBuffer, ImagePixels};
 use crate::core::resources::texture::{
-    ForwardAtlasDesc, ForwardAtlasEntry, TextureAsyncEvent, TextureDecodeJob, TextureRecord,
+    ForwardAtlasDesc, ForwardAtlasEntry, TargetTextureBinding, TextureAsyncEvent, TextureDecodeJob,
+    TextureRecord,
 };
 use crate::core::state::EngineState;
 use crate::core::system::SystemEvent;
+use crate::core::target::{TargetId, TargetKind};
 use glam::{UVec2, Vec4};
 
 pub fn engine_cmd_texture_create_from_buffer(
@@ -33,6 +35,10 @@ pub fn engine_cmd_texture_create_from_buffer(
             .render_state
             .scene
             .forward_atlas_entries
+            .contains_key(&args.texture_id)
+        || window_state
+            .render_state
+            .target_texture_binds
             .contains_key(&args.texture_id)
         || engine.texture_async.is_pending(args.texture_id)
     {
@@ -118,6 +124,10 @@ fn create_texture_from_image(
             .render_state
             .scene
             .forward_atlas_entries
+            .contains_key(&args.texture_id)
+        || window_state
+            .render_state
+            .target_texture_binds
             .contains_key(&args.texture_id)
     {
         return CmdResultTextureCreateFromBuffer {
@@ -505,6 +515,10 @@ pub fn engine_cmd_texture_create_solid_color(
             .scene
             .forward_atlas_entries
             .contains_key(&args.texture_id)
+        || window_state
+            .render_state
+            .target_texture_binds
+            .contains_key(&args.texture_id)
     {
         return CmdResultTextureCreateSolidColor {
             success: false,
@@ -737,6 +751,8 @@ pub fn engine_cmd_texture_dispose(
         }
     };
 
+    let mut removed = false;
+
     if window_state
         .render_state
         .scene
@@ -744,12 +760,7 @@ pub fn engine_cmd_texture_dispose(
         .remove(&args.texture_id)
         .is_some()
     {
-        mark_materials_dirty(&mut window_state.render_state.scene, args.texture_id);
-        window_state.is_dirty = true;
-        return CmdResultTextureDispose {
-            success: true,
-            message: "Texture disposed successfully".into(),
-        };
+        removed = true;
     }
 
     if let Some(entry) = window_state
@@ -761,6 +772,23 @@ pub fn engine_cmd_texture_dispose(
         if let Some(atlas) = window_state.render_state.forward_atlas.as_mut() {
             let _ = atlas.free(entry.handle);
         }
+        removed = true;
+    }
+
+    if window_state
+        .render_state
+        .target_texture_binds
+        .remove(&args.texture_id)
+        .is_some()
+    {
+        window_state
+            .render_state
+            .external_textures
+            .remove(&args.texture_id);
+        removed = true;
+    }
+
+    if removed {
         mark_materials_dirty(&mut window_state.render_state.scene, args.texture_id);
         window_state.is_dirty = true;
         return CmdResultTextureDispose {
@@ -772,5 +800,72 @@ pub fn engine_cmd_texture_dispose(
     CmdResultTextureDispose {
         success: false,
         message: format!("Texture with id {} not found", args.texture_id),
+    }
+}
+
+pub fn engine_cmd_texture_bind_target(
+    engine: &mut EngineState,
+    args: &CmdTextureBindTargetArgs,
+) -> CmdResultTextureBindTarget {
+    let window_state = match engine.window.states.get_mut(&args.window_id) {
+        Some(ws) => ws,
+        None => {
+            return CmdResultTextureBindTarget {
+                success: false,
+                message: format!("Window {} not found", args.window_id),
+            };
+        }
+    };
+
+    if window_state
+        .render_state
+        .scene
+        .textures
+        .contains_key(&args.texture_id)
+        || window_state
+            .render_state
+            .scene
+            .forward_atlas_entries
+            .contains_key(&args.texture_id)
+        || engine.texture_async.is_pending(args.texture_id)
+    {
+        return CmdResultTextureBindTarget {
+            success: false,
+            message: format!("Texture with id {} already exists", args.texture_id),
+        };
+    }
+
+    let target_id = TargetId(args.target_id);
+    let Some(target) = engine.universal_state.targets.entries.get(&target_id) else {
+        return CmdResultTextureBindTarget {
+            success: false,
+            message: format!("Target {} not found", args.target_id),
+        };
+    };
+
+    if target.kind != TargetKind::Texture {
+        return CmdResultTextureBindTarget {
+            success: false,
+            message: "Target is not a texture".into(),
+        };
+    }
+
+    window_state.render_state.target_texture_binds.insert(
+        args.texture_id,
+        TargetTextureBinding {
+            target_id,
+            label: args.label.clone(),
+        },
+    );
+    window_state
+        .render_state
+        .external_textures
+        .remove(&args.texture_id);
+    mark_materials_dirty(&mut window_state.render_state.scene, args.texture_id);
+    window_state.is_dirty = true;
+
+    CmdResultTextureBindTarget {
+        success: true,
+        message: "Texture bound to target".into(),
     }
 }

@@ -38,6 +38,9 @@ impl RenderState {
                         desired_scale_bias = entry.uv_scale_bias;
                     } else {
                         desired_source = TEX_SOURCE_STANDALONE;
+                        if self.external_textures.contains_key(&tex_id) {
+                            desired_scale_bias = glam::Vec4::new(-1.0, -1.0, 1.0, 1.0);
+                        }
                     }
                 }
 
@@ -127,6 +130,7 @@ impl RenderState {
                             .textures
                             .get(&tex_id)
                             .map(|t| &t.view)
+                            .or_else(|| self.external_textures.get(&tex_id))
                             .unwrap_or(&library.fallback_view)
                     } else {
                         &library.fallback_view
@@ -181,6 +185,9 @@ impl RenderState {
                         desired_scale_bias = entry.uv_scale_bias;
                     } else {
                         desired_source = TEX_SOURCE_STANDALONE;
+                        if self.external_textures.contains_key(&tex_id) {
+                            desired_scale_bias = glam::Vec4::new(-1.0, -1.0, 1.0, 1.0);
+                        }
                     }
                 }
 
@@ -270,6 +277,7 @@ impl RenderState {
                             .textures
                             .get(&tex_id)
                             .map(|t| &t.view)
+                            .or_else(|| self.external_textures.get(&tex_id))
                             .unwrap_or(&library.fallback_view)
                     } else {
                         &library.fallback_view

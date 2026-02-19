@@ -8,10 +8,11 @@ pub use cmd::*;
 #[allow(unused_imports)]
 pub use graph::{RealmGraphEdge, RealmGraphPlan, RealmGraphPlanner};
 #[allow(unused_imports)]
-pub use report::{FrameCutEdge, FrameReport, SurfaceCacheEntry};
+pub use report::{FrameCutEdge, FrameReport, SurfaceCacheEntry, TargetAutoLinkFailure};
 #[allow(unused_imports)]
 pub use state::{
     AudioState, AutoLink, ConnectorId, ConnectorState, ConnectorTable, InputCapture,
-    InputRoutingState, PresentId, PresentState, PresentTable, RealmId, RealmState, RealmTable,
-    SurfaceCache, SurfaceId, SurfaceKind, SurfaceState, SurfaceTable, TableEntry, UniversalState,
+    InputRoutingState, PresentId, PresentState, PresentTable, RealmId, RealmKind, RealmState,
+    RealmTable, SurfaceCache, SurfaceId, SurfaceKind, SurfaceState, SurfaceTable, TableEntry,
+    UniversalState,
 };

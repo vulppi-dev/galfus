@@ -157,7 +157,14 @@ pub struct RenderGraphState {
 
 impl RenderGraphState {
     pub fn new() -> Self {
-        let fallback_desc = fallback_graph();
+        Self::new_with_fallback(fallback_graph())
+    }
+
+    pub fn new_ui() -> Self {
+        Self::new_with_fallback(ui_fallback_graph())
+    }
+
+    pub fn new_with_fallback(fallback_desc: RenderGraphDesc) -> Self {
         let fallback = validate_graph(&fallback_desc).expect("Fallback graph must be valid");
         Self {
             active: fallback.clone(),
@@ -301,7 +308,29 @@ fn is_known_pass(pass_id: &str) -> bool {
             | "bloom"
             | "post"
             | "compose"
+            | "ui"
     )
+}
+
+pub fn ui_fallback_graph() -> RenderGraphDesc {
+    RenderGraphDesc {
+        graph_id: LogicalId::Str("ui_fallback".into()),
+        nodes: vec![RenderGraphNode {
+            node_id: LogicalId::Str("ui_pass".into()),
+            pass_id: "ui".into(),
+            inputs: Vec::new(),
+            outputs: vec![LogicalId::Str("swapchain".into())],
+            params: HashMap::new(),
+        }],
+        edges: Vec::new(),
+        resources: vec![RenderGraphResource {
+            res_id: LogicalId::Str("swapchain".into()),
+            kind: RenderGraphResourceKind::Attachment,
+            lifetime: RenderGraphLifetime::Frame,
+            alias_group: None,
+        }],
+        fallback: true,
+    }
 }
 
 pub fn fallback_graph() -> RenderGraphDesc {

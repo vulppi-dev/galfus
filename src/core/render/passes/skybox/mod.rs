@@ -21,17 +21,19 @@ pub fn pass_skybox(
     encoder: &mut wgpu::CommandEncoder,
     frame_index: u64,
 ) -> bool {
+    let default_skybox = render_state.environment.skybox.clone();
+    let camera_skyboxes = render_state.camera_environment_overrides.clone();
     let library = match render_state.library.as_ref() {
         Some(l) => l,
         None => return false,
     };
 
-    let skybox = &render_state.environment.skybox;
-    if matches!(skybox.mode, SkyboxMode::None) {
-        return false;
-    }
-
-    let sample_count = render_state.msaa_sample_count();
+    let multi_camera_mode = render_state.camera_order.len() > 1;
+    let sample_count = if multi_camera_mode {
+        1
+    } else {
+        render_state.msaa_sample_count_for_format(device, wgpu::TextureFormat::Rgba16Float)
+    };
 
     if let Some((_, camera)) = render_state.scene.cameras.iter().next() {
         if let Some(target) = &camera.render_target {
@@ -66,6 +68,13 @@ pub fn pass_skybox(
 
     let mut drew_any = false;
     for camera_id in render_state.camera_order.iter().copied() {
+        let skybox = camera_skyboxes
+            .get(&camera_id)
+            .map(|env| env.skybox.clone())
+            .unwrap_or_else(|| default_skybox.clone());
+        if matches!(skybox.mode, SkyboxMode::None) {
+            continue;
+        }
         let Some(camera_record) = render_state.scene.cameras.get(&camera_id) else {
             continue;
         };

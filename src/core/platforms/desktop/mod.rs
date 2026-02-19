@@ -1,8 +1,11 @@
 use std::time::{Duration, Instant};
 
+use crate::core::cmd::EngineEvent;
+use crate::core::input::events::{KeyboardEvent, PointerEvent};
 use crate::core::platform::{EventLoop, EventLoopExtPumpEvents, EventLoopProxy};
 use crate::core::singleton::EngineCustomEvents;
 use crate::core::state::EngineState;
+use crate::core::window::WindowEvent;
 use crate::core::window::{CmdResultWindowCreate, CmdWindowCreateArgs};
 
 use super::PlatformProxy;
@@ -43,6 +46,14 @@ impl PlatformProxy for DesktopProxy {
 
     fn process_gamepads(&mut self, state: &mut EngineState) -> u64 {
         let start = Instant::now();
+        let has_focused_window = state
+            .window
+            .states
+            .values()
+            .any(|window_state| window_state.window.has_focus());
+        if !has_focused_window {
+            return start.elapsed().as_nanos() as u64;
+        }
         let mut gilrs_events = Vec::new();
         if let Some(gilrs) = &mut state.gamepad.gilrs {
             while let Some(event) = gilrs.next_event() {
@@ -62,14 +73,76 @@ impl PlatformProxy for DesktopProxy {
         self.event_loop
             .pump_app_events(Some(Duration::from_millis(16)), state);
         let total_pump_time = pump_start.elapsed().as_nanos() as u64;
-        total_pump_time.saturating_sub(state.profiling.custom_events_ns)
+        total_pump_time.saturating_sub(state.profiling.input.custom_events_ns)
     }
 
     fn render(&mut self, state: &mut EngineState) -> u64 {
         let start = Instant::now();
+        let now_ms = state.time;
+        let input_windows = active_windows_from_events(&state.event_queue);
+        let has_ui_animations = !state.universal_state.ui.animations.is_empty();
+        let has_ui_repaint_request = state
+            .universal_state
+            .ui
+            .realms
+            .values()
+            .any(|realm| realm.needs_repaint);
+        let has_async_loading =
+            state.texture_async.has_pending() || state.universal_state.ui.image_async.has_pending();
+
+        for window_id in &input_windows {
+            if let Some(window_state) = state.window.states.get_mut(window_id) {
+                window_state.redraw_force_until_ms = now_ms.saturating_add(250);
+            }
+        }
         for window_state in state.window.states.values_mut() {
-            window_state.window.request_redraw();
+            let has_recent_input = now_ms <= window_state.redraw_force_until_ms;
+            let should_redraw = window_state.is_dirty
+                || has_recent_input
+                || has_ui_animations
+                || has_ui_repaint_request
+                || has_async_loading;
+            if should_redraw {
+                window_state.is_dirty = true;
+                window_state.window.request_redraw();
+            }
         }
         start.elapsed().as_nanos() as u64
     }
+}
+
+fn active_windows_from_events(events: &[EngineEvent]) -> std::collections::HashSet<u32> {
+    let mut windows = std::collections::HashSet::new();
+    for event in events {
+        match event {
+            EngineEvent::Pointer(pointer) => {
+                let window_id = match pointer {
+                    PointerEvent::OnMove { window_id, .. }
+                    | PointerEvent::OnEnter { window_id, .. }
+                    | PointerEvent::OnLeave { window_id, .. }
+                    | PointerEvent::OnButton { window_id, .. }
+                    | PointerEvent::OnScroll { window_id, .. }
+                    | PointerEvent::OnTouch { window_id, .. }
+                    | PointerEvent::OnPinchGesture { window_id, .. }
+                    | PointerEvent::OnPanGesture { window_id, .. }
+                    | PointerEvent::OnRotationGesture { window_id, .. }
+                    | PointerEvent::OnDoubleTapGesture { window_id, .. } => *window_id,
+                };
+                windows.insert(window_id);
+            }
+            EngineEvent::Keyboard(KeyboardEvent::OnInput { window_id, .. })
+            | EngineEvent::Keyboard(KeyboardEvent::OnModifiersChange { window_id, .. })
+            | EngineEvent::Keyboard(KeyboardEvent::OnImeEnable { window_id, .. })
+            | EngineEvent::Keyboard(KeyboardEvent::OnImePreedit { window_id, .. })
+            | EngineEvent::Keyboard(KeyboardEvent::OnImeCommit { window_id, .. })
+            | EngineEvent::Keyboard(KeyboardEvent::OnImeDisable { window_id, .. })
+            | EngineEvent::Window(WindowEvent::OnFocus { window_id, .. })
+            | EngineEvent::Window(WindowEvent::OnScaleFactorChange { window_id, .. })
+            | EngineEvent::Window(WindowEvent::OnResize { window_id, .. }) => {
+                windows.insert(*window_id);
+            }
+            _ => {}
+        }
+    }
+    windows
 }

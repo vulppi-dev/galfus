@@ -1,9 +1,9 @@
 use serde::{Deserialize, Serialize};
 
-use crate::core::realm::{RealmId, RealmState, SurfaceId};
+use crate::core::realm::{RealmId, RealmKind, RealmState, SurfaceId};
 use crate::core::render::graph::RenderGraphState;
 use crate::core::state::EngineState;
-use crate::core::target::resolve::remove_auto_link_for_bind;
+use crate::core::target::resolve::remove_auto_link_for_layer;
 
 use super::RealmKindDto;
 
@@ -68,14 +68,27 @@ pub fn engine_cmd_realm_create(
         }
     }
 
+    let kind = match args.kind {
+        RealmKindDto::ThreeD => RealmKind::ThreeD,
+        RealmKindDto::TwoD => RealmKind::TwoD,
+    };
+    let render_graph = match kind {
+        RealmKind::ThreeD => RenderGraphState::new(),
+        RealmKind::TwoD => RenderGraphState::new_ui(),
+    };
+
     let realm_id = engine.universal_state.realms.alloc(RealmState {
+        kind,
         host_window_id: args.host_window_id,
         output_surface,
-        render_graph: Some(RenderGraphState::new()),
+        render_graph: Some(render_graph),
         importance: args.importance.unwrap_or(1),
         cache_policy: args.cache_policy.unwrap_or(0),
         last_render_frame: 0,
     });
+    if kind == RealmKind::TwoD {
+        engine.universal_state.ui.ensure_realm(realm_id);
+    }
 
     CmdResultRealmCreate {
         success: true,
@@ -95,6 +108,13 @@ pub fn engine_cmd_realm_dispose(
             message: format!("Realm {} not found", args.realm_id),
         };
     };
+    if entry.value.kind == RealmKind::TwoD {
+        engine.universal_state.ui.remove_realm(realm_id);
+    }
+    engine
+        .universal_state
+        .host_realm_index
+        .retain(|_, indexed_realm_id| *indexed_realm_id != realm_id);
 
     let mut removed_connectors = Vec::new();
     engine
@@ -115,26 +135,52 @@ pub fn engine_cmd_realm_dispose(
             .input_routing
             .captures
             .retain(|_, capture| !removed_set.contains(&capture.connector_id));
-    }
-
-    let removed_binds: Vec<_> = engine
-        .universal_state
-        .target_binds
-        .entries
-        .keys()
-        .filter(|(bind_realm, _)| *bind_realm == realm_id.0)
-        .copied()
-        .collect();
-    for (bind_realm, bind_target) in removed_binds {
         engine
             .universal_state
-            .target_binds
+            .surface_cache
+            .last_good
+            .retain(|connector_id, _| !removed_set.contains(connector_id));
+        engine
+            .universal_state
+            .surface_cache
+            .fallback
+            .retain(|connector_id, _| !removed_set.contains(connector_id));
+    }
+
+    let removed_layers: Vec<_> = engine
+        .universal_state
+        .target_layers
+        .entries
+        .keys()
+        .filter(|(layer_realm, _)| *layer_realm == realm_id.0)
+        .copied()
+        .collect();
+    for (layer_realm, layer_target) in removed_layers {
+        engine
+            .universal_state
+            .target_layers
             .entries
-            .remove(&(bind_realm, bind_target));
-        remove_auto_link_for_bind(&mut engine.universal_state, bind_realm, bind_target);
+            .remove(&(layer_realm, layer_target));
+        remove_auto_link_for_layer(&mut engine.universal_state, layer_realm, layer_target);
     }
 
     if let Some(surface_id) = entry.value.output_surface {
+        let keys: Vec<_> = engine
+            .universal_state
+            .auto_links
+            .iter()
+            .filter_map(|((layer_realm, layer_target), link)| {
+                if *layer_realm == realm_id.0 || link.surface_id == surface_id {
+                    Some((*layer_realm, *layer_target))
+                } else {
+                    None
+                }
+            })
+            .collect();
+        for (layer_realm, layer_target) in keys {
+            remove_auto_link_for_layer(&mut engine.universal_state, layer_realm, layer_target);
+        }
+
         engine
             .universal_state
             .surface_cache
@@ -145,7 +191,17 @@ pub fn engine_cmd_realm_dispose(
             .surface_cache
             .fallback
             .retain(|_, source| *source != surface_id);
+        engine.surface_targets.remove(&surface_id);
+        engine.universal_state.surfaces.remove(surface_id);
     }
+    engine
+        .universal_state
+        .target_graph_cache
+        .prune_dead_entries(
+            &engine.universal_state.targets.entries,
+            &engine.universal_state.target_layers.entries,
+            &engine.universal_state.realms,
+        );
 
     CmdResultRealmDispose {
         success: true,

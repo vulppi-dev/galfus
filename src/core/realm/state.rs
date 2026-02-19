@@ -1,7 +1,9 @@
 use std::collections::HashMap;
 
 use crate::core::audio::{AudioListenerBinding, AudioSourceParams, AudioStreamState};
-use crate::core::target::{TargetBindTable, TargetGraphCache, TargetTable};
+use crate::core::resources::EnvironmentConfig;
+use crate::core::target::{TargetGraphCache, TargetLayerTable, TargetTable};
+use crate::core::ui::UiState;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct RealmId(pub u32);
@@ -16,6 +18,12 @@ pub struct ConnectorId(pub u32);
 pub struct PresentId(pub u32);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RealmKind {
+    ThreeD,
+    TwoD,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SurfaceKind {
     Onscreen,
     Offscreen,
@@ -23,6 +31,7 @@ pub enum SurfaceKind {
 
 #[derive(Debug, Clone)]
 pub struct RealmState {
+    pub kind: RealmKind,
     pub host_window_id: Option<u32>,
     pub output_surface: Option<SurfaceId>,
     pub render_graph: Option<crate::core::render::graph::RenderGraphState>,
@@ -175,10 +184,16 @@ pub struct UniversalState {
     pub surfaces: SurfaceTable,
     pub connectors: ConnectorTable,
     pub presents: PresentTable,
+    pub ui: UiState,
     pub targets: TargetTable,
-    pub target_binds: TargetBindTable,
+    pub target_layers: TargetLayerTable,
     pub target_graph_cache: TargetGraphCache,
     pub auto_links: std::collections::HashMap<(u32, crate::core::target::TargetId), AutoLink>,
+    pub host_realm_index: HashMap<u32, RealmId>,
+    pub target_ui_realm_index: HashMap<crate::core::target::TargetId, RealmId>,
+    pub target_autolink_failures: Vec<super::TargetAutoLinkFailure>,
+    pub environment_profiles: HashMap<u32, EnvironmentConfig>,
+    pub default_environment_id: Option<u32>,
     pub audio: AudioState,
     pub input_routing: InputRoutingState,
     pub surface_cache: SurfaceCache,
@@ -208,4 +223,5 @@ pub struct InputCapture {
 pub struct InputRoutingState {
     pub captures: HashMap<(u32, u64), InputCapture>,
     pub focus_targets: HashMap<u32, crate::core::target::TargetId>,
+    pub trace: crate::core::input::events::PointerTraceConfig,
 }

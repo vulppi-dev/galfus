@@ -14,7 +14,7 @@ use wasm_bindgen_futures::spawn_local;
 use web_sys::HtmlCanvasElement;
 
 #[cfg(all(feature = "wasm", target_arch = "wasm32"))]
-use super::create_shared::register_window_realm;
+use super::create_shared::{register_window_realm, resolve_rgba16f_msaa_supported_mask};
 #[cfg(all(feature = "wasm", target_arch = "wasm32"))]
 use super::{CmdResultWindowCreate, CmdWindowCreateArgs};
 #[cfg(all(feature = "wasm", target_arch = "wasm32"))]
@@ -161,6 +161,11 @@ pub fn engine_cmd_window_create_async(
             required_features |=
                 wgpu::Features::TIMESTAMP_QUERY | wgpu::Features::TIMESTAMP_QUERY_INSIDE_ENCODERS;
         }
+        let adapter_specific_format_features_supported =
+            adapter_features.contains(wgpu::Features::TEXTURE_ADAPTER_SPECIFIC_FORMAT_FEATURES);
+        if adapter_specific_format_features_supported {
+            required_features |= wgpu::Features::TEXTURE_ADAPTER_SPECIFIC_FORMAT_FEATURES;
+        }
 
         let (device, queue) = match adapter
             .request_device(&wgpu::DeviceDescriptor {
@@ -212,6 +217,11 @@ pub fn engine_cmd_window_create_async(
         surface.configure(&device, &config);
 
         let mut render_state = crate::core::render::RenderState::new(format);
+        let rgba16f_msaa_supported_mask = resolve_rgba16f_msaa_supported_mask(
+            &adapter,
+            adapter_specific_format_features_supported,
+        );
+        render_state.rgba16f_msaa_supported_mask = rgba16f_msaa_supported_mask;
         render_state.init(&device, &queue, format);
         render_state.on_resize(&device, window_width, window_height);
         let mut surface_target = None;
@@ -230,6 +240,7 @@ pub fn engine_cmd_window_create_async(
         let _ = with_engine_singleton(|engine| {
             engine.state.wgpu = instance;
             engine.state.caps = Some(caps);
+            engine.state.rgba16f_msaa_supported_mask = rgba16f_msaa_supported_mask;
             engine.state.device = Some(device);
             engine.state.queue = Some(queue);
             engine.state.window.map_window(window_handle.id(), win_id);
@@ -247,6 +258,7 @@ pub fn engine_cmd_window_create_async(
                     last_present_ns: 0,
                     last_frame_delta_ns: 0,
                     fps_instant: 0.0,
+                    redraw_force_until_ms: 0,
                     _web_listeners: listeners,
                 },
             );

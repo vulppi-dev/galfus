@@ -88,3 +88,20 @@ pub struct CmdResultTextureDispose {
     pub success: bool,
     pub message: String,
 }
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct CmdTextureBindTargetArgs {
+    pub window_id: u32,
+    pub texture_id: u32,
+    pub target_id: u64,
+    #[serde(default)]
+    pub label: Option<String>,
+}
+
+#[derive(Debug, Default, Deserialize, Serialize, Clone)]
+#[serde(default, rename_all = "camelCase")]
+pub struct CmdResultTextureBindTarget {
+    pub success: bool,
+    pub message: String,
+}

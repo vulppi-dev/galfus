@@ -6,6 +6,7 @@ use crate::core::gamepad::events::GamepadEvent;
 use crate::core::input::events::{KeyboardEvent, PointerEvent};
 use crate::core::state::EngineState;
 use crate::core::system::SystemEvent;
+use crate::core::ui::events::UiEvent;
 use crate::core::window::WindowEvent;
 
 pub use crate::core::audio;
@@ -15,12 +16,77 @@ pub use crate::core::render::gizmos as gizmo;
 pub use crate::core::resources as res;
 pub use crate::core::system as sys;
 pub use crate::core::target::cmd as target;
+pub use crate::core::ui::cmd as ui;
 pub use crate::core::window as win;
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(untagged)]
+pub enum CmdCameraUpsertArgs {
+    Create(res::CmdCameraCreateArgs),
+    Update(res::CmdCameraUpdateArgs),
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(untagged)]
+pub enum CmdModelUpsertArgs {
+    Create(res::CmdModelCreateArgs),
+    Update(res::CmdModelUpdateArgs),
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(untagged)]
+pub enum CmdLightUpsertArgs {
+    Create(res::CmdLightCreateArgs),
+    Update(res::CmdLightUpdateArgs),
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(untagged)]
+pub enum CmdMaterialUpsertArgs {
+    Create(res::CmdMaterialCreateArgs),
+    Update(res::CmdMaterialUpdateArgs),
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(untagged)]
+pub enum CmdGeometryUpsertArgs {
+    Create(res::CmdGeometryCreateArgs),
+    Update(res::CmdGeometryUpdateArgs),
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(untagged)]
+pub enum CmdEnvironmentUpsertArgs {
+    Create(res::CmdEnvironmentCreateArgs),
+    Update(res::CmdEnvironmentUpdateArgs),
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(untagged)]
+pub enum CmdAudioListenerUpsertArgs {
+    Create(audio::CmdAudioListenerCreateArgs),
+    Update(audio::CmdAudioListenerUpdateArgs),
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(untagged)]
+pub enum CmdAudioSourceUpsertArgs {
+    Create(audio::CmdAudioSourceCreateArgs),
+    Update(audio::CmdAudioSourceUpdateArgs),
+}
+
+#[derive(Debug, Default, Deserialize, Serialize, Clone)]
+#[serde(default, rename_all = "camelCase")]
+pub struct CmdResultSimple {
+    pub success: bool,
+    pub message: String,
+}
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(tag = "type", content = "content", rename_all = "kebab-case")]
 pub enum EngineCmd {
     CmdNotificationSend(sys::CmdNotificationSendArgs),
+    CmdSystemDiagnosticsSet(sys::CmdSystemDiagnosticsSetArgs),
     CmdWindowCreate(win::CmdWindowCreateArgs),
     CmdWindowClose(win::CmdWindowCloseArgs),
     CmdWindowSetTitle(win::CmdWindowSetTitleArgs),
@@ -43,48 +109,59 @@ pub enum EngineCmd {
     CmdWindowSetCursorGrab(win::CmdWindowSetCursorGrabArgs),
     CmdWindowSetCursorIcon(win::CmdWindowSetCursorIconArgs),
     CmdUploadBufferDiscardAll(buf::CmdUploadBufferDiscardAllArgs),
-    CmdCameraCreate(res::CmdCameraCreateArgs),
-    CmdCameraUpdate(res::CmdCameraUpdateArgs),
+    CmdCameraUpsert(CmdCameraUpsertArgs),
     CmdCameraDispose(res::CmdCameraDisposeArgs),
-    CmdModelCreate(res::CmdModelCreateArgs),
-    CmdModelUpdate(res::CmdModelUpdateArgs),
+    CmdModelUpsert(CmdModelUpsertArgs),
     CmdPoseUpdate(res::CmdPoseUpdateArgs),
     CmdModelDispose(res::CmdModelDisposeArgs),
-    CmdLightCreate(res::CmdLightCreateArgs),
-    CmdLightUpdate(res::CmdLightUpdateArgs),
+    CmdLightUpsert(CmdLightUpsertArgs),
     CmdLightDispose(res::CmdLightDisposeArgs),
-    CmdMaterialCreate(res::CmdMaterialCreateArgs),
-    CmdMaterialUpdate(res::CmdMaterialUpdateArgs),
+    CmdMaterialUpsert(CmdMaterialUpsertArgs),
     CmdMaterialDispose(res::CmdMaterialDisposeArgs),
     CmdTextureCreateFromBuffer(res::CmdTextureCreateFromBufferArgs),
     CmdTextureCreateSolidColor(res::CmdTextureCreateSolidColorArgs),
     CmdTextureDispose(res::CmdTextureDisposeArgs),
-    CmdAudioListenerUpdate(audio::CmdAudioListenerUpdateArgs),
-    CmdAudioListenerCreate(audio::CmdAudioListenerCreateArgs),
+    CmdTextureBindTarget(res::CmdTextureBindTargetArgs),
+    CmdAudioListenerUpsert(CmdAudioListenerUpsertArgs),
     CmdAudioListenerDispose(audio::CmdAudioListenerDisposeArgs),
     CmdAudioResourceCreate(audio::CmdAudioResourceCreateArgs),
     CmdAudioResourcePush(audio::CmdAudioResourcePushArgs),
-    CmdAudioSourceCreate(audio::CmdAudioSourceCreateArgs),
-    CmdAudioSourceUpdate(audio::CmdAudioSourceUpdateArgs),
+    CmdAudioSourceUpsert(CmdAudioSourceUpsertArgs),
     CmdAudioSourcePlay(audio::CmdAudioSourcePlayArgs),
     CmdAudioSourcePause(audio::CmdAudioSourcePauseArgs),
     CmdAudioSourceStop(audio::CmdAudioSourceStopArgs),
     CmdAudioSourceDispose(audio::CmdAudioSourceDisposeArgs),
     CmdAudioResourceDispose(audio::CmdAudioResourceDisposeArgs),
-    CmdGeometryCreate(res::CmdGeometryCreateArgs),
-    CmdGeometryUpdate(res::CmdGeometryUpdateArgs),
+    CmdGeometryUpsert(CmdGeometryUpsertArgs),
     CmdGeometryDispose(res::CmdGeometryDisposeArgs),
     CmdPrimitiveGeometryCreate(res::CmdPrimitiveGeometryCreateArgs),
-    CmdEnvironmentCreate(res::CmdEnvironmentCreateArgs),
-    CmdEnvironmentUpdate(res::CmdEnvironmentUpdateArgs),
+    CmdEnvironmentUpsert(CmdEnvironmentUpsertArgs),
     CmdEnvironmentDispose(res::CmdEnvironmentDisposeArgs),
     CmdShadowConfigure(res::shadow::CmdShadowConfigureArgs),
     CmdRealmCreate(realm::CmdRealmCreateArgs),
     CmdRealmDispose(realm::CmdRealmDisposeArgs),
     CmdTargetUpsert(target::CmdTargetUpsertArgs),
     CmdTargetDispose(target::CmdTargetDisposeArgs),
-    CmdTargetBindUpsert(target::CmdTargetBindUpsertArgs),
-    CmdTargetBindDispose(target::CmdTargetBindDisposeArgs),
+    CmdTargetLayerUpsert(target::CmdTargetLayerUpsertArgs),
+    CmdTargetLayerDispose(target::CmdTargetLayerDisposeArgs),
+    CmdUiThemeDefine(ui::CmdUiThemeDefineArgs),
+    CmdUiThemeDispose(ui::CmdUiThemeDisposeArgs),
+    CmdUiDocumentCreate(ui::CmdUiDocumentCreateArgs),
+    CmdUiDocumentDispose(ui::CmdUiDocumentDisposeArgs),
+    CmdUiDocumentSetRect(ui::CmdUiDocumentSetRectArgs),
+    CmdUiDocumentSetTheme(ui::CmdUiDocumentSetThemeArgs),
+    CmdUiDocumentGetTree(ui::CmdUiDocumentGetTreeArgs),
+    CmdUiDocumentGetLayoutRects(ui::CmdUiDocumentGetLayoutRectsArgs),
+    CmdUiApplyOps(ui::CmdUiApplyOpsArgs),
+    CmdUiDebugSet(ui::CmdUiDebugSetArgs),
+    CmdUiFocusSet(ui::CmdUiFocusSetArgs),
+    CmdUiFocusGet(ui::CmdUiFocusGetArgs),
+    CmdUiEventTraceSet(ui::CmdUiEventTraceSetArgs),
+    CmdUiImageCreateFromBuffer(ui::CmdUiImageCreateFromBufferArgs),
+    CmdUiImageDispose(ui::CmdUiImageDisposeArgs),
+    CmdUiClipboardPaste(ui::CmdUiClipboardPasteArgs),
+    CmdUiScreenshotReply(ui::CmdUiScreenshotReplyArgs),
+    CmdUiAccessKitActionRequest(ui::CmdUiAccessKitActionRequestArgs),
     CmdModelList(res::CmdModelListArgs),
     CmdMaterialList(res::CmdMaterialListArgs),
     CmdTextureList(res::CmdTextureListArgs),
@@ -104,6 +181,7 @@ pub enum EngineEvent {
     Keyboard(KeyboardEvent),
     Gamepad(GamepadEvent),
     System(SystemEvent),
+    Ui(UiEvent),
 }
 
 /// Command responses (answers to commands sent by user)
@@ -111,6 +189,7 @@ pub enum EngineEvent {
 #[serde(tag = "type", content = "content", rename_all = "kebab-case")]
 pub enum CommandResponse {
     NotificationSend(sys::CmdResultNotificationSend),
+    SystemDiagnosticsSet(sys::CmdResultSystemDiagnosticsSet),
     WindowCreate(win::CmdResultWindowCreate),
     WindowClose(win::CmdResultWindowClose),
     WindowSetTitle(win::CmdResultWindowSetTitle),
@@ -133,48 +212,59 @@ pub enum CommandResponse {
     WindowSetCursorGrab(win::CmdResultWindowSetCursorGrab),
     WindowSetCursorIcon(win::CmdResultWindowSetCursorIcon),
     UploadBufferDiscardAll(buf::CmdResultUploadBufferDiscardAll),
-    CameraCreate(res::CmdResultCameraCreate),
-    CameraUpdate(res::CmdResultCameraUpdate),
+    CameraUpsert(CmdResultSimple),
     CameraDispose(res::CmdResultCameraDispose),
-    ModelCreate(res::CmdResultModelCreate),
-    ModelUpdate(res::CmdResultModelUpdate),
+    ModelUpsert(CmdResultSimple),
     PoseUpdate(res::CmdResultPoseUpdate),
     ModelDispose(res::CmdResultModelDispose),
-    LightCreate(res::CmdResultLightCreate),
-    LightUpdate(res::CmdResultLightUpdate),
+    LightUpsert(CmdResultSimple),
     LightDispose(res::CmdResultLightDispose),
-    MaterialCreate(res::CmdResultMaterialCreate),
-    MaterialUpdate(res::CmdResultMaterialUpdate),
+    MaterialUpsert(CmdResultSimple),
     MaterialDispose(res::CmdResultMaterialDispose),
     TextureCreateFromBuffer(res::CmdResultTextureCreateFromBuffer),
     TextureCreateSolidColor(res::CmdResultTextureCreateSolidColor),
     TextureDispose(res::CmdResultTextureDispose),
-    AudioListenerUpdate(audio::CmdResultAudioListenerUpdate),
-    AudioListenerCreate(audio::CmdResultAudioListenerCreate),
+    TextureBindTarget(res::CmdResultTextureBindTarget),
+    AudioListenerUpsert(CmdResultSimple),
     AudioListenerDispose(audio::CmdResultAudioListenerDispose),
     AudioResourceCreate(audio::CmdResultAudioResourceCreate),
     AudioResourcePush(audio::CmdResultAudioResourcePush),
-    AudioSourceCreate(audio::CmdResultAudioSourceCreate),
-    AudioSourceUpdate(audio::CmdResultAudioSourceUpdate),
+    AudioSourceUpsert(CmdResultSimple),
     AudioSourcePlay(audio::CmdResultAudioSourcePlay),
     AudioSourcePause(audio::CmdResultAudioSourcePause),
     AudioSourceStop(audio::CmdResultAudioSourceStop),
     AudioSourceDispose(audio::CmdResultAudioSourceDispose),
     AudioResourceDispose(audio::CmdResultAudioResourceDispose),
-    GeometryCreate(res::CmdResultGeometryCreate),
-    GeometryUpdate(res::CmdResultGeometryUpdate),
+    GeometryUpsert(CmdResultSimple),
     GeometryDispose(res::CmdResultGeometryDispose),
     PrimitiveGeometryCreate(res::CmdResultPrimitiveGeometryCreate),
-    EnvironmentCreate(res::CmdResultEnvironment),
-    EnvironmentUpdate(res::CmdResultEnvironment),
+    EnvironmentUpsert(CmdResultSimple),
     EnvironmentDispose(res::CmdResultEnvironment),
     ShadowConfigure(res::shadow::CmdResultShadowConfigure),
     RealmCreate(realm::CmdResultRealmCreate),
     RealmDispose(realm::CmdResultRealmDispose),
     TargetUpsert(target::CmdResultTargetUpsert),
     TargetDispose(target::CmdResultTargetDispose),
-    TargetBindUpsert(target::CmdResultTargetBindUpsert),
-    TargetBindDispose(target::CmdResultTargetBindDispose),
+    TargetLayerUpsert(target::CmdResultTargetLayerUpsert),
+    TargetLayerDispose(target::CmdResultTargetLayerDispose),
+    UiThemeDefine(ui::CmdResultUiThemeDefine),
+    UiThemeDispose(ui::CmdResultUiThemeDispose),
+    UiDocumentCreate(ui::CmdResultUiDocumentCreate),
+    UiDocumentDispose(ui::CmdResultUiDocumentDispose),
+    UiDocumentSetRect(ui::CmdResultUiDocumentSetRect),
+    UiDocumentSetTheme(ui::CmdResultUiDocumentSetTheme),
+    UiDocumentGetTree(ui::CmdResultUiDocumentGetTree),
+    UiDocumentGetLayoutRects(ui::CmdResultUiDocumentGetLayoutRects),
+    UiApplyOps(ui::CmdResultUiApplyOps),
+    UiDebugSet(ui::CmdResultUiDebugSet),
+    UiFocusSet(ui::CmdResultUiFocusSet),
+    UiFocusGet(ui::CmdResultUiFocusGet),
+    UiEventTraceSet(ui::CmdResultUiEventTraceSet),
+    UiImageCreateFromBuffer(ui::CmdResultUiImageCreateFromBuffer),
+    UiImageDispose(ui::CmdResultUiImageDispose),
+    UiClipboardPaste(ui::CmdResultUiInputEvent),
+    UiScreenshotReply(ui::CmdResultUiInputEvent),
+    UiAccessKitActionRequest(ui::CmdResultUiInputEvent),
     ModelList(res::CmdResultModelList),
     MaterialList(res::CmdResultMaterialList),
     TextureList(res::CmdResultTextureList),
@@ -207,12 +297,152 @@ pub type EngineBatchEvents = Vec<EngineEvent>;
 
 pub type EngineBatchResponses = Vec<CommandResponseEnvelope>;
 
+fn maybe_emit_response_error_event(
+    engine: &mut EngineState,
+    command_id: u64,
+    response: &CommandResponse,
+) {
+    macro_rules! failure_case {
+        ($result:expr, $name:literal) => {{
+            let result = $result;
+            if !result.success {
+                Some(($name, result.message.as_str()))
+            } else {
+                None
+            }
+        }};
+    }
+
+    let failure = match response {
+        CommandResponse::UploadBufferDiscardAll(result) => {
+            failure_case!(result, "upload-buffer-discard-all")
+        }
+        CommandResponse::SystemDiagnosticsSet(result) => {
+            failure_case!(result, "system-diagnostics-set")
+        }
+        CommandResponse::CameraUpsert(result) => failure_case!(result, "camera-upsert"),
+        CommandResponse::WindowCreate(result) => failure_case!(result, "window-create"),
+        CommandResponse::CameraDispose(result) => failure_case!(result, "camera-dispose"),
+        CommandResponse::ModelUpsert(result) => failure_case!(result, "model-upsert"),
+        CommandResponse::PoseUpdate(result) => failure_case!(result, "pose-update"),
+        CommandResponse::ModelDispose(result) => failure_case!(result, "model-dispose"),
+        CommandResponse::LightUpsert(result) => failure_case!(result, "light-upsert"),
+        CommandResponse::LightDispose(result) => failure_case!(result, "light-dispose"),
+        CommandResponse::MaterialUpsert(result) => failure_case!(result, "material-upsert"),
+        CommandResponse::MaterialDispose(result) => failure_case!(result, "material-dispose"),
+        CommandResponse::TextureCreateFromBuffer(result) => {
+            failure_case!(result, "texture-create-from-buffer")
+        }
+        CommandResponse::TextureCreateSolidColor(result) => {
+            failure_case!(result, "texture-create-solid-color")
+        }
+        CommandResponse::TextureDispose(result) => failure_case!(result, "texture-dispose"),
+        CommandResponse::TextureBindTarget(result) => failure_case!(result, "texture-bind-target"),
+        CommandResponse::AudioListenerUpsert(result) => {
+            failure_case!(result, "audio-listener-upsert")
+        }
+        CommandResponse::AudioListenerDispose(result) => {
+            failure_case!(result, "audio-listener-dispose")
+        }
+        CommandResponse::AudioResourceCreate(result) => {
+            failure_case!(result, "audio-resource-create")
+        }
+        CommandResponse::AudioResourcePush(result) => failure_case!(result, "audio-resource-push"),
+        CommandResponse::AudioSourceUpsert(result) => failure_case!(result, "audio-source-upsert"),
+        CommandResponse::AudioSourcePlay(result) => failure_case!(result, "audio-source-play"),
+        CommandResponse::AudioSourcePause(result) => failure_case!(result, "audio-source-pause"),
+        CommandResponse::AudioSourceStop(result) => failure_case!(result, "audio-source-stop"),
+        CommandResponse::AudioSourceDispose(result) => {
+            failure_case!(result, "audio-source-dispose")
+        }
+        CommandResponse::AudioResourceDispose(result) => {
+            failure_case!(result, "audio-resource-dispose")
+        }
+        CommandResponse::GeometryUpsert(result) => failure_case!(result, "geometry-upsert"),
+        CommandResponse::GeometryDispose(result) => failure_case!(result, "geometry-dispose"),
+        CommandResponse::PrimitiveGeometryCreate(result) => {
+            failure_case!(result, "primitive-geometry-create")
+        }
+        CommandResponse::EnvironmentUpsert(result) => failure_case!(result, "environment-upsert"),
+        CommandResponse::EnvironmentDispose(result) => {
+            failure_case!(result, "environment-dispose")
+        }
+        CommandResponse::ShadowConfigure(result) => failure_case!(result, "shadow-configure"),
+        CommandResponse::RealmCreate(result) => failure_case!(result, "realm-create"),
+        CommandResponse::RealmDispose(result) => failure_case!(result, "realm-dispose"),
+        CommandResponse::TargetUpsert(result) => failure_case!(result, "target-upsert"),
+        CommandResponse::TargetDispose(result) => failure_case!(result, "target-dispose"),
+        CommandResponse::TargetLayerUpsert(result) => {
+            failure_case!(result, "target-layer-upsert")
+        }
+        CommandResponse::TargetLayerDispose(result) => {
+            failure_case!(result, "target-layer-dispose")
+        }
+        CommandResponse::UiThemeDefine(result) => failure_case!(result, "ui-theme-define"),
+        CommandResponse::UiThemeDispose(result) => failure_case!(result, "ui-theme-dispose"),
+        CommandResponse::UiDocumentCreate(result) => failure_case!(result, "ui-document-create"),
+        CommandResponse::UiDocumentDispose(result) => {
+            failure_case!(result, "ui-document-dispose")
+        }
+        CommandResponse::UiDocumentSetRect(result) => {
+            failure_case!(result, "ui-document-set-rect")
+        }
+        CommandResponse::UiDocumentSetTheme(result) => {
+            failure_case!(result, "ui-document-set-theme")
+        }
+        CommandResponse::UiDocumentGetTree(result) => {
+            failure_case!(result, "ui-document-get-tree")
+        }
+        CommandResponse::UiDocumentGetLayoutRects(result) => {
+            failure_case!(result, "ui-document-get-layout-rects")
+        }
+        CommandResponse::UiApplyOps(result) => failure_case!(result, "ui-apply-ops"),
+        CommandResponse::UiDebugSet(result) => failure_case!(result, "ui-debug-set"),
+        CommandResponse::UiFocusSet(result) => failure_case!(result, "ui-focus-set"),
+        CommandResponse::UiFocusGet(result) => failure_case!(result, "ui-focus-get"),
+        CommandResponse::UiEventTraceSet(result) => {
+            failure_case!(result, "ui-event-trace-set")
+        }
+        CommandResponse::UiImageCreateFromBuffer(result) => {
+            failure_case!(result, "ui-image-create-from-buffer")
+        }
+        CommandResponse::UiImageDispose(result) => failure_case!(result, "ui-image-dispose"),
+        CommandResponse::ModelList(result) => failure_case!(result, "model-list"),
+        CommandResponse::MaterialList(result) => failure_case!(result, "material-list"),
+        CommandResponse::TextureList(result) => failure_case!(result, "texture-list"),
+        CommandResponse::GeometryList(result) => failure_case!(result, "geometry-list"),
+        CommandResponse::LightList(result) => failure_case!(result, "light-list"),
+        CommandResponse::CameraList(result) => failure_case!(result, "camera-list"),
+        _ => None,
+    };
+
+    let Some((command_type, message)) = failure else {
+        return;
+    };
+
+    sys::push_error_event(
+        engine,
+        "command",
+        message.to_string(),
+        Some(command_id),
+        Some(command_type.to_string()),
+    );
+}
+
+fn mark_windows_dirty(engine: &mut EngineState) {
+    for window_state in engine.window.states.values_mut() {
+        window_state.is_dirty = true;
+    }
+}
+
 pub fn engine_process_batch(
     engine: &mut EngineState,
     platform: &mut dyn PlatformProxy,
     batch: EngineBatchCmds,
 ) -> VulframResult {
     for pack in batch {
+        let response_count_before = engine.response_queue.len();
+        let command_id = pack.id;
         match pack.cmd {
             EngineCmd::CmdNotificationSend(args) => {
                 let result =
@@ -220,6 +450,13 @@ pub fn engine_process_batch(
                 engine.response_queue.push(CommandResponseEnvelope {
                     id: pack.id,
                     response: CommandResponse::NotificationSend(result),
+                });
+            }
+            EngineCmd::CmdSystemDiagnosticsSet(args) => {
+                let result = sys::engine_cmd_system_diagnostics_set(engine, &args);
+                engine.response_queue.push(CommandResponseEnvelope {
+                    id: pack.id,
+                    response: CommandResponse::SystemDiagnosticsSet(result),
                 });
             }
             EngineCmd::CmdWindowCreate(args) => {
@@ -380,18 +617,26 @@ pub fn engine_process_batch(
                     response: CommandResponse::UploadBufferDiscardAll(result),
                 });
             }
-            EngineCmd::CmdCameraCreate(args) => {
-                let result = res::engine_cmd_camera_create(engine, &args);
+            EngineCmd::CmdCameraUpsert(args) => {
+                let result = match args {
+                    CmdCameraUpsertArgs::Create(create_args) => {
+                        let create_result = res::engine_cmd_camera_create(engine, &create_args);
+                        CmdResultSimple {
+                            success: create_result.success,
+                            message: create_result.message,
+                        }
+                    }
+                    CmdCameraUpsertArgs::Update(update_args) => {
+                        let update_result = res::engine_cmd_camera_update(engine, &update_args);
+                        CmdResultSimple {
+                            success: update_result.success,
+                            message: update_result.message,
+                        }
+                    }
+                };
                 engine.response_queue.push(CommandResponseEnvelope {
                     id: pack.id,
-                    response: CommandResponse::CameraCreate(result),
-                });
-            }
-            EngineCmd::CmdCameraUpdate(args) => {
-                let result = res::engine_cmd_camera_update(engine, &args);
-                engine.response_queue.push(CommandResponseEnvelope {
-                    id: pack.id,
-                    response: CommandResponse::CameraUpdate(result),
+                    response: CommandResponse::CameraUpsert(result),
                 });
             }
             EngineCmd::CmdCameraDispose(args) => {
@@ -401,18 +646,26 @@ pub fn engine_process_batch(
                     response: CommandResponse::CameraDispose(result),
                 });
             }
-            EngineCmd::CmdModelCreate(args) => {
-                let result = res::engine_cmd_model_create(engine, &args);
+            EngineCmd::CmdModelUpsert(args) => {
+                let result = match args {
+                    CmdModelUpsertArgs::Create(create_args) => {
+                        let create_result = res::engine_cmd_model_create(engine, &create_args);
+                        CmdResultSimple {
+                            success: create_result.success,
+                            message: create_result.message,
+                        }
+                    }
+                    CmdModelUpsertArgs::Update(update_args) => {
+                        let update_result = res::engine_cmd_model_update(engine, &update_args);
+                        CmdResultSimple {
+                            success: update_result.success,
+                            message: update_result.message,
+                        }
+                    }
+                };
                 engine.response_queue.push(CommandResponseEnvelope {
                     id: pack.id,
-                    response: CommandResponse::ModelCreate(result),
-                });
-            }
-            EngineCmd::CmdModelUpdate(args) => {
-                let result = res::engine_cmd_model_update(engine, &args);
-                engine.response_queue.push(CommandResponseEnvelope {
-                    id: pack.id,
-                    response: CommandResponse::ModelUpdate(result),
+                    response: CommandResponse::ModelUpsert(result),
                 });
             }
             EngineCmd::CmdPoseUpdate(args) => {
@@ -429,18 +682,26 @@ pub fn engine_process_batch(
                     response: CommandResponse::ModelDispose(result),
                 });
             }
-            EngineCmd::CmdLightCreate(args) => {
-                let result = res::engine_cmd_light_create(engine, &args);
+            EngineCmd::CmdLightUpsert(args) => {
+                let result = match args {
+                    CmdLightUpsertArgs::Create(create_args) => {
+                        let create_result = res::engine_cmd_light_create(engine, &create_args);
+                        CmdResultSimple {
+                            success: create_result.success,
+                            message: create_result.message,
+                        }
+                    }
+                    CmdLightUpsertArgs::Update(update_args) => {
+                        let update_result = res::engine_cmd_light_update(engine, &update_args);
+                        CmdResultSimple {
+                            success: update_result.success,
+                            message: update_result.message,
+                        }
+                    }
+                };
                 engine.response_queue.push(CommandResponseEnvelope {
                     id: pack.id,
-                    response: CommandResponse::LightCreate(result),
-                });
-            }
-            EngineCmd::CmdLightUpdate(args) => {
-                let result = res::engine_cmd_light_update(engine, &args);
-                engine.response_queue.push(CommandResponseEnvelope {
-                    id: pack.id,
-                    response: CommandResponse::LightUpdate(result),
+                    response: CommandResponse::LightUpsert(result),
                 });
             }
             EngineCmd::CmdLightDispose(args) => {
@@ -450,18 +711,26 @@ pub fn engine_process_batch(
                     response: CommandResponse::LightDispose(result),
                 });
             }
-            EngineCmd::CmdMaterialCreate(args) => {
-                let result = res::engine_cmd_material_create(engine, &args);
+            EngineCmd::CmdMaterialUpsert(args) => {
+                let result = match args {
+                    CmdMaterialUpsertArgs::Create(create_args) => {
+                        let create_result = res::engine_cmd_material_create(engine, &create_args);
+                        CmdResultSimple {
+                            success: create_result.success,
+                            message: create_result.message,
+                        }
+                    }
+                    CmdMaterialUpsertArgs::Update(update_args) => {
+                        let update_result = res::engine_cmd_material_update(engine, &update_args);
+                        CmdResultSimple {
+                            success: update_result.success,
+                            message: update_result.message,
+                        }
+                    }
+                };
                 engine.response_queue.push(CommandResponseEnvelope {
                     id: pack.id,
-                    response: CommandResponse::MaterialCreate(result),
-                });
-            }
-            EngineCmd::CmdMaterialUpdate(args) => {
-                let result = res::engine_cmd_material_update(engine, &args);
-                engine.response_queue.push(CommandResponseEnvelope {
-                    id: pack.id,
-                    response: CommandResponse::MaterialUpdate(result),
+                    response: CommandResponse::MaterialUpsert(result),
                 });
             }
             EngineCmd::CmdMaterialDispose(args) => {
@@ -492,18 +761,35 @@ pub fn engine_process_batch(
                     response: CommandResponse::TextureDispose(result),
                 });
             }
-            EngineCmd::CmdAudioListenerUpdate(args) => {
-                let result = audio::engine_cmd_audio_listener_update(engine, &args);
+            EngineCmd::CmdTextureBindTarget(args) => {
+                let result = res::engine_cmd_texture_bind_target(engine, &args);
                 engine.response_queue.push(CommandResponseEnvelope {
                     id: pack.id,
-                    response: CommandResponse::AudioListenerUpdate(result),
+                    response: CommandResponse::TextureBindTarget(result),
                 });
             }
-            EngineCmd::CmdAudioListenerCreate(args) => {
-                let result = audio::engine_cmd_audio_listener_create(engine, &args);
+            EngineCmd::CmdAudioListenerUpsert(args) => {
+                let result = match args {
+                    CmdAudioListenerUpsertArgs::Create(create_args) => {
+                        let create_result =
+                            audio::engine_cmd_audio_listener_create(engine, &create_args);
+                        CmdResultSimple {
+                            success: create_result.success,
+                            message: create_result.message,
+                        }
+                    }
+                    CmdAudioListenerUpsertArgs::Update(update_args) => {
+                        let update_result =
+                            audio::engine_cmd_audio_listener_update(engine, &update_args);
+                        CmdResultSimple {
+                            success: update_result.success,
+                            message: update_result.message,
+                        }
+                    }
+                };
                 engine.response_queue.push(CommandResponseEnvelope {
                     id: pack.id,
-                    response: CommandResponse::AudioListenerCreate(result),
+                    response: CommandResponse::AudioListenerUpsert(result),
                 });
             }
             EngineCmd::CmdAudioListenerDispose(args) => {
@@ -527,18 +813,28 @@ pub fn engine_process_batch(
                     response: CommandResponse::AudioResourcePush(result),
                 });
             }
-            EngineCmd::CmdAudioSourceCreate(args) => {
-                let result = audio::engine_cmd_audio_source_create(engine, &args);
+            EngineCmd::CmdAudioSourceUpsert(args) => {
+                let result = match args {
+                    CmdAudioSourceUpsertArgs::Create(create_args) => {
+                        let create_result =
+                            audio::engine_cmd_audio_source_create(engine, &create_args);
+                        CmdResultSimple {
+                            success: create_result.success,
+                            message: create_result.message,
+                        }
+                    }
+                    CmdAudioSourceUpsertArgs::Update(update_args) => {
+                        let update_result =
+                            audio::engine_cmd_audio_source_update(engine, &update_args);
+                        CmdResultSimple {
+                            success: update_result.success,
+                            message: update_result.message,
+                        }
+                    }
+                };
                 engine.response_queue.push(CommandResponseEnvelope {
                     id: pack.id,
-                    response: CommandResponse::AudioSourceCreate(result),
-                });
-            }
-            EngineCmd::CmdAudioSourceUpdate(args) => {
-                let result = audio::engine_cmd_audio_source_update(engine, &args);
-                engine.response_queue.push(CommandResponseEnvelope {
-                    id: pack.id,
-                    response: CommandResponse::AudioSourceUpdate(result),
+                    response: CommandResponse::AudioSourceUpsert(result),
                 });
             }
             EngineCmd::CmdAudioSourcePlay(args) => {
@@ -576,18 +872,26 @@ pub fn engine_process_batch(
                     response: CommandResponse::AudioResourceDispose(result),
                 });
             }
-            EngineCmd::CmdGeometryCreate(args) => {
-                let result = res::engine_cmd_geometry_create(engine, &args);
+            EngineCmd::CmdGeometryUpsert(args) => {
+                let result = match args {
+                    CmdGeometryUpsertArgs::Create(create_args) => {
+                        let create_result = res::engine_cmd_geometry_create(engine, &create_args);
+                        CmdResultSimple {
+                            success: create_result.success,
+                            message: create_result.message,
+                        }
+                    }
+                    CmdGeometryUpsertArgs::Update(update_args) => {
+                        let update_result = res::engine_cmd_geometry_update(engine, &update_args);
+                        CmdResultSimple {
+                            success: update_result.success,
+                            message: update_result.message,
+                        }
+                    }
+                };
                 engine.response_queue.push(CommandResponseEnvelope {
                     id: pack.id,
-                    response: CommandResponse::GeometryCreate(result),
-                });
-            }
-            EngineCmd::CmdGeometryUpdate(args) => {
-                let result = res::engine_cmd_geometry_update(engine, &args);
-                engine.response_queue.push(CommandResponseEnvelope {
-                    id: pack.id,
-                    response: CommandResponse::GeometryUpdate(result),
+                    response: CommandResponse::GeometryUpsert(result),
                 });
             }
             EngineCmd::CmdGeometryDispose(args) => {
@@ -604,18 +908,28 @@ pub fn engine_process_batch(
                     response: CommandResponse::PrimitiveGeometryCreate(result),
                 });
             }
-            EngineCmd::CmdEnvironmentCreate(args) => {
-                let result = res::engine_cmd_environment_create(engine, &args);
+            EngineCmd::CmdEnvironmentUpsert(args) => {
+                let result = match args {
+                    CmdEnvironmentUpsertArgs::Create(create_args) => {
+                        let create_result =
+                            res::engine_cmd_environment_create(engine, &create_args);
+                        CmdResultSimple {
+                            success: create_result.success,
+                            message: create_result.message,
+                        }
+                    }
+                    CmdEnvironmentUpsertArgs::Update(update_args) => {
+                        let update_result =
+                            res::engine_cmd_environment_update(engine, &update_args);
+                        CmdResultSimple {
+                            success: update_result.success,
+                            message: update_result.message,
+                        }
+                    }
+                };
                 engine.response_queue.push(CommandResponseEnvelope {
                     id: pack.id,
-                    response: CommandResponse::EnvironmentCreate(result),
-                });
-            }
-            EngineCmd::CmdEnvironmentUpdate(args) => {
-                let result = res::engine_cmd_environment_update(engine, &args);
-                engine.response_queue.push(CommandResponseEnvelope {
-                    id: pack.id,
-                    response: CommandResponse::EnvironmentUpdate(result),
+                    response: CommandResponse::EnvironmentUpsert(result),
                 });
             }
             EngineCmd::CmdEnvironmentDispose(args) => {
@@ -634,6 +948,9 @@ pub fn engine_process_batch(
             }
             EngineCmd::CmdRealmCreate(args) => {
                 let result = realm::engine_cmd_realm_create(engine, &args);
+                if result.success {
+                    mark_windows_dirty(engine);
+                }
                 engine.response_queue.push(CommandResponseEnvelope {
                     id: pack.id,
                     response: CommandResponse::RealmCreate(result),
@@ -641,6 +958,9 @@ pub fn engine_process_batch(
             }
             EngineCmd::CmdRealmDispose(args) => {
                 let result = realm::engine_cmd_realm_dispose(engine, &args);
+                if result.success {
+                    mark_windows_dirty(engine);
+                }
                 engine.response_queue.push(CommandResponseEnvelope {
                     id: pack.id,
                     response: CommandResponse::RealmDispose(result),
@@ -648,6 +968,9 @@ pub fn engine_process_batch(
             }
             EngineCmd::CmdTargetUpsert(args) => {
                 let result = target::engine_cmd_target_upsert(engine, &args);
+                if result.success {
+                    mark_windows_dirty(engine);
+                }
                 engine.response_queue.push(CommandResponseEnvelope {
                     id: pack.id,
                     response: CommandResponse::TargetUpsert(result),
@@ -655,23 +978,173 @@ pub fn engine_process_batch(
             }
             EngineCmd::CmdTargetDispose(args) => {
                 let result = target::engine_cmd_target_dispose(engine, &args);
+                if result.success {
+                    mark_windows_dirty(engine);
+                }
                 engine.response_queue.push(CommandResponseEnvelope {
                     id: pack.id,
                     response: CommandResponse::TargetDispose(result),
                 });
             }
-            EngineCmd::CmdTargetBindUpsert(args) => {
-                let result = target::engine_cmd_target_bind_upsert(engine, &args);
+            EngineCmd::CmdTargetLayerUpsert(args) => {
+                let result = target::engine_cmd_target_layer_upsert(engine, &args);
+                if result.success {
+                    mark_windows_dirty(engine);
+                }
                 engine.response_queue.push(CommandResponseEnvelope {
                     id: pack.id,
-                    response: CommandResponse::TargetBindUpsert(result),
+                    response: CommandResponse::TargetLayerUpsert(result),
                 });
             }
-            EngineCmd::CmdTargetBindDispose(args) => {
-                let result = target::engine_cmd_target_bind_dispose(engine, &args);
+            EngineCmd::CmdTargetLayerDispose(args) => {
+                let result = target::engine_cmd_target_layer_dispose(engine, &args);
+                if result.success {
+                    mark_windows_dirty(engine);
+                }
                 engine.response_queue.push(CommandResponseEnvelope {
                     id: pack.id,
-                    response: CommandResponse::TargetBindDispose(result),
+                    response: CommandResponse::TargetLayerDispose(result),
+                });
+            }
+            EngineCmd::CmdUiThemeDefine(args) => {
+                let result = ui::engine_cmd_ui_theme_define(engine, &args);
+                engine.response_queue.push(CommandResponseEnvelope {
+                    id: pack.id,
+                    response: CommandResponse::UiThemeDefine(result),
+                });
+            }
+            EngineCmd::CmdUiThemeDispose(args) => {
+                let result = ui::engine_cmd_ui_theme_dispose(engine, &args);
+                engine.response_queue.push(CommandResponseEnvelope {
+                    id: pack.id,
+                    response: CommandResponse::UiThemeDispose(result),
+                });
+            }
+            EngineCmd::CmdUiDocumentCreate(args) => {
+                let result = ui::engine_cmd_ui_document_create(engine, &args);
+                if result.success {
+                    mark_windows_dirty(engine);
+                }
+                engine.response_queue.push(CommandResponseEnvelope {
+                    id: pack.id,
+                    response: CommandResponse::UiDocumentCreate(result),
+                });
+            }
+            EngineCmd::CmdUiDocumentDispose(args) => {
+                let result = ui::engine_cmd_ui_document_dispose(engine, &args);
+                if result.success {
+                    mark_windows_dirty(engine);
+                }
+                engine.response_queue.push(CommandResponseEnvelope {
+                    id: pack.id,
+                    response: CommandResponse::UiDocumentDispose(result),
+                });
+            }
+            EngineCmd::CmdUiDocumentSetRect(args) => {
+                let result = ui::engine_cmd_ui_document_set_rect(engine, &args);
+                if result.success {
+                    mark_windows_dirty(engine);
+                }
+                engine.response_queue.push(CommandResponseEnvelope {
+                    id: pack.id,
+                    response: CommandResponse::UiDocumentSetRect(result),
+                });
+            }
+            EngineCmd::CmdUiDocumentSetTheme(args) => {
+                let result = ui::engine_cmd_ui_document_set_theme(engine, &args);
+                if result.success {
+                    mark_windows_dirty(engine);
+                }
+                engine.response_queue.push(CommandResponseEnvelope {
+                    id: pack.id,
+                    response: CommandResponse::UiDocumentSetTheme(result),
+                });
+            }
+            EngineCmd::CmdUiDocumentGetTree(args) => {
+                let result = ui::engine_cmd_ui_document_get_tree(engine, &args);
+                engine.response_queue.push(CommandResponseEnvelope {
+                    id: pack.id,
+                    response: CommandResponse::UiDocumentGetTree(result),
+                });
+            }
+            EngineCmd::CmdUiDocumentGetLayoutRects(args) => {
+                let result = ui::engine_cmd_ui_document_get_layout_rects(engine, &args);
+                engine.response_queue.push(CommandResponseEnvelope {
+                    id: pack.id,
+                    response: CommandResponse::UiDocumentGetLayoutRects(result),
+                });
+            }
+            EngineCmd::CmdUiApplyOps(args) => {
+                let result = ui::engine_cmd_ui_apply_ops(engine, &args);
+                if result.success {
+                    mark_windows_dirty(engine);
+                }
+                engine.response_queue.push(CommandResponseEnvelope {
+                    id: pack.id,
+                    response: CommandResponse::UiApplyOps(result),
+                });
+            }
+            EngineCmd::CmdUiDebugSet(args) => {
+                let result = ui::engine_cmd_ui_debug_set(engine, &args);
+                engine.response_queue.push(CommandResponseEnvelope {
+                    id: pack.id,
+                    response: CommandResponse::UiDebugSet(result),
+                });
+            }
+            EngineCmd::CmdUiFocusSet(args) => {
+                let result = ui::engine_cmd_ui_focus_set(engine, &args);
+                engine.response_queue.push(CommandResponseEnvelope {
+                    id: pack.id,
+                    response: CommandResponse::UiFocusSet(result),
+                });
+            }
+            EngineCmd::CmdUiFocusGet(args) => {
+                let result = ui::engine_cmd_ui_focus_get(engine, &args);
+                engine.response_queue.push(CommandResponseEnvelope {
+                    id: pack.id,
+                    response: CommandResponse::UiFocusGet(result),
+                });
+            }
+            EngineCmd::CmdUiEventTraceSet(args) => {
+                let result = ui::engine_cmd_ui_event_trace_set(engine, &args);
+                engine.response_queue.push(CommandResponseEnvelope {
+                    id: pack.id,
+                    response: CommandResponse::UiEventTraceSet(result),
+                });
+            }
+            EngineCmd::CmdUiImageCreateFromBuffer(args) => {
+                let result = ui::engine_cmd_ui_image_create_from_buffer(engine, &args);
+                engine.response_queue.push(CommandResponseEnvelope {
+                    id: pack.id,
+                    response: CommandResponse::UiImageCreateFromBuffer(result),
+                });
+            }
+            EngineCmd::CmdUiImageDispose(args) => {
+                let result = ui::engine_cmd_ui_image_dispose(engine, &args);
+                engine.response_queue.push(CommandResponseEnvelope {
+                    id: pack.id,
+                    response: CommandResponse::UiImageDispose(result),
+                });
+            }
+            EngineCmd::CmdUiClipboardPaste(args) => {
+                let result = ui::engine_cmd_ui_clipboard_paste(engine, &args);
+                engine.response_queue.push(CommandResponseEnvelope {
+                    id: pack.id,
+                    response: CommandResponse::UiClipboardPaste(result),
+                });
+            }
+            EngineCmd::CmdUiScreenshotReply(args) => {
+                let result = ui::engine_cmd_ui_screenshot_reply(engine, &args);
+                engine.response_queue.push(CommandResponseEnvelope {
+                    id: pack.id,
+                    response: CommandResponse::UiScreenshotReply(result),
+                });
+            }
+            EngineCmd::CmdUiAccessKitActionRequest(args) => {
+                let result = ui::engine_cmd_ui_accesskit_action_request(engine, &args);
+                engine.response_queue.push(CommandResponseEnvelope {
+                    id: pack.id,
+                    response: CommandResponse::UiAccessKitActionRequest(result),
                 });
             }
             EngineCmd::CmdModelList(args) => {
@@ -746,6 +1219,11 @@ pub fn engine_process_batch(
                     }),
                 });
             }
+        }
+        if engine.response_queue.len() > response_count_before
+            && let Some(last_response) = engine.response_queue.last().cloned()
+        {
+            maybe_emit_response_error_event(engine, command_id, &last_response.response);
         }
     }
 

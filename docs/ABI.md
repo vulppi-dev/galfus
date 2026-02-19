@@ -43,7 +43,6 @@ All structured data that crosses the ABI uses **MessagePack**, via:
 
 - `serde`
 - `rmp-serde`
-- `serde_repr` for numeric enums
 
 This includes:
 
@@ -137,7 +136,7 @@ u32 vulfram_receive_queue(uint8_t** out_ptr, size_t* out_length);
 ```
 
 - On success, returns a MessagePack buffer with a batch of **responses**:
-  - Acknowledgments, detailed error info, internal notifications, etc.
+  - Acknowledgments, detailed error info, notifications, etc.
 
 - The buffer may be empty:
   - `*out_length == 0` indicates “no responses available”.
@@ -149,7 +148,7 @@ Binding responsibilities:
 3. Release the core-allocated buffer using the agreed mechanism.
 4. Deserialize MessagePack and route responses to the host/application.
 
-Calling `vulfram_receive_queue` consumes and clears the internal response queue.
+Calling `vulfram_receive_queue` consumes and clears the response queue.
 
 ---
 
@@ -162,6 +161,8 @@ u32 vulfram_receive_events(uint8_t** out_ptr, size_t* out_length);
 - Returns a MessagePack buffer containing a batch of **events**:
   - Keyboard, pointer, touch, gamepad (Gilrs on native, Gamepad API on web)
   - Window system events (resize, close, focus, etc.) via the platform proxy
+  - System diagnostic events (`SystemEvent::Error`) for command failures and
+    routing/auto-graph diagnostics
 
 Semantics are identical to `vulfram_receive_queue`, but the content is
 strictly _event_ data, not responses.

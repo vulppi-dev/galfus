@@ -8,6 +8,7 @@ use std::collections::HashMap;
 pub struct BindingSystem {
     pub frame_pool: UniformBufferPool<FrameComponent>,
     pub camera_pool: UniformBufferPool<CameraComponent>,
+    pub shadow_camera_pool: UniformBufferPool<CameraComponent>,
     pub model_pool: UniformBufferPool<ModelComponent>,
     pub instance_pool: StorageBufferPool<ModelComponent>,
     pub outline_instance_pool: StorageBufferPool<ModelComponent>,
@@ -18,6 +19,7 @@ pub struct BindingSystem {
     pub material_pbr_inputs: StorageBufferPool<glam::Vec4>,
     pub bones_pool: StorageBufferPool<glam::Mat4>,
     pub shared_group: Option<wgpu::BindGroup>,
+    pub shadow_shared_group: Option<wgpu::BindGroup>,
     pub model_bind_group: Option<wgpu::BindGroup>,
     pub outline_model_bind_group: Option<wgpu::BindGroup>,
     pub shadow_model_bind_group: Option<wgpu::BindGroup>,

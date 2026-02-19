@@ -20,6 +20,7 @@ impl RenderState {
         self.bindings = Some(BindingSystem {
             frame_pool: UniformBufferPool::new(device, queue, Some(1), alignment),
             camera_pool: UniformBufferPool::new(device, queue, Some(128), alignment),
+            shadow_camera_pool: UniformBufferPool::new(device, queue, Some(256), alignment),
             model_pool: UniformBufferPool::new(device, queue, Some(2048), alignment),
             instance_pool: StorageBufferPool::new(device, queue, Some(16384), 0),
             outline_instance_pool: StorageBufferPool::new(device, queue, Some(16384), 0),
@@ -30,6 +31,7 @@ impl RenderState {
             material_pbr_inputs: StorageBufferPool::new(device, queue, Some(256), 0),
             bones_pool: StorageBufferPool::new(device, queue, Some(256), 0),
             shared_group: None,
+            shadow_shared_group: None,
             model_bind_group: None,
             outline_model_bind_group: None,
             shadow_model_bind_group: None,

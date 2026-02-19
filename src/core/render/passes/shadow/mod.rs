@@ -169,6 +169,7 @@ pub fn pass_shadow_update(
     struct PageRender {
         layer: u32,
         shadow_cam_id: u32,
+        view_projection: glam::Mat4,
         transform: (f32, f32, f32, f32, u32),
     }
 
@@ -186,7 +187,7 @@ pub fn pass_shadow_update(
         // Use a very low ID for shadow cameras to fit in the initial pool capacity (128)
         let shadow_cam_id = 10 + key.light_id * 6 + key.face;
         bindings
-            .camera_pool
+            .shadow_camera_pool
             .write(shadow_cam_id, &shadow_camera_data);
 
         let transform = match shadow_manager.atlas.get_uv_transform(handle) {
@@ -197,6 +198,7 @@ pub fn pass_shadow_update(
         render_pages.push(PageRender {
             layer: transform.4,
             shadow_cam_id,
+            view_projection: page_vp,
             transform,
         });
     }
@@ -379,16 +381,13 @@ pub fn pass_shadow_update(
             rpass.set_viewport(vx, vy, vw, vh, 0.0, 1.0);
             rpass.set_scissor_rect(vx as u32, vy as u32, vw as u32, vh as u32);
 
-            if let Some(shared_group) = bindings.shared_group.as_ref() {
-                let camera_offset = bindings.camera_pool.get_offset(page.shadow_cam_id) as u32;
+            if let Some(shared_group) = bindings.shadow_shared_group.as_ref() {
+                let camera_offset =
+                    bindings.shadow_camera_pool.get_offset(page.shadow_cam_id) as u32;
                 rpass.set_bind_group(0, shared_group, &[camera_offset, 0]);
             }
 
-            let frustum_opt = render_state
-                .scene
-                .cameras
-                .get(&page.shadow_cam_id)
-                .map(|c| Frustum::from_view_projection(c.data.view_projection));
+            let frustum = Frustum::from_view_projection(page.view_projection);
 
             if let Some(model_bind_group) = bindings.shadow_model_bind_group.as_ref() {
                 rpass.set_bind_group(1, model_bind_group, &[]);
@@ -399,12 +398,10 @@ pub fn pass_shadow_update(
                     continue;
                 }
 
-                if let Some(frustum) = frustum_opt {
-                    if let Some(aabb) = vertex_sys.aabb(model_record.geometry_id) {
-                        let world_aabb = aabb.transform(&model_record.data.transform);
-                        if !frustum.intersects_aabb(world_aabb.min, world_aabb.max) {
-                            continue;
-                        }
+                if let Some(aabb) = vertex_sys.aabb(model_record.geometry_id) {
+                    let world_aabb = aabb.transform(&model_record.data.transform);
+                    if !frustum.intersects_aabb(world_aabb.min, world_aabb.max) {
+                        continue;
                     }
                 }
 

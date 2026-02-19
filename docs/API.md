@@ -42,7 +42,6 @@ The Vulfram core is built as a Rust library with the following key crates:
 
 - **Serialization**
   - `serde`
-  - `serde_repr`
   - `rmp-serde`
     - MessagePack serialization/deserialization for commands, events, profiling
 
@@ -134,7 +133,16 @@ The environment config now includes a post-processing block used by the `post` p
 
 - `msaa`
 - `skybox`
+- `clearColor` (RGB clear used when skybox is disabled)
 - `post`
+
+Environment profiles are host-addressable by `environmentId` via
+`CmdEnvironmentUpsert` and can be assigned per `TargetLayer`
+using `CmdTargetLayerUpsert.environmentId`.
+Selection priority during rendering:
+1. layer `environmentId` (when set);
+2. current default profile;
+3. core fallback defaults.
 
 `SkyboxConfig` highlights:
 
@@ -154,6 +162,7 @@ Async texture decode:
 
 - `CmdTextureCreateFromBuffer` returns `{ pending: true }` when decode is queued.
 - The engine later emits `SystemEvent::TextureReady { windowId, textureId, success, message }`.
+- Diagnostic failures also emit `SystemEvent::Error { scope, message, commandId?, commandType? }`.
 
 `PostProcessConfig` highlights:
 
@@ -238,6 +247,28 @@ then decoded into internal Rust enums.
 ### 5.2 Command Representation
 
 `EngineCmd` is the internal command enum; see `docs/cmds` for the command surface.
+Unified upsert commands are available for resource create/update pairs:
+`camera`, `model`, `light`, `material`, `geometry`, `environment`,
+`audio-listener`, and `audio-source`.
+For these families, use only `*Upsert` command variants.
+Diagnostics and trace/profiling runtime policy is configured by `CmdSystemDiagnosticsSet`.
+
+UI command surface is split by domain:
+
+- Theme/document ops:
+  - `CmdUiThemeDefine`, `CmdUiThemeDispose`
+  - `CmdUiDocumentCreate`, `CmdUiDocumentDispose`, `CmdUiDocumentSetRect`, `CmdUiDocumentSetTheme`
+  - `CmdUiApplyOps`
+- Introspection/focus/trace:
+  - `CmdUiDocumentGetTree`, `CmdUiDocumentGetLayoutRects`
+  - `CmdUiFocusSet`, `CmdUiFocusGet`
+  - `CmdUiEventTraceSet`
+- UI resources and input bridge:
+  - `CmdUiImageCreateFromBuffer`, `CmdUiImageDispose`
+  - `CmdUiClipboardPaste`, `CmdUiScreenshotReply`, `CmdUiAccessKitActionRequest`
+
+Technical UI runtime details are in `docs/ui/*`.
+Per-command contracts remain in `docs/cmds/*`.
 
 ### 5.3 Command Execution
 
@@ -250,6 +281,10 @@ During `vulfram_tick`:
    - Maintenance (e.g. cleaning uploads)
 
 3. Update any derived data required for rendering (culling, visibility, etc.).
+
+Diagnostic rule:
+- Any diagnosable failure must also emit `SystemEvent::Error` into the host event pool.
+- Core-side code should use the shared helper `push_error_event(...)` for consistency.
 
 ---
 
@@ -311,7 +346,7 @@ The host provides logical maps only:
 
 - `RealmMap` (realmId -> kind)
 - `TargetMap` (targetId -> kind)
-- `TargetBindMap` (realmId -> targetId + layout)
+- `TargetLayerMap` (realmId -> targetId + layout)
 
 The core resolves `TargetGraph` + `RealmGraph` automatically and creates
 `Surface`, `Present`, and `Connector` entries internally.
@@ -320,22 +355,42 @@ These entries are internal-only and are not exposed as host commands.
 Host bindings can update these maps with:
 
 - `CmdTargetUpsert` / `CmdTargetDispose`
-- `CmdTargetBindUpsert` / `CmdTargetBindDispose`
+- `CmdTargetLayerUpsert` / `CmdTargetLayerDispose`
 
 Example:
 
 ```text
-CmdTargetUpsert(targetId=9000, kind=window, ownerWindowId=1)
-CmdTargetUpsert(targetId=9002, kind=viewport-embed, ownerWindowId=1, sizeOverride=640x360)
-CmdTargetBindUpsert(realmId=10, targetId=9000, layout=...)
-CmdTargetBindUpsert(realmId=11, targetId=9002, layout=rect/zIndex/clip/inputFlags)
+CmdTargetUpsert(targetId=9000, kind=window, windowId=1)
+CmdTargetUpsert(targetId=9002, kind=window, windowId=1)
+CmdTargetUpsert(targetId=9003, kind=texture, size=640x360)
+CmdTargetLayerUpsert(realmId=10, targetId=9000, layout=..., cameraId=1)
+CmdTargetLayerUpsert(realmId=11, targetId=9002, layout=left/top/width/height/zIndex/clip)
 ```
 
-The core caches the `TargetGraphPlan` with a hash of targets/binds and
-computes diffs on change to drive partial updates.
+Rules:
+- `windowId` is mandatory for `window`, `widget-realm-viewport`, and `realm-plane`.
+  `widget-realm-viewport` is intended to be consumed by `UiNodeProps::WidgetRealmViewport`.
+  Its internal auto-link is used for dependency/routing and UI sampling, not for visible connector composition.
+- `size` is accepted only for `texture`.
+- `cameraId` on `CmdTargetLayerUpsert` is optional:
+  - when set, that camera is used for `Realm3D` sampling on the layer;
+  - when omitted, core uses the first available camera;
+  - when no camera exists, output remains `clearColor`.
+- `environmentId` on `CmdTargetLayerUpsert` is optional:
+  - when set, that environment profile is used for the layer;
+  - when omitted, current default environment profile is used;
+  - when no profile exists, core fallback defaults are used.
+- For `window`/`widget-realm-viewport` connector layers and `realm-plane`,
+  surface size is derived from
+  `TargetLayerLayout.width` and `TargetLayerLayout.height` when the layer is
+  resolved.
+- `TargetLayerLayout.left/top/width/height` accept `DimensionValue`:
+  - `px`
+  - `percent`
+  - `character` (`ch`)
+  - `display` (`dp`, 4px grid)
 
-`FrameReport` includes TargetGraph stats (node/edge counts and bind diffs)
-so the host can inspect auto-graph updates.
+Frame reporting includes composition diagnostics for host tooling.
 
 ### 7.1 Buffers
 
@@ -408,9 +463,25 @@ provides the resolved `windowId`, `realmId`, `targetId`, `connectorId`,
 `sourceRealmId`, and UV coordinates when a connector hit-test succeeds. This
 metadata is optional and omitted when routing is not available.
 
-If a bind sets `inputFlags` to include `RAYCAST` (`1`), the connector is treated
-as a plane hit-test and routing uses window-space UVs to support 3D-style
-raycast interactions.
+For `window`/`widget-realm-viewport` connector layers sourced from `Realm3D`,
+connector input routing uses raycast mode automatically. Other layer kinds use
+rect/clip hit-test routing.
+
+For `RealmPlane`-style usage, when a 3D model material samples a texture bound to a
+`texture` target that is also bound by a `TwoD` realm, pointer routing performs
+raycast + hitbox test against the model plane and forwards events to that UI realm.
+
+Routing is multi-hop across realms/targets in a single pointer event. Cycles are
+supported using bounded propagation (`MAX_ROUTE_STEPS`) to avoid blocking.
+
+Command failures (`success=false` responses) emit `SystemEvent::Error` with:
+- `scope = "command"`
+- `commandId` and `commandType` when available.
+
+Auto-graph diagnostics may also emit `SystemEvent::Error` with:
+- `scope = "target-auto-link"`
+- reason payload encoded in `message`.
+  - current reasons: `realm-not-found`, `target-not-found`, `host-realm-not-found`.
 
 On `vulfram_receive_events`, the core:
 
@@ -442,7 +513,9 @@ On `vulfram_receive_events`, the core:
   - `totalEventsDispatched`
   - `totalEventsCached`
 - `frameReport` with the RealmGraph execution order, cut edges, cached surface
-  entries, and any throttled/no-progress realms detected during the frame.
+  entries, any throttled/no-progress realms, plus target auto-link diagnostics
+  (`targetAutolinkFailures`).
+  - `targetAutolinkFailures[]` entries: `{ realmId, targetId, reason }`.
 
 On `vulfram_get_profiling`, the core:
 

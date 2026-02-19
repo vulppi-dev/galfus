@@ -31,37 +31,39 @@ pub fn run(ctx: DemoContext) -> bool {
     upload_buffer(2005, UploadType::IndexData, &indices);
 
     let setup_cmds = vec![
-        EngineCmd::CmdGeometryCreate(CmdGeometryCreateArgs {
-            window_id,
-            geometry_id,
-            label: Some("Skinned Plane".into()),
-            entries: vec![
-                GeometryPrimitiveEntry {
-                    primitive_type: crate::core::resources::GeometryPrimitiveType::Index,
-                    buffer_id: 2005,
-                },
-                GeometryPrimitiveEntry {
-                    primitive_type: crate::core::resources::GeometryPrimitiveType::Position,
-                    buffer_id: 2000,
-                },
-                GeometryPrimitiveEntry {
-                    primitive_type: crate::core::resources::GeometryPrimitiveType::Normal,
-                    buffer_id: 2001,
-                },
-                GeometryPrimitiveEntry {
-                    primitive_type: crate::core::resources::GeometryPrimitiveType::UV,
-                    buffer_id: 2002,
-                },
-                GeometryPrimitiveEntry {
-                    primitive_type: crate::core::resources::GeometryPrimitiveType::SkinJoints,
-                    buffer_id: 2003,
-                },
-                GeometryPrimitiveEntry {
-                    primitive_type: crate::core::resources::GeometryPrimitiveType::SkinWeights,
-                    buffer_id: 2004,
-                },
-            ],
-        }),
+        EngineCmd::CmdGeometryUpsert(crate::core::cmd::CmdGeometryUpsertArgs::Create(
+            CmdGeometryCreateArgs {
+                window_id,
+                geometry_id,
+                label: Some("Skinned Plane".into()),
+                entries: vec![
+                    GeometryPrimitiveEntry {
+                        primitive_type: crate::core::resources::GeometryPrimitiveType::Index,
+                        buffer_id: 2005,
+                    },
+                    GeometryPrimitiveEntry {
+                        primitive_type: crate::core::resources::GeometryPrimitiveType::Position,
+                        buffer_id: 2000,
+                    },
+                    GeometryPrimitiveEntry {
+                        primitive_type: crate::core::resources::GeometryPrimitiveType::Normal,
+                        buffer_id: 2001,
+                    },
+                    GeometryPrimitiveEntry {
+                        primitive_type: crate::core::resources::GeometryPrimitiveType::UV,
+                        buffer_id: 2002,
+                    },
+                    GeometryPrimitiveEntry {
+                        primitive_type: crate::core::resources::GeometryPrimitiveType::SkinJoints,
+                        buffer_id: 2003,
+                    },
+                    GeometryPrimitiveEntry {
+                        primitive_type: crate::core::resources::GeometryPrimitiveType::SkinWeights,
+                        buffer_id: 2004,
+                    },
+                ],
+            },
+        )),
         create_camera_cmd(
             camera_id,
             "Skinned Camera",
@@ -77,19 +79,21 @@ pub fn run(ctx: DemoContext) -> bool {
             None,
             None,
         ),
-        EngineCmd::CmdModelCreate(CmdModelCreateArgs {
-            window_id,
-            model_id,
-            label: Some("Skinned Plane".into()),
-            geometry_id,
-            material_id: Some(material_id),
-            transform: Mat4::IDENTITY,
-            layer_mask: crate::core::resources::common::default_layer_mask(),
-            cast_shadow: true,
-            receive_shadow: true,
-            cast_outline: false,
-            outline_color: Vec4::ZERO,
-        }),
+        EngineCmd::CmdModelUpsert(crate::core::cmd::CmdModelUpsertArgs::Create(
+            CmdModelCreateArgs {
+                window_id,
+                model_id,
+                label: Some("Skinned Plane".into()),
+                geometry_id,
+                material_id: Some(material_id),
+                transform: Mat4::IDENTITY,
+                layer_mask: crate::core::resources::common::default_layer_mask(),
+                cast_shadow: true,
+                receive_shadow: true,
+                cast_outline: false,
+                outline_color: Vec4::ZERO,
+            },
+        )),
         create_shadow_config_cmd(window_id),
     ];
 

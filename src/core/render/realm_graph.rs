@@ -110,6 +110,8 @@ pub(crate) fn collect_surface_views(
     surface_targets: &mut HashMap<SurfaceId, RenderTarget>,
     present_sizes: &HashMap<SurfaceId, glam::UVec2>,
 ) -> HashMap<SurfaceId, SurfaceSnapshot> {
+    surface_targets.retain(|surface_id, _| universal.surfaces.entries.contains_key(surface_id));
+
     let mut views = HashMap::new();
 
     for (surface_id, entry) in universal.surfaces.entries.iter() {
@@ -211,6 +213,10 @@ pub(crate) fn compose_realm_connectors(
         let Some(connector) = universal.connectors.entries.get(connector_id) else {
             continue;
         };
+        if (connector.value.input_flags & crate::core::target::resolve::INPUT_FLAG_WIDGET_VIEW) != 0
+        {
+            continue;
+        }
         if connector.value.source_surface == target_surface {
             crate::core::realm::FrameReport::push_unique(
                 &mut frame_report.self_sampled_connectors,
@@ -250,17 +256,11 @@ pub(crate) fn compose_realm_connectors(
             );
             continue;
         };
-        let source_size = universal
-            .surfaces
-            .entries
-            .get(&source_surface)
-            .map(|entry| entry.value.size)
-            .unwrap_or(snapshot.size);
         overlays.push((
             connector.value.z_index,
             passes::ComposeOverlay {
                 source_view: &snapshot.view,
-                source_size,
+                source_size: snapshot.size,
                 rect: connector.value.rect,
                 clip: connector.value.clip,
                 blend: blend_state_for_mode(connector.value.blend_mode),
@@ -307,6 +307,7 @@ fn blend_state_for_mode(mode: u32) -> Option<wgpu::BlendState> {
     match mode {
         0 => Some(wgpu::BlendState::ALPHA_BLENDING),
         1 => Some(wgpu::BlendState::PREMULTIPLIED_ALPHA_BLENDING),
+        2 => None,
         _ => Some(wgpu::BlendState::ALPHA_BLENDING),
     }
 }

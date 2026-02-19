@@ -1,17 +1,26 @@
 use std::cmp::Ordering;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use glam::{UVec2, Vec2};
 
 use crate::core::cmd::EngineEvent;
-use crate::core::input::events::{ElementState, PointerEvent, PointerEventTrace, TouchPhase};
+use crate::core::input::events::{
+    ElementState, PointerEvent, PointerEventTrace, PointerTraceConfig, PointerTraceHop,
+    PointerTraceLevel, PointerTraceStage, TouchPhase,
+};
+use crate::core::input::raycast::resolve_realm_plane_hit;
 use crate::core::realm::{ConnectorId, ConnectorState, InputCapture, RealmId, UniversalState};
 use crate::core::state::EngineState;
 use crate::core::target::TargetId;
 
 const INPUT_FLAG_RAYCAST: u32 = 1 << 0;
+const MAX_ROUTE_STEPS: usize = 32;
 
 pub fn route_pointer_events(engine_state: &mut EngineState) {
+    let mut events = std::mem::take(&mut engine_state.event_queue);
+    let trace_config = engine_state.universal_state.input_routing.trace;
+    let frame_index = engine_state.frame_index;
+
     let mut realm_by_surface = HashMap::new();
     for (realm_id, entry) in engine_state.universal_state.realms.entries.iter() {
         if let Some(surface_id) = entry.value.output_surface {
@@ -44,9 +53,24 @@ pub fn route_pointer_events(engine_state: &mut EngineState) {
             connector_targets.insert(connector_id, *target_id);
         }
     }
+    let mut layer_camera_by_key: HashMap<(u32, TargetId), Option<u32>> = HashMap::new();
+    for ((layer_realm_id, layer_target_id), layer) in
+        engine_state.universal_state.target_layers.entries.iter()
+    {
+        layer_camera_by_key.insert((*layer_realm_id, *layer_target_id), layer.camera_id);
+    }
 
     let mut connectors_by_realm: HashMap<RealmId, Vec<ConnectorHit>> = HashMap::new();
     for (connector_id, entry) in engine_state.universal_state.connectors.entries.iter() {
+        let Some(source_size) = engine_state
+            .universal_state
+            .surfaces
+            .entries
+            .get(&entry.value.source_surface)
+            .map(|surface| surface.value.size)
+        else {
+            continue;
+        };
         let target_id = connector_targets.get(connector_id).copied();
         let rank = target_id
             .and_then(|id| target_rank.get(&id).copied())
@@ -57,6 +81,7 @@ pub fn route_pointer_events(engine_state: &mut EngineState) {
             .push(ConnectorHit {
                 id: *connector_id,
                 state: entry.value.clone(),
+                source_size,
                 target_id,
                 target_rank: rank,
             });
@@ -64,31 +89,44 @@ pub fn route_pointer_events(engine_state: &mut EngineState) {
 
     for connectors in connectors_by_realm.values_mut() {
         connectors.sort_by(|a, b| {
-            let rank_cmp = b.target_rank.cmp(&a.target_rank);
-            if rank_cmp == Ordering::Equal {
-                b.state.z_index.cmp(&a.state.z_index)
+            let z_cmp = b.state.z_index.cmp(&a.state.z_index);
+            if z_cmp == Ordering::Equal {
+                let rank_cmp = b.target_rank.cmp(&a.target_rank);
+                if rank_cmp == Ordering::Equal {
+                    b.id.0.cmp(&a.id.0)
+                } else {
+                    rank_cmp
+                }
             } else {
-                rank_cmp
+                z_cmp
             }
         });
     }
 
-    for event in engine_state.event_queue.iter_mut() {
+    for event in events.iter_mut() {
         let EngineEvent::Pointer(pointer_event) = event else {
             continue;
         };
 
         let window_id = pointer_window_id(pointer_event);
-        let Some((realm_id, _surface_id)) = realm_by_window.get(&window_id).copied() else {
+        let Some((realm_id, root_surface_id)) = realm_by_window.get(&window_id).copied() else {
             continue;
         };
 
-        let window_size = engine_state
-            .window
-            .states
-            .get(&window_id)
-            .map(|state| state.inner_size);
-        let pointer_id = pointer_id(pointer_event);
+        let root_surface_size = engine_state
+            .universal_state
+            .surfaces
+            .entries
+            .get(&root_surface_id)
+            .map(|entry| entry.value.size)
+            .or_else(|| {
+                engine_state
+                    .window
+                    .states
+                    .get(&window_id)
+                    .map(|state| state.inner_size)
+            });
+        let pointer_id_value = pointer_id(pointer_event);
         let position = pointer_position(pointer_event).or_else(|| {
             engine_state
                 .window
@@ -102,8 +140,19 @@ pub fn route_pointer_events(engine_state: &mut EngineState) {
         let mut source_realm_id = None;
         let mut uv = None;
         let mut uv_override = None;
+        let mut hops: Vec<PointerTraceHop> = Vec::new();
+        hops.push(PointerTraceHop {
+            stage: PointerTraceStage::RootWindow,
+            realm_id: Some(realm_id.0),
+            target_id: None,
+            layer_realm_id: None,
+            connector_id: None,
+            surface_id: Some(root_surface_id.0),
+            camera_id: None,
+            uv: None,
+        });
 
-        if let (Some(pointer_id), Some(position)) = (pointer_id, position) {
+        if let (Some(pointer_id), Some(position)) = (pointer_id_value, position) {
             if let Some(capture) =
                 resolve_captured_connector(&engine_state.universal_state, window_id, pointer_id)
             {
@@ -120,14 +169,43 @@ pub fn route_pointer_events(engine_state: &mut EngineState) {
                         resolve_connector_for_target(connectors_by_realm.get(&realm_id), target_id)
                     })
                 };
+                hops.push(PointerTraceHop {
+                    stage: PointerTraceStage::Capture,
+                    realm_id: Some(realm_id.0),
+                    target_id: target_id.map(|id| id.0),
+                    layer_realm_id: Some(realm_id.0),
+                    connector_id: connector_id.map(|id| id.0),
+                    surface_id: None,
+                    camera_id: target_id.and_then(|id| {
+                        layer_camera_by_key
+                            .get(&(realm_id.0, id))
+                            .copied()
+                            .flatten()
+                    }),
+                    uv: None,
+                });
             } else if let Some(hit) = resolve_hit_connector(
-                &engine_state.universal_state,
                 connectors_by_realm.get(&realm_id),
                 position,
-                window_size,
+                root_surface_size,
             ) {
                 connector_id = Some(hit.connector_id);
                 uv_override = hit.uv;
+                hops.push(PointerTraceHop {
+                    stage: PointerTraceStage::ConnectorHit,
+                    realm_id: Some(realm_id.0),
+                    target_id: connector_targets.get(&hit.connector_id).map(|id| id.0),
+                    layer_realm_id: Some(realm_id.0),
+                    connector_id: Some(hit.connector_id.0),
+                    surface_id: None,
+                    camera_id: connector_targets.get(&hit.connector_id).and_then(|id| {
+                        layer_camera_by_key
+                            .get(&(realm_id.0, *id))
+                            .copied()
+                            .flatten()
+                    }),
+                    uv: hit.uv,
+                });
             }
 
             if connector_id.is_none() {
@@ -139,6 +217,19 @@ pub fn route_pointer_events(engine_state: &mut EngineState) {
                         connectors_by_realm.get(&realm_id),
                         focused_target,
                     );
+                    hops.push(PointerTraceHop {
+                        stage: PointerTraceStage::FocusFallback,
+                        realm_id: Some(realm_id.0),
+                        target_id: Some(focused_target.0),
+                        layer_realm_id: Some(realm_id.0),
+                        connector_id: connector_id.map(|id| id.0),
+                        surface_id: None,
+                        camera_id: layer_camera_by_key
+                            .get(&(realm_id.0, focused_target))
+                            .copied()
+                            .flatten(),
+                        uv: None,
+                    });
                 }
             }
 
@@ -156,9 +247,204 @@ pub fn route_pointer_events(engine_state: &mut EngineState) {
                 if let Some(connector) = connector {
                     source_realm_id = realm_by_surface.get(&connector.source_surface).copied();
                     uv = uv_override.or_else(|| {
-                        resolve_connector_uv(&engine_state.universal_state, connector, position)
+                        resolve_connector_uv(
+                            &engine_state.universal_state,
+                            connector,
+                            position,
+                            root_surface_size.unwrap_or(glam::UVec2::new(1, 1)),
+                        )
+                    });
+                    hops.push(PointerTraceHop {
+                        stage: PointerTraceStage::HopForward,
+                        realm_id: source_realm_id.map(|id| id.0),
+                        target_id: target_id.map(|id| id.0),
+                        layer_realm_id: Some(connector.target_realm.0),
+                        connector_id: Some(connector_id.0),
+                        surface_id: Some(connector.source_surface.0),
+                        camera_id: target_id.and_then(|id| {
+                            layer_camera_by_key
+                                .get(&(connector.target_realm.0, id))
+                                .copied()
+                                .flatten()
+                        }),
+                        uv,
                     });
                 }
+            } else if source_realm_id.is_none() {
+                if let Some(realm_plane_hit) = resolve_realm_plane_hit(
+                    engine_state,
+                    window_id,
+                    realm_id,
+                    target_id.and_then(|id| {
+                        layer_camera_by_key
+                            .get(&(realm_id.0, id))
+                            .copied()
+                            .flatten()
+                    }),
+                    position,
+                    root_surface_size.unwrap_or(glam::UVec2::new(1, 1)),
+                ) {
+                    source_realm_id = Some(realm_plane_hit.source_realm_id);
+                    target_id = Some(realm_plane_hit.target_id);
+                    uv = Some(realm_plane_hit.uv);
+                    hops.push(PointerTraceHop {
+                        stage: PointerTraceStage::RealmPlaneHit,
+                        realm_id: Some(realm_plane_hit.source_realm_id.0),
+                        target_id: Some(realm_plane_hit.target_id.0),
+                        layer_realm_id: Some(realm_id.0),
+                        connector_id: None,
+                        surface_id: None,
+                        camera_id: layer_camera_by_key
+                            .get(&(realm_id.0, realm_plane_hit.target_id))
+                            .copied()
+                            .flatten(),
+                        uv: Some(realm_plane_hit.uv),
+                    });
+                }
+            }
+
+            let mut visited: HashSet<(RealmId, u16, u16)> = HashSet::new();
+            for _ in 0..MAX_ROUTE_STEPS {
+                let (current_realm, current_uv) = match (source_realm_id, uv) {
+                    (Some(realm), Some(uv)) => (realm, uv),
+                    _ => break,
+                };
+                let key = (
+                    current_realm,
+                    quantize_uv(current_uv.x),
+                    quantize_uv(current_uv.y),
+                );
+                if !visited.insert(key) {
+                    hops.push(PointerTraceHop {
+                        stage: PointerTraceStage::StopCycle,
+                        realm_id: Some(current_realm.0),
+                        target_id: target_id.map(|id| id.0),
+                        layer_realm_id: Some(current_realm.0),
+                        connector_id: connector_id.map(|id| id.0),
+                        surface_id: None,
+                        camera_id: None,
+                        uv: Some(current_uv),
+                    });
+                    break;
+                }
+                let Some(surface_size) =
+                    realm_surface_size(&engine_state.universal_state, current_realm)
+                else {
+                    break;
+                };
+                let current_position = Vec2::new(
+                    current_uv.x * surface_size.x as f32,
+                    current_uv.y * surface_size.y as f32,
+                );
+
+                if let Some(hit) = resolve_hit_connector(
+                    connectors_by_realm.get(&current_realm),
+                    current_position,
+                    Some(surface_size),
+                ) {
+                    connector_id = Some(hit.connector_id);
+                    target_id = connector_targets
+                        .get(&hit.connector_id)
+                        .copied()
+                        .or(target_id);
+                    let connector = engine_state
+                        .universal_state
+                        .connectors
+                        .entries
+                        .get(&hit.connector_id)
+                        .map(|entry| &entry.value);
+                    let Some(connector) = connector else {
+                        break;
+                    };
+                    let next_realm = realm_by_surface.get(&connector.source_surface).copied();
+                    let next_uv = hit.uv.or_else(|| {
+                        resolve_connector_uv(
+                            &engine_state.universal_state,
+                            connector,
+                            current_position,
+                            surface_size,
+                        )
+                    });
+                    hops.push(PointerTraceHop {
+                        stage: PointerTraceStage::HopForward,
+                        realm_id: next_realm.map(|id| id.0),
+                        target_id: target_id.map(|id| id.0),
+                        layer_realm_id: Some(current_realm.0),
+                        connector_id: Some(hit.connector_id.0),
+                        surface_id: Some(connector.source_surface.0),
+                        camera_id: target_id.and_then(|id| {
+                            layer_camera_by_key
+                                .get(&(current_realm.0, id))
+                                .copied()
+                                .flatten()
+                        }),
+                        uv: next_uv,
+                    });
+                    match (next_realm, next_uv) {
+                        (Some(next_realm), Some(next_uv)) => {
+                            source_realm_id = Some(next_realm);
+                            uv = Some(next_uv);
+                            continue;
+                        }
+                        _ => break,
+                    }
+                }
+
+                if let Some(realm_plane_hit) = resolve_realm_plane_hit(
+                    engine_state,
+                    window_id,
+                    current_realm,
+                    target_id.and_then(|id| {
+                        layer_camera_by_key
+                            .get(&(current_realm.0, id))
+                            .copied()
+                            .flatten()
+                    }),
+                    current_position,
+                    surface_size,
+                ) {
+                    source_realm_id = Some(realm_plane_hit.source_realm_id);
+                    target_id = Some(realm_plane_hit.target_id);
+                    uv = Some(realm_plane_hit.uv);
+                    hops.push(PointerTraceHop {
+                        stage: PointerTraceStage::RealmPlaneHit,
+                        realm_id: Some(realm_plane_hit.source_realm_id.0),
+                        target_id: Some(realm_plane_hit.target_id.0),
+                        layer_realm_id: Some(current_realm.0),
+                        connector_id: None,
+                        surface_id: None,
+                        camera_id: layer_camera_by_key
+                            .get(&(current_realm.0, realm_plane_hit.target_id))
+                            .copied()
+                            .flatten(),
+                        uv: Some(realm_plane_hit.uv),
+                    });
+                    continue;
+                }
+                hops.push(PointerTraceHop {
+                    stage: PointerTraceStage::StopNoHit,
+                    realm_id: Some(current_realm.0),
+                    target_id: target_id.map(|id| id.0),
+                    layer_realm_id: Some(current_realm.0),
+                    connector_id: connector_id.map(|id| id.0),
+                    surface_id: None,
+                    camera_id: None,
+                    uv: Some(current_uv),
+                });
+                break;
+            }
+
+            if visited.len() >= MAX_ROUTE_STEPS {
+                hops.push(PointerTraceHop {
+                    stage: PointerTraceStage::StopStepBudget,
+                    realm_id: source_realm_id.map(|id| id.0),
+                    target_id: target_id.map(|id| id.0),
+                    layer_realm_id: source_realm_id.map(|id| id.0),
+                    connector_id: connector_id.map(|id| id.0),
+                    surface_id: None,
+                    camera_id: None,
+                    uv,
+                });
             }
 
             update_capture_state(
@@ -177,17 +463,27 @@ pub fn route_pointer_events(engine_state: &mut EngineState) {
             );
         }
 
-        let trace = PointerEventTrace {
+        let full_trace = PointerEventTrace {
             window_id,
             realm_id: realm_id.0,
             target_id: target_id.map(|id| id.0),
             connector_id: connector_id.map(|id| id.0),
             source_realm_id: source_realm_id.map(|id| id.0),
             uv,
+            hops,
         };
 
+        let trace = select_trace_payload(
+            trace_config,
+            frame_index,
+            pointer_window_id(pointer_event),
+            pointer_id_value,
+            full_trace,
+        );
         apply_trace(pointer_event, trace);
     }
+
+    engine_state.event_queue = events;
 }
 
 fn pointer_window_id(event: &PointerEvent) -> u32 {
@@ -235,7 +531,7 @@ fn pointer_position(event: &PointerEvent) -> Option<Vec2> {
     }
 }
 
-fn apply_trace(event: &mut PointerEvent, trace: PointerEventTrace) {
+fn apply_trace(event: &mut PointerEvent, trace: Option<PointerEventTrace>) {
     match event {
         PointerEvent::OnMove { trace: slot, .. }
         | PointerEvent::OnEnter { trace: slot, .. }
@@ -247,9 +543,65 @@ fn apply_trace(event: &mut PointerEvent, trace: PointerEventTrace) {
         | PointerEvent::OnPanGesture { trace: slot, .. }
         | PointerEvent::OnRotationGesture { trace: slot, .. }
         | PointerEvent::OnDoubleTapGesture { trace: slot, .. } => {
-            *slot = Some(trace);
+            *slot = trace;
         }
     }
+}
+
+fn select_trace_payload(
+    config: PointerTraceConfig,
+    frame_index: u64,
+    window_id: u32,
+    pointer_id: Option<u64>,
+    full: PointerEventTrace,
+) -> Option<PointerEventTrace> {
+    if !trace_is_sampled(config, frame_index, window_id, pointer_id) {
+        return None;
+    }
+    match config.level {
+        PointerTraceLevel::Off => None,
+        PointerTraceLevel::Errors => trace_contains_error(&full).then_some(full),
+        PointerTraceLevel::Basic => Some(PointerEventTrace {
+            window_id: full.window_id,
+            realm_id: full.realm_id,
+            target_id: full.target_id,
+            connector_id: None,
+            source_realm_id: None,
+            uv: None,
+            hops: Vec::new(),
+        }),
+        PointerTraceLevel::Full => Some(full),
+    }
+}
+
+fn trace_contains_error(trace: &PointerEventTrace) -> bool {
+    trace.hops.iter().any(|hop| {
+        matches!(
+            hop.stage,
+            PointerTraceStage::StopStepBudget | PointerTraceStage::StopCycle
+        )
+    })
+}
+
+fn trace_is_sampled(
+    config: PointerTraceConfig,
+    frame_index: u64,
+    window_id: u32,
+    pointer_id: Option<u64>,
+) -> bool {
+    let percent = config.sampling_percent.min(100);
+    if percent == 0 {
+        return false;
+    }
+    if percent == 100 {
+        return true;
+    }
+    let seed = frame_index
+        ^ window_id as u64
+        ^ pointer_id
+            .unwrap_or_default()
+            .wrapping_mul(11400714819323198485);
+    seed % 100 < percent as u64
 }
 
 fn resolve_captured_connector(
@@ -265,37 +617,29 @@ fn resolve_captured_connector(
 }
 
 fn resolve_hit_connector(
-    universal: &UniversalState,
     connectors: Option<&Vec<ConnectorHit>>,
     position: Vec2,
     window_size: Option<UVec2>,
 ) -> Option<HitResult> {
     let connectors = connectors?;
+    let target_size = window_size.unwrap_or_else(|| UVec2::new(1, 1));
     for connector in connectors {
         if connector.state.input_flags & INPUT_FLAG_RAYCAST != 0 {
-            if let Some(window_size) = window_size {
-                if let Some(uv) = normalize_window_uv(position, window_size) {
-                    return Some(HitResult {
-                        connector_id: connector.id,
-                        uv: Some(uv),
-                    });
-                }
+            if hit_test_rect_clip(position, connector.state.rect, connector.state.clip) {
+                let uv = resolve_rect_uv(position, connector.state.rect);
+                return Some(HitResult {
+                    connector_id: connector.id,
+                    uv,
+                });
             }
             continue;
         }
-        let source_size = universal
-            .surfaces
-            .entries
-            .get(&connector.state.source_surface)
-            .map(|entry| entry.value.size);
-        let Some(source_size) = source_size else {
-            continue;
-        };
         if hit_test_connector(
             position,
             connector.state.rect,
             connector.state.clip,
-            source_size,
+            connector.source_size,
+            target_size,
         ) {
             return Some(HitResult {
                 connector_id: connector.id,
@@ -310,23 +654,26 @@ fn resolve_connector_uv(
     universal: &UniversalState,
     connector: &ConnectorState,
     position: Vec2,
+    target_size: UVec2,
 ) -> Option<Vec2> {
     let source_size = universal
         .surfaces
         .entries
         .get(&connector.source_surface)
         .map(|entry| entry.value.size)?;
-    let rect_height = connector.rect.w;
-    if rect_height <= 0.0 {
+    let (viewport, _) =
+        resolve_overlay_geometry(connector.rect, connector.clip, source_size, target_size)?;
+    let u = ((position.x - viewport.x) / viewport.z.max(1.0)).clamp(0.0, 1.0);
+    let v = ((position.y - viewport.y) / viewport.w.max(1.0)).clamp(0.0, 1.0);
+    Some(Vec2::new(u, v))
+}
+
+fn resolve_rect_uv(position: Vec2, rect: glam::Vec4) -> Option<Vec2> {
+    if rect.z <= 0.0 || rect.w <= 0.0 {
         return None;
     }
-
-    let source_height = source_size.y.max(1) as f32;
-    let scale = rect_height / source_height;
-    let draw_width = (source_size.x.max(1) as f32 * scale).max(1.0);
-
-    let u = ((position.x - connector.rect.x) / draw_width).clamp(0.0, 1.0);
-    let v = ((position.y - connector.rect.y) / rect_height).clamp(0.0, 1.0);
+    let u = ((position.x - rect.x) / rect.z).clamp(0.0, 1.0);
+    let v = ((position.y - rect.y) / rect.w).clamp(0.0, 1.0);
     Some(Vec2::new(u, v))
 }
 
@@ -446,6 +793,7 @@ fn resolve_connector_for_target(
 struct ConnectorHit {
     id: ConnectorId,
     state: ConnectorState,
+    source_size: UVec2,
     target_id: Option<TargetId>,
     target_rank: i32,
 }
@@ -456,15 +804,16 @@ struct HitResult {
     uv: Option<Vec2>,
 }
 
-fn normalize_window_uv(position: Vec2, window_size: UVec2) -> Option<Vec2> {
-    let width = window_size.x.max(1) as f32;
-    let height = window_size.y.max(1) as f32;
-    if position.x < 0.0 || position.y < 0.0 || position.x > width || position.y > height {
-        return None;
-    }
-    let u = (position.x / width).clamp(0.0, 1.0);
-    let v = (position.y / height).clamp(0.0, 1.0);
-    Some(Vec2::new(u, v))
+fn realm_surface_size(universal: &UniversalState, realm_id: RealmId) -> Option<UVec2> {
+    let realm = universal.realms.entries.get(&realm_id)?;
+    let surface_id = realm.value.output_surface?;
+    let surface = universal.surfaces.entries.get(&surface_id)?;
+    Some(surface.value.size)
+}
+
+fn quantize_uv(value: f32) -> u16 {
+    let clamped = value.clamp(0.0, 1.0);
+    (clamped * 1024.0).round() as u16
 }
 
 fn hit_test_connector(
@@ -472,21 +821,13 @@ fn hit_test_connector(
     rect: glam::Vec4,
     clip: Option<glam::Vec4>,
     source_size: glam::UVec2,
+    target_size: UVec2,
 ) -> bool {
-    let rect_height = rect.w;
-    if rect_height <= 0.0 {
+    let Some((viewport, clip_rect)) =
+        resolve_overlay_geometry(rect, clip, source_size, target_size)
+    else {
         return false;
-    }
-
-    let source_height = source_size.y.max(1) as f32;
-    let scale = rect_height / source_height;
-    let draw_width = (source_size.x.max(1) as f32 * scale).max(1.0);
-
-    let viewport = glam::Vec4::new(rect.x, rect.y, draw_width, rect_height);
-    let mut clip_rect = glam::Vec4::new(rect.x, rect.y, rect.z, rect.w);
-    if let Some(clip) = clip {
-        clip_rect = intersect_rect(clip_rect, clip);
-    }
+    };
 
     let inside_viewport = position.x >= viewport.x
         && position.y >= viewport.y
@@ -497,6 +838,65 @@ fn hit_test_connector(
         && position.x <= clip_rect.x + clip_rect.z
         && position.y <= clip_rect.y + clip_rect.w;
     inside_viewport && inside_clip
+}
+
+fn hit_test_rect_clip(position: Vec2, rect: glam::Vec4, clip: Option<glam::Vec4>) -> bool {
+    let mut clip_rect = glam::Vec4::new(rect.x, rect.y, rect.z, rect.w);
+    if let Some(clip) = clip {
+        clip_rect = intersect_rect(clip_rect, clip);
+    }
+    position.x >= clip_rect.x
+        && position.y >= clip_rect.y
+        && position.x <= clip_rect.x + clip_rect.z
+        && position.y <= clip_rect.y + clip_rect.w
+}
+
+fn resolve_overlay_geometry(
+    rect: glam::Vec4,
+    clip: Option<glam::Vec4>,
+    source_size: glam::UVec2,
+    target_size: UVec2,
+) -> Option<(glam::Vec4, glam::Vec4)> {
+    if rect.z <= 0.0 || rect.w <= 0.0 {
+        return None;
+    }
+
+    let source_width = source_size.x.max(1) as f32;
+    let source_height = source_size.y.max(1) as f32;
+    let scale = rect.w / source_height;
+    let draw_width = (source_width * scale).max(1.0);
+
+    let mut viewport_x = rect.x + (rect.z - draw_width) * 0.5;
+    let mut viewport_y = rect.y;
+    let mut viewport_width = draw_width;
+    let mut viewport_height = rect.w.max(1.0);
+
+    if viewport_x < 0.0 {
+        viewport_width = (viewport_width + viewport_x).max(0.0);
+        viewport_x = 0.0;
+    }
+    if viewport_y < 0.0 {
+        viewport_height = (viewport_height + viewport_y).max(0.0);
+        viewport_y = 0.0;
+    }
+
+    let max_width = target_size.x as f32 - viewport_x;
+    let max_height = target_size.y as f32 - viewport_y;
+    if max_width <= 0.0 || max_height <= 0.0 {
+        return None;
+    }
+    viewport_width = viewport_width.min(max_width);
+    viewport_height = viewport_height.min(max_height);
+    if viewport_width <= 0.0 || viewport_height <= 0.0 {
+        return None;
+    }
+
+    let viewport = glam::Vec4::new(viewport_x, viewport_y, viewport_width, viewport_height);
+    let mut clip_rect = rect;
+    if let Some(clip) = clip {
+        clip_rect = intersect_rect(clip_rect, clip);
+    }
+    Some((viewport, clip_rect))
 }
 
 fn intersect_rect(a: glam::Vec4, b: glam::Vec4) -> glam::Vec4 {

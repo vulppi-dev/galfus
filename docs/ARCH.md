@@ -113,47 +113,44 @@ The render architecture is split into three layers:
   cross-realm composition order and cycle breaking.
 
 Each window creates a default `Realm` and `Surface`. `Present` links the window to the
-surface, and `Connector` layers control how realms compose (zIndex, blendMode, rect, clip).
+surface, and `Connector` layers control how realms compose (zIndex, blendMode, resolved rect, clip).
+
+UI rendering uses a `TwoD` realm with a dedicated `ui` render pass. The UI realm outputs to
+regular surfaces (alpha respected via `blendMode`) and is composed through the same
+TargetGraph rules as other realms.
+UI resources are referenced by logical IDs owned by the host: `UiThemeId`, `UiFontId`,
+and `UiImageId`.
 
 ### 2.5 Auto-Graph (Experimental)
 
 The host does not construct graphs directly. Instead it provides logical maps:
 
 - `RealmMap`: logical realm IDs and kinds
-- `TargetMap`: logical targets (`Window`, `ViewportEmbed`, `PanelEmbed`, `Texture`)
-- `TargetBindMap`: `realmId -> targetId` with `layout` (rect, zIndex, clip, inputFlags, blendMode)
+- `TargetMap`: logical targets (`Window`, `WidgetRealmViewport`, `RealmPlane`, `Texture`)
+- `TargetLayerMap`: `realmId -> targetId` with `layout` (left/top/width/height, zIndex, clip, blendMode)
 
 The core builds `TargetGraph` and `RealmGraph` automatically and creates or updates
-`Surface`, `Present`, and `Connector` tables based on the binds.
+`Surface`, `Present`, and `Connector` tables based on the layers.
 `Surface`, `Present`, and `Connector` are internal-only and are not exposed as host commands.
-
-**TargetGraph cache/diff**
-
-- The core keeps a cached `TargetGraphPlan` and a hash of targets/binds.
-- On change it computes a diff (added/removed/updated targets and binds),
-  plus a `dirty_targets` list for partial updates.
 
 **Auto resolution (Phase H)**
 
-- Each `Bind(realm -> target)` produces a `Surface`.
-- The Realm output surface is set automatically from its primary bind.
-- If target is `Window`, the core creates a `Present`.
-- If target is `ViewportEmbed` or `PanelEmbed`, the core creates a `Connector`
+- Each `TargetLayer(realm -> target)` produces a `Surface`.
+- The Realm output surface is set automatically from its primary layer.
+- If target is `Window` and the source realm is the window host realm, the core creates a `Present`.
+- If target is `Window` (non-host realm layer), `WidgetRealmViewport`, or `RealmPlane`,
+  the core creates a `Connector`
   targeting the host realm for that window.
-- Layout (`rect`, `zIndex`, `clip`, `inputFlags`, `blendMode`) is applied on
-  connector creation and updated when binds change.
-- Binds are resolved deterministically: per realm, the smallest `targetId` wins.
+- Layout (`left/top/width/height`, `zIndex`, `clip`, `blendMode`) is applied on
+  connector creation and updated when layers change.
+- Layers are resolved deterministically: per realm, the smallest `targetId` wins.
 
-**Parent inference (deterministic)**
+**Resolution rules**
 
-- `Window` targets are roots.
-- `Texture` targets are roots (offscreen).
-- `ViewportEmbed` / `PanelEmbed` infer parent from binds:
-  - Prefer the `hostWindowId` of the bound realm.
-  - If multiple binds reference different windows, choose the smallest `windowId`.
-  - If multiple realms in the same window bind to the same target, choose the smallest `realmId`
-    as the owner for parent inference.
-- Conflicts are resolved deterministically and should be logged for diagnostics.
+- `Window` targets act as presentation roots.
+- `Texture` targets are offscreen roots.
+- `Window` connectors, `WidgetRealmViewport`, and `RealmPlane` are resolved automatically by the core.
+- Conflicts are resolved deterministically and surfaced via diagnostics/events.
 
 ---
 
@@ -248,8 +245,8 @@ In the loading phase, the host typically:
 
 - Uploads heavy data (meshes, textures) via `vulfram_upload_buffer`.
 - Sends one or more command batches via `vulfram_send_queue` to:
-  - create resources (`CmdGeometryCreate`, `CmdTextureCreateFromBuffer`, `CmdMaterialCreate`, etc.)
-  - create components (`CmdCameraCreate`, `CmdModelCreate`, `CmdLightCreate`, …)
+  - upsert resources (`CmdGeometryUpsert`, `CmdTextureCreateFromBuffer`, `CmdMaterialUpsert`, etc.)
+  - upsert components (`CmdCameraUpsert`, `CmdModelUpsert`, `CmdLightUpsert`, …)
 
 The core processes these commands on subsequent calls to `vulfram_tick`.
 

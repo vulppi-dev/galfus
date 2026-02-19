@@ -18,11 +18,12 @@ pub struct FrameReport {
     pub target_added: Vec<u64>,
     pub target_removed: Vec<u64>,
     pub target_updated: Vec<u64>,
-    pub target_binds_added: Vec<TargetBindReportKey>,
-    pub target_binds_removed: Vec<TargetBindReportKey>,
-    pub target_binds_updated: Vec<TargetBindReportKey>,
+    pub target_layers_added: Vec<TargetLayerReportKey>,
+    pub target_layers_removed: Vec<TargetLayerReportKey>,
+    pub target_layers_updated: Vec<TargetLayerReportKey>,
     pub target_dirty: Vec<u64>,
     pub target_plan_dirty: bool,
+    pub target_autolink_failures: Vec<TargetAutoLinkFailure>,
 }
 
 impl FrameReport {
@@ -63,11 +64,12 @@ impl FrameReport {
             target_added: Vec::new(),
             target_removed: Vec::new(),
             target_updated: Vec::new(),
-            target_binds_added: Vec::new(),
-            target_binds_removed: Vec::new(),
-            target_binds_updated: Vec::new(),
+            target_layers_added: Vec::new(),
+            target_layers_removed: Vec::new(),
+            target_layers_updated: Vec::new(),
             target_dirty: Vec::new(),
             target_plan_dirty: false,
+            target_autolink_failures: Vec::new(),
         }
     }
 
@@ -83,31 +85,31 @@ impl FrameReport {
         diff: Option<&crate::core::target::TargetGraphDiff>,
     ) {
         self.target_nodes = plan.order.len();
-        self.target_edges = plan.edges.len();
+        self.target_edges = plan.edges.len().saturating_sub(plan.cut_edges.len());
         if let Some(diff) = diff {
             self.target_added = diff.added_targets.iter().map(|id| id.0).collect();
             self.target_removed = diff.removed_targets.iter().map(|id| id.0).collect();
             self.target_updated = diff.updated_targets.iter().map(|id| id.0).collect();
-            self.target_binds_added = diff
-                .added_binds
+            self.target_layers_added = diff
+                .added_layers
                 .iter()
-                .map(|(realm_id, target_id)| TargetBindReportKey {
+                .map(|(realm_id, target_id)| TargetLayerReportKey {
                     realm_id: *realm_id,
                     target_id: target_id.0,
                 })
                 .collect();
-            self.target_binds_removed = diff
-                .removed_binds
+            self.target_layers_removed = diff
+                .removed_layers
                 .iter()
-                .map(|(realm_id, target_id)| TargetBindReportKey {
+                .map(|(realm_id, target_id)| TargetLayerReportKey {
                     realm_id: *realm_id,
                     target_id: target_id.0,
                 })
                 .collect();
-            self.target_binds_updated = diff
-                .updated_binds
+            self.target_layers_updated = diff
+                .updated_layers
                 .iter()
-                .map(|(realm_id, target_id)| TargetBindReportKey {
+                .map(|(realm_id, target_id)| TargetLayerReportKey {
                     realm_id: *realm_id,
                     target_id: target_id.0,
                 })
@@ -118,9 +120,9 @@ impl FrameReport {
             self.target_added.clear();
             self.target_removed.clear();
             self.target_updated.clear();
-            self.target_binds_added.clear();
-            self.target_binds_removed.clear();
-            self.target_binds_updated.clear();
+            self.target_layers_added.clear();
+            self.target_layers_removed.clear();
+            self.target_layers_updated.clear();
             self.target_dirty.clear();
             self.target_plan_dirty = false;
         }
@@ -144,7 +146,15 @@ pub struct SurfaceCacheEntry {
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct TargetBindReportKey {
+pub struct TargetLayerReportKey {
     pub realm_id: u32,
     pub target_id: u64,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct TargetAutoLinkFailure {
+    pub realm_id: u32,
+    pub target_id: u64,
+    pub reason: String,
 }

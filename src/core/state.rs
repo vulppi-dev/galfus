@@ -23,6 +23,7 @@ pub struct EngineState {
     pub wgpu: wgpu::Instance,
     #[cfg(any(not(feature = "wasm"), target_arch = "wasm32"))]
     pub caps: Option<wgpu::SurfaceCapabilities>,
+    pub rgba16f_msaa_supported_mask: u8,
     pub device: Option<wgpu::Device>,
     pub queue: Option<wgpu::Queue>,
 
@@ -79,6 +80,7 @@ impl EngineState {
             wgpu: wgpu::Instance::new(&wgpu_descriptor),
             #[cfg(any(not(feature = "wasm"), target_arch = "wasm32"))]
             caps: None,
+            rgba16f_msaa_supported_mask: crate::core::render::RenderState::MSAA_MASK_DEFAULT_SAFE,
             device: None,
             queue: None,
             buffers: BufferStorage::new(),
@@ -113,6 +115,64 @@ impl EngineState {
         let cleaned = self.window.cleanup_window(window_id, &mut self.input.cache);
 
         if cleaned {
+            let targets_to_remove: std::collections::HashSet<_> = self
+                .universal_state
+                .targets
+                .entries
+                .iter()
+                .filter_map(|(target_id, target)| {
+                    if target.window_id == Some(window_id) {
+                        Some(*target_id)
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+            if !targets_to_remove.is_empty() {
+                let layers_to_remove: Vec<_> = self
+                    .universal_state
+                    .target_layers
+                    .entries
+                    .keys()
+                    .filter(|(_, layer_target)| targets_to_remove.contains(layer_target))
+                    .copied()
+                    .collect();
+                for (layer_realm_id, layer_target_id) in layers_to_remove {
+                    self.universal_state
+                        .target_layers
+                        .entries
+                        .remove(&(layer_realm_id, layer_target_id));
+                    crate::core::target::resolve::remove_auto_link_for_layer(
+                        &mut self.universal_state,
+                        layer_realm_id,
+                        layer_target_id,
+                    );
+                }
+                self.universal_state
+                    .targets
+                    .entries
+                    .retain(|target_id, _| !targets_to_remove.contains(target_id));
+                self.universal_state
+                    .ui
+                    .external_textures
+                    .retain(|target_id, _| {
+                        !targets_to_remove.contains(&crate::core::target::TargetId(*target_id))
+                    });
+                self.universal_state
+                    .ui
+                    .target_size_requests
+                    .retain(|target_id, _| {
+                        !targets_to_remove.contains(&crate::core::target::TargetId(*target_id))
+                    });
+                self.universal_state
+                    .target_ui_realm_index
+                    .retain(|target_id, _| !targets_to_remove.contains(target_id));
+                self.universal_state
+                    .input_routing
+                    .focus_targets
+                    .retain(|_, target_id| !targets_to_remove.contains(target_id));
+            }
+
             let surfaces_to_remove: Vec<_> = self
                 .universal_state
                 .presents
@@ -147,6 +207,10 @@ impl EngineState {
                     realms_to_remove.iter().copied().collect();
                 for realm_id in realms_to_remove {
                     self.universal_state.realms.remove(realm_id);
+                    self.universal_state.ui.remove_realm(realm_id);
+                    self.universal_state
+                        .host_realm_index
+                        .retain(|_, indexed_realm_id| *indexed_realm_id != realm_id);
                 }
                 for surface_id in &surfaces_to_remove {
                     self.universal_state.surfaces.remove(*surface_id);
@@ -184,6 +248,11 @@ impl EngineState {
                     .fallback
                     .retain(|_, source| !surface_set.contains(source));
             }
+            self.universal_state.target_graph_cache.prune_dead_entries(
+                &self.universal_state.targets.entries,
+                &self.universal_state.target_layers.entries,
+                &self.universal_state.realms,
+            );
         }
         cleaned
     }

@@ -11,6 +11,12 @@ pub struct TextureRecord {
     pub view: wgpu::TextureView,
 }
 
+#[derive(Debug, Clone)]
+pub struct TargetTextureBinding {
+    pub target_id: crate::core::target::TargetId,
+    pub label: Option<String>,
+}
+
 #[derive(Debug)]
 pub struct ForwardAtlasEntry {
     pub label: Option<String>,

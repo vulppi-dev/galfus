@@ -1,6 +1,6 @@
 # CmdTextureDispose
 
-Removes a texture resource.
+Removes a texture resource or target-bound texture.
 
 If materials reference this texture, they will render with fallbacks until a
 texture with the same ID is created again.

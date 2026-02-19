@@ -4,7 +4,14 @@ mod demo_001;
 mod demo_002;
 mod demo_003;
 mod demo_004;
+mod demo_005;
+mod demo_006;
+mod demo_007;
 mod demo_008;
+mod demo_009;
+mod demo_010;
+mod demo_011;
+mod demo_012;
 mod geometry;
 mod io;
 mod loop_utils;
@@ -19,6 +26,13 @@ pub enum DemoKind {
     Demo003,
     Demo004,
     Demo005,
+    Demo006,
+    Demo007,
+    Demo008,
+    Demo009,
+    Demo010,
+    Demo011,
+    Demo012,
 }
 
 impl DemoKind {
@@ -29,6 +43,13 @@ impl DemoKind {
             "demo_003" | "demo003" | "3" => Some(Self::Demo003),
             "demo_004" | "demo004" | "4" => Some(Self::Demo004),
             "demo_005" | "demo005" | "5" => Some(Self::Demo005),
+            "demo_006" | "demo006" | "6" => Some(Self::Demo006),
+            "demo_007" | "demo007" | "7" => Some(Self::Demo007),
+            "demo_008" | "demo008" | "8" => Some(Self::Demo008),
+            "demo_009" | "demo009" | "9" => Some(Self::Demo009),
+            "demo_010" | "demo010" | "10" => Some(Self::Demo010),
+            "demo_011" | "demo011" | "11" => Some(Self::Demo011),
+            "demo_012" | "demo012" | "12" => Some(Self::Demo012),
             _ => None,
         }
     }
@@ -40,6 +61,13 @@ impl DemoKind {
             Self::Demo003 => "Vulfram Demo 003",
             Self::Demo004 => "Vulfram Demo 004",
             Self::Demo005 => "Vulfram Demo 005",
+            Self::Demo006 => "Vulfram Demo 006",
+            Self::Demo007 => "Vulfram Demo 007",
+            Self::Demo008 => "Vulfram Demo 008",
+            Self::Demo009 => "Vulfram Demo 009",
+            Self::Demo010 => "Vulfram Demo 010",
+            Self::Demo011 => "Vulfram Demo 011",
+            Self::Demo012 => "Vulfram Demo 012",
         }
     }
 }
@@ -74,7 +102,14 @@ pub fn run_demo(demo: DemoKind, ctx: DemoContext) -> bool {
         DemoKind::Demo002 => demo_002::run(ctx),
         DemoKind::Demo003 => demo_003::run(ctx),
         DemoKind::Demo004 => demo_004::run(ctx),
-        DemoKind::Demo005 => demo_008::run(ctx),
+        DemoKind::Demo005 => demo_005::run(ctx),
+        DemoKind::Demo006 => demo_006::run(ctx),
+        DemoKind::Demo007 => demo_007::run(ctx),
+        DemoKind::Demo008 => demo_008::run(ctx),
+        DemoKind::Demo009 => demo_009::run(ctx),
+        DemoKind::Demo010 => demo_010::run(ctx),
+        DemoKind::Demo011 => demo_011::run(ctx),
+        DemoKind::Demo012 => demo_012::run(ctx),
     }
 }
 
@@ -88,5 +123,5 @@ pub use commands::{
 };
 pub use geometry::build_skinned_plane;
 pub use io::send_commands;
-pub use loop_utils::run_loop_with_events;
+pub use loop_utils::{run_loop, run_loop_with_events};
 pub use session::create_window;

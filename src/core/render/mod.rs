@@ -5,9 +5,12 @@ mod passes;
 mod realm_graph;
 pub mod state;
 
-use crate::core::realm::{FrameReport, RealmGraphPlanner};
+use crate::core::realm::{FrameReport, RealmGraphPlanner, RealmId};
 use crate::core::render::graph::RenderGraphPlan;
+use crate::core::render::passes::UiPlatformAction;
 use crate::core::state::EngineState;
+use crate::core::target::{TargetId, TargetKind, TargetTable};
+use crate::core::ui::events::UiEvent;
 use realm_graph::{
     collect_connectors_by_realm, collect_cut_connectors, collect_present_sizes,
     collect_surface_views, compose_realm_connectors, ensure_surface_target, map_realms_to_windows,
@@ -29,21 +32,25 @@ fn now_ns() -> u64 {
 }
 
 pub fn render_frames(engine_state: &mut EngineState) {
-    engine_state.profiling.render_total_ns = 0;
-    engine_state.profiling.render_shadow_ns = 0;
-    engine_state.profiling.render_windows_ns = 0;
-    engine_state.profiling.gpu_shadow_ns = 0;
-    engine_state.profiling.gpu_light_cull_ns = 0;
-    engine_state.profiling.gpu_forward_ns = 0;
-    engine_state.profiling.gpu_compose_ns = 0;
-    engine_state.profiling.gpu_total_ns = 0;
+    engine_state.profiling.render.total_ns = 0;
+    engine_state.profiling.render.shadow_ns = 0;
+    engine_state.profiling.render.windows_ns = 0;
+    engine_state.profiling.gpu.shadow_ns = 0;
+    engine_state.profiling.gpu.light_cull_ns = 0;
+    engine_state.profiling.gpu.forward_ns = 0;
+    engine_state.profiling.gpu.compose_ns = 0;
+    engine_state.profiling.gpu.total_ns = 0;
+
+    let target_size_requests =
+        std::mem::take(&mut engine_state.universal_state.ui.target_size_requests);
+    apply_target_size_requests(engine_state, &target_size_requests);
 
     let (target_plan, target_diff) = {
         let cache = &mut engine_state.universal_state.target_graph_cache;
         let diff = cache
             .update(
                 &engine_state.universal_state.targets.entries,
-                &engine_state.universal_state.target_binds.entries,
+                &engine_state.universal_state.target_layers.entries,
                 &engine_state.universal_state.realms,
             )
             .cloned();
@@ -130,11 +137,11 @@ pub fn render_frames(engine_state: &mut EngineState) {
             queue.submit(Some(encoder.finish()));
             #[cfg(not(feature = "wasm"))]
             {
-                engine_state.profiling.render_shadow_ns = shadow_start.elapsed().as_nanos() as u64;
+                engine_state.profiling.render.shadow_ns = shadow_start.elapsed().as_nanos() as u64;
             }
             #[cfg(feature = "wasm")]
             {
-                engine_state.profiling.render_shadow_ns = now_ns().saturating_sub(shadow_start);
+                engine_state.profiling.render.shadow_ns = now_ns().saturating_sub(shadow_start);
             }
         }
     }
@@ -147,6 +154,10 @@ pub fn render_frames(engine_state: &mut EngineState) {
     let mut frame_report =
         FrameReport::from_plan(&realm_plan, &engine_state.universal_state.surface_cache);
     frame_report.apply_target_graph_stats(&target_plan, target_diff.as_ref());
+    frame_report.target_autolink_failures = engine_state
+        .universal_state
+        .target_autolink_failures
+        .clone();
     let realm_windows = map_realms_to_windows(&engine_state.universal_state);
     collect_present_sizes(
         &engine_state.universal_state,
@@ -162,7 +173,18 @@ pub fn render_frames(engine_state: &mut EngineState) {
         &mut engine_state.surface_targets,
         present_sizes,
     );
+    let target_surface_map = build_target_surface_map(
+        &engine_state.universal_state.targets,
+        &engine_state.universal_state.auto_links,
+    );
+    refresh_window_target_textures(
+        &mut engine_state.window.states,
+        &target_surface_map,
+        &engine_state.surface_targets,
+    );
     let mut updated_surfaces: HashSet<crate::core::realm::SurfaceId> = HashSet::new();
+    let mut ui_events: Vec<UiEvent> = Vec::new();
+    let mut ui_platform_actions: Vec<UiPlatformAction> = Vec::new();
     const MAX_REALM_ITERATIONS: u32 = 1;
     let mut iteration: u32 = 0;
     loop {
@@ -180,15 +202,14 @@ pub fn render_frames(engine_state: &mut EngineState) {
             else {
                 continue;
             };
-            let Some(realm_entry) = engine_state
+            let should_render = engine_state
                 .universal_state
                 .realms
                 .entries
                 .get_mut(realm_id)
-            else {
-                continue;
-            };
-            if !should_render_realm(realm_entry, engine_state.frame_index) {
+                .map(|realm_entry| should_render_realm(realm_entry, engine_state.frame_index))
+                .unwrap_or(false);
+            if !should_render {
                 FrameReport::push_unique(&mut frame_report.throttled_realms, realm_id.0);
                 continue;
             }
@@ -208,13 +229,16 @@ pub fn render_frames(engine_state: &mut EngineState) {
                 .and_then(|entry| entry.value.format_policy)
                 .unwrap_or(wgpu::TextureFormat::Rgba16Float);
 
-            let surface_target = ensure_surface_target(
-                device,
-                &mut engine_state.surface_targets,
-                surface_id,
-                target_size,
-                target_format,
-            );
+            let (target_view, target_format) = {
+                let surface_target = ensure_surface_target(
+                    device,
+                    &mut engine_state.surface_targets,
+                    surface_id,
+                    target_size,
+                    target_format,
+                );
+                (surface_target.view.clone(), surface_target.format)
+            };
 
             #[cfg(not(feature = "wasm"))]
             let window_start = std::time::Instant::now();
@@ -231,7 +255,7 @@ pub fn render_frames(engine_state: &mut EngineState) {
                 let _clear_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                     label: Some("Realm Target Clear"),
                     color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                        view: &surface_target.view,
+                        view: &target_view,
                         resolve_target: None,
                         ops: wgpu::Operations {
                             load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
@@ -256,24 +280,65 @@ pub fn render_frames(engine_state: &mut EngineState) {
             });
             window_counter = window_counter.saturating_add(1);
 
-            let plan = match realm_entry.value.render_graph.as_ref() {
-                Some(graph) => graph.plan(),
+            let plan = match engine_state
+                .universal_state
+                .realms
+                .entries
+                .get(realm_id)
+                .and_then(|entry| entry.value.render_graph.as_ref())
+            {
+                Some(graph) => graph.plan().clone(),
                 None => {
                     log::error!("Realm {} is missing a render graph", realm_id.0);
                     FrameReport::push_unique(&mut frame_report.no_progress_realms, realm_id.0);
                     continue;
                 }
             };
+            apply_realm_environment_bindings(
+                render_state,
+                &engine_state.universal_state,
+                *realm_id,
+                *window_id,
+            );
+            let universal = &mut engine_state.universal_state;
+            let ui_state = &mut universal.ui;
+            let targets = &universal.targets;
+            let target_layers = &universal.target_layers;
+            let surfaces = &universal.surfaces;
+            let auto_links = &universal.auto_links;
+            #[cfg(not(feature = "wasm"))]
+            let window_focused = engine_state
+                .window
+                .cache
+                .caches
+                .get(window_id)
+                .map(|cache| cache.focused)
+                .unwrap_or(true);
+            #[cfg(feature = "wasm")]
+            let window_focused = true;
+
             gpu_written |= execute_graph_to_view(
                 &plan,
                 render_state,
+                ui_state,
+                *realm_id,
+                &mut ui_events,
+                &mut ui_platform_actions,
+                targets,
+                target_layers,
+                surfaces,
+                auto_links,
+                &engine_state.surface_targets,
                 device,
                 queue,
                 &mut encoder,
-                &surface_target.view,
-                surface_target.format,
+                &target_view,
+                target_format,
                 target_size,
                 engine_state.frame_index,
+                time as f64,
+                *window_id,
+                window_focused,
                 engine_state.gpu_profiler.as_ref(),
                 gpu_base,
             );
@@ -288,8 +353,8 @@ pub fn render_frames(engine_state: &mut EngineState) {
                 surface_id,
                 &cut_connectors,
                 &surface_views,
-                &surface_target.view,
-                surface_target.format,
+                &target_view,
+                target_format,
                 target_size,
                 engine_state.frame_index,
                 &mut frame_report,
@@ -387,7 +452,11 @@ pub fn render_frames(engine_state: &mut EngineState) {
     }
 
     engine_state.universal_state.frame_report = frame_report;
-
+    for event in ui_events {
+        engine_state
+            .event_queue
+            .push(crate::core::cmd::EngineEvent::Ui(event));
+    }
     if gpu_written {
         if let Some(gpu_profiler) = engine_state.gpu_profiler.as_mut() {
             if gpu_profiler.query_count() > 0 {
@@ -413,20 +482,85 @@ pub fn render_frames(engine_state: &mut EngineState) {
             }
         }
     }
-    engine_state.profiling.render_windows_ns = windows_ns;
+    apply_ui_platform_actions(engine_state, ui_platform_actions);
+    engine_state.profiling.render.windows_ns = windows_ns;
     #[cfg(not(feature = "wasm"))]
     {
-        engine_state.profiling.render_total_ns = total_start.elapsed().as_nanos() as u64;
+        engine_state.profiling.render.total_ns = total_start.elapsed().as_nanos() as u64;
     }
     #[cfg(feature = "wasm")]
     {
-        engine_state.profiling.render_total_ns = now_ns().saturating_sub(total_start);
+        engine_state.profiling.render.total_ns = now_ns().saturating_sub(total_start);
+    }
+}
+
+fn apply_realm_environment_bindings(
+    render_state: &mut RenderState,
+    universal: &crate::core::realm::UniversalState,
+    realm_id: RealmId,
+    window_id: u32,
+) {
+    render_state.camera_environment_overrides.clear();
+
+    let default_environment = universal
+        .default_environment_id
+        .and_then(|environment_id| universal.environment_profiles.get(&environment_id))
+        .cloned()
+        .unwrap_or_default();
+    render_state.environment = default_environment;
+    render_state.environment_is_configured = true;
+
+    let mut layers: Vec<_> = universal
+        .target_layers
+        .entries
+        .values()
+        .filter(|layer| {
+            if layer.realm_id != realm_id.0 {
+                return false;
+            }
+            let Some(target) = universal.targets.entries.get(&layer.target_id) else {
+                return false;
+            };
+            target.window_id == Some(window_id)
+        })
+        .collect();
+    layers.sort_by_key(|layer| (layer.layout.z_index, layer.target_id.0));
+
+    for layer in layers {
+        let Some(environment_id) = layer.environment_id else {
+            continue;
+        };
+        let Some(profile) = universal.environment_profiles.get(&environment_id).cloned() else {
+            continue;
+        };
+        if let Some(camera_id) = layer.camera_id {
+            render_state
+                .camera_environment_overrides
+                .insert(camera_id, profile);
+        } else {
+            render_state.environment = profile;
+        }
     }
 }
 
 fn execute_graph_to_view(
     plan: &RenderGraphPlan,
     render_state: &mut RenderState,
+    ui_state: &mut crate::core::ui::UiState,
+    realm_id: RealmId,
+    ui_events: &mut Vec<UiEvent>,
+    ui_platform_actions: &mut Vec<UiPlatformAction>,
+    targets: &crate::core::target::TargetTable,
+    target_layers: &crate::core::target::TargetLayerTable,
+    surfaces: &crate::core::realm::SurfaceTable,
+    auto_links: &std::collections::HashMap<
+        (u32, crate::core::target::TargetId),
+        crate::core::realm::AutoLink,
+    >,
+    surface_targets: &std::collections::HashMap<
+        crate::core::realm::SurfaceId,
+        crate::core::resources::RenderTarget,
+    >,
     device: &wgpu::Device,
     queue: &wgpu::Queue,
     encoder: &mut wgpu::CommandEncoder,
@@ -434,11 +568,15 @@ fn execute_graph_to_view(
     target_format: wgpu::TextureFormat,
     target_size: glam::UVec2,
     frame_index: u64,
+    time_seconds: f64,
+    window_id: u32,
+    window_focused: bool,
     gpu_profiler: Option<&crate::core::profiling::gpu::GpuProfiler>,
     gpu_base: Option<u32>,
 ) -> bool {
     let mut gpu_written = false;
     let mut skybox_done = false;
+    let has_skybox_node = plan.nodes.iter().any(|node| node.pass_id == "skybox");
 
     for &node_idx in &plan.order {
         let node = &plan.nodes[node_idx];
@@ -447,7 +585,8 @@ fn execute_graph_to_view(
                 continue;
             }
             "skybox" => {
-                skybox_done = passes::pass_skybox(render_state, device, queue, encoder, frame_index);
+                skybox_done =
+                    passes::pass_skybox(render_state, device, queue, encoder, frame_index);
             }
             "light-cull" => {
                 if let Some(base) = gpu_base {
@@ -459,6 +598,10 @@ fn execute_graph_to_view(
                 }
             }
             "forward" => {
+                if !has_skybox_node {
+                    skybox_done =
+                        passes::pass_skybox(render_state, device, queue, encoder, frame_index);
+                }
                 if let Some(base) = gpu_base {
                     write_gpu_timestamp(encoder, gpu_profiler, base + 2, &mut gpu_written);
                 }
@@ -508,11 +651,258 @@ fn execute_graph_to_view(
                     write_gpu_timestamp(encoder, gpu_profiler, base + 5, &mut gpu_written);
                 }
             }
+            "ui" => {
+                let mut actions = passes::pass_ui(
+                    render_state,
+                    ui_state,
+                    realm_id,
+                    window_id,
+                    window_focused,
+                    ui_events,
+                    targets,
+                    target_layers,
+                    surfaces,
+                    auto_links,
+                    surface_targets,
+                    device,
+                    queue,
+                    encoder,
+                    target_view,
+                    target_format,
+                    target_size,
+                    frame_index,
+                    time_seconds,
+                );
+                ui_platform_actions.append(&mut actions);
+                gpu_written = true;
+            }
             _ => {}
         }
     }
 
     gpu_written
+}
+
+fn apply_ui_platform_actions(engine_state: &mut EngineState, actions: Vec<UiPlatformAction>) {
+    for action in actions {
+        match action {
+            UiPlatformAction::SetCursorIcon { window_id, icon } => {
+                let _ = crate::core::window::engine_cmd_window_set_cursor_icon(
+                    engine_state,
+                    &crate::core::window::CmdWindowSetCursorIconArgs { window_id, icon },
+                );
+            }
+            UiPlatformAction::OpenUrl {
+                window_id,
+                realm_id,
+                url,
+                new_tab,
+            } => {
+                engine_state
+                    .event_queue
+                    .push(crate::core::cmd::EngineEvent::System(
+                        crate::core::system::SystemEvent::UiOpenUrl {
+                            window_id,
+                            realm_id,
+                            url,
+                            new_tab,
+                        },
+                    ));
+            }
+            UiPlatformAction::ClipboardSetText {
+                window_id,
+                realm_id,
+                text,
+            } => {
+                engine_state
+                    .event_queue
+                    .push(crate::core::cmd::EngineEvent::System(
+                        crate::core::system::SystemEvent::UiClipboardSetText {
+                            window_id,
+                            realm_id,
+                            text,
+                        },
+                    ));
+            }
+            UiPlatformAction::ClipboardRequestCopy {
+                window_id,
+                realm_id,
+            } => {
+                engine_state
+                    .event_queue
+                    .push(crate::core::cmd::EngineEvent::System(
+                        crate::core::system::SystemEvent::UiClipboardRequestCopy {
+                            window_id,
+                            realm_id,
+                        },
+                    ));
+            }
+            UiPlatformAction::ClipboardRequestCut {
+                window_id,
+                realm_id,
+            } => {
+                engine_state
+                    .event_queue
+                    .push(crate::core::cmd::EngineEvent::System(
+                        crate::core::system::SystemEvent::UiClipboardRequestCut {
+                            window_id,
+                            realm_id,
+                        },
+                    ));
+            }
+            UiPlatformAction::ClipboardRequestPaste {
+                window_id,
+                realm_id,
+            } => {
+                engine_state
+                    .event_queue
+                    .push(crate::core::cmd::EngineEvent::System(
+                        crate::core::system::SystemEvent::UiClipboardRequestPaste {
+                            window_id,
+                            realm_id,
+                        },
+                    ));
+            }
+            UiPlatformAction::RequestFocus { window_id } => {
+                let _ = crate::core::window::engine_cmd_window_focus(
+                    engine_state,
+                    &crate::core::window::CmdWindowFocusArgs { window_id },
+                );
+            }
+            UiPlatformAction::RequestAttention {
+                window_id,
+                attention,
+            } => {
+                let _ = crate::core::window::engine_cmd_window_request_attention(
+                    engine_state,
+                    &crate::core::window::CmdWindowRequestAttentionArgs {
+                        window_id,
+                        attention_type: attention,
+                    },
+                );
+            }
+            UiPlatformAction::ScreenshotRequest {
+                window_id,
+                realm_id,
+            } => {
+                engine_state
+                    .event_queue
+                    .push(crate::core::cmd::EngineEvent::System(
+                        crate::core::system::SystemEvent::UiScreenshotRequest {
+                            window_id,
+                            realm_id,
+                        },
+                    ));
+            }
+            UiPlatformAction::SetWindowTitle { window_id, title } => {
+                let _ = crate::core::window::engine_cmd_window_set_title(
+                    engine_state,
+                    &crate::core::window::CmdWindowSetTitleArgs { window_id, title },
+                );
+            }
+            UiPlatformAction::SetWindowSize {
+                window_id,
+                width,
+                height,
+            } => {
+                let _ = crate::core::window::engine_cmd_window_set_size(
+                    engine_state,
+                    &crate::core::window::CmdWindowSetSizeArgs {
+                        window_id,
+                        size: glam::UVec2::new(width.max(1), height.max(1)),
+                    },
+                );
+            }
+            UiPlatformAction::SetWindowPosition { window_id, x, y } => {
+                let _ = crate::core::window::engine_cmd_window_set_position(
+                    engine_state,
+                    &crate::core::window::CmdWindowSetPositionArgs {
+                        window_id,
+                        position: glam::IVec2::new(x, y),
+                    },
+                );
+            }
+            UiPlatformAction::SetWindowResizable { window_id, value } => {
+                let _ = crate::core::window::engine_cmd_window_set_resizable(
+                    engine_state,
+                    &crate::core::window::CmdWindowSetResizableArgs {
+                        window_id,
+                        resizable: value,
+                    },
+                );
+            }
+            UiPlatformAction::SetWindowDecorations { window_id, value } => {
+                let _ = crate::core::window::engine_cmd_window_set_decorations(
+                    engine_state,
+                    &crate::core::window::CmdWindowSetDecorationsArgs {
+                        window_id,
+                        decorations: value,
+                    },
+                );
+            }
+            UiPlatformAction::SetWindowState { window_id, state } => {
+                let _ = crate::core::window::engine_cmd_window_set_state(
+                    engine_state,
+                    &crate::core::window::CmdWindowSetStateArgs { window_id, state },
+                );
+            }
+            UiPlatformAction::EmitViewportSync {
+                window_id,
+                realm_id,
+                viewport_id,
+                parent_viewport_id,
+                class,
+                title,
+            } => {
+                engine_state
+                    .event_queue
+                    .push(crate::core::cmd::EngineEvent::System(
+                        crate::core::system::SystemEvent::UiViewportSync {
+                            window_id,
+                            realm_id,
+                            viewport_id,
+                            parent_viewport_id,
+                            class,
+                            title,
+                        },
+                    ));
+            }
+            UiPlatformAction::EmitViewportCommand {
+                window_id,
+                realm_id,
+                viewport_id,
+                command,
+            } => {
+                engine_state
+                    .event_queue
+                    .push(crate::core::cmd::EngineEvent::System(
+                        crate::core::system::SystemEvent::UiViewportCommand {
+                            window_id,
+                            realm_id,
+                            viewport_id,
+                            command,
+                        },
+                    ));
+            }
+            UiPlatformAction::EmitViewportFallbackEmbedded {
+                window_id,
+                realm_id,
+                viewport_id,
+                parent_viewport_id,
+            } => {
+                engine_state
+                    .event_queue
+                    .push(crate::core::cmd::EngineEvent::System(
+                        crate::core::system::SystemEvent::UiViewportFallbackEmbedded {
+                            window_id,
+                            realm_id,
+                            viewport_id,
+                            parent_viewport_id,
+                        },
+                    ));
+            }
+        }
+    }
 }
 
 fn should_render_realm(
@@ -552,5 +942,108 @@ fn write_gpu_timestamp(
     if let Some(profiler) = gpu_profiler {
         encoder.write_timestamp(profiler.query_set(), index);
         *gpu_written = true;
+    }
+}
+
+fn apply_target_size_requests(
+    engine_state: &mut EngineState,
+    requests: &std::collections::HashMap<u64, glam::UVec2>,
+) {
+    if requests.is_empty() {
+        return;
+    }
+
+    for (target_id, size) in requests {
+        let target_id = TargetId(*target_id);
+        let Some(target) = engine_state
+            .universal_state
+            .targets
+            .entries
+            .get_mut(&target_id)
+        else {
+            continue;
+        };
+        if target.kind == TargetKind::Window {
+            continue;
+        }
+
+        let desired = glam::UVec2::new(size.x.max(1), size.y.max(1));
+        if target.size != Some(desired) {
+            target.size = Some(desired);
+        }
+
+        if target.msaa_samples.is_none() {
+            let msaa = target
+                .window_id
+                .and_then(|window_id| engine_state.window.states.get(&window_id))
+                .map(|state| {
+                    engine_state
+                        .device
+                        .as_ref()
+                        .map(|device| {
+                            state.render_state.msaa_sample_count_for_format(
+                                device,
+                                wgpu::TextureFormat::Rgba16Float,
+                            )
+                        })
+                        .unwrap_or(1)
+                })
+                .unwrap_or(1);
+            target.msaa_samples = Some(msaa);
+        }
+    }
+}
+
+fn build_target_surface_map(
+    targets: &TargetTable,
+    auto_links: &std::collections::HashMap<(u32, TargetId), crate::core::realm::AutoLink>,
+) -> std::collections::HashMap<TargetId, crate::core::realm::SurfaceId> {
+    let mut chosen: std::collections::HashMap<TargetId, (u32, crate::core::realm::SurfaceId)> =
+        std::collections::HashMap::new();
+
+    for ((realm_id, target_id), link) in auto_links {
+        let Some(target) = targets.entries.get(target_id) else {
+            continue;
+        };
+        if target.kind != TargetKind::Texture {
+            continue;
+        }
+
+        match chosen.get(target_id) {
+            Some((current_realm, _)) if *current_realm <= *realm_id => {}
+            _ => {
+                chosen.insert(*target_id, (*realm_id, link.surface_id));
+            }
+        }
+    }
+
+    chosen
+        .into_iter()
+        .map(|(target_id, (_, surface_id))| (target_id, surface_id))
+        .collect()
+}
+
+fn refresh_window_target_textures(
+    windows: &mut std::collections::HashMap<u32, crate::core::window::WindowState>,
+    target_surfaces: &std::collections::HashMap<TargetId, crate::core::realm::SurfaceId>,
+    surface_targets: &std::collections::HashMap<
+        crate::core::realm::SurfaceId,
+        crate::core::resources::RenderTarget,
+    >,
+) {
+    for window_state in windows.values_mut() {
+        window_state.render_state.external_textures.clear();
+        for (texture_id, binding) in &window_state.render_state.target_texture_binds {
+            let Some(surface_id) = target_surfaces.get(&binding.target_id) else {
+                continue;
+            };
+            let Some(surface_target) = surface_targets.get(surface_id) else {
+                continue;
+            };
+            window_state
+                .render_state
+                .external_textures
+                .insert(*texture_id, surface_target.view.clone());
+        }
     }
 }

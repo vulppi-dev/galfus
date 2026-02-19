@@ -42,6 +42,8 @@ impl RenderState {
                 forward_atlas_entries: HashMap::new(),
             },
             camera_order: Vec::new(),
+            target_texture_binds: HashMap::new(),
+            external_textures: HashMap::new(),
             bindings: None,
             library: None,
             vertex: None,
@@ -61,8 +63,11 @@ impl RenderState {
             collector: DrawCollector::default(),
             skinning: crate::core::render::state::SkinningSystem::default(),
             render_graph: crate::core::render::graph::RenderGraphState::new(),
+            ui_renderers: HashMap::new(),
             environment: crate::core::resources::EnvironmentConfig::default(),
             environment_is_configured: false,
+            camera_environment_overrides: HashMap::new(),
+            rgba16f_msaa_supported_mask: RenderState::MSAA_MASK_DEFAULT_SAFE,
         }
     }
 
@@ -83,6 +88,8 @@ impl RenderState {
         self.scene.materials_pbr.clear();
         self.scene.textures.clear();
         self.scene.forward_atlas_entries.clear();
+        self.target_texture_binds.clear();
+        self.external_textures.clear();
         self.bindings = None;
         self.library = None;
         self.vertex = None;
@@ -100,8 +107,10 @@ impl RenderState {
         self.skybox_uniform_buffer = None;
         self.skinning.clear();
         self.render_graph.reset_to_fallback();
+        self.ui_renderers.clear();
         self.environment = crate::core::resources::EnvironmentConfig::default();
         self.environment_is_configured = false;
+        self.camera_environment_overrides.clear();
     }
 
     pub fn begin_frame(&mut self, frame_index: u64) {

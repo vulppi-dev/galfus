@@ -31,56 +31,59 @@ pub fn run(ctx: DemoContext) -> bool {
     let base_material_id: u32 = 300;
 
     let mut setup_cmds = vec![
-        EngineCmd::CmdEnvironmentUpdate(CmdEnvironmentUpdateArgs {
-            window_id,
-            config: EnvironmentConfig {
-                msaa: MsaaConfig {
-                    enabled: true,
-                    sample_count: 4,
-                },
-                skybox: SkyboxConfig {
-                    mode: SkyboxMode::None,
-                    intensity: 1.0,
-                    rotation: 0.0,
-                    ground_color: Vec3::new(0.02, 0.03, 0.04),
-                    horizon_color: Vec3::new(0.12, 0.16, 0.22),
-                    sky_color: Vec3::new(0.2, 0.35, 0.6),
-                    cubemap_texture_id: None,
-                },
-                post: PostProcessConfig {
-                    filter_enabled: true,
-                    filter_exposure: 1.0,
-                    filter_gamma: 2.2,
-                    filter_saturation: 1.05,
-                    filter_contrast: 1.1,
-                    filter_vignette: 0.12,
-                    filter_grain: 0.02,
-                    filter_chromatic_aberration: 0.2,
-                    filter_blur: 0.0,
-                    filter_sharpen: 0.1,
-                    filter_tonemap_mode: 1,
-                    outline_enabled: false,
-                    outline_strength: 0.0,
-                    outline_threshold: 0.2,
-                    outline_width: 1.0,
-                    outline_quality: 0.0,
-                    filter_posterize_steps: 0.0,
-                    cell_shading: false,
-                    ssao_enabled: false,
-                    ssao_strength: 1.0,
-                    ssao_radius: 0.75,
-                    ssao_bias: 0.025,
-                    ssao_power: 1.5,
-                    ssao_blur_radius: 2.0,
-                    ssao_blur_depth_threshold: 0.02,
-                    bloom_enabled: true,
-                    bloom_threshold: 1.0,
-                    bloom_knee: 0.5,
-                    bloom_intensity: 0.8,
-                    bloom_scatter: 0.7,
+        EngineCmd::CmdEnvironmentUpsert(crate::core::cmd::CmdEnvironmentUpsertArgs::Update(
+            CmdEnvironmentUpdateArgs {
+                environment_id: window_id,
+                config: EnvironmentConfig {
+                    msaa: MsaaConfig {
+                        enabled: true,
+                        sample_count: 8,
+                    },
+                    skybox: SkyboxConfig {
+                        mode: SkyboxMode::Procedural,
+                        intensity: 1.0,
+                        rotation: 0.0,
+                        ground_color: Vec3::new(0.02, 0.03, 0.04),
+                        horizon_color: Vec3::new(0.12, 0.16, 0.22),
+                        sky_color: Vec3::new(0.2, 0.35, 0.6),
+                        cubemap_texture_id: None,
+                    },
+                    clear_color: Vec3::new(0.0, 0.0, 0.0),
+                    post: PostProcessConfig {
+                        filter_enabled: false,
+                        filter_exposure: 1.0,
+                        filter_gamma: 2.2,
+                        filter_saturation: 1.05,
+                        filter_contrast: 1.1,
+                        filter_vignette: 0.12,
+                        filter_grain: 0.02,
+                        filter_chromatic_aberration: 0.2,
+                        filter_blur: 0.0,
+                        filter_sharpen: 0.1,
+                        filter_tonemap_mode: 1,
+                        outline_enabled: true,
+                        outline_strength: 0.0,
+                        outline_threshold: 0.2,
+                        outline_width: 1.0,
+                        outline_quality: 0.0,
+                        filter_posterize_steps: 0.0,
+                        cell_shading: false,
+                        ssao_enabled: false,
+                        ssao_strength: 1.0,
+                        ssao_radius: 0.75,
+                        ssao_bias: 0.025,
+                        ssao_power: 1.5,
+                        ssao_blur_radius: 2.0,
+                        ssao_blur_depth_threshold: 0.02,
+                        bloom_enabled: true,
+                        bloom_threshold: 1.0,
+                        bloom_knee: 0.5,
+                        bloom_intensity: 0.8,
+                        bloom_scatter: 0.7,
+                    },
                 },
             },
-        }),
+        )),
         create_camera_cmd(
             camera_id,
             "Primitives Camera",
@@ -131,19 +134,21 @@ pub fn run(ctx: DemoContext) -> bool {
         ));
 
         let position = Vec3::new(start_x + spacing * index as f32, 0.0, 0.0);
-        setup_cmds.push(EngineCmd::CmdModelCreate(CmdModelCreateArgs {
-            window_id,
-            model_id,
-            label: Some(label.clone()),
-            geometry_id,
-            material_id: Some(material_id),
-            transform: Mat4::from_translation(position),
-            layer_mask: 0xFFFFFFFF,
-            cast_shadow: true,
-            receive_shadow: true,
-            cast_outline: false,
-            outline_color: Vec4::ZERO,
-        }));
+        setup_cmds.push(EngineCmd::CmdModelUpsert(
+            crate::core::cmd::CmdModelUpsertArgs::Create(CmdModelCreateArgs {
+                window_id,
+                model_id,
+                label: Some(label.clone()),
+                geometry_id,
+                material_id: Some(material_id),
+                transform: Mat4::from_translation(position),
+                layer_mask: 0xFFFFFFFF,
+                cast_shadow: true,
+                receive_shadow: true,
+                cast_outline: false,
+                outline_color: Vec4::ZERO,
+            }),
+        ));
 
         primitive_models.push((model_id, position));
     }
@@ -158,23 +163,25 @@ pub fn run(ctx: DemoContext) -> bool {
 
         for (index, (model_id, position)) in primitive_models.iter().enumerate() {
             let rotation = time_f * 0.6 + index as f32 * 0.3;
-            frame_cmds.push(EngineCmd::CmdModelUpdate(CmdModelUpdateArgs {
-                window_id,
-                model_id: *model_id,
-                label: None,
-                geometry_id: None,
-                material_id: None,
-                transform: Some(
-                    Mat4::from_translation(*position)
-                        * Mat4::from_euler(glam::EulerRot::XYZ, rotation * 0.4, rotation, 0.0)
-                        * Mat4::from_scale(Vec3::splat(1.2)),
-                ),
-                layer_mask: None,
-                cast_shadow: None,
-                receive_shadow: None,
-                cast_outline: None,
-                outline_color: None,
-            }));
+            frame_cmds.push(EngineCmd::CmdModelUpsert(
+                crate::core::cmd::CmdModelUpsertArgs::Update(CmdModelUpdateArgs {
+                    window_id,
+                    model_id: *model_id,
+                    label: None,
+                    geometry_id: None,
+                    material_id: None,
+                    transform: Some(
+                        Mat4::from_translation(*position)
+                            * Mat4::from_euler(glam::EulerRot::XYZ, rotation * 0.4, rotation, 0.0)
+                            * Mat4::from_scale(Vec3::splat(1.2)),
+                    ),
+                    layer_mask: None,
+                    cast_shadow: None,
+                    receive_shadow: None,
+                    cast_outline: None,
+                    outline_color: None,
+                }),
+            ));
         }
 
         frame_cmds

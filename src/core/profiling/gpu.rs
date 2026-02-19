@@ -159,11 +159,11 @@ impl GpuProfiler {
             }
         }
 
-        profiling.gpu_shadow_ns = gpu_shadow_ns;
-        profiling.gpu_light_cull_ns = gpu_light_cull_ns;
-        profiling.gpu_forward_ns = gpu_forward_ns;
-        profiling.gpu_compose_ns = gpu_compose_ns;
-        profiling.gpu_total_ns = gpu_shadow_ns
+        profiling.gpu.shadow_ns = gpu_shadow_ns;
+        profiling.gpu.light_cull_ns = gpu_light_cull_ns;
+        profiling.gpu.forward_ns = gpu_forward_ns;
+        profiling.gpu.compose_ns = gpu_compose_ns;
+        profiling.gpu.total_ns = gpu_shadow_ns
             .saturating_add(gpu_light_cull_ns)
             .saturating_add(gpu_forward_ns)
             .saturating_add(gpu_compose_ns);

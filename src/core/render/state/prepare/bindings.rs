@@ -19,141 +19,142 @@ impl RenderState {
             &library.fallback_shadow_view
         };
 
+        let make_shared_group = |camera_buffer: &wgpu::Buffer, label: &str| {
+            device.create_bind_group(&wgpu::BindGroupDescriptor {
+                label: Some(label),
+                layout: &library.layout_shared,
+                entries: &[
+                    wgpu::BindGroupEntry {
+                        binding: 0,
+                        resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
+                            buffer: bindings.frame_pool.buffer(),
+                            offset: 0,
+                            size: Some(
+                                std::num::NonZeroU64::new(
+                                    std::mem::size_of::<FrameComponent>() as u64
+                                )
+                                .unwrap(),
+                            ),
+                        }),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 1,
+                        resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
+                            buffer: camera_buffer,
+                            offset: 0,
+                            size: Some(
+                                std::num::NonZeroU64::new(
+                                    std::mem::size_of::<CameraComponent>() as u64
+                                )
+                                .unwrap(),
+                            ),
+                        }),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 2,
+                        resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
+                            buffer: light_system.light_params.buffer(),
+                            offset: 0,
+                            size: Some(
+                                std::num::NonZeroU64::new(std::mem::size_of::<
+                                    super::super::light::LightDrawParams,
+                                >()
+                                    as u64)
+                                .unwrap(),
+                            ),
+                        }),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 3,
+                        resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
+                            buffer: light_system.lights.buffer(),
+                            offset: 0,
+                            size: None,
+                        }),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 4,
+                        resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
+                            buffer: light_system.visible_indices.buffer(),
+                            offset: 0,
+                            size: None,
+                        }),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 5,
+                        resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
+                            buffer: light_system.visible_counts.buffer(),
+                            offset: 0,
+                            size: None,
+                        }),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 6,
+                        resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
+                            buffer: shadow_manager.params_pool.buffer(),
+                            offset: 0,
+                            size: None,
+                        }),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 7,
+                        resource: wgpu::BindingResource::TextureView(shadow_atlas_view),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 8,
+                        resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
+                            buffer: shadow_manager.page_table.buffer(),
+                            offset: 0,
+                            size: None,
+                        }),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 9,
+                        resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
+                            buffer: shadow_manager.point_light_vp.buffer(),
+                            offset: 0,
+                            size: None,
+                        }),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 10,
+                        resource: wgpu::BindingResource::Sampler(&library.samplers.point_clamp),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 11,
+                        resource: wgpu::BindingResource::Sampler(&library.samplers.linear_clamp),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 12,
+                        resource: wgpu::BindingResource::Sampler(&library.samplers.point_repeat),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 13,
+                        resource: wgpu::BindingResource::Sampler(&library.samplers.linear_repeat),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 14,
+                        resource: wgpu::BindingResource::Sampler(&library.samplers.comparison),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 15,
+                        resource: wgpu::BindingResource::TextureView(forward_atlas_view),
+                    },
+                ],
+            })
+        };
+
         if bindings.shared_group.is_none() {
-            bindings.shared_group = Some(
-                device.create_bind_group(&wgpu::BindGroupDescriptor {
-                    label: Some(&format!(
-                        "BindGroup Shared (Consolidated, shadows={})",
-                        with_shadows
-                    )),
-                    layout: &library.layout_shared,
-                    entries: &[
-                        wgpu::BindGroupEntry {
-                            binding: 0,
-                            resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
-                                buffer: bindings.frame_pool.buffer(),
-                                offset: 0,
-                                size: Some(
-                                    std::num::NonZeroU64::new(
-                                        std::mem::size_of::<FrameComponent>() as u64,
-                                    )
-                                    .unwrap(),
-                                ),
-                            }),
-                        },
-                        wgpu::BindGroupEntry {
-                            binding: 1,
-                            resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
-                                buffer: bindings.camera_pool.buffer(),
-                                offset: 0,
-                                size: Some(
-                                    std::num::NonZeroU64::new(
-                                        std::mem::size_of::<CameraComponent>() as u64,
-                                    )
-                                    .unwrap(),
-                                ),
-                            }),
-                        },
-                        wgpu::BindGroupEntry {
-                            binding: 2,
-                            resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
-                                buffer: light_system.light_params.buffer(),
-                                offset: 0,
-                                size: Some(
-                                    std::num::NonZeroU64::new(std::mem::size_of::<
-                                        super::super::light::LightDrawParams,
-                                    >(
-                                    )
-                                        as u64)
-                                    .unwrap(),
-                                ),
-                            }),
-                        },
-                        wgpu::BindGroupEntry {
-                            binding: 3,
-                            resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
-                                buffer: light_system.lights.buffer(),
-                                offset: 0,
-                                size: None,
-                            }),
-                        },
-                        wgpu::BindGroupEntry {
-                            binding: 4,
-                            resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
-                                buffer: light_system.visible_indices.buffer(),
-                                offset: 0,
-                                size: None,
-                            }),
-                        },
-                        wgpu::BindGroupEntry {
-                            binding: 5,
-                            resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
-                                buffer: light_system.visible_counts.buffer(),
-                                offset: 0,
-                                size: None,
-                            }),
-                        },
-                        wgpu::BindGroupEntry {
-                            binding: 6,
-                            resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
-                                buffer: shadow_manager.params_pool.buffer(),
-                                offset: 0,
-                                size: None,
-                            }),
-                        },
-                        wgpu::BindGroupEntry {
-                            binding: 7,
-                            resource: wgpu::BindingResource::TextureView(shadow_atlas_view),
-                        },
-                        wgpu::BindGroupEntry {
-                            binding: 8,
-                            resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
-                                buffer: shadow_manager.page_table.buffer(),
-                                offset: 0,
-                                size: None,
-                            }),
-                        },
-                        wgpu::BindGroupEntry {
-                            binding: 9,
-                            resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
-                                buffer: shadow_manager.point_light_vp.buffer(),
-                                offset: 0,
-                                size: None,
-                            }),
-                        },
-                        wgpu::BindGroupEntry {
-                            binding: 10,
-                            resource: wgpu::BindingResource::Sampler(&library.samplers.point_clamp),
-                        },
-                        wgpu::BindGroupEntry {
-                            binding: 11,
-                            resource: wgpu::BindingResource::Sampler(
-                                &library.samplers.linear_clamp,
-                            ),
-                        },
-                        wgpu::BindGroupEntry {
-                            binding: 12,
-                            resource: wgpu::BindingResource::Sampler(
-                                &library.samplers.point_repeat,
-                            ),
-                        },
-                        wgpu::BindGroupEntry {
-                            binding: 13,
-                            resource: wgpu::BindingResource::Sampler(
-                                &library.samplers.linear_repeat,
-                            ),
-                        },
-                        wgpu::BindGroupEntry {
-                            binding: 14,
-                            resource: wgpu::BindingResource::Sampler(&library.samplers.comparison),
-                        },
-                        wgpu::BindGroupEntry {
-                            binding: 15,
-                            resource: wgpu::BindingResource::TextureView(forward_atlas_view),
-                        },
-                    ],
-                }),
-            );
+            bindings.shared_group = Some(make_shared_group(
+                bindings.camera_pool.buffer(),
+                &format!("BindGroup Shared (Consolidated, shadows={with_shadows})"),
+            ));
+        }
+        if bindings.shadow_shared_group.is_none() {
+            bindings.shadow_shared_group = Some(make_shared_group(
+                bindings.shadow_camera_pool.buffer(),
+                &format!("BindGroup Shadow Shared (Consolidated, shadows={with_shadows})"),
+            ));
         }
 
         // 3. Create Model Bind Group (Group 1)

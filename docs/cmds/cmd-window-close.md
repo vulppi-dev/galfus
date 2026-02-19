@@ -2,6 +2,14 @@
 
 Closes an existing window and cleans up its resources.
 
+Dispose semantics:
+- Removes the window and direct runtime dependencies tied to that `windowId`:
+  - `target` entries with matching `windowId`
+  - associated `targetLayer` links
+  - auto-links (`surface/present/connector`) created from those layers
+  - direct input focus/capture bindings for that window
+- Indirect dependencies continue via fallback where applicable.
+
 ## Arguments
 
 | Field    | Type | Description               |

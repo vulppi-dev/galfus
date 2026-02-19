@@ -40,7 +40,7 @@ pub fn vulfram_receive_queue(out_ptr: *mut *const u8, out_length: *mut usize) ->
                 *out_length = 0;
                 *out_ptr = std::ptr::null();
             }
-            engine.profiling.serialization_ns = 0;
+            engine.profiling.render.serialization_ns = 0;
             return VulframResult::Success;
         }
 
@@ -55,11 +55,12 @@ pub fn vulfram_receive_queue(out_ptr: *mut *const u8, out_length: *mut usize) ->
         };
         #[cfg(not(feature = "wasm"))]
         {
-            engine.profiling.serialization_ns = serialization_start.elapsed().as_nanos() as u64;
+            engine.profiling.render.serialization_ns =
+                serialization_start.elapsed().as_nanos() as u64;
         }
         #[cfg(feature = "wasm")]
         {
-            engine.profiling.serialization_ns = now_ns().saturating_sub(serialization_start);
+            engine.profiling.render.serialization_ns = now_ns().saturating_sub(serialization_start);
         }
 
         let data_length = serialized_data.len();
@@ -108,10 +109,10 @@ pub fn vulfram_receive_events(out_ptr: *mut *const u8, out_length: *mut usize) -
 
         // Only update profiling if we're serializing responses too
         // (to avoid overwriting response serialization time)
-        if engine.profiling.serialization_ns == 0 {
-            engine.profiling.serialization_ns = serialization_time;
+        if engine.profiling.render.serialization_ns == 0 {
+            engine.profiling.render.serialization_ns = serialization_time;
         } else {
-            engine.profiling.serialization_ns += serialization_time;
+            engine.profiling.render.serialization_ns += serialization_time;
         }
 
         let data_length = serialized_data.len();

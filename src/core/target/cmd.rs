@@ -1,11 +1,12 @@
 use glam::UVec2;
 use serde::{Deserialize, Serialize};
 
+use crate::core::realm::RealmKind;
 use crate::core::state::EngineState;
-use crate::core::target::resolve::remove_auto_link_for_bind;
+use crate::core::target::resolve::remove_auto_link_for_layer;
 use crate::core::target::{
-    SurfaceAlphaModeDto, SurfaceFormatDto, TargetBindLayout, TargetBindState, TargetId, TargetKind,
-    TargetState,
+    SurfaceAlphaModeDto, SurfaceFormatDto, TargetId, TargetKind, TargetLayerLayout,
+    TargetLayerState, TargetState,
 };
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -14,9 +15,9 @@ pub struct CmdTargetUpsertArgs {
     pub target_id: u64,
     pub kind: TargetKind,
     #[serde(default)]
-    pub owner_window_id: Option<u32>,
+    pub window_id: Option<u32>,
     #[serde(default)]
-    pub size_override: Option<UVec2>,
+    pub size: Option<UVec2>,
     #[serde(default)]
     pub format_policy: Option<SurfaceFormatDto>,
     #[serde(default)]
@@ -47,29 +48,33 @@ pub struct CmdResultTargetDispose {
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct CmdTargetBindUpsertArgs {
+pub struct CmdTargetLayerUpsertArgs {
     pub realm_id: u32,
     pub target_id: u64,
-    pub layout: TargetBindLayout,
+    pub layout: TargetLayerLayout,
+    #[serde(default)]
+    pub camera_id: Option<u32>,
+    #[serde(default)]
+    pub environment_id: Option<u32>,
 }
 
 #[derive(Debug, Default, Deserialize, Serialize, Clone)]
 #[serde(default, rename_all = "camelCase")]
-pub struct CmdResultTargetBindUpsert {
+pub struct CmdResultTargetLayerUpsert {
     pub success: bool,
     pub message: String,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct CmdTargetBindDisposeArgs {
+pub struct CmdTargetLayerDisposeArgs {
     pub realm_id: u32,
     pub target_id: u64,
 }
 
 #[derive(Debug, Default, Deserialize, Serialize, Clone)]
 #[serde(default, rename_all = "camelCase")]
-pub struct CmdResultTargetBindDispose {
+pub struct CmdResultTargetLayerDispose {
     pub success: bool,
     pub message: String,
 }
@@ -78,15 +83,46 @@ pub fn engine_cmd_target_upsert(
     engine: &mut EngineState,
     args: &CmdTargetUpsertArgs,
 ) -> CmdResultTargetUpsert {
-    let size_override = args
-        .size_override
+    if matches!(
+        args.kind,
+        TargetKind::Window | TargetKind::WidgetRealmViewport | TargetKind::RealmPlane
+    ) && args.window_id.is_none()
+    {
+        return CmdResultTargetUpsert {
+            success: false,
+            message: format!("Target {:?} requires windowId", args.kind),
+        };
+    }
+    if matches!(args.kind, TargetKind::Texture) && args.window_id.is_some() {
+        return CmdResultTargetUpsert {
+            success: false,
+            message: "Target texture does not accept windowId".into(),
+        };
+    }
+    if !matches!(args.kind, TargetKind::Texture) && args.size.is_some() {
+        return CmdResultTargetUpsert {
+            success: false,
+            message: "Target size is only valid for kind=texture".into(),
+        };
+    }
+    if let Some(window_id) = args.window_id {
+        if !engine.window.states.contains_key(&window_id) {
+            return CmdResultTargetUpsert {
+                success: false,
+                message: format!("Window {} not found", window_id),
+            };
+        }
+    }
+
+    let size = args
+        .size
         .map(|size| UVec2::new(size.x.max(1), size.y.max(1)));
     engine.universal_state.targets.entries.insert(
         TargetId(args.target_id),
         TargetState {
             kind: args.kind,
-            owner_window_id: args.owner_window_id,
-            size_override,
+            window_id: args.window_id,
+            size,
             format_policy: args.format_policy.map(SurfaceFormatDto::to_wgpu),
             alpha_policy: args.alpha_policy.map(SurfaceAlphaModeDto::to_wgpu),
             msaa_samples: args.msaa_samples,
@@ -119,20 +155,48 @@ pub fn engine_cmd_target_dispose(
 
     engine
         .universal_state
-        .target_binds
+        .target_layers
         .entries
-        .retain(|(_, bind_target), _| *bind_target != target_id);
+        .retain(|(_, layer_target), _| *layer_target != target_id);
 
     let remove_keys: Vec<_> = engine
         .universal_state
         .auto_links
         .keys()
-        .filter(|(_, bind_target)| *bind_target == target_id)
+        .filter(|(_, layer_target)| *layer_target == target_id)
         .copied()
         .collect();
-    for (realm_id, bind_target) in remove_keys {
-        remove_auto_link_for_bind(&mut engine.universal_state, realm_id, bind_target);
+    for (realm_id, layer_target) in remove_keys {
+        remove_auto_link_for_layer(&mut engine.universal_state, realm_id, layer_target);
     }
+
+    engine
+        .universal_state
+        .input_routing
+        .focus_targets
+        .retain(|_, focus_target_id| *focus_target_id != target_id);
+    engine
+        .universal_state
+        .ui
+        .external_textures
+        .remove(&target_id.0);
+    engine
+        .universal_state
+        .ui
+        .target_size_requests
+        .remove(&target_id.0);
+    engine
+        .universal_state
+        .target_ui_realm_index
+        .remove(&target_id);
+    engine
+        .universal_state
+        .target_graph_cache
+        .prune_dead_entries(
+            &engine.universal_state.targets.entries,
+            &engine.universal_state.target_layers.entries,
+            &engine.universal_state.realms,
+        );
 
     CmdResultTargetDispose {
         success: true,
@@ -140,51 +204,137 @@ pub fn engine_cmd_target_dispose(
     }
 }
 
-pub fn engine_cmd_target_bind_upsert(
+pub fn engine_cmd_target_layer_upsert(
     engine: &mut EngineState,
-    args: &CmdTargetBindUpsertArgs,
-) -> CmdResultTargetBindUpsert {
+    args: &CmdTargetLayerUpsertArgs,
+) -> CmdResultTargetLayerUpsert {
+    let Some(realm_entry) = engine
+        .universal_state
+        .realms
+        .get(crate::core::realm::RealmId(args.realm_id))
+    else {
+        return CmdResultTargetLayerUpsert {
+            success: false,
+            message: format!("Realm {} not found", args.realm_id),
+        };
+    };
     let target_id = TargetId(args.target_id);
-    engine.universal_state.target_binds.entries.insert(
+    if !engine
+        .universal_state
+        .targets
+        .entries
+        .contains_key(&target_id)
+    {
+        return CmdResultTargetLayerUpsert {
+            success: false,
+            message: format!("Target {} not found", args.target_id),
+        };
+    }
+    if let Some(environment_id) = args.environment_id {
+        if !engine
+            .universal_state
+            .environment_profiles
+            .contains_key(&environment_id)
+        {
+            return CmdResultTargetLayerUpsert {
+                success: false,
+                message: format!("Environment {} not found", environment_id),
+            };
+        }
+    }
+    if let Some(camera_id) = args.camera_id {
+        let camera_exists = engine.window.states.values().any(|window_state| {
+            window_state
+                .render_state
+                .scene
+                .cameras
+                .contains_key(&camera_id)
+        });
+        if !camera_exists {
+            return CmdResultTargetLayerUpsert {
+                success: false,
+                message: format!("Camera {} not found", camera_id),
+            };
+        }
+        if realm_entry.value.kind != RealmKind::ThreeD {
+            return CmdResultTargetLayerUpsert {
+                success: false,
+                message: format!(
+                    "cameraId is only valid for realm kind 3d (realm={})",
+                    args.realm_id
+                ),
+            };
+        }
+    }
+    if args.layout.width.resolve(1.0, 8.0) <= 0.0 || args.layout.height.resolve(1.0, 8.0) <= 0.0 {
+        return CmdResultTargetLayerUpsert {
+            success: false,
+            message: "TargetLayer layout width/height must be > 0".into(),
+        };
+    }
+    engine.universal_state.target_layers.entries.insert(
         (args.realm_id, target_id),
-        TargetBindState {
+        TargetLayerState {
             realm_id: args.realm_id,
             target_id,
             layout: args.layout,
+            camera_id: args.camera_id,
+            environment_id: args.environment_id,
         },
     );
 
-    CmdResultTargetBindUpsert {
+    CmdResultTargetLayerUpsert {
         success: true,
-        message: "TargetBind upserted".into(),
+        message: "TargetLayer upserted".into(),
     }
 }
 
-pub fn engine_cmd_target_bind_dispose(
+pub fn engine_cmd_target_layer_dispose(
     engine: &mut EngineState,
-    args: &CmdTargetBindDisposeArgs,
-) -> CmdResultTargetBindDispose {
+    args: &CmdTargetLayerDisposeArgs,
+) -> CmdResultTargetLayerDispose {
     let target_id = TargetId(args.target_id);
     if engine
         .universal_state
-        .target_binds
+        .target_layers
         .entries
         .remove(&(args.realm_id, target_id))
         .is_none()
     {
-        return CmdResultTargetBindDispose {
+        return CmdResultTargetLayerDispose {
             success: false,
             message: format!(
-                "Bind not found (realm_id={}, target_id={})",
+                "Layer not found (realm_id={}, target_id={})",
                 args.realm_id, args.target_id
             ),
         };
     }
 
-    remove_auto_link_for_bind(&mut engine.universal_state, args.realm_id, target_id);
+    remove_auto_link_for_layer(&mut engine.universal_state, args.realm_id, target_id);
+    let has_layer_for_target = engine
+        .universal_state
+        .target_layers
+        .entries
+        .keys()
+        .any(|(_, layer_target)| *layer_target == target_id);
+    if !has_layer_for_target {
+        engine
+            .universal_state
+            .input_routing
+            .focus_targets
+            .retain(|_, focus_target_id| *focus_target_id != target_id);
+    }
+    engine
+        .universal_state
+        .target_graph_cache
+        .prune_dead_entries(
+            &engine.universal_state.targets.entries,
+            &engine.universal_state.target_layers.entries,
+            &engine.universal_state.realms,
+        );
 
-    CmdResultTargetBindDispose {
+    CmdResultTargetLayerDispose {
         success: true,
-        message: "TargetBind disposed".into(),
+        message: "TargetLayer disposed".into(),
     }
 }

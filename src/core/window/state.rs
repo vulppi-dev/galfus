@@ -40,6 +40,7 @@ pub struct WindowState {
     pub(crate) last_present_ns: u64,
     pub(crate) last_frame_delta_ns: u64,
     pub(crate) fps_instant: f64,
+    pub(crate) redraw_force_until_ms: u64,
     #[cfg(feature = "wasm")]
     pub _web_listeners: Vec<Closure<dyn FnMut(Event)>>,
 }

@@ -22,3 +22,5 @@ Returns `CmdResultTextureList`:
 
 - **id**: u32 (Texture ID)
 - **label**: Option<String> (Semantic name)
+
+Includes textures created from buffers, forward atlas entries, and textures bound to targets.
