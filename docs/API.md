@@ -253,6 +253,23 @@ Unified upsert commands are available for resource create/update pairs:
 For these families, use only `*Upsert` command variants.
 Diagnostics and trace/profiling runtime policy is configured by `CmdSystemDiagnosticsSet`.
 
+UI command surface is split by domain:
+
+- Theme/document ops:
+  - `CmdUiThemeDefine`, `CmdUiThemeDispose`
+  - `CmdUiDocumentCreate`, `CmdUiDocumentDispose`, `CmdUiDocumentSetRect`, `CmdUiDocumentSetTheme`
+  - `CmdUiApplyOps`
+- Introspection/focus/trace:
+  - `CmdUiDocumentGetTree`, `CmdUiDocumentGetLayoutRects`
+  - `CmdUiFocusSet`, `CmdUiFocusGet`
+  - `CmdUiEventTraceSet`
+- UI resources and input bridge:
+  - `CmdUiImageCreateFromBuffer`, `CmdUiImageDispose`
+  - `CmdUiClipboardPaste`, `CmdUiScreenshotReply`, `CmdUiAccessKitActionRequest`
+
+Technical UI runtime details are in `docs/ui/*`.
+Per-command contracts remain in `docs/cmds/*`.
+
 ### 5.3 Command Execution
 
 During `vulfram_tick`:

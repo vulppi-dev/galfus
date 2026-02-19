@@ -1,18 +1,16 @@
 # CmdUiApplyOps
 
-Applies a batch of UI ops to a document.
+Aplica um lote de operações declarativas em um `UiDocument`.
 
 ## Arguments
 
-| Field      | Type   | Description                        |
-| ---------- | ------ | ---------------------------------- |
-| documentId | u32    | Logical UI document ID             |
-| version    | u64    | Monotonic version for this batch   |
-| ops        | UiOp[] | Operations to apply                |
+| Field      | Type   | Description |
+| ---------- | ------ | ----------- |
+| documentId | u32    | Logical UI document ID |
+| version    | u64    | Versão monotônica do lote |
+| ops        | UiOp[] | Operações (`add/remove/clear/set/move`) |
 
-### UiOp
-
-Supported ops:
+## UiOp
 
 - `add { parent?, node, index? }`
 - `remove { nodeId }`
@@ -20,65 +18,46 @@ Supported ops:
 - `set { nodeId, props }`
 - `move { nodeId, newParent?, index? }`
 
-### UiNode
+## UiNode
 
-| Field | Type | Description |
-| ----- | ---- | ----------- |
-| id    | u32  | Node ID     |
-| kind  | UiNodeKind | Node kind |
-| props | UiNodeProps | Node payload |
-| display | Option<bool> | If false, skips layout + hit-test |
-| visible | Option<bool> | If false, invisible and non-interactive |
-| opacity | Option<f32> | Opacity multiplier (0..1) |
-| zIndex | Option<i32> | Z-order inside the document |
-| anim | Option<UiAnim> | Optional animation payload |
+| Field       | Type           | Description |
+| ----------- | -------------- | ----------- |
+| id          | u32            | Node ID |
+| kind        | UiNodeKind     | Tipo do nó |
+| props       | UiNodeProps    | Payload do tipo |
+| tooltip     | Option<String> | Tooltip |
+| contextMenu | Option<Vec<String>> | Menu de contexto declarativo |
+| anim        | Option<UiAnim> | Animações (`opacity`, `translateY`) |
+| display     | Option<bool>   | Remove do layout/hit-test quando `false` |
+| visible     | Option<bool>   | Invisível e não interativo quando `false` |
+| opacity     | Option<f32>    | Multiplicador de opacidade |
+| zIndex      | Option<i32>    | Z-order no documento |
 
-### UiNodeKind
+## UiNodeKind
 
-`container`, `text`, `button`, `input`, `image`, `separator`, `spacer`
+`container`, `window`, `panel`, `split-pane`, `area`, `frame`, `scroll-area`, `grid`,
+`popup`, `tooltip`, `modal`, `resize`, `scene`, `canvas`, `text`, `rich-text`, `link`,
+`hyperlink`, `button`, `checkbox`, `radio`, `selectable-label`, `toggle`, `slider`,
+`drag-value`, `progress-bar`, `combo-box`, `menu-button`, `collapsing-header`,
+`image-button`, `spinner`, `text-edit`, `input`, `image`, `widget-realm-viewport`,
+`separator`, `spacer`.
 
-### UiNodeProps (MVP)
-
-- `container { layout, padding?, size?, scrollX?, scrollY? }`
-- `text { text, size?, color? }`
-- `button { label, enabled? }`
-- `input { value, placeholder?, enabled? }`
-- `image { source, size? }`
-- `separator`
-- `spacer { width?, height? }`
-
-### UiLayout
-
-Fields:
-
-- `direction`: `row`, `row-reverse`, `column`, `column-reverse`, `grid`
-- `align`: `start`, `center`, `end`, `stretch`
-- `justify`: `start`, `center`, `end`, `stretch`
-- `gap`: f32
-- `columns`: Option<u32> (grid only)
-- `wrap`: bool
-- `wrapLimit`: Option<f32>
-
-### UiAnim
-
-Optional animation payload on `UiNode`:
-
-- `opacity { from, to, durationMs, easing? }`
-- `translateY { from, to, durationMs, easing? }`
-
-`easing` supports `linear` or `ease-in-out`.
-
-### UiImageSource
-
-- `ui-image { content: u32 }` (refere a `UiImageId`)
-- `target { content: u64 }` (refere a `TargetId`)
+Consulte detalhes de `UiNodeProps` em `docs/ui/WIDGETS.md` e `src/core/ui/types.rs`.
 
 ## Response
 
 Returns `CmdResultUiApplyOps`:
 
-| Field   | Type        | Description                     |
-| ------- | ----------- | ------------------------------- |
-| success | bool        | Whether ops were applied        |
-| message | String      | Status or error message         |
-| version | Option<u64> | Stored version                  |
+| Field   | Type        | Description |
+| ------- | ----------- | ----------- |
+| success | bool        | Lote aplicado com sucesso |
+| message | String      | Status ou erro |
+| version | Option<u64> | Versão persistida (ou atual em caso de erro de versão) |
+
+## Validation
+
+- `documentId` deve existir.
+- `version` deve ser maior que a versão atual do documento.
+- Em caso de erro em qualquer op:
+  - core faz rollback do lote no documento;
+  - resposta retorna `success = false`.

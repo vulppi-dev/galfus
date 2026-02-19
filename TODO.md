@@ -154,14 +154,14 @@ Base de referência (egui):
 - [x] Eventos ponta-a-ponta e trace habilitável.
 
 ## Fase 12 — Documentação Final (P0)
-- [ ] Atualizar `docs/API.md` com todos comandos/propriedades novos.
-- [ ] Atualizar `docs/cmds/*` (UI, target layer, environment por bind, event trace).
-- [ ] Criar `docs/UI.md` técnico (arquitetura runtime/UI renderer/input/output).
-- [ ] Criar `docs/UI-WIDGETS.md` (nós suportados + exemplos).
-- [ ] Criar `docs/UI-EVENTS.md` (lista de eventos, ordem, semântica).
-- [ ] Criar `docs/UI-PAINTER.md` (paths/primitives/clipping).
-- [ ] Documentar limitações conhecidas e fallbacks de plataforma.
-- [ ] Adicionar guia de migração para hosts após renomeações de API.
+- [x] Atualizar `docs/API.md` com todos comandos/propriedades novos.
+- [x] Atualizar `docs/cmds/*` (UI, target layer, environment por bind, event trace).
+- [x] Criar `docs/UI.md` técnico (arquitetura runtime/UI renderer/input/output).
+- [x] Criar `docs/ui/WIDGETS.md` (nós suportados + exemplos).
+- [x] Criar `docs/ui/EVENTS.md` (lista de eventos, ordem, semântica).
+- [x] Criar `docs/ui/PAINTER.md` (paths/primitives/clipping).
+- [x] Documentar limitações conhecidas e fallbacks de plataforma.
+- [x] Aplicar atualização direta da documentação de API (sem trilha de migração).
 
 ## Critérios de Conclusão
 - [ ] Cobertura funcional >= 90% dos recursos-alvo do egui para uso em runtime.

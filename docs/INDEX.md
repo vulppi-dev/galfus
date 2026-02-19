@@ -57,11 +57,13 @@ If you're building a language binding (Node.js, Lua, Python, etc.) or integratin
 
 6. **[RENDER-GRAPH.md](RENDER-GRAPH.md)** - _Host-defined render graph_
 
-7. **[UI-EXAMPLES.md](UI-EXAMPLES.md)** - _UI command examples_
+7. **[ui/README.md](ui/README.md)** - _UI Runtime (RealmUI)_
+   - Arquitetura do runtime UI
+   - Widgets suportados
+   - Eventos, painter e limitações
+   - Migração de API UI
 
-8. **[UI-PHASE0.md](UI-PHASE0.md)** - _UI v1 scope and acceptance contract_
-
-9. **[GLOSSARY.md](GLOSSARY.md)** - _Terminology reference_
+8. **[GLOSSARY.md](GLOSSARY.md)** - _Terminology reference_
    - Core concepts (Host, Core, ABI)
    - Components vs Resources
    - IDs and handles
@@ -240,7 +242,7 @@ GLOSSARY.md (for terminology)
 
 - **[README.md](../README.md)** - Project overview and quick start
 - **[MASCOT-DEFINITION.md](MASCOT-DEFINITION.md)** - Brand guidelines
-- **[UI.md](UI.md)** - User interface guidelines
+- **[UI.md](UI.md)** - UI technical index
 - **[PLATFORM-PROXIES.md](PLATFORM-PROXIES.md)** - Platform proxy architecture
 - **[Copilot Instructions](../.github/copilot-instructions.md)** - Development patterns
 

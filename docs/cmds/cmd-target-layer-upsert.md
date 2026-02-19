@@ -46,6 +46,11 @@ Environment selection priority per layer:
 2. current default environment profile;
 3. core internal hardcoded default.
 
+Camera selection for `realm kind = 3d`:
+1. `cameraId` from the layer (if set);
+2. first available camera in the realm;
+3. if no camera exists, layer renders only background (`clearColor`/skybox).
+
 ## Response
 
 Returns `CmdResultTargetLayerUpsert`:
