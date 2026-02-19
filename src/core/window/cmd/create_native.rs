@@ -1,14 +1,25 @@
+#[cfg(not(feature = "wasm"))]
 use std::sync::Arc;
 
+#[cfg(not(feature = "wasm"))]
 use super::create_shared::{register_window_realm, resolve_rgba16f_msaa_supported_mask};
+#[cfg(not(feature = "wasm"))]
 use super::{CmdResultWindowCreate, CmdWindowCreateArgs};
+#[cfg(not(feature = "wasm"))]
 use crate::core::platform::ActiveEventLoop;
+#[cfg(not(feature = "wasm"))]
 use crate::core::platform::Window;
+#[cfg(not(feature = "wasm"))]
 use crate::core::platform::winit::dpi::{PhysicalPosition, PhysicalSize, Position};
+#[cfg(not(feature = "wasm"))]
 use crate::core::profiling::gpu::GpuProfiler;
+#[cfg(not(feature = "wasm"))]
 use crate::core::state::EngineState;
+#[cfg(not(feature = "wasm"))]
 use crate::core::window::WindowState;
+#[cfg(not(feature = "wasm"))]
 use glam::{IVec2, UVec2};
+#[cfg(not(feature = "wasm"))]
 use pollster::FutureExt;
 
 #[cfg(not(feature = "wasm"))]

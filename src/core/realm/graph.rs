@@ -22,17 +22,16 @@ impl RealmGraphPlanner {
     pub fn build_plan(&self, universal: &UniversalState) -> RealmGraphPlan {
         let mut edges = Vec::new();
         let mut hard_targets = HashSet::new();
+        let surface_to_realm = collect_surface_to_realm(universal);
 
         for present in universal.presents.entries.values() {
-            if let Some(realm_id) = find_realm_by_surface(universal, present.value.surface) {
+            if let Some(realm_id) = surface_to_realm.get(&present.value.surface).copied() {
                 hard_targets.insert(realm_id);
             }
         }
 
         for (connector_id, connector) in universal.connectors.entries.iter() {
-            if let Some(source_realm) =
-                find_realm_by_surface(universal, connector.value.source_surface)
-            {
+            if let Some(source_realm) = surface_to_realm.get(&connector.value.source_surface).copied() {
                 edges.push(RealmGraphEdge {
                     from: source_realm,
                     to: connector.value.target_realm,
@@ -52,18 +51,14 @@ impl RealmGraphPlanner {
     }
 }
 
-fn find_realm_by_surface(universal: &UniversalState, surface: super::SurfaceId) -> Option<RealmId> {
-    universal
-        .realms
-        .entries
-        .iter()
-        .find_map(|(realm_id, entry)| {
-            if entry.value.output_surface == Some(surface) {
-                Some(*realm_id)
-            } else {
-                None
-            }
-        })
+fn collect_surface_to_realm(universal: &UniversalState) -> HashMap<super::SurfaceId, RealmId> {
+    let mut map = HashMap::new();
+    for (realm_id, entry) in &universal.realms.entries {
+        if let Some(surface_id) = entry.value.output_surface {
+            map.insert(surface_id, *realm_id);
+        }
+    }
+    map
 }
 
 fn topo_with_soft_cuts(
@@ -111,9 +106,13 @@ fn topo_with_soft_cuts(
 
 fn topo_order(realms: &HashSet<RealmId>, edges: &[RealmGraphEdge]) -> Vec<RealmId> {
     let mut incoming: HashMap<RealmId, usize> = realms.iter().map(|id| (*id, 0)).collect();
+    let mut edges_by_from: HashMap<RealmId, Vec<RealmId>> = HashMap::new();
     for edge in edges {
         if realms.contains(&edge.to) {
             *incoming.entry(edge.to).or_insert(0) += 1;
+        }
+        if realms.contains(&edge.from) && realms.contains(&edge.to) {
+            edges_by_from.entry(edge.from).or_default().push(edge.to);
         }
     }
 
@@ -128,12 +127,12 @@ fn topo_order(realms: &HashSet<RealmId>, edges: &[RealmGraphEdge]) -> Vec<RealmI
     let mut order = Vec::new();
     while let Some(node) = queue.pop_front() {
         order.push(node);
-        for edge in edges {
-            if edge.from == node {
-                if let Some(entry) = incoming.get_mut(&edge.to) {
+        if let Some(children) = edges_by_from.get(&node) {
+            for child in children {
+                if let Some(entry) = incoming.get_mut(child) {
                     *entry = entry.saturating_sub(1);
                     if *entry == 0 {
-                        queue.push_back(edge.to);
+                        queue.push_back(*child);
                     }
                 }
             }

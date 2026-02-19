@@ -8,3 +8,5 @@ pub use cmd::*;
 pub use events::WindowEvent;
 pub use state::WindowManager;
 pub use state::WindowState;
+#[cfg(feature = "wasm")]
+pub use state::WebListenerRegistration;
