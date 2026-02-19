@@ -66,6 +66,10 @@ impl UiImageAsyncManager {
         !self.pending.is_empty()
     }
 
+    pub fn pending_image_ids(&self) -> HashSet<UiImageId> {
+        self.pending.iter().copied().collect()
+    }
+
     pub fn enqueue(&mut self, job: UiImageDecodeJob) -> Result<(), String> {
         if !self.pending.insert(job.image_id) {
             return Err(format!("UiImage {} is already pending", job.image_id));
@@ -76,9 +80,12 @@ impl UiImageAsyncManager {
         Ok(())
     }
 
-    pub fn cancel(&mut self, image_id: UiImageId) {
-        self.pending.remove(&image_id);
-        self.canceled.insert(image_id);
+    pub fn cancel(&mut self, image_id: UiImageId) -> bool {
+        let removed = self.pending.remove(&image_id);
+        if removed {
+            self.canceled.insert(image_id);
+        }
+        removed
     }
 
     pub fn was_canceled(&mut self, image_id: UiImageId) -> bool {
@@ -140,6 +147,31 @@ fn spawn_decode(job: UiImageDecodeJob, sender: Sender<UiImageAsyncEvent>) {
             message,
         }));
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn cancel_only_marks_existing_pending_images() {
+        let mut manager = UiImageAsyncManager::new();
+        assert!(!manager.cancel(42));
+        assert!(!manager.was_canceled(42));
+
+        manager.pending.insert(42);
+        assert!(manager.cancel(42));
+        assert!(manager.was_canceled(42));
+        assert!(!manager.was_canceled(42));
+    }
+
+    #[test]
+    fn pending_image_ids_reports_current_pending_set() {
+        let mut manager = UiImageAsyncManager::new();
+        manager.pending.insert(1);
+        manager.pending.insert(8);
+        assert_eq!(manager.pending_image_ids(), HashSet::from([1, 8]));
+    }
 }
 
 #[cfg(feature = "wasm")]

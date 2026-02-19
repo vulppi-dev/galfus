@@ -3,9 +3,11 @@ use js_sys::Date;
 use crate::core::platform::{EventLoop, EventLoopProxy};
 use crate::core::singleton::EngineCustomEvents;
 use crate::core::state::EngineState;
-use crate::core::window::{
-    CmdResultWindowCreate, CmdWindowCreateArgs, engine_cmd_window_create_async,
-};
+#[cfg(not(target_arch = "wasm32"))]
+use crate::core::window::engine_cmd_window_create;
+#[cfg(target_arch = "wasm32")]
+use crate::core::window::engine_cmd_window_create_async;
+use crate::core::window::{CmdResultWindowCreate, CmdWindowCreateArgs};
 
 use super::PlatformProxy;
 
@@ -36,11 +38,20 @@ impl PlatformProxy for BrowserProxy {
 
     fn handle_window_create(
         &mut self,
-        _state: &mut EngineState,
+        state: &mut EngineState,
         cmd_id: u64,
         args: &CmdWindowCreateArgs,
     ) -> Result<(), CmdResultWindowCreate> {
-        engine_cmd_window_create_async(args, cmd_id)
+        #[cfg(target_arch = "wasm32")]
+        {
+            engine_cmd_window_create_async(args, cmd_id)
+        }
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let event_loop = ();
+            let result = engine_cmd_window_create(state, &event_loop, args);
+            if result.success { Ok(()) } else { Err(result) }
+        }
     }
 
     fn process_gamepads(&mut self, state: &mut EngineState) -> u64 {

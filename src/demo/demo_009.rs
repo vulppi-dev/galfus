@@ -331,11 +331,19 @@ fn wait_for_setup_responses(expected: usize) {
                     count += 1;
                 }
                 CommandResponse::TargetLayerUpsert(result) => {
-                    assert!(result.success, "[demo009:target-layer-upsert] {}", result.message);
+                    assert!(
+                        result.success,
+                        "[demo009:target-layer-upsert] {}",
+                        result.message
+                    );
                     count += 1;
                 }
                 CommandResponse::UiDocumentCreate(result) => {
-                    assert!(result.success, "[demo009:ui-document-create] {}", result.message);
+                    assert!(
+                        result.success,
+                        "[demo009:ui-document-create] {}",
+                        result.message
+                    );
                     count += 1;
                 }
                 CommandResponse::UiApplyOps(result) => {

@@ -1,6 +1,6 @@
 use wasm_bindgen::JsCast;
 use wasm_bindgen::closure::Closure;
-use web_sys::{Event, HtmlCanvasElement, KeyboardEvent, PointerEvent, WheelEvent};
+use web_sys::{Event, EventTarget, HtmlCanvasElement, KeyboardEvent, PointerEvent, WheelEvent};
 
 use crate::core::cmd::EngineEvent;
 use crate::core::input::events::{ElementState, ModifiersState, TouchPhase};
@@ -8,25 +8,28 @@ use crate::core::input::events::{
     KeyboardEvent as CoreKeyboardEvent, PointerEvent as CorePointerEvent, ScrollDelta,
 };
 use crate::core::singleton::with_engine;
-use crate::core::window::WindowEvent;
+use crate::core::state::EngineState;
+use crate::core::window::{WebListenerRegistration, WindowEvent};
 
 pub fn attach_canvas_listeners(
     window_id: u32,
     canvas: &HtmlCanvasElement,
-) -> Vec<Closure<dyn FnMut(Event)>> {
-    let mut listeners: Vec<Closure<dyn FnMut(Event)>> = Vec::new();
+) -> Vec<WebListenerRegistration> {
+    let mut listeners: Vec<WebListenerRegistration> = Vec::new();
 
     let window = match web_sys::window() {
         Some(window) => window,
         None => return listeners,
     };
+    let window_target: EventTarget = window.clone().unchecked_into();
+    let canvas_target: EventTarget = canvas.clone().unchecked_into();
 
     let canvas_for_resize = canvas.clone();
     let resize_closure = Closure::wrap(Box::new(move |_event: Event| {
         let width = canvas_for_resize.client_width().max(1) as u32;
         let height = canvas_for_resize.client_height().max(1) as u32;
 
-        let _ = with_engine(|engine| {
+        with_live_window(window_id, |engine| {
             if let Some(window_state) = engine.window.states.get_mut(&window_id) {
                 window_state.config.width = width;
                 window_state.config.height = height;
@@ -68,12 +71,10 @@ pub fn attach_canvas_listeners(
                 }));
         });
     }) as Box<dyn FnMut(Event)>);
-    let _ =
-        window.add_event_listener_with_callback("resize", resize_closure.as_ref().unchecked_ref());
-    listeners.push(resize_closure);
+    register_listener(&window_target, "resize", resize_closure, &mut listeners);
 
     let focus_closure = Closure::wrap(Box::new(move |_event: Event| {
-        let _ = with_engine(|engine| {
+        with_live_window(window_id, |engine| {
             engine
                 .event_queue
                 .push(EngineEvent::Window(WindowEvent::OnFocus {
@@ -82,12 +83,10 @@ pub fn attach_canvas_listeners(
                 }));
         });
     }) as Box<dyn FnMut(Event)>);
-    let _ =
-        window.add_event_listener_with_callback("focus", focus_closure.as_ref().unchecked_ref());
-    listeners.push(focus_closure);
+    register_listener(&window_target, "focus", focus_closure, &mut listeners);
 
     let blur_closure = Closure::wrap(Box::new(move |_event: Event| {
-        let _ = with_engine(|engine| {
+        with_live_window(window_id, |engine| {
             engine
                 .event_queue
                 .push(EngineEvent::Window(WindowEvent::OnFocus {
@@ -96,8 +95,7 @@ pub fn attach_canvas_listeners(
                 }));
         });
     }) as Box<dyn FnMut(Event)>);
-    let _ = window.add_event_listener_with_callback("blur", blur_closure.as_ref().unchecked_ref());
-    listeners.push(blur_closure);
+    register_listener(&window_target, "blur", blur_closure, &mut listeners);
 
     let keydown_closure = Closure::wrap(Box::new(move |event: Event| {
         let event: KeyboardEvent = match event.dyn_into() {
@@ -118,7 +116,7 @@ pub fn attach_canvas_listeners(
             .filter(|_| event.key().len() == 1)
             .map(|_| event.key());
 
-        let _ = with_engine(|engine| {
+        with_live_window(window_id, |engine| {
             engine
                 .event_queue
                 .push(EngineEvent::Keyboard(CoreKeyboardEvent::OnInput {
@@ -132,9 +130,7 @@ pub fn attach_canvas_listeners(
                 }));
         });
     }) as Box<dyn FnMut(Event)>);
-    let _ = window
-        .add_event_listener_with_callback("keydown", keydown_closure.as_ref().unchecked_ref());
-    listeners.push(keydown_closure);
+    register_listener(&window_target, "keydown", keydown_closure, &mut listeners);
 
     let keyup_closure = Closure::wrap(Box::new(move |event: Event| {
         let event: KeyboardEvent = match event.dyn_into() {
@@ -155,7 +151,7 @@ pub fn attach_canvas_listeners(
             .filter(|_| event.key().len() == 1)
             .map(|_| event.key());
 
-        let _ = with_engine(|engine| {
+        with_live_window(window_id, |engine| {
             engine
                 .event_queue
                 .push(EngineEvent::Keyboard(CoreKeyboardEvent::OnInput {
@@ -169,9 +165,7 @@ pub fn attach_canvas_listeners(
                 }));
         });
     }) as Box<dyn FnMut(Event)>);
-    let _ =
-        window.add_event_listener_with_callback("keyup", keyup_closure.as_ref().unchecked_ref());
-    listeners.push(keyup_closure);
+    register_listener(&window_target, "keyup", keyup_closure, &mut listeners);
 
     let canvas_for_pointer = canvas.clone();
     let pointer_move = Closure::wrap(Box::new(move |event: Event| {
@@ -183,7 +177,7 @@ pub fn attach_canvas_listeners(
         let pointer_type = map_pointer_type(&event.pointer_type());
         let pointer_id = event.pointer_id() as u64;
 
-        let _ = with_engine(|engine| {
+        with_live_window(window_id, |engine| {
             engine.window.cursor_positions.insert(window_id, position);
             engine
                 .event_queue
@@ -196,9 +190,7 @@ pub fn attach_canvas_listeners(
                 }));
         });
     }) as Box<dyn FnMut(Event)>);
-    let _ = canvas
-        .add_event_listener_with_callback("pointermove", pointer_move.as_ref().unchecked_ref());
-    listeners.push(pointer_move);
+    register_listener(&canvas_target, "pointermove", pointer_move, &mut listeners);
 
     let canvas_for_pointer = canvas.clone();
     let pointer_down = Closure::wrap(Box::new(move |event: Event| {
@@ -211,7 +203,7 @@ pub fn attach_canvas_listeners(
         let pointer_id = event.pointer_id() as u64;
         let button = event.button() as u32;
 
-        let _ = with_engine(|engine| {
+        with_live_window(window_id, |engine| {
             engine
                 .event_queue
                 .push(EngineEvent::Pointer(CorePointerEvent::OnButton {
@@ -225,9 +217,7 @@ pub fn attach_canvas_listeners(
                 }));
         });
     }) as Box<dyn FnMut(Event)>);
-    let _ = canvas
-        .add_event_listener_with_callback("pointerdown", pointer_down.as_ref().unchecked_ref());
-    listeners.push(pointer_down);
+    register_listener(&canvas_target, "pointerdown", pointer_down, &mut listeners);
 
     let canvas_for_pointer = canvas.clone();
     let pointer_up = Closure::wrap(Box::new(move |event: Event| {
@@ -240,7 +230,7 @@ pub fn attach_canvas_listeners(
         let pointer_id = event.pointer_id() as u64;
         let button = event.button() as u32;
 
-        let _ = with_engine(|engine| {
+        with_live_window(window_id, |engine| {
             engine
                 .event_queue
                 .push(EngineEvent::Pointer(CorePointerEvent::OnButton {
@@ -254,9 +244,7 @@ pub fn attach_canvas_listeners(
                 }));
         });
     }) as Box<dyn FnMut(Event)>);
-    let _ =
-        canvas.add_event_listener_with_callback("pointerup", pointer_up.as_ref().unchecked_ref());
-    listeners.push(pointer_up);
+    register_listener(&canvas_target, "pointerup", pointer_up, &mut listeners);
 
     let pointer_enter = Closure::wrap(Box::new(move |event: Event| {
         let event: PointerEvent = match event.dyn_into() {
@@ -265,7 +253,7 @@ pub fn attach_canvas_listeners(
         };
         let pointer_type = map_pointer_type(&event.pointer_type());
         let pointer_id = event.pointer_id() as u64;
-        let _ = with_engine(|engine| {
+        with_live_window(window_id, |engine| {
             engine
                 .event_queue
                 .push(EngineEvent::Pointer(CorePointerEvent::OnEnter {
@@ -276,9 +264,12 @@ pub fn attach_canvas_listeners(
                 }));
         });
     }) as Box<dyn FnMut(Event)>);
-    let _ = canvas
-        .add_event_listener_with_callback("pointerenter", pointer_enter.as_ref().unchecked_ref());
-    listeners.push(pointer_enter);
+    register_listener(
+        &canvas_target,
+        "pointerenter",
+        pointer_enter,
+        &mut listeners,
+    );
 
     let pointer_leave = Closure::wrap(Box::new(move |event: Event| {
         let event: PointerEvent = match event.dyn_into() {
@@ -287,7 +278,7 @@ pub fn attach_canvas_listeners(
         };
         let pointer_type = map_pointer_type(&event.pointer_type());
         let pointer_id = event.pointer_id() as u64;
-        let _ = with_engine(|engine| {
+        with_live_window(window_id, |engine| {
             engine
                 .event_queue
                 .push(EngineEvent::Pointer(CorePointerEvent::OnLeave {
@@ -298,9 +289,12 @@ pub fn attach_canvas_listeners(
                 }));
         });
     }) as Box<dyn FnMut(Event)>);
-    let _ = canvas
-        .add_event_listener_with_callback("pointerleave", pointer_leave.as_ref().unchecked_ref());
-    listeners.push(pointer_leave);
+    register_listener(
+        &canvas_target,
+        "pointerleave",
+        pointer_leave,
+        &mut listeners,
+    );
 
     let wheel_canvas = canvas.clone();
     let wheel_closure = Closure::wrap(Box::new(move |event: Event| {
@@ -316,7 +310,7 @@ pub fn attach_canvas_listeners(
             ScrollDelta::Line(delta)
         };
 
-        let _ = with_engine(|engine| {
+        with_live_window(window_id, |engine| {
             let _ = &wheel_canvas;
             engine
                 .event_queue
@@ -328,9 +322,7 @@ pub fn attach_canvas_listeners(
                 }));
         });
     }) as Box<dyn FnMut(Event)>);
-    let _ =
-        canvas.add_event_listener_with_callback("wheel", wheel_closure.as_ref().unchecked_ref());
-    listeners.push(wheel_closure);
+    register_listener(&canvas_target, "wheel", wheel_closure, &mut listeners);
 
     listeners
 }
@@ -341,6 +333,28 @@ fn canvas_relative_pos(canvas: &HtmlCanvasElement, x: i32, y: i32) -> glam::Vec2
         (x as f64 - rect.left()) as f32,
         (y as f64 - rect.top()) as f32,
     )
+}
+
+fn with_live_window(window_id: u32, mut apply: impl FnMut(&mut EngineState)) {
+    let _ = with_engine(|engine| {
+        if engine.window.states.contains_key(&window_id) {
+            apply(engine);
+        }
+    });
+}
+
+fn register_listener(
+    target: &EventTarget,
+    event_type: &'static str,
+    callback: Closure<dyn FnMut(Event)>,
+    listeners: &mut Vec<WebListenerRegistration>,
+) {
+    let _ = target.add_event_listener_with_callback(event_type, callback.as_ref().unchecked_ref());
+    listeners.push(WebListenerRegistration {
+        target: target.clone(),
+        event_type,
+        callback,
+    });
 }
 
 fn map_pointer_type(pointer_type: &str) -> u32 {

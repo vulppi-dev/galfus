@@ -115,6 +115,7 @@ impl EngineState {
         let cleaned = self.window.cleanup_window(window_id, &mut self.input.cache);
 
         if cleaned {
+            let _ = self.texture_async.cancel_by_window(window_id);
             let targets_to_remove: std::collections::HashSet<_> = self
                 .universal_state
                 .targets

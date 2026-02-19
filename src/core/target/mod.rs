@@ -1,6 +1,8 @@
 pub mod cmd;
 pub mod graph;
 mod graph_hash;
+#[cfg(test)]
+mod graph_tests;
 pub mod resolve;
 pub mod state;
 

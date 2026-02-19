@@ -31,7 +31,7 @@ fn update_ssao_uniform(
     let size = record
         .render_target
         .as_ref()
-        .map(|target| target._texture.size())
+        .map(|target| target.texture.size())
         .unwrap_or(wgpu::Extent3d {
             width: 1,
             height: 1,
@@ -64,7 +64,7 @@ fn update_ssao_blur_uniform(
     let size = record
         .render_target
         .as_ref()
-        .map(|target| target._texture.size())
+        .map(|target| target.texture.size())
         .unwrap_or(wgpu::Extent3d {
             width: 1,
             height: 1,
@@ -260,7 +260,7 @@ pub fn pass_ssao(
             multiview_mask: None,
         });
 
-        let size = target._texture.size();
+        let size = target.texture.size();
         render_pass.set_pipeline(pipeline);
         render_pass.set_viewport(0.0, 0.0, size.width as f32, size.height as f32, 0.0, 1.0);
         render_pass.set_bind_group(0, &bind_group, &[]);
@@ -453,7 +453,7 @@ pub fn pass_ssao_blur(
             multiview_mask: None,
         });
 
-        let size = output_target._texture.size();
+        let size = output_target.texture.size();
         render_pass.set_pipeline(pipeline);
         render_pass.set_viewport(0.0, 0.0, size.width as f32, size.height as f32, 0.0, 1.0);
         render_pass.set_bind_group(0, &bind_group, &[]);

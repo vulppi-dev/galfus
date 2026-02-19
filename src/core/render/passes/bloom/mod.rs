@@ -72,7 +72,7 @@ pub fn pass_bloom(
             continue;
         }
 
-        let input_size = input_target._texture.size();
+        let input_size = input_target.texture.size();
         update_bloom_uniform(
             &post_config,
             input_size,
@@ -185,7 +185,7 @@ pub fn pass_bloom(
                     multiview_mask: None,
                 });
 
-                let size = bloom_target._texture.size();
+                let size = bloom_target.texture.size();
                 render_pass.set_pipeline(pipeline_h);
                 render_pass.set_viewport(0.0, 0.0, size.width as f32, size.height as f32, 0.0, 1.0);
                 render_pass.set_bind_group(0, &bind_group_h, &[]);
@@ -196,7 +196,7 @@ pub fn pass_bloom(
             {
                 update_bloom_uniform(
                     &post_config,
-                    bloom_target._texture.size(),
+                    bloom_target.texture.size(),
                     post_config.bloom_scatter,
                     bloom_buffer,
                     queue,
@@ -281,7 +281,7 @@ pub fn pass_bloom(
                     multiview_mask: None,
                 });
 
-                let size = chain_targets[0]._texture.size();
+                let size = chain_targets[0].texture.size();
                 render_pass.set_pipeline(pipeline_v);
                 render_pass.set_viewport(0.0, 0.0, size.width as f32, size.height as f32, 0.0, 1.0);
                 render_pass.set_bind_group(0, &bind_group_v, &[]);
@@ -295,7 +295,7 @@ pub fn pass_bloom(
             let dst = chain_targets[level];
             update_bloom_uniform(
                 &post_config,
-                src._texture.size(),
+                src.texture.size(),
                 post_config.bloom_scatter,
                 bloom_buffer,
                 queue,
@@ -379,7 +379,7 @@ pub fn pass_bloom(
                 multiview_mask: None,
             });
 
-            let size = dst._texture.size();
+            let size = dst.texture.size();
             render_pass.set_pipeline(pipeline);
             render_pass.set_viewport(0.0, 0.0, size.width as f32, size.height as f32, 0.0, 1.0);
             render_pass.set_bind_group(0, &bind_group, &[]);
@@ -393,7 +393,7 @@ pub fn pass_bloom(
             let level_weight = 1.0 / (level as f32 + 1.0);
             update_bloom_uniform(
                 &post_config,
-                low._texture.size(),
+                low.texture.size(),
                 post_config.bloom_scatter * level_weight,
                 bloom_buffer,
                 queue,
@@ -488,7 +488,7 @@ pub fn pass_bloom(
                 multiview_mask: None,
             });
 
-            let size = high._texture.size();
+            let size = high.texture.size();
             render_pass.set_pipeline(pipeline);
             render_pass.set_viewport(0.0, 0.0, size.width as f32, size.height as f32, 0.0, 1.0);
             render_pass.set_bind_group(0, &bind_group, &[]);
@@ -575,7 +575,7 @@ pub fn pass_bloom(
                 multiview_mask: None,
             });
 
-            let size = bloom_target._texture.size();
+            let size = bloom_target.texture.size();
             render_pass.set_pipeline(pipeline);
             render_pass.set_viewport(0.0, 0.0, size.width as f32, size.height as f32, 0.0, 1.0);
             render_pass.set_bind_group(0, &bind_group, &[]);

@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::sync::mpsc::{Receiver, Sender, channel};
 
 use crate::core::image::{ImageBuffer, ImageDecoder};
@@ -54,6 +54,7 @@ pub struct TextureAsyncManager {
     sender: Sender<TextureAsyncEvent>,
     receiver: Receiver<TextureAsyncEvent>,
     pending: HashSet<u32>,
+    pending_window: HashMap<u32, u32>,
     canceled: HashSet<u32>,
 }
 
@@ -64,6 +65,7 @@ impl TextureAsyncManager {
             sender,
             receiver,
             pending: HashSet::new(),
+            pending_window: HashMap::new(),
             canceled: HashSet::new(),
         }
     }
@@ -72,23 +74,41 @@ impl TextureAsyncManager {
         self.pending.contains(&texture_id)
     }
 
-    pub fn has_pending(&self) -> bool {
-        !self.pending.is_empty()
+    pub fn pending_texture_window_ids(&self) -> HashSet<u32> {
+        self.pending_window.values().copied().collect()
     }
 
     pub fn enqueue(&mut self, job: TextureDecodeJob) -> Result<(), String> {
         if !self.pending.insert(job.texture_id) {
             return Err(format!("Texture {} is already pending", job.texture_id));
         }
+        self.pending_window.insert(job.texture_id, job.window_id);
         self.canceled.remove(&job.texture_id);
         let sender = self.sender.clone();
         spawn_decode(job, sender);
         Ok(())
     }
 
-    pub fn cancel(&mut self, texture_id: u32) {
-        self.pending.remove(&texture_id);
-        self.canceled.insert(texture_id);
+    pub fn cancel(&mut self, texture_id: u32) -> bool {
+        let removed = self.pending.remove(&texture_id);
+        self.pending_window.remove(&texture_id);
+        if removed {
+            self.canceled.insert(texture_id);
+        }
+        removed
+    }
+
+    pub fn cancel_by_window(&mut self, window_id: u32) -> usize {
+        let mut ids = Vec::new();
+        for (texture_id, pending_window_id) in &self.pending_window {
+            if *pending_window_id == window_id {
+                ids.push(*texture_id);
+            }
+        }
+        for texture_id in &ids {
+            let _ = self.cancel(*texture_id);
+        }
+        ids.len()
     }
 
     pub fn was_canceled(&mut self, texture_id: u32) -> bool {
@@ -100,6 +120,7 @@ impl TextureAsyncManager {
         while let Ok(result) = self.receiver.try_recv() {
             if let TextureAsyncEvent::Result(decoded) = &result {
                 self.pending.remove(&decoded.texture_id);
+                self.pending_window.remove(&decoded.texture_id);
             }
             results.push(result);
         }
@@ -152,6 +173,41 @@ fn spawn_decode(job: TextureDecodeJob, sender: Sender<TextureAsyncEvent>) {
             message,
         }));
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn cancel_only_marks_existing_pending_entries() {
+        let mut manager = TextureAsyncManager::new();
+        assert!(!manager.cancel(10));
+        assert!(!manager.was_canceled(10));
+
+        manager.pending.insert(10);
+        manager.pending_window.insert(10, 2);
+        assert!(manager.cancel(10));
+        assert!(manager.was_canceled(10));
+        assert!(!manager.was_canceled(10));
+    }
+
+    #[test]
+    fn cancel_by_window_returns_number_of_canceled_jobs() {
+        let mut manager = TextureAsyncManager::new();
+        manager.pending.insert(1);
+        manager.pending.insert(2);
+        manager.pending.insert(3);
+        manager.pending_window.insert(1, 7);
+        manager.pending_window.insert(2, 7);
+        manager.pending_window.insert(3, 9);
+
+        assert_eq!(manager.cancel_by_window(7), 2);
+        assert!(!manager.is_pending(1));
+        assert!(!manager.is_pending(2));
+        assert!(manager.is_pending(3));
+        assert_eq!(manager.pending_texture_window_ids(), HashSet::from([9]));
+    }
 }
 
 #[cfg(feature = "wasm")]

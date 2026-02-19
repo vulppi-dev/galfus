@@ -35,7 +35,7 @@ struct ForwardAtlasSlot {
 
 /// A sub-allocator for a 2D Texture Array divided into tiles with internal guards
 pub struct ForwardAtlasSystem {
-    _texture: wgpu::Texture,
+    texture: wgpu::Texture,
     view: wgpu::TextureView,
     layer_views: Vec<wgpu::TextureView>, // Cached views for each layer
 
@@ -112,7 +112,7 @@ impl ForwardAtlasSystem {
         }
 
         Self {
-            _texture: texture,
+            texture,
             view,
             layer_views,
             tile_px: desc.tile_px,
@@ -135,7 +135,7 @@ impl ForwardAtlasSystem {
     }
 
     pub fn texture(&self) -> &wgpu::Texture {
-        &self._texture
+        &self.texture
     }
 
     /// Allocate a region of tiles. Returns None if capacity is insufficient or if fragmentation
@@ -356,7 +356,7 @@ impl ForwardAtlasSystem {
         });
         encoder.copy_texture_to_texture(
             wgpu::TexelCopyTextureInfo {
-                texture: &self._texture,
+                texture: &self.texture,
                 mip_level: 0,
                 origin: wgpu::Origin3d::ZERO,
                 aspect: wgpu::TextureAspect::All,
@@ -375,8 +375,8 @@ impl ForwardAtlasSystem {
         );
         queue.submit(Some(encoder.finish()));
 
-        self._texture = new_texture;
-        self.view = self._texture.create_view(&wgpu::TextureViewDescriptor {
+        self.texture = new_texture;
+        self.view = self.texture.create_view(&wgpu::TextureViewDescriptor {
             label: Some("Forward Atlas View"),
             dimension: Some(wgpu::TextureViewDimension::D2Array),
             ..Default::default()
@@ -385,7 +385,7 @@ impl ForwardAtlasSystem {
         self.layer_views.clear();
         for i in 0..new_layers {
             self.layer_views
-                .push(self._texture.create_view(&wgpu::TextureViewDescriptor {
+                .push(self.texture.create_view(&wgpu::TextureViewDescriptor {
                     label: Some(&format!("Forward Atlas Layer View {i}")),
                     dimension: Some(wgpu::TextureViewDimension::D2),
                     base_array_layer: i,

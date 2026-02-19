@@ -8,9 +8,13 @@ use std::sync::Arc;
 use std::time::Instant;
 
 #[cfg(feature = "wasm")]
+use wasm_bindgen::JsCast;
+#[cfg(feature = "wasm")]
 use wasm_bindgen::closure::Closure;
 #[cfg(feature = "wasm")]
 use web_sys::Event;
+#[cfg(feature = "wasm")]
+use web_sys::EventTarget;
 
 #[cfg(not(feature = "wasm"))]
 use crate::core::input::InputCacheManager;
@@ -21,6 +25,13 @@ use crate::core::resources::RenderTarget;
 use super::cache::WindowCacheManager;
 
 /// Represents a window with its associated WGPU resources
+#[cfg(feature = "wasm")]
+pub struct WebListenerRegistration {
+    pub target: EventTarget,
+    pub event_type: &'static str,
+    pub callback: Closure<dyn FnMut(Event)>,
+}
+
 pub struct WindowState {
     pub window: Arc<Window>,
     pub surface: wgpu::Surface<'static>,
@@ -42,7 +53,7 @@ pub struct WindowState {
     pub(crate) fps_instant: f64,
     pub(crate) redraw_force_until_ms: u64,
     #[cfg(feature = "wasm")]
-    pub _web_listeners: Vec<Closure<dyn FnMut(Event)>>,
+    pub web_listener_registrations: Vec<WebListenerRegistration>,
 }
 
 /// Aggregates window state, IDs and caches
@@ -82,6 +93,14 @@ impl WindowManager {
     pub fn cleanup_window(&mut self, window_id: u32) -> bool {
         if let Some(mut window_state) = self.states.remove(&window_id) {
             self.window_id_map.remove(&window_state.window.id());
+            self.cursor_positions.remove(&window_id);
+            for registration in window_state.web_listener_registrations.drain(..) {
+                let _ = registration.target.remove_event_listener_with_callback(
+                    registration.event_type,
+                    registration.callback.as_ref().unchecked_ref(),
+                );
+            }
+            window_state.surface_target = None;
             window_state.render_state.drop_all();
             true
         } else {

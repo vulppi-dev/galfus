@@ -17,6 +17,8 @@ use web_sys::HtmlCanvasElement;
 use super::create_shared::{register_window_realm, resolve_rgba16f_msaa_supported_mask};
 #[cfg(all(feature = "wasm", target_arch = "wasm32"))]
 use super::{CmdResultWindowCreate, CmdWindowCreateArgs};
+#[cfg(all(feature = "wasm", not(target_arch = "wasm32")))]
+use super::{CmdResultWindowCreate, CmdWindowCreateArgs};
 #[cfg(all(feature = "wasm", target_arch = "wasm32"))]
 use crate::core::platform::Window;
 #[cfg(all(feature = "wasm", target_arch = "wasm32"))]
@@ -259,7 +261,7 @@ pub fn engine_cmd_window_create_async(
                     last_frame_delta_ns: 0,
                     fps_instant: 0.0,
                     redraw_force_until_ms: 0,
-                    _web_listeners: listeners,
+                    web_listener_registrations: listeners,
                 },
             );
             let binding = register_window_realm(

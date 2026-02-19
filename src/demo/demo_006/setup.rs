@@ -12,13 +12,13 @@ use crate::core::resources::{
     EnvironmentConfig, MaterialKind, MaterialOptions, MaterialSampler, MsaaConfig,
     PostProcessConfig, PrimitiveShape, SkyboxConfig, SkyboxMode, StandardOptions, SurfaceType,
 };
+use crate::core::target::cmd::CmdTargetLayerUpsertArgs;
+use crate::core::target::{DimensionValue, TargetLayerLayout};
 use crate::core::ui::cmd::{CmdUiApplyOpsArgs, CmdUiDocumentCreateArgs, CmdUiThemeDefineArgs};
 use crate::core::ui::types::{
     UiLayout, UiLayoutDirection, UiLength, UiNode, UiNodeKind, UiNodeProps, UiOp, UiPadding,
     UiSize, UiThemeValue,
 };
-use crate::core::target::{DimensionValue, TargetLayerLayout};
-use crate::core::target::cmd::CmdTargetLayerUpsertArgs;
 use crate::demo::io::{receive_responses, send_commands};
 use crate::demo::{
     DemoContext, create_ambient_light_cmd, create_point_light_cmd, create_standard_material_cmd,
@@ -307,7 +307,10 @@ impl Demo006Setup {
             camera_id: Some(self.ids.camera_embed_id),
             environment_id: None,
         });
-        assert_eq!(send_commands(vec![widget_camera_layer]), VulframResult::Success);
+        assert_eq!(
+            send_commands(vec![widget_camera_layer]),
+            VulframResult::Success
+        );
         assert_command_batch_success(1, "widget-camera-layer");
 
         let mut ui_cmds = build_ui_cmds(self.ids, realm_ui, target_ids.widget_realm_viewport);

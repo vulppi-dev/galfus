@@ -135,11 +135,7 @@ pub fn run(ctx: DemoContext) -> bool {
                             props: UiNodeProps::ComboBox {
                                 label: "Combo".into(),
                                 selected: value,
-                                options: vec![
-                                    "Opção A".into(),
-                                    "Opção B".into(),
-                                    "Opção C".into(),
-                                ],
+                                options: vec!["Opção A".into(), "Opção B".into(), "Opção C".into()],
                                 enabled: Some(true),
                             },
                         }),
@@ -534,11 +530,19 @@ fn wait_for_setup_batch() {
                 }
                 CommandResponse::TargetLayerUpsert(result) => {
                     got_layer = true;
-                    assert!(result.success, "[demo008:target-layer-upsert] {}", result.message);
+                    assert!(
+                        result.success,
+                        "[demo008:target-layer-upsert] {}",
+                        result.message
+                    );
                 }
                 CommandResponse::UiDocumentCreate(result) => {
                     got_doc = true;
-                    assert!(result.success, "[demo008:ui-document-create] {}", result.message);
+                    assert!(
+                        result.success,
+                        "[demo008:ui-document-create] {}",
+                        result.message
+                    );
                 }
                 CommandResponse::UiApplyOps(result) => {
                     got_ops = true;

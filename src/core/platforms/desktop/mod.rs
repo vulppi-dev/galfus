@@ -3,8 +3,10 @@ use std::time::{Duration, Instant};
 use crate::core::cmd::EngineEvent;
 use crate::core::input::events::{KeyboardEvent, PointerEvent};
 use crate::core::platform::{EventLoop, EventLoopExtPumpEvents, EventLoopProxy};
+use crate::core::realm::RealmId;
 use crate::core::singleton::EngineCustomEvents;
 use crate::core::state::EngineState;
+use crate::core::ui::types::{UiImageSource, UiNodeProps};
 use crate::core::window::WindowEvent;
 use crate::core::window::{CmdResultWindowCreate, CmdWindowCreateArgs};
 
@@ -80,6 +82,8 @@ impl PlatformProxy for DesktopProxy {
         let start = Instant::now();
         let now_ms = state.time;
         let input_windows = active_windows_from_events(&state.event_queue);
+        let pending_texture_windows = state.texture_async.pending_texture_window_ids();
+        let pending_ui_image_windows = windows_with_pending_ui_images(state);
         let has_ui_animations = !state.universal_state.ui.animations.is_empty();
         let has_ui_repaint_request = state
             .universal_state
@@ -87,21 +91,24 @@ impl PlatformProxy for DesktopProxy {
             .realms
             .values()
             .any(|realm| realm.needs_repaint);
-        let has_async_loading =
-            state.texture_async.has_pending() || state.universal_state.ui.image_async.has_pending();
+        let has_unbound_ui_async_loading = state.universal_state.ui.image_async.has_pending()
+            && pending_ui_image_windows.is_empty();
 
         for window_id in &input_windows {
             if let Some(window_state) = state.window.states.get_mut(window_id) {
                 window_state.redraw_force_until_ms = now_ms.saturating_add(250);
             }
         }
-        for window_state in state.window.states.values_mut() {
+        for (window_id, window_state) in state.window.states.iter_mut() {
             let has_recent_input = now_ms <= window_state.redraw_force_until_ms;
+            let has_async_texture_loading = pending_texture_windows.contains(window_id);
             let should_redraw = window_state.is_dirty
                 || has_recent_input
                 || has_ui_animations
                 || has_ui_repaint_request
-                || has_async_loading;
+                || has_async_texture_loading
+                || pending_ui_image_windows.contains(window_id)
+                || has_unbound_ui_async_loading;
             if should_redraw {
                 window_state.is_dirty = true;
                 window_state.window.request_redraw();
@@ -144,5 +151,56 @@ fn active_windows_from_events(events: &[EngineEvent]) -> std::collections::HashS
             _ => {}
         }
     }
+    windows
+}
+
+fn windows_with_pending_ui_images(state: &EngineState) -> std::collections::HashSet<u32> {
+    let pending_image_ids = state.universal_state.ui.image_async.pending_image_ids();
+    if pending_image_ids.is_empty() {
+        return std::collections::HashSet::new();
+    }
+
+    let realm_windows: std::collections::HashMap<RealmId, u32> = state
+        .universal_state
+        .realms
+        .entries
+        .iter()
+        .filter_map(|(realm_id, entry)| {
+            entry
+                .value
+                .host_window_id
+                .map(|window_id| (*realm_id, window_id))
+        })
+        .collect();
+
+    let mut windows = std::collections::HashSet::new();
+    for document in state.universal_state.ui.documents.values() {
+        let Some(window_id) = realm_windows.get(&document.realm_id).copied() else {
+            continue;
+        };
+
+        let mut found_pending_in_document = false;
+        for node_entry in document.nodes.values() {
+            let image_id = match &node_entry.node.props {
+                UiNodeProps::Image {
+                    source: UiImageSource::UiImage(image_id),
+                    ..
+                }
+                | UiNodeProps::ImageButton {
+                    source: UiImageSource::UiImage(image_id),
+                    ..
+                } => Some(*image_id),
+                _ => None,
+            };
+            if image_id.is_some_and(|id| pending_image_ids.contains(&id)) {
+                found_pending_in_document = true;
+                break;
+            }
+        }
+        if found_pending_in_document {
+            windows.insert(window_id);
+        }
+    }
+
     windows
 }

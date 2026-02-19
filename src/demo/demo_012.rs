@@ -5,10 +5,12 @@ use crate::core::cmd::{CommandResponse, EngineCmd};
 use crate::core::realm::cmd::{CmdRealmCreateArgs, CmdRealmDisposeArgs, RealmKindDto};
 use crate::core::target::cmd::{CmdTargetLayerUpsertArgs, CmdTargetUpsertArgs};
 use crate::core::target::{DimensionValue, TargetKind, TargetLayerLayout};
-use crate::core::ui::cmd::{CmdUiApplyOpsArgs, CmdUiDocumentCreateArgs, CmdUiImageCreateFromBufferArgs};
+use crate::core::ui::cmd::{
+    CmdUiApplyOpsArgs, CmdUiDocumentCreateArgs, CmdUiImageCreateFromBufferArgs,
+};
 use crate::core::ui::types::{
-    UiColor, UiImageSource, UiLength, UiNode, UiNodeKind, UiNodeProps, UiOp, UiPaintOp, UiPaintStroke,
-    UiSize,
+    UiColor, UiImageSource, UiLength, UiNode, UiNodeKind, UiNodeProps, UiOp, UiPaintOp,
+    UiPaintStroke, UiSize,
 };
 use crate::demo::io::{receive_responses, send_commands};
 use crate::demo::{DemoContext, load_texture_bytes, run_loop, upload_texture_bytes};
@@ -297,15 +299,27 @@ fn wait_for_setup_batch() {
                 }
                 CommandResponse::TargetLayerUpsert(result) => {
                     got_layer = true;
-                    assert!(result.success, "[demo012:target-layer-upsert] {}", result.message);
+                    assert!(
+                        result.success,
+                        "[demo012:target-layer-upsert] {}",
+                        result.message
+                    );
                 }
                 CommandResponse::UiDocumentCreate(result) => {
                     got_doc = true;
-                    assert!(result.success, "[demo012:ui-document-create] {}", result.message);
+                    assert!(
+                        result.success,
+                        "[demo012:ui-document-create] {}",
+                        result.message
+                    );
                 }
                 CommandResponse::UiImageCreateFromBuffer(result) => {
                     got_image = true;
-                    assert!(result.success, "[demo012:ui-image-create] {}", result.message);
+                    assert!(
+                        result.success,
+                        "[demo012:ui-image-create] {}",
+                        result.message
+                    );
                 }
                 _ => {}
             }

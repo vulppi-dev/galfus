@@ -570,11 +570,7 @@ fn collect_external_textures(
                     target_id,
                     source_realm_id,
                 );
-                if let Some(input) = camera_texture_input(
-                    render_state,
-                    target_id.0,
-                    camera_id,
-                ) {
+                if let Some(input) = camera_texture_input(render_state, target_id.0, camera_id) {
                     ui_state.external_textures.insert(target_id.0, input.size);
                     inputs.push(input);
                     continue;
@@ -614,7 +610,7 @@ fn camera_texture_input(
         .render_target
         .as_ref()
         .or(camera.post_target.as_ref())?;
-    let texture_size = camera_target._texture.size();
+    let texture_size = camera_target.texture.size();
     let size = [texture_size.width.max(1), texture_size.height.max(1)];
     Some(ExternalTextureInput {
         id: target_id,
@@ -630,21 +626,30 @@ fn resolve_widget_camera_id(
     target_id: TargetId,
     source_realm_id: u32,
 ) -> Option<u32> {
-    if let Some(camera_id) = target_layers.entries.iter().find_map(|((layer_realm, layer_target), layer)| {
-        if *layer_target == target_id && *layer_realm == source_realm_id {
-            return layer.camera_id;
-        }
-        None
-    }) {
+    if let Some(camera_id) =
+        target_layers
+            .entries
+            .iter()
+            .find_map(|((layer_realm, layer_target), layer)| {
+                if *layer_target == target_id && *layer_realm == source_realm_id {
+                    return layer.camera_id;
+                }
+                None
+            })
+    {
         return Some(camera_id);
     }
 
-    if let Some(camera_id) = target_layers.entries.iter().find_map(|((_, layer_target), layer)| {
-        if *layer_target == target_id {
-            return layer.camera_id;
-        }
-        None
-    }) {
+    if let Some(camera_id) = target_layers
+        .entries
+        .iter()
+        .find_map(|((_, layer_target), layer)| {
+            if *layer_target == target_id {
+                return layer.camera_id;
+            }
+            None
+        })
+    {
         return Some(camera_id);
     }
 

@@ -167,7 +167,7 @@ pub(crate) fn ensure_surface_target<'a>(
     let size = glam::UVec2::new(size.x.max(1), size.y.max(1));
     let needs_target = match surface_targets.get(&surface_id) {
         Some(existing) => {
-            let tex_size = existing._texture.size();
+            let tex_size = existing.texture.size();
             tex_size.width != size.x || tex_size.height != size.y || existing.format != format
         }
         None => true,
