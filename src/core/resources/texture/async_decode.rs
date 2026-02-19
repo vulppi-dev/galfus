@@ -175,6 +175,41 @@ fn spawn_decode(job: TextureDecodeJob, sender: Sender<TextureAsyncEvent>) {
     });
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn cancel_only_marks_existing_pending_entries() {
+        let mut manager = TextureAsyncManager::new();
+        assert!(!manager.cancel(10));
+        assert!(!manager.was_canceled(10));
+
+        manager.pending.insert(10);
+        manager.pending_window.insert(10, 2);
+        assert!(manager.cancel(10));
+        assert!(manager.was_canceled(10));
+        assert!(!manager.was_canceled(10));
+    }
+
+    #[test]
+    fn cancel_by_window_returns_number_of_canceled_jobs() {
+        let mut manager = TextureAsyncManager::new();
+        manager.pending.insert(1);
+        manager.pending.insert(2);
+        manager.pending.insert(3);
+        manager.pending_window.insert(1, 7);
+        manager.pending_window.insert(2, 7);
+        manager.pending_window.insert(3, 9);
+
+        assert_eq!(manager.cancel_by_window(7), 2);
+        assert!(!manager.is_pending(1));
+        assert!(!manager.is_pending(2));
+        assert!(manager.is_pending(3));
+        assert_eq!(manager.pending_texture_window_ids(), HashSet::from([9]));
+    }
+}
+
 #[cfg(feature = "wasm")]
 fn spawn_decode(job: TextureDecodeJob, sender: Sender<TextureAsyncEvent>) {
     wasm_bindgen_futures::spawn_local(async move {

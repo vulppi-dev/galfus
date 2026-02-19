@@ -406,7 +406,10 @@ Comprehensive documentation is available in the `docs/` folder.
 - **[UI.md](docs/UI.md)** - UI runtime technical index
 - **[ui/README.md](docs/ui/README.md)** - RealmUI overview and subsystem docs
 - **[PLATFORM-PROXIES.md](docs/PLATFORM-PROXIES.md)** - Platform proxy architecture
+- **[VALIDATION.md](docs/VALIDATION.md)** - Automated tests and manual demo validation scope
 - **[Copilot Instructions](.github/copilot-instructions.md)** - Development patterns and memory
+
+Automated tests do not fully cover perceptual/platform-dependent flows (window lifecycle details, audio audibility, visual quality). Those are validated manually by running demos as defined in `docs/VALIDATION.md`.
 
 ---
 

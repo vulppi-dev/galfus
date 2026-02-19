@@ -15,6 +15,7 @@ Welcome to the Vulfram documentation! This index will guide you to the right doc
 - **Learn terminology** → See [GLOSSARY.md](GLOSSARY.md)
 - **Understand the architecture** → Read [ARCH.md](ARCH.md)
 - **Understand platform separation** → Read [PLATFORM-PROXIES.md](PLATFORM-PROXIES.md)
+- **Understand automated vs manual quality validation** → Read [VALIDATION.md](VALIDATION.md)
 
 ---
 
@@ -68,6 +69,11 @@ If you're building a language binding (Node.js, Lua, Python, etc.) or integratin
    - Components vs Resources
    - IDs and handles
    - Naming conventions
+
+9. **[VALIDATION.md](VALIDATION.md)** - _Quality validation strategy_
+   - Automated CI checks
+   - Unit-test coverage scope
+   - Manual validation scope via demos
 
 ---
 
