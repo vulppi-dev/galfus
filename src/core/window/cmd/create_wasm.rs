@@ -25,6 +25,8 @@ use crate::core::platform::Window;
 use crate::core::profiling::gpu::GpuProfiler;
 #[cfg(all(feature = "wasm", target_arch = "wasm32"))]
 use crate::core::window::WindowState;
+#[cfg(all(feature = "wasm", target_arch = "wasm32"))]
+use glam::UVec2;
 
 #[cfg(all(feature = "wasm", target_arch = "wasm32"))]
 pub fn engine_cmd_window_create_async(
