@@ -37,11 +37,11 @@ pub fn pass_skybox(
 
     if let Some((_, camera)) = render_state.scene.cameras.iter().next() {
         if let Some(target) = &camera.render_target {
-            let size = target._texture.size();
+            let size = target.texture.size();
             let needs_msaa = sample_count > 1
                 && match render_state.forward_msaa_target.as_ref() {
                     Some(existing) => {
-                        let existing_size = existing._texture.size();
+                        let existing_size = existing.texture.size();
                         existing_size.width != size.width
                             || existing_size.height != size.height
                             || existing.sample_count != sample_count

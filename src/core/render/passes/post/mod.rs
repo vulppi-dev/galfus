@@ -167,7 +167,7 @@ pub fn pass_post(
             None => continue,
         };
 
-        let size = input_target._texture.size();
+        let size = input_target.texture.size();
         let width = size.width;
         let height = size.height;
 

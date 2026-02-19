@@ -51,10 +51,10 @@ pub fn pass_forward(
     // 0. Ensure Depth Target exists and matches size (Lazy)
     if let Some((_, camera)) = scene.cameras.iter().next() {
         if let Some(target) = &camera.render_target {
-            let size = target._texture.size();
+            let size = target.texture.size();
             let needs_depth = match render_state.forward_depth_target.as_ref() {
                 Some(existing) => {
-                    let existing_size = existing._texture.size();
+                    let existing_size = existing.texture.size();
                     existing_size.width != size.width
                         || existing_size.height != size.height
                         || existing.sample_count != sample_count
@@ -77,10 +77,10 @@ pub fn pass_forward(
     let msaa_target = if sample_count > 1 {
         if let Some((_, camera)) = scene.cameras.iter().next() {
             if let Some(target) = &camera.render_target {
-                let size = target._texture.size();
+                let size = target.texture.size();
                 let needs_msaa = match render_state.forward_msaa_target.as_ref() {
                     Some(existing) => {
-                        let existing_size = existing._texture.size();
+                        let existing_size = existing.texture.size();
                         existing_size.width != size.width
                             || existing_size.height != size.height
                             || existing.sample_count != sample_count
@@ -106,10 +106,10 @@ pub fn pass_forward(
     let emissive_msaa_target = if sample_count > 1 {
         if let Some((_, camera)) = scene.cameras.iter().next() {
             if let Some(target) = &camera.render_target {
-                let size = target._texture.size();
+                let size = target.texture.size();
                 let needs_msaa = match render_state.forward_emissive_msaa_target.as_ref() {
                     Some(existing) => {
-                        let existing_size = existing._texture.size();
+                        let existing_size = existing.texture.size();
                         existing_size.width != size.width
                             || existing_size.height != size.height
                             || existing.sample_count != sample_count

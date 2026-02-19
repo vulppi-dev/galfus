@@ -91,8 +91,8 @@ impl PlatformProxy for DesktopProxy {
             .realms
             .values()
             .any(|realm| realm.needs_repaint);
-        let has_unbound_ui_async_loading =
-            state.universal_state.ui.image_async.has_pending() && pending_ui_image_windows.is_empty();
+        let has_unbound_ui_async_loading = state.universal_state.ui.image_async.has_pending()
+            && pending_ui_image_windows.is_empty();
 
         for window_id in &input_windows {
             if let Some(window_state) = state.window.states.get_mut(window_id) {
@@ -165,7 +165,12 @@ fn windows_with_pending_ui_images(state: &EngineState) -> std::collections::Hash
         .realms
         .entries
         .iter()
-        .filter_map(|(realm_id, entry)| entry.value.host_window_id.map(|window_id| (*realm_id, window_id)))
+        .filter_map(|(realm_id, entry)| {
+            entry
+                .value
+                .host_window_id
+                .map(|window_id| (*realm_id, window_id))
+        })
         .collect();
 
     let mut windows = std::collections::HashSet::new();

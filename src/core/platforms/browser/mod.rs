@@ -3,11 +3,11 @@ use js_sys::Date;
 use crate::core::platform::{EventLoop, EventLoopProxy};
 use crate::core::singleton::EngineCustomEvents;
 use crate::core::state::EngineState;
-use crate::core::window::{CmdResultWindowCreate, CmdWindowCreateArgs};
-#[cfg(target_arch = "wasm32")]
-use crate::core::window::engine_cmd_window_create_async;
 #[cfg(not(target_arch = "wasm32"))]
 use crate::core::window::engine_cmd_window_create;
+#[cfg(target_arch = "wasm32")]
+use crate::core::window::engine_cmd_window_create_async;
+use crate::core::window::{CmdResultWindowCreate, CmdWindowCreateArgs};
 
 use super::PlatformProxy;
 

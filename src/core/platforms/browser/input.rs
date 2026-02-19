@@ -264,7 +264,12 @@ pub fn attach_canvas_listeners(
                 }));
         });
     }) as Box<dyn FnMut(Event)>);
-    register_listener(&canvas_target, "pointerenter", pointer_enter, &mut listeners);
+    register_listener(
+        &canvas_target,
+        "pointerenter",
+        pointer_enter,
+        &mut listeners,
+    );
 
     let pointer_leave = Closure::wrap(Box::new(move |event: Event| {
         let event: PointerEvent = match event.dyn_into() {
@@ -284,7 +289,12 @@ pub fn attach_canvas_listeners(
                 }));
         });
     }) as Box<dyn FnMut(Event)>);
-    register_listener(&canvas_target, "pointerleave", pointer_leave, &mut listeners);
+    register_listener(
+        &canvas_target,
+        "pointerleave",
+        pointer_leave,
+        &mut listeners,
+    );
 
     let wheel_canvas = canvas.clone();
     let wheel_closure = Closure::wrap(Box::new(move |event: Event| {

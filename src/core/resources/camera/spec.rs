@@ -189,7 +189,7 @@ impl ViewPosition {
 
 #[derive(Debug, Clone)]
 pub struct RenderTarget {
-    pub _texture: wgpu::Texture,
+    pub texture: wgpu::Texture,
     pub view: wgpu::TextureView,
     pub format: wgpu::TextureFormat,
     pub sample_count: u32,
@@ -222,7 +222,7 @@ impl RenderTarget {
         let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
 
         Self {
-            _texture: texture,
+            texture,
             view,
             format,
             sample_count,
@@ -239,7 +239,7 @@ pub fn ensure_render_target(
 ) {
     let needs_target = match target.as_ref() {
         Some(existing) => {
-            let size = existing._texture.size();
+            let size = existing.texture.size();
             size.width != width || size.height != height || existing.format != format
         }
         None => true,

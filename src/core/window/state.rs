@@ -8,9 +8,9 @@ use std::sync::Arc;
 use std::time::Instant;
 
 #[cfg(feature = "wasm")]
-use wasm_bindgen::closure::Closure;
-#[cfg(feature = "wasm")]
 use wasm_bindgen::JsCast;
+#[cfg(feature = "wasm")]
+use wasm_bindgen::closure::Closure;
 #[cfg(feature = "wasm")]
 use web_sys::Event;
 #[cfg(feature = "wasm")]

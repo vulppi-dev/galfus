@@ -31,7 +31,10 @@ impl RealmGraphPlanner {
         }
 
         for (connector_id, connector) in universal.connectors.entries.iter() {
-            if let Some(source_realm) = surface_to_realm.get(&connector.value.source_surface).copied() {
+            if let Some(source_realm) = surface_to_realm
+                .get(&connector.value.source_surface)
+                .copied()
+            {
                 edges.push(RealmGraphEdge {
                     from: source_realm,
                     to: connector.value.target_realm,

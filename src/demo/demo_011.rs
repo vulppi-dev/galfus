@@ -450,11 +450,19 @@ fn wait_for_setup_batch() {
                 }
                 CommandResponse::TargetLayerUpsert(result) => {
                     got_layer = true;
-                    assert!(result.success, "[demo011:target-layer-upsert] {}", result.message);
+                    assert!(
+                        result.success,
+                        "[demo011:target-layer-upsert] {}",
+                        result.message
+                    );
                 }
                 CommandResponse::UiDocumentCreate(result) => {
                     got_doc = true;
-                    assert!(result.success, "[demo011:ui-document-create] {}", result.message);
+                    assert!(
+                        result.success,
+                        "[demo011:ui-document-create] {}",
+                        result.message
+                    );
                 }
                 CommandResponse::UiApplyOps(result) => {
                     got_ops = true;
