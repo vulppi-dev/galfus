@@ -35,6 +35,7 @@ pub fn attach_canvas_listeners(
                 window_state.config.height = height;
                 if let Some(device) = engine.device.as_ref() {
                     window_state.surface.configure(device, &window_state.config);
+                    #[cfg(any(not(feature = "wasm"), target_arch = "wasm32"))]
                     window_state.render_state.on_resize(device, width, height);
                     crate::core::resources::ensure_render_target(
                         device,
@@ -335,7 +336,7 @@ fn canvas_relative_pos(canvas: &HtmlCanvasElement, x: i32, y: i32) -> glam::Vec2
     )
 }
 
-fn with_live_window(window_id: u32, mut apply: impl FnMut(&mut EngineState)) {
+fn with_live_window(window_id: u32, apply: impl FnOnce(&mut EngineState)) {
     let _ = with_engine(|engine| {
         if engine.window.states.contains_key(&window_id) {
             apply(engine);

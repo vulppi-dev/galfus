@@ -2,15 +2,15 @@ name: Build Bindings
 
 on:
   push:
-    paths:
-      - releases/**/*
-      - alphas/**/*
-      - betas/**/*
+    branches:
+      - releases/**
+      - alphas/**
+      - betas/**
   pull_request:
-    paths:
-      - releases/**/*
-      - alphas/**/*
-      - betas/**/*
+    branches:
+      - releases/**
+      - alphas/**
+      - betas/**
   create:
     branches:
       - releases/**

@@ -38,18 +38,18 @@ impl PlatformProxy for BrowserProxy {
 
     fn handle_window_create(
         &mut self,
-        state: &mut EngineState,
-        cmd_id: u64,
+        _state: &mut EngineState,
+        _cmd_id: u64,
         args: &CmdWindowCreateArgs,
     ) -> Result<(), CmdResultWindowCreate> {
         #[cfg(target_arch = "wasm32")]
         {
-            engine_cmd_window_create_async(args, cmd_id)
+            engine_cmd_window_create_async(args, _cmd_id)
         }
         #[cfg(not(target_arch = "wasm32"))]
         {
             let event_loop = ();
-            let result = engine_cmd_window_create(state, &event_loop, args);
+            let result = engine_cmd_window_create(_state, &event_loop, args);
             if result.success { Ok(()) } else { Err(result) }
         }
     }
