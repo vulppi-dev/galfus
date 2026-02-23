@@ -1,0 +1,38 @@
+name: PR Linked Issue Check
+
+on:
+  pull_request_target:
+    branches:
+      - main
+      - stable/**
+    types:
+      - opened
+      - edited
+      - reopened
+      - synchronize
+      - ready_for_review
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  require-linked-issue:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate linked issue in PR body
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = (context.payload.pull_request.body || "").toLowerCase();
+            const patterns = [
+              /\b(close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved)\s+#\d+\b/i,
+              /\b(close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved)\s+https:\/\/github\.com\/[^/\s]+\/[^/\s]+\/issues\/\d+\b/i,
+            ];
+            const ok = patterns.some((re) => re.test(body));
+
+            if (!ok) {
+              core.setFailed(
+                "Missing linked issue in PR body. Add e.g. 'Closes #123'."
+              );
+            }

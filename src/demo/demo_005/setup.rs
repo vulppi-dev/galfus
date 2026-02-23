@@ -1,15 +1,11 @@
-use std::time::Duration;
-
 use glam::{Mat4, Quat, Vec3, Vec4};
 
-use super::maps::{Demo005LayerRealms, build_layer_cmds, build_target_cmds};
 use crate::core::VulframResult;
 use crate::core::audio::{
     CmdAudioListenerCreateArgs, CmdAudioResourceCreateArgs, CmdAudioResourcePushArgs,
     CmdAudioSourceCreateArgs,
 };
-use crate::core::cmd::{CommandResponse, EngineCmd};
-use crate::core::realm::cmd::{CmdRealmCreateArgs, RealmKindDto};
+use crate::core::cmd::EngineCmd;
 use crate::core::resources::{
     CmdEnvironmentUpdateArgs, CmdModelCreateArgs, CmdPrimitiveGeometryCreateArgs,
     EnvironmentConfig, MsaaConfig, PostProcessConfig, PrimitiveShape, SkyboxConfig, SkyboxMode,
@@ -37,7 +33,6 @@ pub struct Demo005Ids {
     pub cube_geometry_aux_id: u32,
     pub material_aux_id: u32,
     pub model_aux_id: u32,
-    pub texture_target_id: u32,
     pub audio_id: u32,
     pub audio_source_id: u32,
     pub audio_buffer_id: u64,
@@ -48,17 +43,6 @@ pub struct Demo005RealmIds {
     pub window_aux: u32,
     pub host_realm_main: u32,
     pub host_realm_aux: u32,
-    pub realm_3d_layer_main: u32,
-    pub realm_ui: u32,
-    pub realm_texture_main: u32,
-    pub realm_texture_aux: u32,
-    pub realm_conflict: u32,
-    pub target_window_main: u64,
-    pub target_window_aux: u64,
-    pub target_window_layer_main: u64,
-    pub target_window_layer_aux: u64,
-    pub target_realm_plane_layer: u64,
-    pub target_texture_shared: u64,
 }
 
 pub struct Demo005Setup {
@@ -85,7 +69,6 @@ impl Demo005Setup {
             cube_geometry_aux_id: 850,
             material_aux_id: 851,
             model_aux_id: 852,
-            texture_target_id: 860,
             audio_id: 830,
             audio_source_id: 831,
             audio_buffer_id: 8300,
@@ -117,29 +100,6 @@ impl Demo005Setup {
         let window_aux = 2;
         let aux_binding = create_window(window_aux, "Vulfram Demo 005 Aux");
         let host_realm_aux = aux_binding.realm_id;
-
-        let realm_3d_layer_main = create_realm(RealmKindDto::ThreeD, Some(window_main));
-        let realm_ui = create_realm(RealmKindDto::TwoD, Some(window_main));
-        let realm_texture_main = create_realm(RealmKindDto::ThreeD, Some(window_main));
-        let realm_texture_aux = create_realm(RealmKindDto::ThreeD, Some(window_aux));
-        let realm_conflict = create_realm(RealmKindDto::ThreeD, Some(window_main));
-
-        let (target_ids, mut map_cmds) = build_target_cmds(window_main, window_aux);
-        let layer_cmds = build_layer_cmds(
-            target_ids,
-            Demo005LayerRealms {
-                host_main: host_realm_main,
-                host_aux: host_realm_aux,
-                window_layer_main: realm_3d_layer_main,
-                ui: realm_ui,
-                texture_main: realm_texture_main,
-                texture_aux: realm_texture_aux,
-                conflict: realm_conflict,
-            },
-        );
-        map_cmds.extend(layer_cmds);
-
-        assert_eq!(send_commands(map_cmds), VulframResult::Success);
 
         let window_id = window_main;
         let realm_id = host_realm_main;
@@ -357,18 +317,12 @@ impl Demo005Setup {
                 shape: PrimitiveShape::Cube,
                 options: None,
             }),
-            EngineCmd::CmdTextureBindTarget(crate::core::resources::CmdTextureBindTargetArgs {
-                window_id: window_aux,
-                texture_id: self.ids.texture_target_id,
-                target_id: target_ids.texture_shared,
-                label: Some("Demo 005 Target Texture".into()),
-            }),
             create_standard_material_cmd(
                 window_aux,
                 self.ids.material_aux_id,
                 "Demo 005 Aux Material",
                 Vec4::new(0.15, 0.5, 0.25, 1.0),
-                Some(self.ids.texture_target_id),
+                None,
                 None,
             ),
             create_camera_cmd(
@@ -414,17 +368,6 @@ impl Demo005Setup {
             window_aux,
             host_realm_main,
             host_realm_aux,
-            realm_3d_layer_main,
-            realm_ui,
-            realm_texture_main,
-            realm_texture_aux,
-            realm_conflict,
-            target_window_main: target_ids.window_main,
-            target_window_aux: target_ids.window_aux,
-            target_window_layer_main: target_ids.window_layer_main,
-            target_window_layer_aux: target_ids.window_layer_aux,
-            target_realm_plane_layer: target_ids.realm_plane_layer,
-            target_texture_shared: target_ids.texture_shared,
         }
     }
 }
@@ -462,40 +405,4 @@ fn build_demo_005_post_config() -> PostProcessConfig {
         bloom_intensity: 1.0,
         bloom_scatter: 1.0,
     }
-}
-
-fn create_realm(kind: RealmKindDto, host_window_id: Option<u32>) -> u32 {
-    assert_eq!(
-        send_commands(vec![EngineCmd::CmdRealmCreate(CmdRealmCreateArgs {
-            kind,
-            output_surface_id: None,
-            host_window_id,
-            importance: Some(1),
-            cache_policy: Some(0),
-            flags: Some(0),
-        })]),
-        VulframResult::Success
-    );
-    wait_for_response(|response| match response {
-        CommandResponse::RealmCreate(result) if result.success => result.realm_id,
-        _ => None,
-    })
-    .expect("realm creation failed")
-}
-
-fn wait_for_response<F, T>(mut pick: F) -> Option<T>
-where
-    F: FnMut(CommandResponse) -> Option<T>,
-{
-    for _ in 0..120 {
-        let responses = receive_responses();
-        for response in responses {
-            if let Some(value) = pick(response.response) {
-                return Some(value);
-            }
-        }
-        std::thread::sleep(Duration::from_millis(10));
-        assert_eq!(crate::core::vulfram_tick(0, 0), VulframResult::Success);
-    }
-    None
 }

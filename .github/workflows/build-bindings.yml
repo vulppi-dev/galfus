@@ -2,20 +2,8 @@ name: Build Bindings
 
 on:
   push:
-    branches:
-      - releases/**
-      - alphas/**
-      - betas/**
-  pull_request:
-    branches:
-      - releases/**
-      - alphas/**
-      - betas/**
-  create:
-    branches:
-      - releases/**
-      - alphas/**
-      - betas/**
+    tags:
+      - "v*"
   workflow_dispatch:
 
 jobs:

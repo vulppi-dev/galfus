@@ -5,7 +5,7 @@ use glam::{Mat4, Vec3};
 
 use crate::core::audio::{AudioPlayModeDto, CmdAudioSourcePlayArgs};
 use crate::core::cmd::{EngineCmd, EngineEvent};
-use crate::core::input::events::{ElementState, KeyboardEvent, PointerEvent};
+use crate::core::input::events::{ElementState, KeyboardEvent};
 use crate::core::resources::{CmdCameraUpdateArgs, CmdModelUpdateArgs};
 use crate::core::system::events::SystemEvent;
 use crate::core::window::{CmdWindowCloseArgs, WindowEvent};
@@ -22,13 +22,8 @@ pub fn run(ctx: DemoContext, setup: &Demo005Setup, realms: &Demo005RealmIds) -> 
     let state_event = Rc::clone(&state);
 
     println!(
-        "Demo 005 targets: window_main={} window_aux={} window_layer_main={} window_layer_aux={} realm_plane_layer={} texture_shared={}",
-        realms.target_window_main,
-        realms.target_window_aux,
-        realms.target_window_layer_main,
-        realms.target_window_layer_aux,
-        realms.target_realm_plane_layer,
-        realms.target_texture_shared
+        "Demo 005 realms: host_main={} host_aux={} window_main={} window_aux={}",
+        realms.host_realm_main, realms.host_realm_aux, window_id, realms.window_aux
     );
 
     run_loop_with_events(
@@ -162,12 +157,6 @@ pub fn run(ctx: DemoContext, setup: &Demo005Setup, realms: &Demo005RealmIds) -> 
                                 frame_report.target_layers_updated.len(),
                                 frame_report.target_plan_dirty
                             );
-                            if frame_report.target_nodes < 6 {
-                                println!(
-                                    "Warning: expected at least 6 targets, got {}",
-                                    frame_report.target_nodes
-                                );
-                            }
                         }
                     }
                 }
@@ -194,9 +183,6 @@ pub fn run(ctx: DemoContext, setup: &Demo005Setup, realms: &Demo005RealmIds) -> 
                     runtime.audio_ready = success;
                     println!("AudioReady: success={} message={}", success, message);
                 }
-                EngineEvent::Pointer(pointer_event) => {
-                    log_pointer_trace(&pointer_event);
-                }
                 EngineEvent::Keyboard(KeyboardEvent::OnInput {
                     window_id: id,
                     key_code,
@@ -205,14 +191,8 @@ pub fn run(ctx: DemoContext, setup: &Demo005Setup, realms: &Demo005RealmIds) -> 
                 }) if id == window_id => {
                     if key_code == 36 {
                         println!(
-                            "KeyR pressed: host_main={} host_aux={} window_layer_main={} ui={} texture_main={} texture_aux={} conflict={}",
-                            realms.host_realm_main,
-                            realms.host_realm_aux,
-                            realms.realm_3d_layer_main,
-                            realms.realm_ui,
-                            realms.realm_texture_main,
-                            realms.realm_texture_aux,
-                            realms.realm_conflict
+                            "KeyR pressed: host_main={} host_aux={}",
+                            realms.host_realm_main, realms.host_realm_aux
                         );
                     }
                     if key_code == 106 || key_code == 94 {
@@ -235,33 +215,6 @@ struct Demo005RuntimeState {
     audio_ready: bool,
     audio_started: bool,
     last_report_ms: u64,
-}
-
-fn log_pointer_trace(event: &PointerEvent) {
-    let trace = match event {
-        PointerEvent::OnMove { trace, .. }
-        | PointerEvent::OnEnter { trace, .. }
-        | PointerEvent::OnLeave { trace, .. }
-        | PointerEvent::OnButton { trace, .. }
-        | PointerEvent::OnScroll { trace, .. }
-        | PointerEvent::OnTouch { trace, .. }
-        | PointerEvent::OnPinchGesture { trace, .. }
-        | PointerEvent::OnPanGesture { trace, .. }
-        | PointerEvent::OnRotationGesture { trace, .. }
-        | PointerEvent::OnDoubleTapGesture { trace, .. } => trace.as_ref(),
-    };
-
-    if let Some(trace) = trace {
-        println!(
-            "PointerTrace: window={} realm={} target={:?} connector={:?} source_realm={:?} uv={:?}",
-            trace.window_id,
-            trace.realm_id,
-            trace.target_id,
-            trace.connector_id,
-            trace.source_realm_id,
-            trace.uv
-        );
-    }
 }
 
 fn get_profiling() -> Option<crate::core::profiling::cmd::ProfilingData> {
