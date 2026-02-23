@@ -5,6 +5,9 @@ on:
     branches:
       - main
       - stable/**
+      - alpha/**
+      - beta/**
+      - release/**
     types:
       - opened
       - reopened
@@ -24,3 +27,4 @@ jobs:
         uses: actions/labeler@v5
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
+          sync-labels: true

@@ -5,6 +5,9 @@ on:
     branches:
       - main
       - stable/**
+      - alpha/**
+      - beta/**
+      - release/**
     types:
       - opened
       - edited
@@ -31,20 +34,13 @@ jobs:
             }
 
             const body = pr.body || "";
-            const allowed = new Set([
+            const managed = new Set([
               "changelog:breaking",
               "changelog:feature",
               "changelog:fix",
               "changelog:performance",
               "changelog:docs",
               "changelog:internal",
-              "area:core",
-              "area:render",
-              "area:ui",
-              "area:audio",
-              "area:demo",
-              "area:tooling",
-              "area:docs",
             ]);
 
             const checked = new Set();
@@ -52,14 +48,9 @@ jobs:
             let match;
             while ((match = checkedPattern.exec(body)) !== null) {
               const label = match[2].trim();
-              if (allowed.has(label)) {
+              if (managed.has(label)) {
                 checked.add(label);
               }
-            }
-
-            if (checked.size === 0) {
-              core.info("No checked label checklist items found.");
-              return;
             }
 
             const existingRepoLabels = await github.paginate(
@@ -76,17 +67,39 @@ jobs:
             const toAdd = [...checked].filter(
               (label) => repoLabelSet.has(label) && !currentPrLabels.has(label)
             );
+            const toRemove = [...managed].filter(
+              (label) =>
+                repoLabelSet.has(label) &&
+                currentPrLabels.has(label) &&
+                !checked.has(label)
+            );
 
-            if (toAdd.length === 0) {
-              core.info("No new labels to add from checklist.");
+            if (toAdd.length === 0 && toRemove.length === 0) {
+              core.info("No changelog label updates required.");
               return;
             }
 
-            await github.rest.issues.addLabels({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: pr.number,
-              labels: toAdd,
-            });
+            if (toAdd.length > 0) {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                labels: toAdd,
+              });
+            }
 
-            core.info(`Added labels from checklist: ${toAdd.join(", ")}`);
+            for (const label of toRemove) {
+              await github.rest.issues.removeLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                name: label,
+              });
+            }
+
+            if (toAdd.length > 0) {
+              core.info(`Added changelog labels: ${toAdd.join(", ")}`);
+            }
+            if (toRemove.length > 0) {
+              core.info(`Removed changelog labels: ${toRemove.join(", ")}`);
+            }
