@@ -1,0 +1,24 @@
+name: PR Auto Assign
+
+on:
+  pull_request_target:
+    branches:
+      - main
+      - stable/**
+    types:
+      - opened
+      - reopened
+      - ready_for_review
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  auto-assign:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Auto assign reviewers and assignees
+        uses: kentaro-m/auto-assign-action@v2.0.0
+        with:
+          configuration-path: .github/auto_assign.yml
