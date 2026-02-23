@@ -1,0 +1,92 @@
+name: PR Checklist Label Sync
+
+on:
+  pull_request_target:
+    branches:
+      - main
+      - stable/**
+    types:
+      - opened
+      - edited
+      - reopened
+      - synchronize
+      - ready_for_review
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  sync-checklist-labels:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sync checked checklist items to labels
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            if (!pr) {
+              return;
+            }
+
+            const body = pr.body || "";
+            const allowed = new Set([
+              "changelog:breaking",
+              "changelog:feature",
+              "changelog:fix",
+              "changelog:performance",
+              "changelog:docs",
+              "changelog:internal",
+              "area:core",
+              "area:render",
+              "area:ui",
+              "area:audio",
+              "area:demo",
+              "area:tooling",
+              "area:docs",
+            ]);
+
+            const checked = new Set();
+            const checkedPattern = /-\s*\[(x|X)\]\s*`([^`]+)`/g;
+            let match;
+            while ((match = checkedPattern.exec(body)) !== null) {
+              const label = match[2].trim();
+              if (allowed.has(label)) {
+                checked.add(label);
+              }
+            }
+
+            if (checked.size === 0) {
+              core.info("No checked label checklist items found.");
+              return;
+            }
+
+            const existingRepoLabels = await github.paginate(
+              github.rest.issues.listLabelsForRepo,
+              {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                per_page: 100,
+              }
+            );
+            const repoLabelSet = new Set(existingRepoLabels.map((label) => label.name));
+
+            const currentPrLabels = new Set(pr.labels.map((label) => label.name));
+            const toAdd = [...checked].filter(
+              (label) => repoLabelSet.has(label) && !currentPrLabels.has(label)
+            );
+
+            if (toAdd.length === 0) {
+              core.info("No new labels to add from checklist.");
+              return;
+            }
+
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr.number,
+              labels: toAdd,
+            });
+
+            core.info(`Added labels from checklist: ${toAdd.join(", ")}`);
