@@ -43,3 +43,8 @@ Run representative demos and validate:
 3. Audio playback/listener behavior
 4. Visual pipeline output (forward/shadow/post/UI composition)
 5. Runtime stability after repeated create/dispose cycles
+
+Recommended coverage split:
+
+- `demo_005`: baseline only (2 windows / 2 host 3D realms, no stress topology).
+- `demo_013`: stress topology (extra realms/targets/layers, conflict patterns).

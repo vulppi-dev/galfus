@@ -131,35 +131,6 @@ pub fn run(ctx: DemoContext, setup: &Demo005Setup, realms: &Demo005RealmIds) -> 
                         mode: AudioPlayModeDto::Loop,
                     }));
                 }
-                if total_ms.saturating_sub(runtime.last_report_ms) > 1000 {
-                    runtime.last_report_ms = total_ms;
-                    if let Some(report) = get_profiling() {
-                        if let Some(frame_report) = report.frame_report.as_ref() {
-                            println!(
-                                "FrameReport: order={:?} cut_edges={} blocked={} self_sampled={}",
-                                frame_report.order,
-                                frame_report.cut_edges.len(),
-                                frame_report.blocked_connectors.len(),
-                                frame_report.self_sampled_connectors.len()
-                            );
-                            if !frame_report.cut_edges.is_empty() {
-                                println!("Cut edges: {:?}", frame_report.cut_edges);
-                            }
-                            println!(
-                                "TargetGraph: nodes={} edges={} added={:?} removed={:?} updated={:?} binds_added={} binds_removed={} binds_updated={} plan_dirty={}",
-                                frame_report.target_nodes,
-                                frame_report.target_edges,
-                                frame_report.target_added,
-                                frame_report.target_removed,
-                                frame_report.target_updated,
-                                frame_report.target_layers_added.len(),
-                                frame_report.target_layers_removed.len(),
-                                frame_report.target_layers_updated.len(),
-                                frame_report.target_plan_dirty
-                            );
-                        }
-                    }
-                }
             }
 
             cmds
@@ -214,18 +185,4 @@ pub fn run(ctx: DemoContext, setup: &Demo005Setup, realms: &Demo005RealmIds) -> 
 struct Demo005RuntimeState {
     audio_ready: bool,
     audio_started: bool,
-    last_report_ms: u64,
-}
-
-fn get_profiling() -> Option<crate::core::profiling::cmd::ProfilingData> {
-    let mut ptr = std::ptr::null();
-    let mut len: usize = 0;
-    let result = crate::core::vulfram_get_profiling(&mut ptr, &mut len);
-
-    if result != crate::core::VulframResult::Success || len == 0 {
-        return None;
-    }
-
-    let bytes = unsafe { Box::from_raw(std::slice::from_raw_parts_mut(ptr as *mut u8, len)) };
-    Some(rmp_serde::from_slice(&bytes).expect("failed to deserialize profiling"))
 }
