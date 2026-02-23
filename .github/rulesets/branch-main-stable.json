@@ -1,0 +1,61 @@
+{
+  "name": "Protected Branches",
+  "target": "branch",
+  "enforcement": "active",
+  "bypass_actors": [],
+  "conditions": {
+    "ref_name": {
+      "include": [
+        "refs/heads/main",
+        "refs/heads/stable/*"
+      ],
+      "exclude": []
+    }
+  },
+  "rules": [
+    {
+      "type": "deletion"
+    },
+    {
+      "type": "non_fast_forward"
+    },
+    {
+      "type": "required_linear_history"
+    },
+    {
+      "type": "pull_request",
+      "parameters": {
+        "dismiss_stale_reviews_on_push": true,
+        "require_code_owner_review": true,
+        "require_last_push_approval": false,
+        "required_approving_review_count": 1,
+        "required_review_thread_resolution": true
+      }
+    },
+    {
+      "type": "required_status_checks",
+      "parameters": {
+        "strict_required_status_checks_policy": true,
+        "do_not_enforce_on_create": false,
+        "required_status_checks": [
+          {
+            "context": "PR Draft Guard / not-draft (pull_request_target)",
+            "integration_id": null
+          },
+          {
+            "context": "PR Title Check / title (pull_request_target)",
+            "integration_id": null
+          },
+          {
+            "context": "PR Linked Issue Check / require-linked-issue (pull_request_target)",
+            "integration_id": null
+          },
+          {
+            "context": "PR Changelog Label Check / require-changelog-label (pull_request_target)",
+            "integration_id": null
+          }
+        ]
+      }
+    }
+  ]
+}

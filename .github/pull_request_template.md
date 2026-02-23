@@ -13,15 +13,6 @@
 - [ ] `changelog:docs`
 - [ ] `changelog:internal` (exclude from public changelog)
 
-## Scope
-- [ ] `area:core`
-- [ ] `area:render`
-- [ ] `area:ui`
-- [ ] `area:audio`
-- [ ] `area:demo`
-- [ ] `area:tooling`
-- [ ] `area:docs`
-
 ## Validation
 - [ ] `scripts/check.sh`
 - [ ] Relevant demo(s) manually tested

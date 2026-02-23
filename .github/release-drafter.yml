@@ -1,7 +1,7 @@
 name-template: 'v$RESOLVED_VERSION'
 tag-template: 'v$RESOLVED_VERSION'
 change-template: '- $TITLE (#$NUMBER) @$AUTHOR'
-no-changes-template: '- Sem mudanças categorizadas para esta release.'
+no-changes-template: '- No categorized changes for this release.'
 
 version-template: '$MAJOR.$MINOR.$PATCH'
 version-resolver:

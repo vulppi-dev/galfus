@@ -24,11 +24,11 @@ jobs:
         with:
           xs_label: size/xs
           xs_max_size: "30"
-          s_label: size/s
+          s_label: size/sm
           s_max_size: "100"
-          m_label: size/m
+          m_label: size/md
           m_max_size: "300"
-          l_label: size/l
+          l_label: size/lg
           l_max_size: "800"
           xl_label: size/xl
           fail_if_xl: "false"

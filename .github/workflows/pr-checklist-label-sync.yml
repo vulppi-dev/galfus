@@ -1,0 +1,105 @@
+name: PR Checklist Label Sync
+
+on:
+  pull_request_target:
+    branches:
+      - main
+      - stable/**
+      - alpha/**
+      - beta/**
+      - release/**
+    types:
+      - opened
+      - edited
+      - reopened
+      - synchronize
+      - ready_for_review
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  sync-checklist-labels:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sync checked checklist items to labels
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            if (!pr) {
+              return;
+            }
+
+            const body = pr.body || "";
+            const managed = new Set([
+              "changelog:breaking",
+              "changelog:feature",
+              "changelog:fix",
+              "changelog:performance",
+              "changelog:docs",
+              "changelog:internal",
+            ]);
+
+            const checked = new Set();
+            const checkedPattern = /-\s*\[(x|X)\]\s*`([^`]+)`/g;
+            let match;
+            while ((match = checkedPattern.exec(body)) !== null) {
+              const label = match[2].trim();
+              if (managed.has(label)) {
+                checked.add(label);
+              }
+            }
+
+            const existingRepoLabels = await github.paginate(
+              github.rest.issues.listLabelsForRepo,
+              {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                per_page: 100,
+              }
+            );
+            const repoLabelSet = new Set(existingRepoLabels.map((label) => label.name));
+
+            const currentPrLabels = new Set(pr.labels.map((label) => label.name));
+            const toAdd = [...checked].filter(
+              (label) => repoLabelSet.has(label) && !currentPrLabels.has(label)
+            );
+            const toRemove = [...managed].filter(
+              (label) =>
+                repoLabelSet.has(label) &&
+                currentPrLabels.has(label) &&
+                !checked.has(label)
+            );
+
+            if (toAdd.length === 0 && toRemove.length === 0) {
+              core.info("No changelog label updates required.");
+              return;
+            }
+
+            if (toAdd.length > 0) {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                labels: toAdd,
+              });
+            }
+
+            for (const label of toRemove) {
+              await github.rest.issues.removeLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                name: label,
+              });
+            }
+
+            if (toAdd.length > 0) {
+              core.info(`Added changelog labels: ${toAdd.join(", ")}`);
+            }
+            if (toRemove.length > 0) {
+              core.info(`Removed changelog labels: ${toRemove.join(", ")}`);
+            }
