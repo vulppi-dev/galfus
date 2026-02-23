@@ -40,9 +40,6 @@ pub struct RenderState {
     pub shadow: Option<ShadowManager>,
     pub forward_atlas: Option<crate::core::resources::ForwardAtlasSystem>,
     pub cache: RenderCache,
-    pub forward_depth_target: Option<crate::core::resources::RenderTarget>,
-    pub forward_msaa_target: Option<crate::core::resources::RenderTarget>,
-    pub forward_emissive_msaa_target: Option<crate::core::resources::RenderTarget>,
     pub post_uniform_buffer: Option<wgpu::Buffer>,
     pub ssao_uniform_buffer: Option<wgpu::Buffer>,
     pub ssao_blur_uniform_buffer: Option<wgpu::Buffer>,
@@ -114,11 +111,6 @@ impl RenderState {
 
     #[cfg(any(not(feature = "wasm"), target_arch = "wasm32"))]
     pub fn on_resize(&mut self, device: &wgpu::Device, width: u32, height: u32) {
-        // Depth target is now managed per-frame or lazily by passes
-        self.forward_depth_target = None;
-        self.forward_msaa_target = None;
-        self.forward_emissive_msaa_target = None;
-
         let mut any_camera_dirty = false;
         for record in self.scene.cameras.values_mut() {
             let (target_width, target_height) = record

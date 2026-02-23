@@ -28,38 +28,8 @@ pub fn pass_skybox(
         None => return false,
     };
 
-    let multi_camera_mode = render_state.camera_order.len() > 1;
-    let sample_count = if multi_camera_mode {
-        1
-    } else {
-        render_state.msaa_sample_count_for_format(device, wgpu::TextureFormat::Rgba16Float)
-    };
-
-    if let Some((_, camera)) = render_state.scene.cameras.iter().next() {
-        if let Some(target) = &camera.render_target {
-            let size = target.texture.size();
-            let needs_msaa = sample_count > 1
-                && match render_state.forward_msaa_target.as_ref() {
-                    Some(existing) => {
-                        let existing_size = existing.texture.size();
-                        existing_size.width != size.width
-                            || existing_size.height != size.height
-                            || existing.sample_count != sample_count
-                    }
-                    None => true,
-                };
-
-            if needs_msaa {
-                render_state.forward_msaa_target =
-                    Some(crate::core::resources::RenderTarget::new_with_samples(
-                        device,
-                        size,
-                        wgpu::TextureFormat::Rgba16Float,
-                        sample_count,
-                    ));
-            }
-        }
-    }
+    let sample_count =
+        render_state.msaa_sample_count_for_format(device, wgpu::TextureFormat::Rgba16Float);
 
     let uniform_buffer = match render_state.skybox_uniform_buffer.as_ref() {
         Some(buffer) => buffer,
@@ -68,6 +38,33 @@ pub fn pass_skybox(
 
     let mut drew_any = false;
     for camera_id in render_state.camera_order.iter().copied() {
+        if sample_count > 1 {
+            if let Some(camera_record) = render_state.scene.cameras.get_mut(&camera_id) {
+                if let Some(target) = camera_record.render_target.as_ref() {
+                    let size = target.texture.size();
+                    let needs_msaa = match camera_record.forward_msaa_target.as_ref() {
+                        Some(existing) => {
+                            let existing_size = existing.texture.size();
+                            existing_size.width != size.width
+                                || existing_size.height != size.height
+                                || existing.sample_count != sample_count
+                        }
+                        None => true,
+                    };
+
+                    if needs_msaa {
+                        camera_record.forward_msaa_target =
+                            Some(crate::core::resources::RenderTarget::new_with_samples(
+                                device,
+                                size,
+                                wgpu::TextureFormat::Rgba16Float,
+                                sample_count,
+                            ));
+                    }
+                }
+            }
+        }
+
         let skybox = camera_skyboxes
             .get(&camera_id)
             .map(|env| env.skybox.clone())
@@ -84,7 +81,7 @@ pub fn pass_skybox(
         };
 
         let (color_view, resolve_target) = if sample_count > 1 {
-            match render_state.forward_msaa_target.as_ref() {
+            match camera_record.forward_msaa_target.as_ref() {
                 Some(msaa) => (&msaa.view, Some(target_view)),
                 None => (target_view, None),
             }
