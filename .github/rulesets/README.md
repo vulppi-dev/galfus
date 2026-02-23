@@ -1,12 +1,12 @@
 # Rulesets JSON
 
-Arquivos prontos para criar rulesets via GitHub API (ou servir de base para import no UI).
+Ready-to-use files for creating rulesets via GitHub API (or as a base for UI import).
 
-- `branch-main-stable.json`: protege `main` e `stable/*` com PR + checks obrigatorios.
-- `branch-promotion-channels.json`: protege `alpha/*`, `beta/*`, `release/*` e exige PR de promotion vindo de `main` ou `stable/*`.
-- `tag-v-release.json`: protege tags `v*` contra update/delete.
+- `branch-main-stable.json`: protects `main` and `stable/*` with PR + required checks.
+- `branch-promotion-channels.json`: protects `alpha/*`, `beta/*`, `release/*` and requires promotion PRs coming from `main` or `stable/*`.
+- `tag-v-release.json`: protects `v*` tags from update/delete.
 
-## Uso rapido (GitHub CLI)
+## Quick Use (GitHub CLI)
 
 ```bash
 # Branch ruleset
@@ -33,6 +33,6 @@ gh api \
   --input .github/rulesets/branch-promotion-channels.json
 ```
 
-## Atualizacao
+## Update
 
-Para atualizar um ruleset existente, use `PATCH /repos/{owner}/{repo}/rulesets/{ruleset_id}` com o JSON ajustado.
+To update an existing ruleset, use `PATCH /repos/{owner}/{repo}/rulesets/{ruleset_id}` with the adjusted JSON.
