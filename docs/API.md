@@ -215,6 +215,7 @@ Notes:
 - When a source is bound to a model, the core updates its position every tick.
 - If the bound source model is the same as the bound listener model, spatialization is bypassed.
 - Streaming resources emit `SystemEvent::AudioStreamProgress`.
+- If audio initialization fails (for example, missing device/backend), the runtime marks audio as unavailable, emits one `SystemEvent::Error` with scope `audio-init`, and short-circuits audio commands/binding updates with deterministic command errors.
 
 Events:
 
