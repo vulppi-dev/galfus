@@ -18,7 +18,6 @@ use web_sys::EventTarget;
 
 #[cfg(not(feature = "wasm"))]
 use crate::core::input::InputCacheManager;
-use crate::core::render::RenderState;
 use crate::core::resources::RenderTarget;
 
 #[cfg(not(feature = "wasm"))]
@@ -36,7 +35,6 @@ pub struct WindowState {
     pub window: Arc<Window>,
     pub surface: wgpu::Surface<'static>,
     pub config: wgpu::SurfaceConfiguration,
-    pub render_state: RenderState,
     pub surface_target: Option<RenderTarget>,
     #[cfg(not(feature = "wasm"))]
     pub inner_position: IVec2,
@@ -101,7 +99,6 @@ impl WindowManager {
                 );
             }
             window_state.surface_target = None;
-            window_state.render_state.drop_all();
             true
         } else {
             false
@@ -110,12 +107,11 @@ impl WindowManager {
 
     #[cfg(not(feature = "wasm"))]
     pub fn cleanup_window(&mut self, window_id: u32, input_cache: &mut InputCacheManager) -> bool {
-        if let Some(mut window_state) = self.states.remove(&window_id) {
+        if let Some(window_state) = self.states.remove(&window_id) {
             self.window_id_map.remove(&window_state.window.id());
             self.cache.remove(window_id);
             input_cache.remove_pointer(window_id);
             self.cursor_positions.remove(&window_id);
-            window_state.render_state.drop_all();
             true
         } else {
             false

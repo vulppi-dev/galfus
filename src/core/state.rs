@@ -10,7 +10,8 @@ use crate::core::gamepad::state::GamepadState;
 use crate::core::input::InputState;
 use crate::core::profiling::TickProfiling;
 use crate::core::profiling::gpu::GpuProfiler;
-use crate::core::realm::UniversalState;
+use crate::core::realm::{AudioState, UniversalState};
+use crate::core::render::RenderManager;
 use crate::core::resources::{
     MATERIAL_FALLBACK_ID, MaterialStandardParams, MaterialStandardRecord, RenderTarget,
     TextureAsyncManager,
@@ -21,6 +22,7 @@ use std::collections::HashMap;
 /// Main engine state holding all runtime data
 pub struct EngineState {
     pub window: WindowManager,
+    pub render: RenderManager,
 
     #[cfg(any(not(feature = "wasm"), target_arch = "wasm32"))]
     pub wgpu: wgpu::Instance,
@@ -34,6 +36,7 @@ pub struct EngineState {
     pub texture_async: TextureAsyncManager,
     pub audio: Box<dyn AudioProxy>,
     pub audio_available: bool,
+    pub audio_state: AudioState,
     pub universal_state: UniversalState,
     pub surface_targets: HashMap<crate::core::realm::SurfaceId, RenderTarget>,
     pub present_sizes_cache: HashMap<crate::core::realm::SurfaceId, glam::UVec2>,
@@ -89,6 +92,7 @@ impl EngineState {
 
         Self {
             window: WindowManager::new(),
+            render: RenderManager::default(),
             #[cfg(any(not(feature = "wasm"), target_arch = "wasm32"))]
             wgpu: wgpu::Instance::new(&wgpu_descriptor),
             #[cfg(any(not(feature = "wasm"), target_arch = "wasm32"))]
@@ -103,6 +107,7 @@ impl EngineState {
             #[cfg(feature = "wasm")]
             audio: Box::new(WebAudioProxy::default()),
             audio_available: true,
+            audio_state: AudioState::default(),
             universal_state,
             surface_targets: HashMap::new(),
             present_sizes_cache: HashMap::new(),
@@ -129,6 +134,9 @@ impl EngineState {
         let cleaned = self.window.cleanup_window(window_id, &mut self.input.cache);
 
         if cleaned {
+            if let Some(mut render_state) = self.render.remove(window_id) {
+                render_state.drop_all();
+            }
             let targets_to_remove: std::collections::HashSet<_> = self
                 .universal_state
                 .targets

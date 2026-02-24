@@ -36,7 +36,9 @@ pub fn attach_canvas_listeners(
                 if let Some(device) = engine.device.as_ref() {
                     window_state.surface.configure(device, &window_state.config);
                     #[cfg(any(not(feature = "wasm"), target_arch = "wasm32"))]
-                    window_state.render_state.on_resize(device, width, height);
+                    if let Some(render_state) = engine.render.get_mut(&window_id) {
+                        render_state.on_resize(device, width, height);
+                    }
                     crate::core::resources::ensure_render_target(
                         device,
                         &mut window_state.surface_target,

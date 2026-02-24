@@ -248,6 +248,7 @@ pub fn engine_cmd_window_create_async(
             engine.state.device = Some(device);
             engine.state.queue = Some(queue);
             engine.state.window.map_window(window_handle.id(), win_id);
+            engine.state.render.insert(win_id, render_state);
             engine.state.window.insert_state(
                 win_id,
                 WindowState {
@@ -256,7 +257,6 @@ pub fn engine_cmd_window_create_async(
                     config: config.clone(),
                     inner_size: UVec2::new(window_width, window_height),
                     outer_size: UVec2::new(window_width, window_height),
-                    render_state,
                     surface_target,
                     is_dirty: true,
                     last_present_ns: 0,

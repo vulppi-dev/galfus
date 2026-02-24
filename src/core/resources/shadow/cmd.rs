@@ -20,16 +20,6 @@ pub fn engine_cmd_shadow_configure(
     engine: &mut EngineState,
     args: &CmdShadowConfigureArgs,
 ) -> CmdResultShadowConfigure {
-    let window_state = match engine.window.states.get_mut(&args.window_id) {
-        Some(ws) => ws,
-        None => {
-            return CmdResultShadowConfigure {
-                success: false,
-                message: format!("Window {} not found", args.window_id),
-            };
-        }
-    };
-
     let device = match engine.device.as_ref() {
         Some(d) => d,
         None => {
@@ -40,13 +30,24 @@ pub fn engine_cmd_shadow_configure(
         }
     };
 
-    if let Some(shadow) = window_state.render_state.shadow.as_mut() {
+    if let Some(render_state) = engine.render.get_mut(&args.window_id) {
+        let Some(shadow) = render_state.shadow.as_mut() else {
+            return CmdResultShadowConfigure {
+                success: false,
+                message: format!(
+                    "Window {} not found or shadow manager not initialized",
+                    args.window_id
+                ),
+            };
+        };
         shadow.configure(device, args.config);
-        if let Some(bindings) = window_state.render_state.bindings.as_mut() {
+        if let Some(bindings) = render_state.bindings.as_mut() {
             bindings.shared_group = None;
             bindings.shadow_model_bind_group = None;
         }
-        window_state.is_dirty = true;
+        if let Some(window_state) = engine.window.states.get_mut(&args.window_id) {
+            window_state.is_dirty = true;
+        }
         CmdResultShadowConfigure {
             success: true,
             message: "Shadow configuration updated successfully".into(),
@@ -55,7 +56,7 @@ pub fn engine_cmd_shadow_configure(
         CmdResultShadowConfigure {
             success: false,
             message: format!(
-                "Shadow manager not initialized for window {}",
+                "Window {} not found or shadow manager not initialized",
                 args.window_id
             ),
         }

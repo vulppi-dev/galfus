@@ -220,7 +220,6 @@ pub struct UniversalState {
     pub target_autolink_failures: Vec<super::TargetAutoLinkFailure>,
     pub environment_profiles: HashMap<u32, EnvironmentConfig>,
     pub default_environment_id: Option<u32>,
-    pub audio: AudioState,
     pub input_routing: InputRoutingState,
     pub surface_cache: SurfaceCache,
     pub frame_report: super::FrameReport,

@@ -42,7 +42,7 @@ pub(super) fn resolve_realm_plane_hit(
         return None;
     }
 
-    let window_state = engine_state.window.states.get(&window_id)?;
+    let render_state = engine_state.render.get(&window_id)?;
     let entities = engine_state
         .universal_state
         .realm_entities
@@ -58,7 +58,7 @@ pub(super) fn resolve_realm_plane_hit(
         std::collections::HashMap::new();
 
     let mut best_hit: Option<(f32, RealmPlaneHit)> = None;
-    let vertex = window_state.render_state.vertex.as_ref()?;
+    let vertex = render_state.vertex.as_ref()?;
 
     for model in entities.models.values() {
         if (model.layer_mask & camera.layer_mask) == 0 {

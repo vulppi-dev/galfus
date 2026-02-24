@@ -1,0 +1,25 @@
+flowchart LR
+  R["EngineState.render.states"]
+  A["UniversalState.realms"]
+  B["RealmState"]
+  C["host_window_id"]
+  D["WindowManager.states"]
+  E["WindowState"]
+  F["RenderState by window_id"]
+
+  R --> F
+  A --> B
+  B --> C
+  C --> D
+  D --> E
+  E --> F
+
+  G["Realm ownership"]
+  H["realm_entities by RealmId"]
+  I["Window ownership"]
+  J["presentation and redraw"]
+
+  B --> G
+  G --> H
+  E --> I
+  I --> J

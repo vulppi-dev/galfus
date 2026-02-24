@@ -270,6 +270,7 @@ pub fn engine_cmd_window_create(
         }
     }
 
+    engine.render.insert(win_id, render_state);
     engine.window.insert_state(
         win_id,
         WindowState {
@@ -280,7 +281,6 @@ pub fn engine_cmd_window_create(
             outer_position: IVec2::new(outer_position.x, outer_position.y),
             inner_size: UVec2::new(inner_size.width, inner_size.height),
             outer_size: UVec2::new(outer_size.width, outer_size.height),
-            render_state,
             surface_target,
             is_dirty: true,
             last_present_instant: None,

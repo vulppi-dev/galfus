@@ -108,15 +108,17 @@ fn upload_geometry_to_windows(
     label: Option<String>,
     entries: &[(GeometryPrimitiveType, Vec<u8>)],
 ) {
-    for window_state in engine.window.states.values_mut() {
-        let Some(vertex_allocator) = window_state.render_state.vertex.as_mut() else {
+    for (window_id, render_state) in engine.render.states.iter_mut() {
+        let Some(vertex_allocator) = render_state.vertex.as_mut() else {
             continue;
         };
         if vertex_allocator
             .create_geometry(geometry_id, label.clone(), entries.to_vec())
             .is_ok()
         {
-            window_state.is_dirty = true;
+            if let Some(window_state) = engine.window.states.get_mut(window_id) {
+                window_state.is_dirty = true;
+            }
         }
     }
 }
@@ -223,13 +225,15 @@ pub fn engine_cmd_geometry_dispose(
         .remove(&args.geometry_id)
         .is_some();
     let mut window_removed = false;
-    for window_state in engine.window.states.values_mut() {
-        let Some(vertex_allocator) = window_state.render_state.vertex.as_mut() else {
+    for (window_id, render_state) in engine.render.states.iter_mut() {
+        let Some(vertex_allocator) = render_state.vertex.as_mut() else {
             continue;
         };
         if vertex_allocator.destroy_geometry(args.geometry_id).is_ok() {
             window_removed = true;
-            window_state.is_dirty = true;
+            if let Some(window_state) = engine.window.states.get_mut(window_id) {
+                window_state.is_dirty = true;
+            }
         }
     }
     if removed || window_removed {

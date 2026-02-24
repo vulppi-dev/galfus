@@ -201,14 +201,16 @@ pub fn engine_cmd_primitive_geometry_create(
             entries: geometry_data.clone(),
         },
     );
-    for window_state in engine.window.states.values_mut() {
-        if let Some(vertex_allocator) = window_state.render_state.vertex.as_mut() {
+    for (window_id, render_state) in engine.render.states.iter_mut() {
+        if let Some(vertex_allocator) = render_state.vertex.as_mut() {
             let _ = vertex_allocator.create_geometry(
                 args.geometry_id,
                 args.label.clone(),
                 geometry_data.clone(),
             );
-            window_state.is_dirty = true;
+            if let Some(window_state) = engine.window.states.get_mut(window_id) {
+                window_state.is_dirty = true;
+            }
         }
     }
     CmdResultPrimitiveGeometryCreate {

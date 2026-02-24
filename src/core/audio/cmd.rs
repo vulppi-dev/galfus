@@ -362,11 +362,10 @@ pub fn engine_cmd_audio_listener_create(
             message: format!("Realm {} not found", args.realm_id),
         };
     }
-    engine.universal_state.audio.listener_binding =
-        Some(crate::core::audio::AudioListenerBinding {
-            realm_id: args.realm_id,
-            model_id: args.model_id,
-        });
+    engine.audio_state.listener_binding = Some(crate::core::audio::AudioListenerBinding {
+        realm_id: args.realm_id,
+        model_id: args.model_id,
+    });
     CmdResultAudioListenerCreate {
         success: true,
         message: "Listener bound to model".into(),
@@ -383,12 +382,12 @@ pub fn engine_cmd_audio_listener_dispose(
             message: audio_disabled_message(),
         };
     }
-    let should_clear = match engine.universal_state.audio.listener_binding {
+    let should_clear = match engine.audio_state.listener_binding {
         Some(binding) => binding.realm_id == args.realm_id,
         None => false,
     };
     if should_clear {
-        engine.universal_state.audio.listener_binding = None;
+        engine.audio_state.listener_binding = None;
         CmdResultAudioListenerDispose {
             success: true,
             message: "Listener disposed".into(),
@@ -405,7 +404,7 @@ pub fn process_audio_listener_binding(engine: &mut EngineState) {
     if !engine.audio_available {
         return;
     }
-    let binding = match engine.universal_state.audio.listener_binding {
+    let binding = match engine.audio_state.listener_binding {
         Some(binding) => binding,
         None => return,
     };
@@ -465,7 +464,7 @@ pub fn engine_cmd_audio_buffer_create_from_buffer(
 
     if let Some(total_bytes) = args.total_bytes {
         let offset = args.offset_bytes.unwrap_or(0);
-        let stream = match engine.universal_state.audio.streams.entry(args.resource_id) {
+        let stream = match engine.audio_state.streams.entry(args.resource_id) {
             std::collections::hash_map::Entry::Vacant(entry) => {
                 match AudioStreamState::new(total_bytes) {
                     Ok(state) => entry.insert(state),
@@ -500,8 +499,7 @@ pub fn engine_cmd_audio_buffer_create_from_buffer(
             ));
         if complete {
             let stream = engine
-                .universal_state
-                .audio
+                .audio_state
                 .streams
                 .remove(&args.resource_id)
                 .unwrap();
@@ -584,12 +582,7 @@ pub fn engine_cmd_audio_resource_push(
         };
     }
     let (received_bytes, total_bytes, complete) = {
-        let stream = match engine
-            .universal_state
-            .audio
-            .streams
-            .get_mut(&args.resource_id)
-        {
+        let stream = match engine.audio_state.streams.get_mut(&args.resource_id) {
             Some(stream) => stream,
             None => {
                 return CmdResultAudioResourcePush {
@@ -624,8 +617,7 @@ pub fn engine_cmd_audio_resource_push(
         ));
     if complete {
         let stream = engine
-            .universal_state
-            .audio
+            .audio_state
             .streams
             .remove(&args.resource_id)
             .unwrap();
@@ -682,11 +674,10 @@ pub fn engine_cmd_audio_source_create(
     };
 
     engine
-        .universal_state
-        .audio
+        .audio_state
         .source_params
         .insert(args.source_id, params);
-    engine.universal_state.audio.source_bindings.insert(
+    engine.audio_state.source_bindings.insert(
         args.source_id,
         crate::core::audio::AudioListenerBinding {
             realm_id: args.realm_id,
@@ -724,8 +715,7 @@ pub fn engine_cmd_audio_source_update(
         spatial: args.spatial.clone().into(),
     };
     engine
-        .universal_state
-        .audio
+        .audio_state
         .source_params
         .insert(args.source_id, params);
     match engine.audio.source_update(args.source_id, params) {
@@ -825,16 +815,8 @@ pub fn engine_cmd_audio_source_dispose(
             message: audio_disabled_message(),
         };
     }
-    engine
-        .universal_state
-        .audio
-        .source_bindings
-        .remove(&args.source_id);
-    engine
-        .universal_state
-        .audio
-        .source_params
-        .remove(&args.source_id);
+    engine.audio_state.source_bindings.remove(&args.source_id);
+    engine.audio_state.source_params.remove(&args.source_id);
     match engine.audio.source_dispose(args.source_id) {
         Ok(()) => CmdResultAudioSourceDispose {
             success: true,
@@ -857,11 +839,7 @@ pub fn engine_cmd_audio_resource_dispose(
             message: audio_disabled_message(),
         };
     }
-    engine
-        .universal_state
-        .audio
-        .streams
-        .remove(&args.resource_id);
+    engine.audio_state.streams.remove(&args.resource_id);
     match engine.audio.buffer_dispose(args.resource_id) {
         Ok(()) => CmdResultAudioResourceDispose {
             success: true,
@@ -878,7 +856,7 @@ pub fn process_audio_source_bindings(engine: &mut EngineState) {
     if !engine.audio_available {
         return;
     }
-    let listener_binding = engine.universal_state.audio.listener_binding;
+    let listener_binding = engine.audio_state.listener_binding;
     let Some(listener_binding) = listener_binding else {
         return;
     };
@@ -895,7 +873,7 @@ pub fn process_audio_source_bindings(engine: &mut EngineState) {
         .data
         .transform
         .to_scale_rotation_translation();
-    for (source_id, binding) in engine.universal_state.audio.source_bindings.iter() {
+    for (source_id, binding) in engine.audio_state.source_bindings.iter() {
         if binding.realm_id != listener_binding.realm_id {
             continue;
         }
@@ -904,7 +882,7 @@ pub fn process_audio_source_bindings(engine: &mut EngineState) {
             None => continue,
         };
         let (_, rotation, translation) = record.data.transform.to_scale_rotation_translation();
-        let mut params = match engine.universal_state.audio.source_params.get(source_id) {
+        let mut params = match engine.audio_state.source_params.get(source_id) {
             Some(params) => *params,
             None => continue,
         };

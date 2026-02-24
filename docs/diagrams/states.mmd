@@ -1,0 +1,25 @@
+flowchart LR
+  A["EngineState"]
+  B["UniversalState"]
+  C["WindowManager"]
+  D["RenderManager"]
+  E["AudioState"]
+  F["RealmEntities and GlobalResources"]
+  G["WindowState"]
+
+  A --> B
+  A --> C
+  A --> D
+  A --> E
+  C --> G
+  B --> F
+  F --> D
+
+  N1["Detalhes em diagramas menores"]
+  N2["states_realm_window.mmd"]
+  N3["states_data_sync.mmd"]
+  N4["states_render_cycle.mmd"]
+
+  N1 --> N2
+  N1 --> N3
+  N1 --> N4

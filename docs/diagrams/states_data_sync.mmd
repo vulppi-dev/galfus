@@ -1,0 +1,20 @@
+flowchart LR
+  A["UniversalState.realm_entities for realm_id"]
+  B["UniversalState.global_resources"]
+  C["sync_scene_from_realm_and_globals"]
+  D["RenderState.scene.cameras models lights"]
+  E["RenderState.scene.materials textures"]
+  F["prepare_render uploads dirty data"]
+
+  A --> C
+  B --> C
+  C --> D
+  C --> E
+  D --> F
+  E --> F
+
+  N1["Realm data is selected by realm_id"]
+  N2["Global resources are shared"]
+
+  A --> N1
+  B --> N2

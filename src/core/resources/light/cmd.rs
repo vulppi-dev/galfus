@@ -262,8 +262,8 @@ pub fn engine_cmd_light_dispose(
         };
     };
     if entities.lights.remove(&args.light_id).is_some() {
-        for window_state in engine.window.states.values_mut() {
-            if let Some(shadow) = window_state.render_state.shadow.as_mut() {
+        for render_state in engine.render.states.values_mut() {
+            if let Some(shadow) = render_state.shadow.as_mut() {
                 shadow.free_light(args.light_id);
                 shadow.mark_dirty();
             }

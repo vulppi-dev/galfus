@@ -1,0 +1,20 @@
+flowchart TD
+  A["build realm plan"]
+  B["for each realm in order"]
+  C["resolve window and surface"]
+  D["sync scene and camera targets"]
+  E["prepare_render"]
+  F["execute render graph passes"]
+  G["compose connectors"]
+  H["present"]
+
+  A --> B
+  B --> C
+  C --> D
+  D --> E
+  E --> F
+  F --> G
+  G --> H
+
+  N1["Passes include forward skybox shadow ui post"]
+  F --> N1

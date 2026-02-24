@@ -308,14 +308,14 @@ pub fn engine_cmd_pose_update(
     let matrices: &[glam::Mat4] = bytemuck::cast_slice(&buffer.data);
     let mut applied = false;
     let mut first_offset = None;
-    for (&window_id, window_state) in engine.window.states.iter_mut() {
+    for (&window_id, render_state) in engine.render.states.iter_mut() {
         if args
             .window_id
             .is_some_and(|requested| requested != window_id)
         {
             continue;
         }
-        let Some(vertex_allocator) = window_state.render_state.vertex.as_ref() else {
+        let Some(vertex_allocator) = render_state.vertex.as_ref() else {
             continue;
         };
         let has_skin_streams = vertex_allocator
@@ -330,17 +330,18 @@ pub fn engine_cmd_pose_update(
         if !has_skin_streams {
             continue;
         }
-        let Some(bindings) = window_state.render_state.bindings.as_mut() else {
+        let Some(bindings) = render_state.bindings.as_mut() else {
             continue;
         };
-        let allocation = window_state
-            .render_state
+        let allocation = render_state
             .skinning
             .ensure_allocation(args.model_id, args.bone_count);
         bindings.bones_pool.write_slice(allocation.offset, matrices);
         first_offset.get_or_insert(allocation.offset);
         applied = true;
-        window_state.is_dirty = true;
+        if let Some(window_state) = engine.window.states.get_mut(&window_id) {
+            window_state.is_dirty = true;
+        }
     }
     let _ = engine.buffers.remove_upload(args.matrices_buffer_id);
     if applied {
@@ -389,8 +390,8 @@ pub fn engine_cmd_model_dispose(
     };
 
     if entities.models.remove(&args.model_id).is_some() {
-        for window_state in engine.window.states.values_mut() {
-            window_state.render_state.skinning.release(args.model_id);
+        for render_state in engine.render.states.values_mut() {
+            render_state.skinning.release(args.model_id);
         }
         mark_realm_windows_dirty(engine, args.realm_id);
         CmdResultModelDispose {
