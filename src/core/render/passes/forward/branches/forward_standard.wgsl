@@ -421,12 +421,6 @@ fn sample_shadow_page_at(
     return select(1.0, shadow, shadow_valid);
 }
 
-fn dir_component(v: vec3<f32>, axis: u32) -> f32 {
-    if (axis == 0u) { return v.x; }
-    if (axis == 1u) { return v.y; }
-    return v.z;
-}
-
 fn face_from_axis(axis: u32, comp: f32) -> u32 {
     let pos = comp >= 0.0;
     if (axis == 0u) { return select(1u, 0u, pos); }
@@ -457,25 +451,19 @@ fn point_shadow_factor(light: Light, world_pos: vec3<f32>, ndotl: f32) -> f32 {
     let inv_dist = select(0.0, 1.0 / dist, dist_valid);
     let dir = v * inv_dist;
     let ad = abs(dir);
-    var a0: u32 = 0u;
-    var m0: f32 = ad.x;
-    var a1: u32 = 1u;
-    var m1: f32 = ad.y;
-    if (m1 > m0) {
-        let tmpa = a0; a0 = a1; a1 = tmpa;
-        let tmpm = m0; m0 = m1; m1 = tmpm;
-    }
-    if (ad.z > m0) {
-        a1 = a0; m1 = m0;
-        a0 = 2u; m0 = ad.z;
-    } else if (ad.z > m1) {
-        a1 = 2u; m1 = ad.z;
-    }
-    let face0 = face_from_axis(a0, dir_component(dir, a0));
-    let face1 = face_from_axis(a1, dir_component(dir, a1));
-    let s0 = sample_point_face(light, face0, world_pos, ndotl);
-    let s1 = sample_point_face(light, face1, world_pos, ndotl);
-    let shadow = min(s0, s1);
+    let wx = ad.x * ad.x;
+    let wy = ad.y * ad.y;
+    let wz = ad.z * ad.z;
+    let wsum = max(wx + wy + wz, 1e-6);
+
+    let face_x = face_from_axis(0u, dir.x);
+    let face_y = face_from_axis(1u, dir.y);
+    let face_z = face_from_axis(2u, dir.z);
+
+    let sx = sample_point_face(light, face_x, world_pos, ndotl);
+    let sy = sample_point_face(light, face_y, world_pos, ndotl);
+    let sz = sample_point_face(light, face_z, world_pos, ndotl);
+    let shadow = (sx * wx + sy * wy + sz * wz) / wsum;
     return select(1.0, shadow, dist_valid);
 }
 

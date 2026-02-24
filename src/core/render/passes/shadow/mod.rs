@@ -153,7 +153,13 @@ pub fn pass_shadow_update(
                     };
                     if let Some(record) = shadow_manager.cache.get_mut(&key) {
                         if record.is_dirty {
-                            pages_to_render.push((key, handle, light_view, light_proj));
+                            pages_to_render.push((
+                                key,
+                                handle,
+                                light_view,
+                                light_proj,
+                                light_record.data.kind_flags.x == 1,
+                            ));
                             record.is_dirty = false;
                         }
                     }
@@ -171,12 +177,13 @@ pub fn pass_shadow_update(
         shadow_cam_id: u32,
         view_projection: glam::Mat4,
         transform: (f32, f32, f32, f32, u32),
+        is_point: bool,
     }
 
     let info = shadow_manager.atlas.info();
     let mut render_pages = Vec::new();
 
-    for (key, handle, light_view, light_proj) in pages_to_render {
+    for (key, handle, light_view, light_proj, is_point) in pages_to_render {
         let page_vp = shadow_manager.get_page_view_projection(light_view, light_proj, key.x, key.y);
 
         let shadow_camera_data = CameraComponent {
@@ -200,6 +207,7 @@ pub fn pass_shadow_update(
             shadow_cam_id,
             view_projection: page_vp,
             transform,
+            is_point,
         });
     }
 
@@ -398,7 +406,11 @@ pub fn pass_shadow_update(
                     continue;
                 }
 
-                if let Some(aabb) = vertex_sys.aabb(model_record.geometry_id) {
+                // Point-light shadow pages are cubemap-face projections and are
+                // prone to over-aggressive AABB culling at face/page edges.
+                if !page.is_point
+                    && let Some(aabb) = vertex_sys.aabb(model_record.geometry_id)
+                {
                     let world_aabb = aabb.transform(&model_record.data.transform);
                     if !frustum.intersects_aabb(world_aabb.min, world_aabb.max) {
                         continue;

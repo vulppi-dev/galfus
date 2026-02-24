@@ -182,15 +182,7 @@ pub fn create_instanced_cubes(
 pub fn create_shadow_config_cmd(window_id: u32) -> EngineCmd {
     EngineCmd::CmdShadowConfigure(CmdShadowConfigureArgs {
         window_id,
-        config: ShadowConfig {
-            tile_resolution: 2048,
-            atlas_tiles_w: 16,
-            atlas_tiles_h: 16,
-            atlas_layers: 2,
-            virtual_grid_size: 1,
-            smoothing: 1,
-            normal_bias: 0.01,
-        },
+        config: ShadowConfig::default(),
     })
 }
 
