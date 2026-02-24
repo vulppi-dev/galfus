@@ -116,6 +116,9 @@ The render state keeps a **scene** with camera/model records:
   - `layer_mask`, `order`
   - `view_position` (optional, relative/absolute)
   - `render_target` (per-camera texture)
+  - `forward_depth_target` (per-camera depth intermediate for forward/SSAO)
+  - `forward_msaa_target` (per-camera MSAA color intermediate for forward/skybox)
+  - `forward_emissive_msaa_target` (per-camera MSAA emissive intermediate)
   - Projection is computed from the effective per-camera target/surface size (window size only when rendering directly to a window-sized surface).
 
 - `ModelRecord`
@@ -192,6 +195,7 @@ Async texture decode:
 - `ssao_blur_radius`: bilateral blur radius (pixels)
 - `ssao_blur_depth_threshold`: depth threshold for blur weights
 - SSAO suporta depth MSAA (amostra média por pixel quando MSAA está ativo)
+- Em realms com múltiplas câmeras, intermediários forward/depth são isolados por câmera (MSAA não é desativado por contagem de câmera)
 - `bloom_enabled`: enable bloom/glow composition in post
 - `bloom_threshold`: threshold for bright pass
 - `bloom_knee`: soft knee for thresholding

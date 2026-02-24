@@ -40,9 +40,6 @@ pub struct RenderState {
     pub shadow: Option<ShadowManager>,
     pub forward_atlas: Option<crate::core::resources::ForwardAtlasSystem>,
     pub cache: RenderCache,
-    pub forward_depth_target: Option<crate::core::resources::RenderTarget>,
-    pub forward_msaa_target: Option<crate::core::resources::RenderTarget>,
-    pub forward_emissive_msaa_target: Option<crate::core::resources::RenderTarget>,
     pub post_uniform_buffer: Option<wgpu::Buffer>,
     pub ssao_uniform_buffer: Option<wgpu::Buffer>,
     pub ssao_blur_uniform_buffer: Option<wgpu::Buffer>,
@@ -118,6 +115,9 @@ impl RenderState {
         surface_size: glam::UVec2,
         camera_target_sizes: Option<&std::collections::HashMap<u32, glam::UVec2>>,
     ) -> bool {
+      
+    #[cfg(any(not(feature = "wasm"), target_arch = "wasm32"))]
+    pub fn on_resize(&mut self, device: &wgpu::Device, width: u32, height: u32) {
         let mut any_camera_dirty = false;
         for (camera_id, record) in self.scene.cameras.iter_mut() {
             let target_size = camera_target_sizes

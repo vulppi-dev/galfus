@@ -278,6 +278,9 @@ pub struct CameraRecord {
     pub ssao_blur_target: Option<RenderTarget>,
     pub bloom_target: Option<RenderTarget>,
     pub bloom_chain: [Option<RenderTarget>; 4],
+    pub forward_depth_target: Option<RenderTarget>,
+    pub forward_msaa_target: Option<RenderTarget>,
+    pub forward_emissive_msaa_target: Option<RenderTarget>,
     pub view_position: Option<ViewPosition>,
     pub last_projection_size: UVec2,
 }
@@ -306,6 +309,9 @@ impl CameraRecord {
             ssao_blur_target: None,
             bloom_target: None,
             bloom_chain: [None, None, None, None],
+            forward_depth_target: None,
+            forward_msaa_target: None,
+            forward_emissive_msaa_target: None,
             view_position,
             last_projection_size: UVec2::ZERO,
         }
