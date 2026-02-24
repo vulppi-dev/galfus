@@ -1,11 +1,15 @@
 use crate::core::VulframResult;
-use crate::core::cmd::{CommandResponse, EngineCmd};
+use crate::core::cmd::{CommandResponse, EngineCmd, EngineEvent};
 use crate::core::window::CmdWindowCreateArgs;
+use crate::core::window::WindowEvent;
 use glam::UVec2;
 use std::time::Duration;
 
 use crate::core;
-use crate::demo::io::{receive_responses, send_commands};
+use crate::demo::io::{receive_events, receive_responses, send_commands};
+
+const WINDOW_READY_TIMEOUT: Duration = Duration::from_secs(10);
+const WINDOW_READY_DELTA_MS: u32 = 16;
 
 #[derive(Debug, Clone, Copy)]
 pub struct WindowBinding {
@@ -22,39 +26,62 @@ pub fn create_window(window_id: u32, title: &str) -> WindowBinding {
         ..Default::default()
     });
     assert_eq!(send_commands(vec![create_cmd]), VulframResult::Success);
-    pump_for(Duration::from_millis(200));
-    wait_for_confirmation(window_id)
+    wait_for_window_ready(window_id, title)
 }
 
-fn pump_for(duration: Duration) {
+fn wait_for_window_ready(window_id: u32, title: &str) -> WindowBinding {
     let start = std::time::Instant::now();
-    let mut total_ms = 0u64;
-    while start.elapsed() < duration {
-        assert_eq!(core::vulfram_tick(total_ms, 16), VulframResult::Success);
-        total_ms += 16;
-        std::thread::sleep(Duration::from_millis(16));
-    }
-}
+    let mut total_ms: u64 = 0;
+    let mut realm_id: Option<u32> = None;
+    let mut got_window_create_event = false;
+    let mut observed_events: Vec<String> = Vec::new();
 
-fn wait_for_confirmation(_window_id: u32) -> WindowBinding {
-    for _ in 0..100 {
-        let responses = receive_responses();
-        for response in responses {
-            match response.response {
-                CommandResponse::WindowCreate(res) => {
-                    if res.success {
-                        return WindowBinding {
-                            realm_id: res.realm_id.expect("window response missing realm_id"),
-                        };
-                    } else {
-                        panic!("Window creation failed: {}", res.message);
-                    }
+    while start.elapsed() < WINDOW_READY_TIMEOUT {
+        assert_eq!(
+            core::vulfram_tick(total_ms, WINDOW_READY_DELTA_MS),
+            VulframResult::Success
+        );
+        total_ms = total_ms.saturating_add(WINDOW_READY_DELTA_MS as u64);
+
+        for response in receive_responses() {
+            if let CommandResponse::WindowCreate(res) = response.response {
+                if !res.success {
+                    panic!("Window creation failed for '{}': {}", title, res.message);
                 }
-                _ => {}
+                realm_id = res.realm_id;
+                if realm_id.is_none() {
+                    panic!("Window '{}' create response missing realm_id", title);
+                }
             }
         }
-        std::thread::sleep(Duration::from_millis(10));
-        assert_eq!(core::vulfram_tick(0, 0), VulframResult::Success);
+
+        for event in receive_events() {
+            if let EngineEvent::Window(WindowEvent::OnCreate {
+                window_id: created_window_id,
+            }) = event
+            {
+                if created_window_id == window_id {
+                    got_window_create_event = true;
+                }
+            } else if observed_events.len() < 8 {
+                observed_events.push(format!("{:?}", event));
+            }
+        }
+
+        if let Some(realm_id) = realm_id {
+            if got_window_create_event {
+                return WindowBinding { realm_id };
+            }
+        }
     }
-    panic!("Window creation did not complete in time");
+
+    panic!(
+        "Window readiness timeout for '{}' (window_id={}, timeout_ms={}): response_realm_id={:?}, on_create_event={}, observed_events={:?}",
+        title,
+        window_id,
+        WINDOW_READY_TIMEOUT.as_millis(),
+        realm_id,
+        got_window_create_event,
+        observed_events
+    );
 }

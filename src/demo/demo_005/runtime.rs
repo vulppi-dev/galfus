@@ -131,6 +131,19 @@ pub fn run(ctx: DemoContext, setup: &Demo005Setup, realms: &Demo005RealmIds) -> 
                         mode: AudioPlayModeDto::Loop,
                     }));
                 }
+                if total_ms.saturating_sub(runtime.last_report_ms) > 1000 {
+                    runtime.last_report_ms = total_ms;
+                    if let Some(report) = get_profiling() {
+                        if let Some(frame_report) = report.frame_report.as_ref() {
+                            if !frame_report.cut_edges.is_empty() {
+                                println!(
+                                    "WARNING [demo_005 baseline]: cut_edges={} (expected 0 for nominal DAG baseline)",
+                                    frame_report.cut_edges.len()
+                                );
+                            }
+                        }
+                    }
+                }
             }
 
             cmds
@@ -185,4 +198,18 @@ pub fn run(ctx: DemoContext, setup: &Demo005Setup, realms: &Demo005RealmIds) -> 
 struct Demo005RuntimeState {
     audio_ready: bool,
     audio_started: bool,
+    last_report_ms: u64,
+}
+
+fn get_profiling() -> Option<crate::core::profiling::cmd::ProfilingData> {
+    let mut ptr = std::ptr::null();
+    let mut len: usize = 0;
+    let result = crate::core::vulfram_get_profiling(&mut ptr, &mut len);
+
+    if result != crate::core::VulframResult::Success || len == 0 {
+        return None;
+    }
+
+    let bytes = unsafe { Box::from_raw(std::slice::from_raw_parts_mut(ptr as *mut u8, len)) };
+    rmp_serde::from_slice(&bytes).ok()
 }

@@ -320,7 +320,7 @@ pub fn pass_forward(
                                 Some(wgpu::ColorTargetState {
                                     format: wgpu::TextureFormat::Rgba16Float,
                                     blend: Some(wgpu::BlendState::ALPHA_BLENDING),
-                                    write_mask: wgpu::ColorWrites::ALL,
+                                    write_mask: wgpu::ColorWrites::empty(),
                                 }),
                             ],
                             compilation_options: wgpu::PipelineCompilationOptions::default(),

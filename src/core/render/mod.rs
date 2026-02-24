@@ -9,6 +9,7 @@ use crate::core::realm::{FrameReport, RealmGraphPlanner, RealmId};
 use crate::core::render::graph::RenderGraphPlan;
 use crate::core::render::passes::UiPlatformAction;
 use crate::core::state::EngineState;
+use crate::core::system::push_error_event;
 use crate::core::target::{TargetId, TargetKind, TargetTable};
 use crate::core::ui::events::UiEvent;
 use realm_graph::{
@@ -151,6 +152,8 @@ pub fn render_frames(engine_state: &mut EngineState) {
     let realm_plan = RealmGraphPlanner::default().build_plan(&engine_state.universal_state);
     let cut_connectors = collect_cut_connectors(&realm_plan);
     update_surface_cache(&mut engine_state.universal_state, &cut_connectors);
+    let previous_cut_edges = engine_state.universal_state.frame_report.cut_edges.len();
+    let mut soft_cut_diagnostic: Option<String> = None;
     let mut frame_report =
         FrameReport::from_plan(&realm_plan, &engine_state.universal_state.surface_cache);
     frame_report.apply_target_graph_stats(&target_plan, target_diff.as_ref());
@@ -451,6 +454,30 @@ pub fn render_frames(engine_state: &mut EngineState) {
         }
     }
 
+    if !frame_report.cut_edges.is_empty()
+        && (previous_cut_edges == 0 || previous_cut_edges != frame_report.cut_edges.len())
+    {
+        let cut_count = frame_report.cut_edges.len();
+        let connectors: Vec<u32> = frame_report
+            .cut_edges
+            .iter()
+            .filter_map(|edge| edge.connector_id)
+            .collect();
+        let connector_text = if connectors.is_empty() {
+            "none".to_string()
+        } else {
+            connectors
+                .iter()
+                .map(u32::to_string)
+                .collect::<Vec<_>>()
+                .join(",")
+        };
+        soft_cut_diagnostic = Some(format!(
+            "frame={} cut_edges={} connectors={}",
+            engine_state.frame_index, cut_count, connector_text
+        ));
+    }
+
     engine_state.universal_state.frame_report = frame_report;
     for event in ui_events {
         engine_state
@@ -481,6 +508,9 @@ pub fn render_frames(engine_state: &mut EngineState) {
                 gpu_profiler.readback_and_update(device, &mut engine_state.profiling);
             }
         }
+    }
+    if let Some(message) = soft_cut_diagnostic {
+        push_error_event(engine_state, "realm-graph-soft-cut", message, None, None);
     }
     apply_ui_platform_actions(engine_state, ui_platform_actions);
     engine_state.profiling.render.windows_ns = windows_ns;
