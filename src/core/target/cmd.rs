@@ -191,6 +191,11 @@ pub fn engine_cmd_target_dispose(
         .remove(&target_id);
     engine
         .universal_state
+        .global_resources
+        .target_texture_binds
+        .retain(|_, binding| binding.target_id != target_id);
+    engine
+        .universal_state
         .target_graph_cache
         .prune_dead_entries(
             &engine.universal_state.targets.entries,

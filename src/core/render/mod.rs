@@ -182,6 +182,10 @@ pub fn render_frames(engine_state: &mut EngineState) {
     );
     refresh_window_target_textures(
         &mut engine_state.window.states,
+        &engine_state
+            .universal_state
+            .global_resources
+            .target_texture_binds,
         &target_surface_map,
         &engine_state.surface_targets,
     );
@@ -250,7 +254,16 @@ pub fn render_frames(engine_state: &mut EngineState) {
             let window_start = now_ns();
 
             let render_state = &mut window_state.render_state;
+            sync_scene_from_realm_and_globals(
+                render_state,
+                &engine_state.universal_state,
+                *realm_id,
+            );
             if synced_windows.insert(*window_id) {
+                sync_window_geometry_registry(
+                    render_state,
+                    &engine_state.universal_state.global_resources.geometries,
+                );
                 let camera_target_sizes = collect_window_camera_target_sizes(
                     &engine_state.universal_state,
                     *window_id,
@@ -730,6 +743,67 @@ fn execute_graph_to_view(
     gpu_written
 }
 
+fn sync_scene_from_realm_and_globals(
+    render_state: &mut RenderState,
+    universal: &crate::core::realm::UniversalState,
+    realm_id: RealmId,
+) {
+    let mut previous_cameras = std::mem::take(&mut render_state.scene.cameras);
+    render_state.scene.cameras.clear();
+
+    if let Some(entities) = universal.realm_entities.get(&realm_id) {
+        for (camera_id, node) in &entities.cameras {
+            let mut record = previous_cameras
+                .remove(camera_id)
+                .unwrap_or_else(|| node.to_render_record());
+            record.label = node.label.clone();
+            record.data = node.data;
+            record.layer_mask = node.layer_mask;
+            record.order = node.order;
+            record.ortho_scale = node.ortho_scale;
+            record.view_position = node.view_position.clone();
+            render_state.scene.cameras.insert(*camera_id, record);
+        }
+        render_state.scene.models = entities.models.clone();
+        render_state.scene.lights = entities.lights.clone();
+    } else {
+        render_state.scene.models.clear();
+        render_state.scene.lights.clear();
+    }
+
+    render_state.scene.materials_standard = universal.global_resources.materials_standard.clone();
+    render_state.scene.materials_pbr = universal.global_resources.materials_pbr.clone();
+    render_state.scene.textures = universal.global_resources.textures.clone();
+    render_state.scene.forward_atlas_entries =
+        universal.global_resources.forward_atlas_entries.clone();
+    render_state.target_texture_binds = universal.global_resources.target_texture_binds.clone();
+}
+
+fn sync_window_geometry_registry(
+    render_state: &mut RenderState,
+    geometries: &std::collections::HashMap<u32, crate::core::realm::GlobalGeometryRecord>,
+) {
+    let Some(vertex) = render_state.vertex.as_mut() else {
+        return;
+    };
+    for (geometry_id, record) in geometries {
+        if vertex.records().contains_key(geometry_id) {
+            continue;
+        }
+        let _ = vertex.create_geometry(*geometry_id, record.label.clone(), record.entries.clone());
+    }
+
+    let stale_ids: Vec<u32> = vertex
+        .records()
+        .keys()
+        .filter(|geometry_id| !geometries.contains_key(geometry_id))
+        .copied()
+        .collect();
+    for geometry_id in stale_ids {
+        let _ = vertex.destroy_geometry(geometry_id);
+    }
+}
+
 fn apply_ui_platform_actions(engine_state: &mut EngineState, actions: Vec<UiPlatformAction>) {
     for action in actions {
         match action {
@@ -1072,6 +1146,10 @@ fn build_target_surface_map(
 
 fn refresh_window_target_textures(
     windows: &mut std::collections::HashMap<u32, crate::core::window::WindowState>,
+    target_texture_binds: &std::collections::HashMap<
+        u32,
+        crate::core::resources::TargetTextureBinding,
+    >,
     target_surfaces: &std::collections::HashMap<TargetId, crate::core::realm::SurfaceId>,
     surface_targets: &std::collections::HashMap<
         crate::core::realm::SurfaceId,
@@ -1080,7 +1158,7 @@ fn refresh_window_target_textures(
 ) {
     for window_state in windows.values_mut() {
         window_state.render_state.external_textures.clear();
-        for (texture_id, binding) in &window_state.render_state.target_texture_binds {
+        for (texture_id, binding) in target_texture_binds {
             let Some(surface_id) = target_surfaces.get(&binding.target_id) else {
                 continue;
             };

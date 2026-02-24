@@ -11,8 +11,9 @@ use crate::demo::demo_006::setup::{Demo006RealmIds, Demo006Setup};
 use crate::demo::send_commands;
 use crate::demo::{DemoContext, draw_axes_gizmos, run_loop_with_events};
 
-pub fn run(ctx: DemoContext, setup: &Demo006Setup, _realms: &Demo006RealmIds) -> bool {
+pub fn run(ctx: DemoContext, setup: &Demo006Setup, realms: &Demo006RealmIds) -> bool {
     let window_id = ctx.window_id;
+    let realm_id = realms._realm_3d_embed;
     let ids = setup.ids;
     let mut ui_version = 1u64;
     let mut ui_panel_version = 1u64;
@@ -27,7 +28,7 @@ pub fn run(ctx: DemoContext, setup: &Demo006Setup, _realms: &Demo006RealmIds) ->
             let t = total_ms as f32 / 1000.0;
             let mut cmds = vec![EngineCmd::CmdModelUpsert(
                 crate::core::cmd::CmdModelUpsertArgs::Update(CmdModelUpdateArgs {
-                    window_id,
+                    realm_id,
                     model_id: ids.model_cube_id,
                     label: None,
                     geometry_id: None,
@@ -47,7 +48,7 @@ pub fn run(ctx: DemoContext, setup: &Demo006Setup, _realms: &Demo006RealmIds) ->
             )];
             cmds.push(EngineCmd::CmdModelUpsert(
                 crate::core::cmd::CmdModelUpsertArgs::Update(CmdModelUpdateArgs {
-                    window_id,
+                    realm_id,
                     model_id: ids.model_realm_plane_id,
                     label: None,
                     geometry_id: None,

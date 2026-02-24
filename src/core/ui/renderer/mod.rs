@@ -18,7 +18,6 @@ pub struct ExternalTextureInput {
 
 struct ExternalUiTexture {
     bind_group: wgpu::BindGroup,
-    _view: wgpu::TextureView,
     size: [u32; 2],
     source_ptr: usize,
 }
@@ -154,7 +153,6 @@ impl UiRenderer {
                     input.id,
                     ExternalUiTexture {
                         bind_group,
-                        _view: input.view.clone(),
                         size: input.size,
                         source_ptr: input.source_ptr,
                     },

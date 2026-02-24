@@ -409,20 +409,12 @@ pub fn process_audio_listener_binding(engine: &mut EngineState) {
         Some(binding) => binding,
         None => return,
     };
-    let window_id = match resolve_window_id_for_realm(engine, binding.realm_id) {
-        Some(window_id) => window_id,
+    let realm_id = crate::core::realm::RealmId(binding.realm_id);
+    let entities = match engine.universal_state.realm_entities.get(&realm_id) {
+        Some(entities) => entities,
         None => return,
     };
-    let window_state = match engine.window.states.get(&window_id) {
-        Some(state) => state,
-        None => return,
-    };
-    let record = match window_state
-        .render_state
-        .scene
-        .models
-        .get(&binding.model_id)
-    {
+    let record = match entities.models.get(&binding.model_id) {
         Some(record) => record,
         None => return,
     };
@@ -890,20 +882,12 @@ pub fn process_audio_source_bindings(engine: &mut EngineState) {
     let Some(listener_binding) = listener_binding else {
         return;
     };
-    let window_id = match resolve_window_id_for_realm(engine, listener_binding.realm_id) {
-        Some(window_id) => window_id,
+    let realm_id = crate::core::realm::RealmId(listener_binding.realm_id);
+    let entities = match engine.universal_state.realm_entities.get(&realm_id) {
+        Some(entities) => entities,
         None => return,
     };
-    let window_state = match engine.window.states.get(&window_id) {
-        Some(state) => state,
-        None => return,
-    };
-    let listener_record = match window_state
-        .render_state
-        .scene
-        .models
-        .get(&listener_binding.model_id)
-    {
+    let listener_record = match entities.models.get(&listener_binding.model_id) {
         Some(record) => record,
         None => return,
     };
@@ -915,12 +899,7 @@ pub fn process_audio_source_bindings(engine: &mut EngineState) {
         if binding.realm_id != listener_binding.realm_id {
             continue;
         }
-        let record = match window_state
-            .render_state
-            .scene
-            .models
-            .get(&binding.model_id)
-        {
+        let record = match entities.models.get(&binding.model_id) {
             Some(record) => record,
             None => continue,
         };
@@ -940,19 +919,4 @@ pub fn process_audio_source_bindings(engine: &mut EngineState) {
         }
         let _ = engine.audio.source_update(*source_id, params);
     }
-}
-
-fn resolve_window_id_for_realm(engine: &EngineState, realm_id: u32) -> Option<u32> {
-    let realm = engine
-        .universal_state
-        .realms
-        .get(crate::core::realm::RealmId(realm_id))?;
-    let output_surface = realm.value.output_surface?;
-    engine
-        .universal_state
-        .presents
-        .entries
-        .values()
-        .find(|present| present.value.surface == output_surface)
-        .map(|present| present.value.window_id)
 }

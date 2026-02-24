@@ -14,6 +14,7 @@ use glam::{Mat4, Vec3, Vec4};
 
 pub fn run(ctx: DemoContext) -> bool {
     let window_id = ctx.window_id;
+    let realm_id = ctx.realm_id;
     let geometry_id: u32 = 400;
     let model_id: u32 = 401;
     let material_id: u32 = 402;
@@ -33,7 +34,6 @@ pub fn run(ctx: DemoContext) -> bool {
     let setup_cmds = vec![
         EngineCmd::CmdGeometryUpsert(crate::core::cmd::CmdGeometryUpsertArgs::Create(
             CmdGeometryCreateArgs {
-                window_id,
                 geometry_id,
                 label: Some("Skinned Plane".into()),
                 entries: vec![
@@ -65,23 +65,17 @@ pub fn run(ctx: DemoContext) -> bool {
             },
         )),
         create_camera_cmd(
+            realm_id,
             camera_id,
             "Skinned Camera",
             Mat4::look_at_rh(Vec3::new(0.0, 6.0, 12.0), Vec3::ZERO, Vec3::Y).inverse(),
         ),
-        create_point_light_cmd(window_id, 2, Vec4::new(0.0, 6.0, 0.0, 1.0)),
-        create_ambient_light_cmd(window_id, 3, Vec4::new(0.3, 0.3, 0.3, 1.0), 0.4),
-        create_standard_material_cmd(
-            window_id,
-            material_id,
-            "Skinned Material",
-            Vec4::ONE,
-            None,
-            None,
-        ),
+        create_point_light_cmd(realm_id, 2, Vec4::new(0.0, 6.0, 0.0, 1.0)),
+        create_ambient_light_cmd(realm_id, 3, Vec4::new(0.3, 0.3, 0.3, 1.0), 0.4),
+        create_standard_material_cmd(material_id, "Skinned Material", Vec4::ONE, None, None),
         EngineCmd::CmdModelUpsert(crate::core::cmd::CmdModelUpsertArgs::Create(
             CmdModelCreateArgs {
-                window_id,
+                realm_id,
                 model_id,
                 label: Some("Skinned Plane".into()),
                 geometry_id,
@@ -114,10 +108,11 @@ pub fn run(ctx: DemoContext) -> bool {
         upload_buffer(pose_buffer_id, UploadType::Raw, &bones);
 
         vec![EngineCmd::CmdPoseUpdate(CmdPoseUpdateArgs {
-            window_id,
+            realm_id,
             model_id,
             bone_count,
             matrices_buffer_id: pose_buffer_id,
+            window_id: Some(window_id),
         })]
     })
 }

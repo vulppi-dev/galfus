@@ -16,9 +16,10 @@ pub struct CubeData {
     pub phase: f32,
 }
 
-pub fn create_camera_cmd(camera_id: u32, label: &str, transform: Mat4) -> EngineCmd {
+pub fn create_camera_cmd(realm_id: u32, camera_id: u32, label: &str, transform: Mat4) -> EngineCmd {
     EngineCmd::CmdCameraUpsert(crate::core::cmd::CmdCameraUpsertArgs::Create(
         CmdCameraCreateArgs {
+            realm_id,
             camera_id,
             label: Some(label.to_string()),
             transform,
@@ -33,10 +34,10 @@ pub fn create_camera_cmd(camera_id: u32, label: &str, transform: Mat4) -> Engine
     ))
 }
 
-pub fn create_point_light_cmd(window_id: u32, light_id: u32, position: Vec4) -> EngineCmd {
+pub fn create_point_light_cmd(realm_id: u32, light_id: u32, position: Vec4) -> EngineCmd {
     EngineCmd::CmdLightUpsert(crate::core::cmd::CmdLightUpsertArgs::Create(
         CmdLightCreateArgs {
-            window_id,
+            realm_id,
             light_id,
             label: Some("Point Light".to_string()),
             kind: Some(crate::core::resources::LightKind::Point),
@@ -54,14 +55,14 @@ pub fn create_point_light_cmd(window_id: u32, light_id: u32, position: Vec4) -> 
 }
 
 pub fn create_ambient_light_cmd(
-    window_id: u32,
+    realm_id: u32,
     light_id: u32,
     color: Vec4,
     intensity: f32,
 ) -> EngineCmd {
     EngineCmd::CmdLightUpsert(crate::core::cmd::CmdLightUpsertArgs::Create(
         CmdLightCreateArgs {
-            window_id,
+            realm_id,
             light_id,
             label: Some("Ambient Light".to_string()),
             kind: Some(crate::core::resources::LightKind::Ambient),
@@ -79,7 +80,6 @@ pub fn create_ambient_light_cmd(
 }
 
 pub fn create_standard_material_cmd(
-    window_id: u32,
     material_id: u32,
     label: &str,
     base_color: Vec4,
@@ -88,7 +88,6 @@ pub fn create_standard_material_cmd(
 ) -> EngineCmd {
     EngineCmd::CmdMaterialUpsert(crate::core::cmd::CmdMaterialUpsertArgs::Create(
         CmdMaterialCreateArgs {
-            window_id,
             material_id,
             label: Some(label.to_string()),
             kind: MaterialKind::Standard,
@@ -103,14 +102,8 @@ pub fn create_standard_material_cmd(
     ))
 }
 
-pub fn create_texture_cmd(
-    window_id: u32,
-    texture_id: u32,
-    label: &str,
-    buffer_id: u64,
-) -> EngineCmd {
+pub fn create_texture_cmd(texture_id: u32, label: &str, buffer_id: u64) -> EngineCmd {
     EngineCmd::CmdTextureCreateFromBuffer(CmdTextureCreateFromBufferArgs {
-        window_id,
         texture_id,
         label: Some(label.to_string()),
         buffer_id,
@@ -120,10 +113,10 @@ pub fn create_texture_cmd(
     })
 }
 
-pub fn create_floor_cmd(window_id: u32, geometry_id: u32, material_id: u32) -> EngineCmd {
+pub fn create_floor_cmd(realm_id: u32, geometry_id: u32, material_id: u32) -> EngineCmd {
     EngineCmd::CmdModelUpsert(crate::core::cmd::CmdModelUpsertArgs::Create(
         CmdModelCreateArgs {
-            window_id,
+            realm_id,
             model_id: 2000,
             label: Some("Floor".to_string()),
             geometry_id,
@@ -140,7 +133,7 @@ pub fn create_floor_cmd(window_id: u32, geometry_id: u32, material_id: u32) -> E
 }
 
 pub fn create_instanced_cubes(
-    window_id: u32,
+    realm_id: u32,
     geometry_id: u32,
     material_id: u32,
 ) -> (Vec<CubeData>, Vec<EngineCmd>) {
@@ -166,7 +159,7 @@ pub fn create_instanced_cubes(
 
         cmds.push(EngineCmd::CmdModelUpsert(
             crate::core::cmd::CmdModelUpsertArgs::Create(CmdModelCreateArgs {
-                window_id,
+                realm_id,
                 model_id,
                 label: Some(format!("Cube {}", i)),
                 geometry_id,

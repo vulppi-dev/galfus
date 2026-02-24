@@ -9,12 +9,13 @@ use crate::core::resources::{
 use crate::core::ui::cmd::CmdUiDocumentSetRectArgs;
 use crate::core::window::{CmdWindowCloseArgs, WindowEvent};
 use crate::demo::demo_007::maps::ENV_PROFILE_BIND_B_MSAA4;
-use crate::demo::demo_007::setup::Demo007Setup;
+use crate::demo::demo_007::setup::{Demo007RealmIds, Demo007Setup};
 use crate::demo::send_commands;
 use crate::demo::{DemoContext, run_loop_with_events};
 
-pub fn run(ctx: DemoContext, setup: &Demo007Setup) -> bool {
+pub fn run(ctx: DemoContext, setup: &Demo007Setup, realms: &Demo007RealmIds) -> bool {
     let window_id = ctx.window_id;
+    let realm_id = realms._realm_3d;
     let ids = setup.ids;
     let base_positions = [
         Vec3::new(-4.0, 0.0, 0.0),
@@ -38,7 +39,7 @@ pub fn run(ctx: DemoContext, setup: &Demo007Setup) -> bool {
 
                 cmds.push(EngineCmd::CmdModelUpsert(
                     crate::core::cmd::CmdModelUpsertArgs::Update(CmdModelUpdateArgs {
-                        window_id,
+                        realm_id,
                         model_id: *model_id,
                         label: None,
                         geometry_id: None,

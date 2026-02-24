@@ -50,7 +50,6 @@ impl RenderState {
             light_system: None,
             gizmos: GizmoSystem::new(),
             shadow: None,
-            forward_atlas: None,
             cache: RenderCache::new(),
             post_uniform_buffer: None,
             ssao_uniform_buffer: None,
@@ -92,7 +91,6 @@ impl RenderState {
         self.vertex = None;
         self.light_system = None;
         self.shadow = None;
-        self.forward_atlas = None;
         self.cache.clear();
         self.post_uniform_buffer = None;
         self.ssao_uniform_buffer = None;

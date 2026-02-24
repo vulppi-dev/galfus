@@ -15,6 +15,7 @@ use glam::{Mat4, Vec3, Vec4};
 
 pub fn run(ctx: DemoContext) -> bool {
     let window_id = ctx.window_id;
+    let realm_id = ctx.realm_id;
     let camera_id: u32 = 1;
 
     let shapes = [
@@ -85,12 +86,13 @@ pub fn run(ctx: DemoContext) -> bool {
             },
         )),
         create_camera_cmd(
+            realm_id,
             camera_id,
             "Primitives Camera",
             Mat4::look_at_rh(Vec3::new(0.0, 4.0, 12.0), Vec3::ZERO, Vec3::Y).inverse(),
         ),
-        create_point_light_cmd(window_id, 2, Vec4::new(5.0, 8.0, 6.0, 1.0)),
-        create_ambient_light_cmd(window_id, 3, Vec4::new(0.25, 0.25, 0.25, 1.0), 0.6),
+        create_point_light_cmd(realm_id, 2, Vec4::new(5.0, 8.0, 6.0, 1.0)),
+        create_ambient_light_cmd(realm_id, 3, Vec4::new(0.25, 0.25, 0.25, 1.0), 0.6),
         create_shadow_config_cmd(window_id),
     ];
 
@@ -116,7 +118,6 @@ pub fn run(ctx: DemoContext) -> bool {
 
         setup_cmds.push(EngineCmd::CmdPrimitiveGeometryCreate(
             CmdPrimitiveGeometryCreateArgs {
-                window_id,
                 geometry_id,
                 label: Some(label.clone()),
                 shape: *shape,
@@ -125,7 +126,6 @@ pub fn run(ctx: DemoContext) -> bool {
         ));
 
         setup_cmds.push(create_standard_material_cmd(
-            window_id,
             material_id,
             &format!("{} Material", label),
             color,
@@ -136,7 +136,7 @@ pub fn run(ctx: DemoContext) -> bool {
         let position = Vec3::new(start_x + spacing * index as f32, 0.0, 0.0);
         setup_cmds.push(EngineCmd::CmdModelUpsert(
             crate::core::cmd::CmdModelUpsertArgs::Create(CmdModelCreateArgs {
-                window_id,
+                realm_id,
                 model_id,
                 label: Some(label.clone()),
                 geometry_id,
@@ -165,7 +165,7 @@ pub fn run(ctx: DemoContext) -> bool {
             let rotation = time_f * 0.6 + index as f32 * 0.3;
             frame_cmds.push(EngineCmd::CmdModelUpsert(
                 crate::core::cmd::CmdModelUpsertArgs::Update(CmdModelUpdateArgs {
-                    window_id,
+                    realm_id,
                     model_id: *model_id,
                     label: None,
                     geometry_id: None,

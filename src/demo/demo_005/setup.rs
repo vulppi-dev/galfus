@@ -168,35 +168,32 @@ impl Demo005Setup {
                 },
             )),
             EngineCmd::CmdPrimitiveGeometryCreate(CmdPrimitiveGeometryCreateArgs {
-                window_id,
                 geometry_id: self.ids.cube_geometry_id,
                 label: Some("Demo 005 Cube".into()),
                 shape: PrimitiveShape::Cube,
                 options: None,
             }),
             EngineCmd::CmdPrimitiveGeometryCreate(CmdPrimitiveGeometryCreateArgs {
-                window_id,
                 geometry_id: self.ids.floor_geometry_id,
                 label: Some("Demo 005 Floor".into()),
                 shape: PrimitiveShape::Plane,
                 options: None,
             }),
             EngineCmd::CmdPrimitiveGeometryCreate(CmdPrimitiveGeometryCreateArgs {
-                window_id,
                 geometry_id: self.ids.emitter_geometry_id,
                 label: Some("Demo 005 Emitter".into()),
                 shape: PrimitiveShape::Sphere,
                 options: None,
             }),
             create_camera_cmd(
+                realm_id,
                 self.ids.camera_id,
                 "Demo 005 Camera",
                 Mat4::look_at_rh(Vec3::new(0.0, 3.0, 9.0), Vec3::ZERO, Vec3::Y).inverse(),
             ),
-            create_point_light_cmd(window_id, 2, Vec4::new(3.0, 6.0, 2.0, 1.0)),
-            create_ambient_light_cmd(window_id, 3, Vec4::new(0.3, 0.3, 0.3, 1.0), 0.7),
+            create_point_light_cmd(realm_id, 2, Vec4::new(3.0, 6.0, 2.0, 1.0)),
+            create_ambient_light_cmd(realm_id, 3, Vec4::new(0.3, 0.3, 0.3, 1.0), 0.7),
             create_standard_material_cmd(
-                window_id,
                 self.ids.material_primary_id,
                 "Demo 005 Primary",
                 Vec4::new(0.2, 0.6, 0.9, 1.0),
@@ -204,7 +201,6 @@ impl Demo005Setup {
                 None,
             ),
             create_standard_material_cmd(
-                window_id,
                 self.ids.material_accent_id,
                 "Demo 005 Accent",
                 Vec4::new(0.9, 0.4, 0.2, 1.0),
@@ -212,7 +208,6 @@ impl Demo005Setup {
                 None,
             ),
             create_standard_material_cmd(
-                window_id,
                 self.ids.material_floor_id,
                 "Demo 005 Floor",
                 Vec4::new(0.4, 0.4, 0.45, 1.0),
@@ -220,7 +215,6 @@ impl Demo005Setup {
                 None,
             ),
             create_standard_material_cmd(
-                window_id,
                 self.ids.material_emitter_id,
                 "Demo 005 Emitter",
                 Vec4::new(1.0, 0.85, 0.2, 1.0),
@@ -229,7 +223,7 @@ impl Demo005Setup {
             ),
             EngineCmd::CmdModelUpsert(crate::core::cmd::CmdModelUpsertArgs::Create(
                 CmdModelCreateArgs {
-                    window_id,
+                    realm_id,
                     model_id: 840,
                     label: Some("Demo 005 Cube A".into()),
                     geometry_id: self.ids.cube_geometry_id,
@@ -244,7 +238,7 @@ impl Demo005Setup {
             )),
             EngineCmd::CmdModelUpsert(crate::core::cmd::CmdModelUpsertArgs::Create(
                 CmdModelCreateArgs {
-                    window_id,
+                    realm_id,
                     model_id: 841,
                     label: Some("Demo 005 Cube B".into()),
                     geometry_id: self.ids.cube_geometry_id,
@@ -260,7 +254,7 @@ impl Demo005Setup {
             )),
             EngineCmd::CmdModelUpsert(crate::core::cmd::CmdModelUpsertArgs::Create(
                 CmdModelCreateArgs {
-                    window_id,
+                    realm_id,
                     model_id: self.ids.listener_model_id,
                     label: Some("Demo 005 Listener".into()),
                     geometry_id: self.ids.cube_geometry_id,
@@ -276,7 +270,7 @@ impl Demo005Setup {
             )),
             EngineCmd::CmdModelUpsert(crate::core::cmd::CmdModelUpsertArgs::Create(
                 CmdModelCreateArgs {
-                    window_id,
+                    realm_id,
                     model_id: self.ids.emitter_model_id,
                     label: Some("Demo 005 Emitter".into()),
                     geometry_id: self.ids.emitter_geometry_id,
@@ -291,7 +285,7 @@ impl Demo005Setup {
                 },
             )),
             create_floor_cmd(
-                window_id,
+                realm_id,
                 self.ids.floor_geometry_id,
                 self.ids.material_floor_id,
             ),
@@ -351,14 +345,12 @@ impl Demo005Setup {
                 },
             )),
             EngineCmd::CmdPrimitiveGeometryCreate(CmdPrimitiveGeometryCreateArgs {
-                window_id: window_aux,
                 geometry_id: self.ids.cube_geometry_aux_id,
                 label: Some("Demo 005 Aux Cube".into()),
                 shape: PrimitiveShape::Cube,
                 options: None,
             }),
             create_standard_material_cmd(
-                window_aux,
                 self.ids.material_aux_id,
                 "Demo 005 Aux Material",
                 Vec4::new(0.15, 0.5, 0.25, 1.0),
@@ -366,15 +358,16 @@ impl Demo005Setup {
                 None,
             ),
             create_camera_cmd(
+                host_realm_aux,
                 self.ids.camera_aux_id,
                 "Demo 005 Aux Camera",
                 Mat4::look_at_rh(Vec3::new(0.0, 2.5, 6.0), Vec3::ZERO, Vec3::Y).inverse(),
             ),
-            create_point_light_cmd(window_aux, 12, Vec4::new(2.0, 4.0, 2.0, 1.0)),
-            create_ambient_light_cmd(window_aux, 13, Vec4::new(0.35, 0.35, 0.35, 1.0), 0.7),
+            create_point_light_cmd(host_realm_aux, 12, Vec4::new(2.0, 4.0, 2.0, 1.0)),
+            create_ambient_light_cmd(host_realm_aux, 13, Vec4::new(0.35, 0.35, 0.35, 1.0), 0.7),
             EngineCmd::CmdModelUpsert(crate::core::cmd::CmdModelUpsertArgs::Create(
                 CmdModelCreateArgs {
-                    window_id: window_aux,
+                    realm_id: host_realm_aux,
                     model_id: self.ids.model_aux_id,
                     label: Some("Demo 005 Aux Model".into()),
                     geometry_id: self.ids.cube_geometry_aux_id,

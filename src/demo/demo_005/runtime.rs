@@ -15,6 +15,7 @@ use crate::demo::{DemoContext, run_loop_with_events};
 
 pub fn run(ctx: DemoContext, setup: &Demo005Setup, realms: &Demo005RealmIds) -> bool {
     let window_id = ctx.window_id;
+    let realm_id = ctx.realm_id;
     let ids = setup.ids;
 
     let state = Rc::new(RefCell::new(Demo005RuntimeState::default()));
@@ -45,6 +46,7 @@ pub fn run(ctx: DemoContext, setup: &Demo005Setup, realms: &Demo005RealmIds) -> 
 
             cmds.push(EngineCmd::CmdCameraUpsert(
                 crate::core::cmd::CmdCameraUpsertArgs::Update(CmdCameraUpdateArgs {
+                    realm_id,
                     camera_id: ids.camera_id,
                     label: None,
                     transform: Some(camera_transform),
@@ -60,7 +62,7 @@ pub fn run(ctx: DemoContext, setup: &Demo005Setup, realms: &Demo005RealmIds) -> 
 
             cmds.push(EngineCmd::CmdModelUpsert(
                 crate::core::cmd::CmdModelUpsertArgs::Update(CmdModelUpdateArgs {
-                    window_id,
+                    realm_id,
                     model_id: ids.listener_model_id,
                     label: None,
                     geometry_id: None,
@@ -77,7 +79,7 @@ pub fn run(ctx: DemoContext, setup: &Demo005Setup, realms: &Demo005RealmIds) -> 
             let wobble = time_f * 0.8;
             cmds.push(EngineCmd::CmdModelUpsert(
                 crate::core::cmd::CmdModelUpsertArgs::Update(CmdModelUpdateArgs {
-                    window_id,
+                    realm_id,
                     model_id: 840,
                     label: None,
                     geometry_id: None,
@@ -95,7 +97,7 @@ pub fn run(ctx: DemoContext, setup: &Demo005Setup, realms: &Demo005RealmIds) -> 
             ));
             cmds.push(EngineCmd::CmdModelUpsert(
                 crate::core::cmd::CmdModelUpsertArgs::Update(CmdModelUpdateArgs {
-                    window_id,
+                    realm_id,
                     model_id: 841,
                     label: None,
                     geometry_id: None,

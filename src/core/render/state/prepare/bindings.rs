@@ -8,10 +8,7 @@ impl RenderState {
         let light_system = self.light_system.as_ref().unwrap();
         let shadow_manager = self.shadow.as_ref().unwrap();
 
-        let forward_atlas_view = match self.forward_atlas.as_ref() {
-            Some(atlas) => atlas.view(),
-            None => &library.fallback_forward_atlas_view,
-        };
+        let forward_atlas_view = &library.fallback_forward_atlas_view;
 
         let shadow_atlas_view = if with_shadows {
             shadow_manager.atlas.view()

@@ -21,10 +21,6 @@ pub struct ShadowAtlasDesc {
 #[derive(Debug, Clone)]
 pub struct ShadowAtlasRelocation {
     pub handle: ShadowAtlasHandle,
-    pub _old_layer: u32,
-    pub _old_rect_tiles: (u32, u32, u32, u32),
-    pub _new_layer: u32,
-    pub _new_rect_tiles: (u32, u32, u32, u32),
 }
 
 #[derive(Debug, Clone)]
@@ -42,22 +38,17 @@ pub struct ShadowAtlasSystem {
     layer_views: Vec<wgpu::TextureView>, // Cached views for each layer
 
     // Config (clamped by hardware limits)
-    tile_px: u32,
     pitch_px: u32,
     guard_px: u32,
     tiles_w: u32,
     tiles_h: u32,
     layers: u32,
-    format: wgpu::TextureFormat,
 
     // State
     slots: Vec<ShadowAtlasSlot>,
     free_slots: Vec<u32>,
     layers_occupied: Vec<Vec<bool>>, // [layer][y * tiles_w + x]
     free_tiles_total: u32,
-
-    // Diagnostics
-    repack_count: u64,
 }
 
 impl ShadowAtlasSystem {
@@ -122,18 +113,15 @@ impl ShadowAtlasSystem {
             _texture: texture,
             view,
             layer_views,
-            tile_px: desc.tile_px,
             pitch_px,
             guard_px,
             tiles_w: actual_tiles_w,
             tiles_h: actual_tiles_h,
             layers: actual_layers,
-            format: desc.format,
             slots: Vec::new(),
             free_slots: Vec::new(),
             layers_occupied,
             free_tiles_total: actual_tiles_w * actual_tiles_h * actual_layers,
-            repack_count: 0,
         }
     }
 
@@ -164,7 +152,6 @@ impl ShadowAtlasSystem {
 
         // If failed but we have total space, it's fragmentation. Trigger repack.
         let relocations = self.repack();
-        self.repack_count += 1;
 
         // Try again after repack
         if let Some((layer, x, y)) = self.find_free_region(w, h) {
@@ -250,10 +237,6 @@ impl ShadowAtlasSystem {
                             index,
                             generation: slot.generation,
                         },
-                        _old_layer: old_layer,
-                        _old_rect_tiles: old_rect,
-                        _new_layer: new_layer,
-                        _new_rect_tiles: (new_x, new_y, w, h),
                     });
 
                     slot.layer = new_layer;
@@ -306,12 +289,7 @@ impl ShadowAtlasSystem {
         ShadowAtlasInfo {
             tiles_w: self.tiles_w,
             tiles_h: self.tiles_h,
-            _layers: self.layers,
-            _tile_px: self.tile_px,
             pitch_px: self.pitch_px,
-            _free_tiles: self.free_tiles_total,
-            _repack_count: self.repack_count,
-            _format: self.format,
         }
     }
 
@@ -389,10 +367,5 @@ impl ShadowAtlasSystem {
 pub struct ShadowAtlasInfo {
     pub tiles_w: u32,
     pub tiles_h: u32,
-    pub _layers: u32,
-    pub _tile_px: u32,
     pub pitch_px: u32,
-    pub _free_tiles: u32,
-    pub _repack_count: u64,
-    pub _format: wgpu::TextureFormat,
 }

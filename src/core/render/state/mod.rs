@@ -38,7 +38,6 @@ pub struct RenderState {
     pub light_system: Option<LightCullingSystem>,
     pub gizmos: GizmoSystem,
     pub shadow: Option<ShadowManager>,
-    pub forward_atlas: Option<crate::core::resources::ForwardAtlasSystem>,
     pub cache: RenderCache,
     pub post_uniform_buffer: Option<wgpu::Buffer>,
     pub ssao_uniform_buffer: Option<wgpu::Buffer>,

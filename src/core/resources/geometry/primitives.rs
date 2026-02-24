@@ -126,7 +126,6 @@ pub enum PrimitiveOptions {
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CmdPrimitiveGeometryCreateArgs {
-    pub window_id: u32,
     pub geometry_id: u32,
     pub label: Option<String>,
     pub shape: PrimitiveShape,
@@ -185,32 +184,7 @@ pub fn engine_cmd_primitive_geometry_create(
         };
     }
 
-    // 1. Get window state
-    let window_state = match engine.window.states.get_mut(&args.window_id) {
-        Some(ws) => ws,
-        None => {
-            return CmdResultPrimitiveGeometryCreate {
-                success: false,
-                message: format!("Window {} not found", args.window_id),
-            };
-        }
-    };
-
-    // 2. Get vertex allocator
-    let vertex_allocator = match window_state.render_state.vertex.as_mut() {
-        Some(va) => va,
-        None => {
-            return CmdResultPrimitiveGeometryCreate {
-                success: false,
-                message: format!(
-                    "Vertex allocator not initialized for window {}",
-                    args.window_id
-                ),
-            };
-        }
-    };
-
-    // 3. Generate data based on shape
+    // 1. Generate data based on shape
     let geometry_data = match options {
         PrimitiveOptions::Cube(opts) => generators::generate_cube(&opts),
         PrimitiveOptions::Plane(opts) => generators::generate_plane(&opts),
@@ -220,19 +194,26 @@ pub fn engine_cmd_primitive_geometry_create(
         PrimitiveOptions::Pyramid(opts) => generators::generate_pyramid(&opts),
     };
 
-    // 4. Create geometry using the vertex allocator
-    match vertex_allocator.create_geometry(args.geometry_id, args.label.clone(), geometry_data) {
-        Ok(_) => {
-            window_state.is_dirty = true;
-            CmdResultPrimitiveGeometryCreate {
-                success: true,
-                message: format!("Primitive geometry {:?} created successfully", args.shape),
-            }
-        }
-        Err(e) => CmdResultPrimitiveGeometryCreate {
-            success: false,
-            message: format!("Failed to create primitive geometry: {:?}", e),
+    engine.universal_state.global_resources.geometries.insert(
+        args.geometry_id,
+        crate::core::realm::GlobalGeometryRecord {
+            label: args.label.clone(),
+            entries: geometry_data.clone(),
         },
+    );
+    for window_state in engine.window.states.values_mut() {
+        if let Some(vertex_allocator) = window_state.render_state.vertex.as_mut() {
+            let _ = vertex_allocator.create_geometry(
+                args.geometry_id,
+                args.label.clone(),
+                geometry_data.clone(),
+            );
+            window_state.is_dirty = true;
+        }
+    }
+    CmdResultPrimitiveGeometryCreate {
+        success: true,
+        message: format!("Primitive geometry {:?} created successfully", args.shape),
     }
 }
 

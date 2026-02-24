@@ -13,6 +13,7 @@ use glam::{Mat4, Vec3, Vec4};
 
 pub fn run(ctx: DemoContext) -> bool {
     let window_id = ctx.window_id;
+    let realm_id = ctx.realm_id;
     let geometry_cube: u32 = 1;
     let camera_id: u32 = 1;
     let material_instance: u32 = 10;
@@ -23,17 +24,20 @@ pub fn run(ctx: DemoContext) -> bool {
 
     let mut setup_cmds = vec![
         EngineCmd::CmdPrimitiveGeometryCreate(CmdPrimitiveGeometryCreateArgs {
-            window_id,
             geometry_id: geometry_cube,
             label: Some("Default Cube".to_string()),
             shape: PrimitiveShape::Cube,
             options: None,
         }),
-        create_camera_cmd(camera_id, "Main Camera", default_camera_transform()),
-        create_point_light_cmd(window_id, 2, Vec4::new(0.0, 8.0, 0.0, 1.0)),
-        create_texture_cmd(window_id, texture_test, "Test Texture", texture_buffer),
+        create_camera_cmd(
+            realm_id,
+            camera_id,
+            "Main Camera",
+            default_camera_transform(),
+        ),
+        create_point_light_cmd(realm_id, 2, Vec4::new(0.0, 8.0, 0.0, 1.0)),
+        create_texture_cmd(texture_test, "Test Texture", texture_buffer),
         create_standard_material_cmd(
-            window_id,
             material_instance,
             "Test Material",
             Vec4::ONE,
@@ -42,13 +46,8 @@ pub fn run(ctx: DemoContext) -> bool {
         ),
     ];
 
-    setup_cmds.push(create_floor_cmd(
-        window_id,
-        geometry_cube,
-        material_instance,
-    ));
-    let (mut cubes, cube_cmds) =
-        create_instanced_cubes(window_id, geometry_cube, material_instance);
+    setup_cmds.push(create_floor_cmd(realm_id, geometry_cube, material_instance));
+    let (mut cubes, cube_cmds) = create_instanced_cubes(realm_id, geometry_cube, material_instance);
     setup_cmds.extend(cube_cmds);
     setup_cmds.push(create_shadow_config_cmd(window_id));
 
@@ -70,7 +69,7 @@ pub fn run(ctx: DemoContext) -> bool {
 
             frame_cmds.push(EngineCmd::CmdModelUpsert(
                 crate::core::cmd::CmdModelUpsertArgs::Update(CmdModelUpdateArgs {
-                    window_id,
+                    realm_id,
                     model_id: cube.id,
                     label: None,
                     geometry_id: None,

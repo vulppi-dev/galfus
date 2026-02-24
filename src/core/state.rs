@@ -11,7 +11,10 @@ use crate::core::input::InputState;
 use crate::core::profiling::TickProfiling;
 use crate::core::profiling::gpu::GpuProfiler;
 use crate::core::realm::UniversalState;
-use crate::core::resources::{RenderTarget, TextureAsyncManager};
+use crate::core::resources::{
+    MATERIAL_FALLBACK_ID, MaterialStandardParams, MaterialStandardRecord, RenderTarget,
+    TextureAsyncManager,
+};
 use crate::core::window::WindowManager;
 use std::collections::HashMap;
 
@@ -75,6 +78,15 @@ impl EngineState {
             }
         };
 
+        let mut universal_state = UniversalState::default();
+        universal_state.global_resources.materials_standard.insert(
+            MATERIAL_FALLBACK_ID,
+            MaterialStandardRecord::new(
+                Some("Fallback Material".into()),
+                MaterialStandardParams::default(),
+            ),
+        );
+
         Self {
             window: WindowManager::new(),
             #[cfg(any(not(feature = "wasm"), target_arch = "wasm32"))]
@@ -91,7 +103,7 @@ impl EngineState {
             #[cfg(feature = "wasm")]
             audio: Box::new(WebAudioProxy::default()),
             audio_available: true,
-            universal_state: UniversalState::default(),
+            universal_state,
             surface_targets: HashMap::new(),
             present_sizes_cache: HashMap::new(),
             present_sizes_hash: 0,
@@ -117,7 +129,6 @@ impl EngineState {
         let cleaned = self.window.cleanup_window(window_id, &mut self.input.cache);
 
         if cleaned {
-            let _ = self.texture_async.cancel_by_window(window_id);
             let targets_to_remove: std::collections::HashSet<_> = self
                 .universal_state
                 .targets
@@ -155,6 +166,10 @@ impl EngineState {
                     .targets
                     .entries
                     .retain(|target_id, _| !targets_to_remove.contains(target_id));
+                self.universal_state
+                    .global_resources
+                    .target_texture_binds
+                    .retain(|_, binding| !targets_to_remove.contains(&binding.target_id));
                 self.universal_state
                     .ui
                     .external_textures
@@ -210,6 +225,7 @@ impl EngineState {
                     realms_to_remove.iter().copied().collect();
                 for realm_id in realms_to_remove {
                     self.universal_state.realms.remove(realm_id);
+                    self.universal_state.realm_entities.remove(&realm_id);
                     self.universal_state.ui.remove_realm(realm_id);
                     self.universal_state
                         .host_realm_index

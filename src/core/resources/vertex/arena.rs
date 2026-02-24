@@ -88,7 +88,6 @@ pub struct ArenaAllocator {
     // WGPU handles
     device: wgpu::Device,
     queue: wgpu::Queue,
-    _label: Option<&'static str>,
 }
 
 impl ArenaAllocator {
@@ -165,7 +164,6 @@ impl ArenaAllocator {
             keep_frames: 3,
             device: device.clone(),
             queue: queue.clone(),
-            _label: label,
         }
     }
 
