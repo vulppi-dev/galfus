@@ -112,20 +112,19 @@ impl RenderState {
             .unwrap_or(&self.environment)
     }
 
-    #[cfg(any(not(feature = "wasm"), target_arch = "wasm32"))]
-    pub fn on_resize(&mut self, device: &wgpu::Device, width: u32, height: u32) {
-        // Depth target is now managed per-frame or lazily by passes
-        self.forward_depth_target = None;
-        self.forward_msaa_target = None;
-        self.forward_emissive_msaa_target = None;
-
+    pub fn sync_camera_targets_and_projection(
+        &mut self,
+        device: &wgpu::Device,
+        surface_size: glam::UVec2,
+        camera_target_sizes: Option<&std::collections::HashMap<u32, glam::UVec2>>,
+    ) -> bool {
         let mut any_camera_dirty = false;
-        for record in self.scene.cameras.values_mut() {
-            let (target_width, target_height) = record
-                .view_position
-                .as_ref()
-                .map(|vp| vp.resolve_size(width, height))
-                .unwrap_or((width, height));
+        for (camera_id, record) in self.scene.cameras.iter_mut() {
+            let target_size = camera_target_sizes
+                .and_then(|sizes| sizes.get(camera_id).copied())
+                .unwrap_or_else(|| record.effective_target_size(surface_size));
+            let target_width = target_size.x;
+            let target_height = target_size.y;
 
             crate::core::resources::ensure_render_target(
                 device,
@@ -188,22 +187,30 @@ impl RenderState {
                 );
             }
 
-            record.data.update(
-                None,
-                None,
-                None,
-                None,
-                (target_width, target_height),
-                record.ortho_scale,
-            );
-            record.mark_dirty();
-            any_camera_dirty = true;
-        }
-
-        if any_camera_dirty {
-            if let Some(shadow) = self.shadow.as_mut() {
-                shadow.mark_dirty();
+            if record.last_projection_size != target_size {
+                record.data.update(
+                    None,
+                    None,
+                    None,
+                    None,
+                    (target_width, target_height),
+                    record.ortho_scale,
+                );
+                record.last_projection_size = target_size;
+                record.mark_dirty();
+                any_camera_dirty = true;
             }
         }
+
+        any_camera_dirty
+    }
+
+    #[cfg(any(not(feature = "wasm"), target_arch = "wasm32"))]
+    pub fn on_resize(&mut self, device: &wgpu::Device, width: u32, height: u32) {
+        // Depth target is now managed per-frame or lazily by passes
+        self.forward_depth_target = None;
+        self.forward_msaa_target = None;
+        self.forward_emissive_msaa_target = None;
+        let _ = (device, width, height);
     }
 }

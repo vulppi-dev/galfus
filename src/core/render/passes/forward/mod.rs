@@ -28,14 +28,8 @@ pub fn pass_forward(
         .map(|(camera_id, env)| (*camera_id, env.skybox.mode))
         .collect();
 
-    // Shared MSAA intermediates are singletons in RenderState. With multiple cameras
-    // in the same realm this causes cross-camera accumulation. Disable MSAA in forward
-    // for multi-camera passes to keep each camera isolated.
-    let sample_count = if render_state.camera_order.len() > 1 {
-        1
-    } else {
-        render_state.msaa_sample_count_for_format(device, wgpu::TextureFormat::Rgba16Float)
-    };
+    let sample_count =
+        render_state.msaa_sample_count_for_format(device, wgpu::TextureFormat::Rgba16Float);
 
     // Split borrows
     let (vertex_sys, bindings, library, light_system, collector, cache, gizmos) = (

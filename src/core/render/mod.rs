@@ -188,6 +188,7 @@ pub fn render_frames(engine_state: &mut EngineState) {
     let mut updated_surfaces: HashSet<crate::core::realm::SurfaceId> = HashSet::new();
     let mut ui_events: Vec<UiEvent> = Vec::new();
     let mut ui_platform_actions: Vec<UiPlatformAction> = Vec::new();
+    let mut synced_windows: HashSet<u32> = HashSet::new();
     const MAX_REALM_ITERATIONS: u32 = 1;
     let mut iteration: u32 = 0;
     loop {
@@ -249,6 +250,22 @@ pub fn render_frames(engine_state: &mut EngineState) {
             let window_start = now_ns();
 
             let render_state = &mut window_state.render_state;
+            if synced_windows.insert(*window_id) {
+                let camera_target_sizes = collect_window_camera_target_sizes(
+                    &engine_state.universal_state,
+                    *window_id,
+                    window_state.inner_size,
+                );
+                if render_state.sync_camera_targets_and_projection(
+                    device,
+                    window_state.inner_size,
+                    Some(&camera_target_sizes),
+                ) {
+                    if let Some(shadow) = render_state.shadow.as_mut() {
+                        shadow.mark_dirty();
+                    }
+                }
+            }
             render_state.prepare_render(device, frame_spec, true);
 
             let mut encoder =
@@ -1076,4 +1093,34 @@ fn refresh_window_target_textures(
                 .insert(*texture_id, surface_target.view.clone());
         }
     }
+}
+
+fn collect_window_camera_target_sizes(
+    universal: &crate::core::realm::UniversalState,
+    window_id: u32,
+    window_size: glam::UVec2,
+) -> std::collections::HashMap<u32, glam::UVec2> {
+    let mut sizes = std::collections::HashMap::new();
+    for layer in universal.target_layers.entries.values() {
+        let Some(camera_id) = layer.camera_id else {
+            continue;
+        };
+        let Some(target) = universal.targets.entries.get(&layer.target_id) else {
+            continue;
+        };
+        if target.window_id != Some(window_id) {
+            continue;
+        }
+
+        let mut size = target
+            .size
+            .unwrap_or(glam::UVec2::new(window_size.x.max(1), window_size.y.max(1)));
+        if let Some(link) = universal.auto_links.get(&(layer.realm_id, layer.target_id))
+            && let Some(surface) = universal.surfaces.entries.get(&link.surface_id)
+        {
+            size = surface.value.size;
+        }
+        sizes.insert(camera_id, glam::UVec2::new(size.x.max(1), size.y.max(1)));
+    }
+    sizes
 }

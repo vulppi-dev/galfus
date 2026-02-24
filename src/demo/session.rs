@@ -33,7 +33,7 @@ fn wait_for_window_ready(window_id: u32, title: &str) -> WindowBinding {
     let start = std::time::Instant::now();
     let mut total_ms: u64 = 0;
     let mut realm_id: Option<u32> = None;
-    let mut got_window_create_event = false;
+    let mut got_window_signal = false;
     let mut observed_events: Vec<String> = Vec::new();
 
     while start.elapsed() < WINDOW_READY_TIMEOUT {
@@ -61,7 +61,22 @@ fn wait_for_window_ready(window_id: u32, title: &str) -> WindowBinding {
             }) = event
             {
                 if created_window_id == window_id {
-                    got_window_create_event = true;
+                    got_window_signal = true;
+                }
+            } else if let EngineEvent::Window(WindowEvent::OnRedrawRequest {
+                window_id: redraw_window_id,
+            }) = event
+            {
+                if redraw_window_id == window_id {
+                    got_window_signal = true;
+                }
+            } else if let EngineEvent::Window(WindowEvent::OnFocus {
+                window_id: focused_window_id,
+                ..
+            }) = event
+            {
+                if focused_window_id == window_id {
+                    got_window_signal = true;
                 }
             } else if observed_events.len() < 8 {
                 observed_events.push(format!("{:?}", event));
@@ -69,7 +84,7 @@ fn wait_for_window_ready(window_id: u32, title: &str) -> WindowBinding {
         }
 
         if let Some(realm_id) = realm_id {
-            if got_window_create_event {
+            if got_window_signal {
                 return WindowBinding { realm_id };
             }
         }
@@ -81,7 +96,7 @@ fn wait_for_window_ready(window_id: u32, title: &str) -> WindowBinding {
         window_id,
         WINDOW_READY_TIMEOUT.as_millis(),
         realm_id,
-        got_window_create_event,
+        got_window_signal,
         observed_events
     );
 }

@@ -116,6 +116,7 @@ The render state keeps a **scene** with camera/model records:
   - `layer_mask`, `order`
   - `view_position` (optional, relative/absolute)
   - `render_target` (per-camera texture)
+  - Projection is computed from the effective per-camera target/surface size (window size only when rendering directly to a window-sized surface).
 
 - `ModelRecord`
   - `label: Option<String>` (semantic name)
