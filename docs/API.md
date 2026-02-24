@@ -144,9 +144,12 @@ Environment profiles are host-addressable by `environmentId` via
 `CmdEnvironmentUpsert` and can be assigned per `TargetLayer`
 using `CmdTargetLayerUpsert.environmentId`.
 Selection priority during rendering:
-1. layer `environmentId` (when set);
+1. camera layer `environmentId` (when set and profile exists), applied per camera;
 2. current default profile;
 3. core fallback defaults.
+
+MSAA is resolved per camera from the selected environment for that camera-target bind.
+If a layer references a missing `environmentId`, that bind falls back to default/fallback profiles.
 
 `SkyboxConfig` highlights:
 
@@ -386,6 +389,7 @@ Rules:
   - when set, that environment profile is used for the layer;
   - when omitted, current default environment profile is used;
   - when no profile exists, core fallback defaults are used.
+  - effective MSAA for that camera bind is derived from this selected environment.
 - For `window`/`widget-realm-viewport` connector layers and `realm-plane`,
   surface size is derived from
   `TargetLayerLayout.width` and `TargetLayerLayout.height` when the layer is

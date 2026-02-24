@@ -67,12 +67,20 @@ impl RenderState {
 
     pub fn msaa_sample_count_for_format(
         &self,
+        device: &wgpu::Device,
+        format: wgpu::TextureFormat,
+    ) -> u32 {
+        self.msaa_sample_count_for_environment(&self.environment, device, format)
+    }
+
+    pub fn msaa_sample_count_for_environment(
+        &self,
+        environment: &EnvironmentConfig,
         _device: &wgpu::Device,
         _format: wgpu::TextureFormat,
     ) -> u32 {
-        let requested = if self.environment.msaa.enabled && self.environment.msaa.sample_count >= 2
-        {
-            self.environment.msaa.sample_count
+        let requested = if environment.msaa.enabled && environment.msaa.sample_count >= 2 {
+            environment.msaa.sample_count
         } else {
             1
         };
@@ -115,9 +123,6 @@ impl RenderState {
         surface_size: glam::UVec2,
         camera_target_sizes: Option<&std::collections::HashMap<u32, glam::UVec2>>,
     ) -> bool {
-      
-    #[cfg(any(not(feature = "wasm"), target_arch = "wasm32"))]
-    pub fn on_resize(&mut self, device: &wgpu::Device, width: u32, height: u32) {
         let mut any_camera_dirty = false;
         for (camera_id, record) in self.scene.cameras.iter_mut() {
             let target_size = camera_target_sizes
@@ -206,11 +211,11 @@ impl RenderState {
     }
 
     #[cfg(any(not(feature = "wasm"), target_arch = "wasm32"))]
-    pub fn on_resize(&mut self, device: &wgpu::Device, width: u32, height: u32) {
-        // Depth target is now managed per-frame or lazily by passes
-        self.forward_depth_target = None;
-        self.forward_msaa_target = None;
-        self.forward_emissive_msaa_target = None;
-        let _ = (device, width, height);
+    pub fn on_resize(&mut self, _device: &wgpu::Device, _width: u32, _height: u32) {
+        for record in self.scene.cameras.values_mut() {
+            record.forward_depth_target = None;
+            record.forward_msaa_target = None;
+            record.forward_emissive_msaa_target = None;
+        }
     }
 }
