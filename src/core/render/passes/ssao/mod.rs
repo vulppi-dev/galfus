@@ -98,11 +98,6 @@ pub fn pass_ssao(
         Some(lib) => lib,
         None => return,
     };
-    let depth_target = match render_state.forward_depth_target.as_ref() {
-        Some(target) => target,
-        None => return,
-    };
-    let use_msaa = depth_target.sample_count > 1;
     let ssao_buffer = match render_state.ssao_uniform_buffer.as_ref() {
         Some(buffer) => buffer,
         None => return,
@@ -113,6 +108,11 @@ pub fn pass_ssao(
         let Some(record) = render_state.scene.cameras.get(&camera_id) else {
             continue;
         };
+        let depth_target = match record.forward_depth_target.as_ref() {
+            Some(target) => target,
+            None => continue,
+        };
+        let use_msaa = depth_target.sample_count > 1;
         let target = match &record.ssao_target {
             Some(t) => t,
             None => continue,
@@ -279,11 +279,6 @@ pub fn pass_ssao_blur(
         Some(lib) => lib,
         None => return,
     };
-    let depth_target = match render_state.forward_depth_target.as_ref() {
-        Some(target) => target,
-        None => return,
-    };
-    let use_msaa = depth_target.sample_count > 1;
     let blur_buffer = match render_state.ssao_blur_uniform_buffer.as_ref() {
         Some(buffer) => buffer,
         None => return,
@@ -294,6 +289,11 @@ pub fn pass_ssao_blur(
         let Some(record) = render_state.scene.cameras.get(&camera_id) else {
             continue;
         };
+        let depth_target = match record.forward_depth_target.as_ref() {
+            Some(target) => target,
+            None => continue,
+        };
+        let use_msaa = depth_target.sample_count > 1;
         let input_target = match &record.ssao_target {
             Some(t) => t,
             None => continue,

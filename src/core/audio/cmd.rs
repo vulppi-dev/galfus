@@ -313,10 +313,20 @@ pub struct CmdResultAudioResourceDispose {
     pub message: String,
 }
 
+fn audio_disabled_message() -> String {
+    "Audio backend unavailable".into()
+}
+
 pub fn engine_cmd_audio_listener_update(
     engine: &mut EngineState,
     args: &CmdAudioListenerUpdateArgs,
 ) -> CmdResultAudioListenerUpdate {
+    if !engine.audio_available {
+        return CmdResultAudioListenerUpdate {
+            success: false,
+            message: audio_disabled_message(),
+        };
+    }
     let state = AudioListenerState {
         position: args.position,
         velocity: args.velocity,
@@ -339,6 +349,12 @@ pub fn engine_cmd_audio_listener_create(
     engine: &mut EngineState,
     args: &CmdAudioListenerCreateArgs,
 ) -> CmdResultAudioListenerCreate {
+    if !engine.audio_available {
+        return CmdResultAudioListenerCreate {
+            success: false,
+            message: audio_disabled_message(),
+        };
+    }
     let realm_id = crate::core::realm::RealmId(args.realm_id);
     if engine.universal_state.realms.get(realm_id).is_none() {
         return CmdResultAudioListenerCreate {
@@ -361,6 +377,12 @@ pub fn engine_cmd_audio_listener_dispose(
     engine: &mut EngineState,
     args: &CmdAudioListenerDisposeArgs,
 ) -> CmdResultAudioListenerDispose {
+    if !engine.audio_available {
+        return CmdResultAudioListenerDispose {
+            success: false,
+            message: audio_disabled_message(),
+        };
+    }
     let should_clear = match engine.universal_state.audio.listener_binding {
         Some(binding) => binding.realm_id == args.realm_id,
         None => false,
@@ -380,6 +402,9 @@ pub fn engine_cmd_audio_listener_dispose(
 }
 
 pub fn process_audio_listener_binding(engine: &mut EngineState) {
+    if !engine.audio_available {
+        return;
+    }
     let binding = match engine.universal_state.audio.listener_binding {
         Some(binding) => binding,
         None => return,
@@ -417,6 +442,13 @@ pub fn engine_cmd_audio_buffer_create_from_buffer(
     engine: &mut EngineState,
     args: &CmdAudioResourceCreateArgs,
 ) -> CmdResultAudioResourceCreate {
+    if !engine.audio_available {
+        return CmdResultAudioResourceCreate {
+            success: false,
+            message: audio_disabled_message(),
+            pending: false,
+        };
+    }
     let buffer = match engine.buffers.remove_upload(args.buffer_id) {
         Some(b) => b,
         None => {
@@ -526,6 +558,15 @@ pub fn engine_cmd_audio_resource_push(
     engine: &mut EngineState,
     args: &CmdAudioResourcePushArgs,
 ) -> CmdResultAudioResourcePush {
+    if !engine.audio_available {
+        return CmdResultAudioResourcePush {
+            success: false,
+            message: audio_disabled_message(),
+            received_bytes: 0,
+            total_bytes: 0,
+            complete: false,
+        };
+    }
     let buffer = match engine.buffers.remove_upload(args.buffer_id) {
         Some(b) => b,
         None => {
@@ -626,6 +667,12 @@ pub fn engine_cmd_audio_source_create(
     engine: &mut EngineState,
     args: &CmdAudioSourceCreateArgs,
 ) -> CmdResultAudioSourceCreate {
+    if !engine.audio_available {
+        return CmdResultAudioSourceCreate {
+            success: false,
+            message: audio_disabled_message(),
+        };
+    }
     let realm_id = crate::core::realm::RealmId(args.realm_id);
     if engine.universal_state.realms.get(realm_id).is_none() {
         return CmdResultAudioSourceCreate {
@@ -670,6 +717,12 @@ pub fn engine_cmd_audio_source_update(
     engine: &mut EngineState,
     args: &CmdAudioSourceUpdateArgs,
 ) -> CmdResultAudioSourceUpdate {
+    if !engine.audio_available {
+        return CmdResultAudioSourceUpdate {
+            success: false,
+            message: audio_disabled_message(),
+        };
+    }
     let params = AudioSourceParams {
         position: args.position,
         velocity: args.velocity,
@@ -699,6 +752,12 @@ pub fn engine_cmd_audio_source_play(
     engine: &mut EngineState,
     args: &CmdAudioSourcePlayArgs,
 ) -> CmdResultAudioSourcePlay {
+    if !engine.audio_available {
+        return CmdResultAudioSourcePlay {
+            success: false,
+            message: audio_disabled_message(),
+        };
+    }
     let intensity = args.intensity.clamp(0.0, 1.0);
     let timeline_id = args.timeline_id.unwrap_or(0);
     match engine.audio.source_play(
@@ -724,6 +783,12 @@ pub fn engine_cmd_audio_source_pause(
     engine: &mut EngineState,
     args: &CmdAudioSourcePauseArgs,
 ) -> CmdResultAudioSourcePause {
+    if !engine.audio_available {
+        return CmdResultAudioSourcePause {
+            success: false,
+            message: audio_disabled_message(),
+        };
+    }
     match engine.audio.source_pause(args.source_id, args.timeline_id) {
         Ok(()) => CmdResultAudioSourcePause {
             success: true,
@@ -740,6 +805,12 @@ pub fn engine_cmd_audio_source_stop(
     engine: &mut EngineState,
     args: &CmdAudioSourceStopArgs,
 ) -> CmdResultAudioSourceStop {
+    if !engine.audio_available {
+        return CmdResultAudioSourceStop {
+            success: false,
+            message: audio_disabled_message(),
+        };
+    }
     match engine.audio.source_stop(args.source_id, args.timeline_id) {
         Ok(()) => CmdResultAudioSourceStop {
             success: true,
@@ -756,6 +827,12 @@ pub fn engine_cmd_audio_source_dispose(
     engine: &mut EngineState,
     args: &CmdAudioSourceDisposeArgs,
 ) -> CmdResultAudioSourceDispose {
+    if !engine.audio_available {
+        return CmdResultAudioSourceDispose {
+            success: false,
+            message: audio_disabled_message(),
+        };
+    }
     engine
         .universal_state
         .audio
@@ -782,6 +859,12 @@ pub fn engine_cmd_audio_resource_dispose(
     engine: &mut EngineState,
     args: &CmdAudioResourceDisposeArgs,
 ) -> CmdResultAudioResourceDispose {
+    if !engine.audio_available {
+        return CmdResultAudioResourceDispose {
+            success: false,
+            message: audio_disabled_message(),
+        };
+    }
     engine
         .universal_state
         .audio
@@ -800,6 +883,9 @@ pub fn engine_cmd_audio_resource_dispose(
 }
 
 pub fn process_audio_source_bindings(engine: &mut EngineState) {
+    if !engine.audio_available {
+        return;
+    }
     let listener_binding = engine.universal_state.audio.listener_binding;
     let Some(listener_binding) = listener_binding else {
         return;

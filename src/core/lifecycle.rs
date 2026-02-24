@@ -2,8 +2,10 @@ use crate::core::platforms::DefaultPlatformProxy;
 use std::thread;
 
 use super::VulframResult;
+use super::cmd::EngineEvent;
 use super::singleton::{ENGINE_INSTANCE, EngineSingleton, MAIN_THREAD_ID};
 use super::state::EngineState;
+use super::system::events::SystemEvent;
 
 /// Initialize the engine (must be called from the main thread)
 pub fn vulfram_init() -> VulframResult {
@@ -28,6 +30,15 @@ pub fn vulfram_init() -> VulframResult {
             let platform = DefaultPlatformProxy::new();
             let mut state = EngineState::new();
             if let Err(message) = state.audio.init() {
+                state.audio_available = false;
+                state
+                    .event_queue
+                    .push(EngineEvent::System(SystemEvent::Error {
+                        scope: "audio-init".into(),
+                        message: format!("Audio init failed, audio disabled: {message}"),
+                        command_id: None,
+                        command_type: None,
+                    }));
                 eprintln!("Audio init failed: {}", message);
             }
             *opt = Some(EngineSingleton { state, platform });

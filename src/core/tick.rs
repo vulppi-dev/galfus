@@ -46,22 +46,26 @@ pub fn vulfram_tick(time: u64, delta_time: u32) -> VulframResult {
             }
         }
 
-        process_audio_listener_binding(&mut engine.state);
-        process_audio_source_bindings(&mut engine.state);
+        if engine.state.audio_available {
+            process_audio_listener_binding(&mut engine.state);
+            process_audio_source_bindings(&mut engine.state);
+        }
         crate::core::resources::process_async_texture_results(&mut engine.state);
         crate::core::ui::cmd::process_async_ui_image_results(&mut engine.state);
-        let audio_events = engine.state.audio.drain_events();
-        for event in audio_events {
-            engine
-                .state
-                .event_queue
-                .push(crate::core::cmd::EngineEvent::System(
-                    crate::core::system::events::SystemEvent::AudioReady {
-                        resource_id: event.resource_id,
-                        success: event.success,
-                        message: event.message,
-                    },
-                ));
+        if engine.state.audio_available {
+            let audio_events = engine.state.audio.drain_events();
+            for event in audio_events {
+                engine
+                    .state
+                    .event_queue
+                    .push(crate::core::cmd::EngineEvent::System(
+                        crate::core::system::events::SystemEvent::AudioReady {
+                            resource_id: event.resource_id,
+                            success: event.success,
+                            message: event.message,
+                        },
+                    ));
+            }
         }
 
         let events_before = engine.state.event_queue.len();

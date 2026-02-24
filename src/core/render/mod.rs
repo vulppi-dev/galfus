@@ -9,6 +9,7 @@ use crate::core::realm::{FrameReport, RealmGraphPlanner, RealmId};
 use crate::core::render::graph::RenderGraphPlan;
 use crate::core::render::passes::UiPlatformAction;
 use crate::core::state::EngineState;
+use crate::core::system::push_error_event;
 use crate::core::target::{TargetId, TargetKind, TargetTable};
 use crate::core::ui::events::UiEvent;
 use realm_graph::{
@@ -151,6 +152,8 @@ pub fn render_frames(engine_state: &mut EngineState) {
     let realm_plan = RealmGraphPlanner::default().build_plan(&engine_state.universal_state);
     let cut_connectors = collect_cut_connectors(&realm_plan);
     update_surface_cache(&mut engine_state.universal_state, &cut_connectors);
+    let previous_cut_edges = engine_state.universal_state.frame_report.cut_edges.len();
+    let mut soft_cut_diagnostic: Option<String> = None;
     let mut frame_report =
         FrameReport::from_plan(&realm_plan, &engine_state.universal_state.surface_cache);
     frame_report.apply_target_graph_stats(&target_plan, target_diff.as_ref());
@@ -185,6 +188,7 @@ pub fn render_frames(engine_state: &mut EngineState) {
     let mut updated_surfaces: HashSet<crate::core::realm::SurfaceId> = HashSet::new();
     let mut ui_events: Vec<UiEvent> = Vec::new();
     let mut ui_platform_actions: Vec<UiPlatformAction> = Vec::new();
+    let mut synced_windows: HashSet<u32> = HashSet::new();
     const MAX_REALM_ITERATIONS: u32 = 1;
     let mut iteration: u32 = 0;
     loop {
@@ -246,6 +250,22 @@ pub fn render_frames(engine_state: &mut EngineState) {
             let window_start = now_ns();
 
             let render_state = &mut window_state.render_state;
+            if synced_windows.insert(*window_id) {
+                let camera_target_sizes = collect_window_camera_target_sizes(
+                    &engine_state.universal_state,
+                    *window_id,
+                    window_state.inner_size,
+                );
+                if render_state.sync_camera_targets_and_projection(
+                    device,
+                    window_state.inner_size,
+                    Some(&camera_target_sizes),
+                ) {
+                    if let Some(shadow) = render_state.shadow.as_mut() {
+                        shadow.mark_dirty();
+                    }
+                }
+            }
             render_state.prepare_render(device, frame_spec, true);
 
             let mut encoder =
@@ -451,6 +471,30 @@ pub fn render_frames(engine_state: &mut EngineState) {
         }
     }
 
+    if !frame_report.cut_edges.is_empty()
+        && (previous_cut_edges == 0 || previous_cut_edges != frame_report.cut_edges.len())
+    {
+        let cut_count = frame_report.cut_edges.len();
+        let connectors: Vec<u32> = frame_report
+            .cut_edges
+            .iter()
+            .filter_map(|edge| edge.connector_id)
+            .collect();
+        let connector_text = if connectors.is_empty() {
+            "none".to_string()
+        } else {
+            connectors
+                .iter()
+                .map(u32::to_string)
+                .collect::<Vec<_>>()
+                .join(",")
+        };
+        soft_cut_diagnostic = Some(format!(
+            "frame={} cut_edges={} connectors={}",
+            engine_state.frame_index, cut_count, connector_text
+        ));
+    }
+
     engine_state.universal_state.frame_report = frame_report;
     for event in ui_events {
         engine_state
@@ -481,6 +525,9 @@ pub fn render_frames(engine_state: &mut EngineState) {
                 gpu_profiler.readback_and_update(device, &mut engine_state.profiling);
             }
         }
+    }
+    if let Some(message) = soft_cut_diagnostic {
+        push_error_event(engine_state, "realm-graph-soft-cut", message, None, None);
     }
     apply_ui_platform_actions(engine_state, ui_platform_actions);
     engine_state.profiling.render.windows_ns = windows_ns;
@@ -1046,4 +1093,34 @@ fn refresh_window_target_textures(
                 .insert(*texture_id, surface_target.view.clone());
         }
     }
+}
+
+fn collect_window_camera_target_sizes(
+    universal: &crate::core::realm::UniversalState,
+    window_id: u32,
+    window_size: glam::UVec2,
+) -> std::collections::HashMap<u32, glam::UVec2> {
+    let mut sizes = std::collections::HashMap::new();
+    for layer in universal.target_layers.entries.values() {
+        let Some(camera_id) = layer.camera_id else {
+            continue;
+        };
+        let Some(target) = universal.targets.entries.get(&layer.target_id) else {
+            continue;
+        };
+        if target.window_id != Some(window_id) {
+            continue;
+        }
+
+        let mut size = target
+            .size
+            .unwrap_or(glam::UVec2::new(window_size.x.max(1), window_size.y.max(1)));
+        if let Some(link) = universal.auto_links.get(&(layer.realm_id, layer.target_id))
+            && let Some(surface) = universal.surfaces.entries.get(&link.surface_id)
+        {
+            size = surface.value.size;
+        }
+        sizes.insert(camera_id, glam::UVec2::new(size.x.max(1), size.y.max(1)));
+    }
+    sizes
 }

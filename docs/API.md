@@ -116,6 +116,10 @@ The render state keeps a **scene** with camera/model records:
   - `layer_mask`, `order`
   - `view_position` (optional, relative/absolute)
   - `render_target` (per-camera texture)
+  - `forward_depth_target` (per-camera depth intermediate for forward/SSAO)
+  - `forward_msaa_target` (per-camera MSAA color intermediate for forward/skybox)
+  - `forward_emissive_msaa_target` (per-camera MSAA emissive intermediate)
+  - Projection is computed from the effective per-camera target/surface size (window size only when rendering directly to a window-sized surface).
 
 - `ModelRecord`
   - `label: Option<String>` (semantic name)
@@ -140,9 +144,12 @@ Environment profiles are host-addressable by `environmentId` via
 `CmdEnvironmentUpsert` and can be assigned per `TargetLayer`
 using `CmdTargetLayerUpsert.environmentId`.
 Selection priority during rendering:
-1. layer `environmentId` (when set);
+1. camera layer `environmentId` (when set and profile exists), applied per camera;
 2. current default profile;
 3. core fallback defaults.
+
+MSAA is resolved per camera from the selected environment for that camera-target bind.
+If a layer references a missing `environmentId`, that bind falls back to default/fallback profiles.
 
 `SkyboxConfig` highlights:
 
@@ -191,6 +198,7 @@ Async texture decode:
 - `ssao_blur_radius`: bilateral blur radius (pixels)
 - `ssao_blur_depth_threshold`: depth threshold for blur weights
 - SSAO suporta depth MSAA (amostra média por pixel quando MSAA está ativo)
+- Em realms com múltiplas câmeras, intermediários forward/depth são isolados por câmera (MSAA não é desativado por contagem de câmera)
 - `bloom_enabled`: enable bloom/glow composition in post
 - `bloom_threshold`: threshold for bright pass
 - `bloom_knee`: soft knee for thresholding
@@ -215,6 +223,7 @@ Notes:
 - When a source is bound to a model, the core updates its position every tick.
 - If the bound source model is the same as the bound listener model, spatialization is bypassed.
 - Streaming resources emit `SystemEvent::AudioStreamProgress`.
+- If audio initialization fails (for example, missing device/backend), the runtime marks audio as unavailable, emits one `SystemEvent::Error` with scope `audio-init`, and short-circuits audio commands/binding updates with deterministic command errors.
 
 Events:
 
@@ -380,6 +389,7 @@ Rules:
   - when set, that environment profile is used for the layer;
   - when omitted, current default environment profile is used;
   - when no profile exists, core fallback defaults are used.
+  - effective MSAA for that camera bind is derived from this selected environment.
 - For `window`/`widget-realm-viewport` connector layers and `realm-plane`,
   surface size is derived from
   `TargetLayerLayout.width` and `TargetLayerLayout.height` when the layer is

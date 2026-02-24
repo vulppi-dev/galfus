@@ -135,28 +135,12 @@ pub fn run(ctx: DemoContext, setup: &Demo005Setup, realms: &Demo005RealmIds) -> 
                     runtime.last_report_ms = total_ms;
                     if let Some(report) = get_profiling() {
                         if let Some(frame_report) = report.frame_report.as_ref() {
-                            println!(
-                                "FrameReport: order={:?} cut_edges={} blocked={} self_sampled={}",
-                                frame_report.order,
-                                frame_report.cut_edges.len(),
-                                frame_report.blocked_connectors.len(),
-                                frame_report.self_sampled_connectors.len()
-                            );
                             if !frame_report.cut_edges.is_empty() {
-                                println!("Cut edges: {:?}", frame_report.cut_edges);
+                                println!(
+                                    "WARNING [demo_005 baseline]: cut_edges={} (expected 0 for nominal DAG baseline)",
+                                    frame_report.cut_edges.len()
+                                );
                             }
-                            println!(
-                                "TargetGraph: nodes={} edges={} added={:?} removed={:?} updated={:?} binds_added={} binds_removed={} binds_updated={} plan_dirty={}",
-                                frame_report.target_nodes,
-                                frame_report.target_edges,
-                                frame_report.target_added,
-                                frame_report.target_removed,
-                                frame_report.target_updated,
-                                frame_report.target_layers_added.len(),
-                                frame_report.target_layers_removed.len(),
-                                frame_report.target_layers_updated.len(),
-                                frame_report.target_plan_dirty
-                            );
                         }
                     }
                 }
@@ -227,5 +211,5 @@ fn get_profiling() -> Option<crate::core::profiling::cmd::ProfilingData> {
     }
 
     let bytes = unsafe { Box::from_raw(std::slice::from_raw_parts_mut(ptr as *mut u8, len)) };
-    Some(rmp_serde::from_slice(&bytes).expect("failed to deserialize profiling"))
+    rmp_serde::from_slice(&bytes).ok()
 }
