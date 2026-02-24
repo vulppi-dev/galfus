@@ -32,6 +32,26 @@ fn default_ortho_scale() -> f32 {
     10.0
 }
 
+fn collect_window_projection_sizes(
+    engine: &EngineState,
+) -> std::collections::HashMap<u32, (u32, u32)> {
+    let mut sizes = std::collections::HashMap::new();
+    for present in engine.universal_state.presents.entries.values() {
+        let surface_size = engine
+            .universal_state
+            .surfaces
+            .entries
+            .get(&present.value.surface)
+            .map(|entry| entry.value.size)
+            .unwrap_or(glam::UVec2::new(1, 1));
+        sizes.insert(
+            present.value.window_id,
+            (surface_size.x.max(1), surface_size.y.max(1)),
+        );
+    }
+    sizes
+}
+
 #[derive(Debug, Default, Deserialize, Serialize, Clone)]
 #[serde(default, rename_all = "camelCase")]
 pub struct CmdResultCameraCreate {
@@ -43,6 +63,7 @@ pub fn engine_cmd_camera_create(
     engine: &mut EngineState,
     args: &CmdCameraCreateArgs,
 ) -> CmdResultCameraCreate {
+    let window_projection_sizes = collect_window_projection_sizes(engine);
     let window_states = &mut engine.window.states;
 
     for (_, window_state) in window_states.iter_mut() {
@@ -59,12 +80,23 @@ pub fn engine_cmd_camera_create(
         }
     }
 
-    for (_, window_state) in window_states.iter_mut() {
+    for (window_id, window_state) in window_states.iter_mut() {
         let (target_width, target_height) = args
             .view_position
             .as_ref()
-            .map(|vp| vp.resolve_size(window_state.config.width, window_state.config.height))
-            .unwrap_or((window_state.config.width, window_state.config.height));
+            .map(|vp| {
+                let (base_width, base_height) = window_projection_sizes
+                    .get(window_id)
+                    .copied()
+                    .unwrap_or((window_state.config.width, window_state.config.height));
+                vp.resolve_size(base_width, base_height)
+            })
+            .unwrap_or_else(|| {
+                window_projection_sizes
+                    .get(window_id)
+                    .copied()
+                    .unwrap_or((window_state.config.width, window_state.config.height))
+            });
 
         let component = CameraComponent::new(
             args.transform,
@@ -82,6 +114,7 @@ pub fn engine_cmd_camera_create(
             args.view_position.clone(),
             args.ortho_scale,
         );
+        record.last_projection_size = glam::UVec2::new(target_width, target_height);
         if let Some(device) = engine.device.as_ref() {
             ensure_render_target(
                 device,
@@ -189,10 +222,11 @@ pub fn engine_cmd_camera_update(
     engine: &mut EngineState,
     args: &CmdCameraUpdateArgs,
 ) -> CmdResultCameraUpdate {
+    let window_projection_sizes = collect_window_projection_sizes(engine);
     let window_states = &mut engine.window.states;
 
     let mut found = false;
-    for (_, window_state) in window_states.iter_mut() {
+    for (window_id, window_state) in window_states.iter_mut() {
         if let Some(record) = window_state
             .render_state
             .scene
@@ -210,12 +244,16 @@ pub fn engine_cmd_camera_update(
                 record.view_position = Some(view_position);
             }
 
-            // Calculate window size from view_position or use window dimensions
+            // Calculate target size from effective window surface when available
+            let (base_width, base_height) = window_projection_sizes
+                .get(window_id)
+                .copied()
+                .unwrap_or((window_state.config.width, window_state.config.height));
             let (target_width, target_height) = record
                 .view_position
                 .as_ref()
-                .map(|vp| vp.resolve_size(window_state.config.width, window_state.config.height))
-                .unwrap_or((window_state.config.width, window_state.config.height));
+                .map(|vp| vp.resolve_size(base_width, base_height))
+                .unwrap_or((base_width, base_height));
 
             if let Some(ortho_scale) = args.ortho_scale {
                 record.ortho_scale = ortho_scale;
@@ -231,6 +269,7 @@ pub fn engine_cmd_camera_update(
                 (target_width, target_height),
                 ortho_scale,
             );
+            record.last_projection_size = glam::UVec2::new(target_width, target_height);
 
             if let Some(device) = engine.device.as_ref() {
                 ensure_render_target(

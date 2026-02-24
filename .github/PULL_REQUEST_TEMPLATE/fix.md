@@ -13,15 +13,6 @@
 - [ ] `changelog:performance`
 - [ ] `changelog:breaking`
 
-## Scope
-- [ ] `area:core`
-- [ ] `area:render`
-- [ ] `area:ui`
-- [ ] `area:audio`
-- [ ] `area:demo`
-- [ ] `area:tooling`
-- [ ] `area:docs`
-
 ## Validation
 - [ ] `scripts/check.sh`
 - [ ] Reproduction no longer occurs

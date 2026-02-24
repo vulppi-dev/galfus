@@ -1,6 +1,7 @@
 # CmdGizmoDrawAabb
 
 Draws a 3D Axis-Aligned Bounding Box (AABB) gizmo. Gizmos are cleared every frame.
+Gizmos render only to the main color path and do not contribute to emissive/bloom.
 
 ## Arguments
 

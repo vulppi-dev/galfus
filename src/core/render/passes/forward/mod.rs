@@ -87,6 +87,7 @@ pub fn pass_forward(
     frame_index: u64,
     clear_color: bool,
 ) {
+    const TARGET_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba16Float;
     let default_clear_color = render_state.environment.clear_color;
     let default_skybox_mode = render_state.environment.skybox.mode;
     let camera_clear_colors: std::collections::HashMap<u32, glam::Vec3> = render_state
@@ -100,12 +101,20 @@ pub fn pass_forward(
         .map(|(camera_id, env)| (*camera_id, env.skybox.mode))
         .collect();
 
-    let sample_count =
-        render_state.msaa_sample_count_for_format(device, wgpu::TextureFormat::Rgba16Float);
-
     let camera_ids: Vec<u32> = render_state.camera_order.iter().copied().collect();
+    let mut camera_sample_counts: std::collections::HashMap<u32, u32> =
+        std::collections::HashMap::with_capacity(camera_ids.len());
+    for camera_id in camera_ids.iter().copied() {
+        let sample_count = render_state.msaa_sample_count_for_environment(
+            render_state.environment_for_camera(camera_id),
+            device,
+            TARGET_FORMAT,
+        );
+        camera_sample_counts.insert(camera_id, sample_count);
+    }
     for camera_id in camera_ids.iter().copied() {
         if let Some(camera_record) = render_state.scene.cameras.get_mut(&camera_id) {
+            let sample_count = camera_sample_counts.get(&camera_id).copied().unwrap_or(1);
             ensure_camera_forward_targets(camera_record, device, sample_count);
         }
     }
@@ -123,30 +132,12 @@ pub fn pass_forward(
     );
     gizmos.prepare(device, queue);
 
-    // Pre-cache Gizmo Pipeline once per pass if needed
-    let gizmo_pipeline_key = if !gizmos.is_empty() {
-        Some(PipelineKey {
-            shader_id: ShaderId::Gizmo as u64,
-            color_format: wgpu::TextureFormat::Rgba16Float,
-            color_target_count: 2,
-            depth_format: Some(wgpu::TextureFormat::Depth32Float),
-            sample_count,
-            topology: wgpu::PrimitiveTopology::LineList,
-            cull_mode: None,
-            front_face: wgpu::FrontFace::Ccw,
-            depth_write_enabled: false,
-            depth_compare: wgpu::CompareFunction::Greater,
-            blend: Some(wgpu::BlendState::ALPHA_BLENDING),
-        })
-    } else {
-        None
-    };
-
     // 1. Sort cameras by order
     for (camera_index, camera_id) in render_state.camera_order.iter().copied().enumerate() {
         let Some(camera_record) = scene.cameras.get(&camera_id) else {
             continue;
         };
+        let sample_count = camera_sample_counts.get(&camera_id).copied().unwrap_or(1);
         light_system.write_draw_params(camera_index as u32, light_system.max_lights_per_camera);
 
         let clear_rgb = camera_clear_colors
@@ -281,7 +272,20 @@ pub fn pass_forward(
             );
 
             // 7. Draw Gizmos
-            if let Some(key) = gizmo_pipeline_key {
+            if !gizmos.is_empty() {
+                let key = PipelineKey {
+                    shader_id: ShaderId::Gizmo as u64,
+                    color_format: TARGET_FORMAT,
+                    color_target_count: 2,
+                    depth_format: Some(wgpu::TextureFormat::Depth32Float),
+                    sample_count,
+                    topology: wgpu::PrimitiveTopology::LineList,
+                    cull_mode: None,
+                    front_face: wgpu::FrontFace::Ccw,
+                    depth_write_enabled: false,
+                    depth_compare: wgpu::CompareFunction::Greater,
+                    blend: Some(wgpu::BlendState::ALPHA_BLENDING),
+                };
                 let pipeline = cache.get_or_create(key, frame_index, || {
                     device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
                         label: Some("Gizmo Pipeline"),
@@ -321,7 +325,7 @@ pub fn pass_forward(
                                 Some(wgpu::ColorTargetState {
                                     format: wgpu::TextureFormat::Rgba16Float,
                                     blend: Some(wgpu::BlendState::ALPHA_BLENDING),
-                                    write_mask: wgpu::ColorWrites::ALL,
+                                    write_mask: wgpu::ColorWrites::empty(),
                                 }),
                             ],
                             compilation_options: wgpu::PipelineCompilationOptions::default(),

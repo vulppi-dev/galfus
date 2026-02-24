@@ -465,7 +465,9 @@ fn surface_state_for_target(
                     .unwrap_or_else(|| glam::UVec2::new(1, 1))
             }
         }
-        TargetKind::WidgetRealmViewport | TargetKind::RealmPlane => layer_size
+        TargetKind::WidgetRealmViewport | TargetKind::RealmPlane => target
+            .size
+            .or(layer_size)
             .or_else(|| {
                 target
                     .window_id

@@ -15,15 +15,6 @@
 - [ ] `changelog:fix`
 - [ ] `changelog:breaking`
 
-## Scope
-- [ ] `area:core`
-- [ ] `area:render`
-- [ ] `area:ui`
-- [ ] `area:audio`
-- [ ] `area:demo`
-- [ ] `area:tooling`
-- [ ] `area:docs`
-
 ## Validation
 - [ ] `scripts/check.sh`
 - [ ] Benchmark/profile attached or summarized

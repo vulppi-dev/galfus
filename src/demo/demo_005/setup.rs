@@ -10,6 +10,8 @@ use crate::core::resources::{
     CmdEnvironmentUpdateArgs, CmdModelCreateArgs, CmdPrimitiveGeometryCreateArgs,
     EnvironmentConfig, MsaaConfig, PostProcessConfig, PrimitiveShape, SkyboxConfig, SkyboxMode,
 };
+use crate::core::target::cmd::{CmdTargetLayerUpsertArgs, CmdTargetUpsertArgs};
+use crate::core::target::{TargetKind, TargetLayerLayout};
 use crate::demo::io::{receive_responses, send_commands};
 use crate::demo::{
     DemoContext, create_ambient_light_cmd, create_camera_cmd, create_floor_cmd,
@@ -94,6 +96,10 @@ impl Demo005Setup {
     }
 
     pub fn apply(&self, ctx: DemoContext) -> Demo005RealmIds {
+        // Baseline topology only:
+        // - main host realm (ctx.realm_id)
+        // - one auxiliary window with its host realm
+        // No extra realms/targets/layers or conflict patterns here.
         let window_main = ctx.window_id;
         let host_realm_main = ctx.realm_id;
 
@@ -103,8 +109,42 @@ impl Demo005Setup {
 
         let window_id = window_main;
         let realm_id = host_realm_main;
+        let target_main_id = 9500_u64;
+        let target_aux_id = 9501_u64;
 
         let setup_cmds = vec![
+            EngineCmd::CmdTargetUpsert(CmdTargetUpsertArgs {
+                target_id: target_main_id,
+                kind: TargetKind::Window,
+                window_id: Some(window_main),
+                size: None,
+                format_policy: None,
+                alpha_policy: None,
+                msaa_samples: None,
+            }),
+            EngineCmd::CmdTargetUpsert(CmdTargetUpsertArgs {
+                target_id: target_aux_id,
+                kind: TargetKind::Window,
+                window_id: Some(window_aux),
+                size: None,
+                format_policy: None,
+                alpha_policy: None,
+                msaa_samples: None,
+            }),
+            EngineCmd::CmdTargetLayerUpsert(CmdTargetLayerUpsertArgs {
+                realm_id: host_realm_main,
+                target_id: target_main_id,
+                layout: TargetLayerLayout::default(),
+                camera_id: Some(self.ids.camera_id),
+                environment_id: None,
+            }),
+            EngineCmd::CmdTargetLayerUpsert(CmdTargetLayerUpsertArgs {
+                realm_id: host_realm_aux,
+                target_id: target_aux_id,
+                layout: TargetLayerLayout::default(),
+                camera_id: Some(self.ids.camera_aux_id),
+                environment_id: None,
+            }),
             EngineCmd::CmdEnvironmentUpsert(crate::core::cmd::CmdEnvironmentUpsertArgs::Update(
                 CmdEnvironmentUpdateArgs {
                     environment_id: window_id,
@@ -330,6 +370,8 @@ impl Demo005Setup {
                 "Demo 005 Aux Camera",
                 Mat4::look_at_rh(Vec3::new(0.0, 2.5, 6.0), Vec3::ZERO, Vec3::Y).inverse(),
             ),
+            create_point_light_cmd(window_aux, 12, Vec4::new(2.0, 4.0, 2.0, 1.0)),
+            create_ambient_light_cmd(window_aux, 13, Vec4::new(0.35, 0.35, 0.35, 1.0), 0.7),
             EngineCmd::CmdModelUpsert(crate::core::cmd::CmdModelUpsertArgs::Create(
                 CmdModelCreateArgs {
                     window_id: window_aux,

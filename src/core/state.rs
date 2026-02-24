@@ -30,6 +30,7 @@ pub struct EngineState {
     pub buffers: BufferStorage,
     pub texture_async: TextureAsyncManager,
     pub audio: Box<dyn AudioProxy>,
+    pub audio_available: bool,
     pub universal_state: UniversalState,
     pub surface_targets: HashMap<crate::core::realm::SurfaceId, RenderTarget>,
     pub present_sizes_cache: HashMap<crate::core::realm::SurfaceId, glam::UVec2>,
@@ -89,6 +90,7 @@ impl EngineState {
             audio: Box::new(KiraAudioProxy::default()),
             #[cfg(feature = "wasm")]
             audio: Box::new(WebAudioProxy::default()),
+            audio_available: true,
             universal_state: UniversalState::default(),
             surface_targets: HashMap::new(),
             present_sizes_cache: HashMap::new(),

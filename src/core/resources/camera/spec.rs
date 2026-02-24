@@ -45,14 +45,14 @@ pub struct CameraComponent {
 impl CameraComponent {
     /// Create from raw input data
     ///
-    /// For both Perspective and Orthographic cameras, uses `window_size` (width, height) to calculate aspect ratio.
+    /// For both Perspective and Orthographic cameras, uses `projection_size` (width, height) to calculate aspect ratio.
     /// For Orthographic cameras, `ortho_scale` defines the vertical span of the view.
     pub fn new(
         transform: Mat4,
         kind: CameraKind,
         flags: u32,
         near_far: Vec2,
-        window_size: (u32, u32),
+        projection_size: (u32, u32),
         ortho_scale: f32,
     ) -> Self {
         let position = transform.w_axis.truncate();
@@ -62,7 +62,7 @@ impl CameraComponent {
 
         let view = Mat4::look_to_rh(position, direction, up);
 
-        let aspect_ratio = window_size.0 as f32 / window_size.1 as f32;
+        let aspect_ratio = projection_size.0 as f32 / projection_size.1 as f32;
 
         let projection = match kind {
             CameraKind::Perspective => {
@@ -106,7 +106,7 @@ impl CameraComponent {
         kind: Option<CameraKind>,
         flags: Option<u32>,
         near_far: Option<Vec2>,
-        window_size: (u32, u32),
+        projection_size: (u32, u32),
         ortho_scale: f32,
     ) {
         let transform = transform.unwrap_or_else(|| {
@@ -123,7 +123,14 @@ impl CameraComponent {
         let flags = flags.unwrap_or(self.kind_flags.y);
         let near_far = near_far.unwrap_or(self.near_far);
 
-        *self = Self::new(transform, kind, flags, near_far, window_size, ortho_scale);
+        *self = Self::new(
+            transform,
+            kind,
+            flags,
+            near_far,
+            projection_size,
+            ortho_scale,
+        );
     }
 }
 
@@ -275,6 +282,7 @@ pub struct CameraRecord {
     pub forward_msaa_target: Option<RenderTarget>,
     pub forward_emissive_msaa_target: Option<RenderTarget>,
     pub view_position: Option<ViewPosition>,
+    pub last_projection_size: UVec2,
 }
 
 impl CameraRecord {
@@ -305,6 +313,7 @@ impl CameraRecord {
             forward_msaa_target: None,
             forward_emissive_msaa_target: None,
             view_position,
+            last_projection_size: UVec2::ZERO,
         }
     }
 
@@ -314,6 +323,15 @@ impl CameraRecord {
 
     pub fn clear_dirty(&mut self) {
         self.is_dirty = false;
+    }
+
+    pub fn effective_target_size(&self, surface_size: UVec2) -> UVec2 {
+        let (width, height) = self
+            .view_position
+            .as_ref()
+            .map(|vp| vp.resolve_size(surface_size.x, surface_size.y))
+            .unwrap_or((surface_size.x, surface_size.y));
+        UVec2::new(width.max(1), height.max(1))
     }
 
     // Render targets are managed via ensure_render_target helper.
