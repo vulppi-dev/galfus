@@ -42,9 +42,13 @@ pub(super) fn resolve_realm_plane_hit(
         return None;
     }
 
-    let window_state = engine_state.window.states.get(&window_id)?;
+    let render_state = engine_state.render.get(&window_id)?;
+    let entities = engine_state
+        .universal_state
+        .realm_entities
+        .get(&target_realm)?;
     let camera = pick_camera_for_pointer(
-        window_state,
+        &entities.cameras,
         preferred_camera_id,
         pointer_position,
         pointer_surface_size,
@@ -54,9 +58,9 @@ pub(super) fn resolve_realm_plane_hit(
         std::collections::HashMap::new();
 
     let mut best_hit: Option<(f32, RealmPlaneHit)> = None;
-    let vertex = window_state.render_state.vertex.as_ref()?;
+    let vertex = render_state.vertex.as_ref()?;
 
-    for model in window_state.render_state.scene.models.values() {
+    for model in entities.models.values() {
         if (model.layer_mask & camera.layer_mask) == 0 {
             continue;
         }
@@ -66,7 +70,7 @@ pub(super) fn resolve_realm_plane_hit(
         let ui_source = if let Some(cached) = ui_source_cache.get(&material_id) {
             *cached
         } else {
-            let resolved = resolve_ui_source_for_model(engine_state, window_id, Some(material_id));
+            let resolved = resolve_ui_source_for_model(engine_state, Some(material_id));
             ui_source_cache.insert(material_id, resolved);
             resolved
         };
@@ -100,18 +104,18 @@ pub(super) fn resolve_realm_plane_hit(
 }
 
 fn pick_camera_for_pointer(
-    window_state: &crate::core::window::WindowState,
+    cameras: &std::collections::HashMap<u32, crate::core::resources::CameraNode>,
     preferred_camera_id: Option<u32>,
     pointer_position: Vec2,
     surface_size: glam::UVec2,
-) -> Option<&crate::core::resources::CameraRecord> {
+) -> Option<&crate::core::resources::CameraNode> {
     if let Some(camera_id) = preferred_camera_id {
-        if let Some(camera) = window_state.render_state.scene.cameras.get(&camera_id) {
+        if let Some(camera) = cameras.get(&camera_id) {
             return Some(camera);
         }
     }
-    let mut picked: Option<(&crate::core::resources::CameraRecord, i32, u32)> = None;
-    for (camera_id, camera) in &window_state.render_state.scene.cameras {
+    let mut picked: Option<(&crate::core::resources::CameraNode, i32, u32)> = None;
+    for (camera_id, camera) in cameras {
         let (viewport_x, viewport_y, viewport_w, viewport_h) =
             resolve_camera_viewport_in_surface(surface_size, camera);
         if pointer_position.x >= viewport_x
@@ -137,7 +141,7 @@ fn pick_camera_for_pointer(
 fn screen_ray_from_pointer(
     pointer_position: Vec2,
     surface_size: glam::UVec2,
-    camera: &crate::core::resources::CameraRecord,
+    camera: &crate::core::resources::CameraNode,
 ) -> Option<Ray> {
     let (viewport_x, viewport_y, viewport_w, viewport_h) =
         resolve_camera_viewport_in_surface(surface_size, camera);
@@ -156,9 +160,25 @@ fn screen_ray_from_pointer(
     let ndc_x = (local_x / width) * 2.0 - 1.0;
     let ndc_y = 1.0 - (local_y / height) * 2.0;
 
-    let inv_vp = camera.data.view_projection.inverse();
-    let near_h = inv_vp * Vec4::new(ndc_x, ndc_y, 0.0, 1.0);
-    let far_h = inv_vp * Vec4::new(ndc_x, ndc_y, 1.0, 1.0);
+    // Recompute projection using the effective viewport size so picking matches
+    // the actual camera target used for rendering (e.g. widget viewport targets).
+    let mut camera_data = camera.data;
+    camera_data.update(
+        None,
+        None,
+        None,
+        None,
+        (
+            width.round().max(1.0) as u32,
+            height.round().max(1.0) as u32,
+        ),
+        camera.ortho_scale,
+    );
+
+    let inv_vp = camera_data.view_projection.inverse();
+    // Reverse-Z (WGPU): near=1, far=0 in NDC depth.
+    let near_h = inv_vp * Vec4::new(ndc_x, ndc_y, 1.0, 1.0);
+    let far_h = inv_vp * Vec4::new(ndc_x, ndc_y, 0.0, 1.0);
     if near_h.w.abs() < 1e-6 || far_h.w.abs() < 1e-6 {
         return None;
     }
@@ -170,7 +190,7 @@ fn screen_ray_from_pointer(
         return None;
     }
 
-    let camera_forward = camera.data.direction.truncate().normalize_or_zero();
+    let camera_forward = camera_data.direction.truncate().normalize_or_zero();
     if camera_forward.length_squared() > 1e-8 && direction.dot(camera_forward) < 0.0 {
         direction = -direction;
     }
@@ -183,7 +203,7 @@ fn screen_ray_from_pointer(
 
 fn resolve_camera_viewport_in_surface(
     surface_size: glam::UVec2,
-    camera: &crate::core::resources::CameraRecord,
+    camera: &crate::core::resources::CameraNode,
 ) -> (f32, f32, f32, f32) {
     if let Some(view_position) = camera.view_position.as_ref() {
         let (x, y) = view_position.resolve_position(surface_size.x, surface_size.y);
@@ -200,19 +220,17 @@ fn resolve_camera_viewport_in_surface(
 
 fn resolve_ui_source_for_model(
     engine_state: &EngineState,
-    window_id: u32,
     material_id: Option<u32>,
 ) -> Option<UiTextureSource> {
     let material_id = material_id?;
-    let window_state = engine_state.window.states.get(&window_id)?;
-    let render_state = &window_state.render_state;
+    let resources = &engine_state.universal_state.global_resources;
 
-    if let Some(standard) = render_state.scene.materials_standard.get(&material_id) {
+    if let Some(standard) = resources.materials_standard.get(&material_id) {
         for (slot_index, &texture_id) in standard.texture_ids.iter().enumerate() {
             if texture_id == STANDARD_INVALID_SLOT {
                 continue;
             }
-            if let Some(binding) = render_state.target_texture_binds.get(&texture_id)
+            if let Some(binding) = resources.target_texture_binds.get(&texture_id)
                 && let Some(realm_id) = resolve_target_ui_realm(engine_state, binding.target_id)
             {
                 return Some(UiTextureSource {
@@ -224,12 +242,12 @@ fn resolve_ui_source_for_model(
         }
     }
 
-    if let Some(pbr) = render_state.scene.materials_pbr.get(&material_id) {
+    if let Some(pbr) = resources.materials_pbr.get(&material_id) {
         for (slot_index, &texture_id) in pbr.texture_ids.iter().enumerate() {
             if texture_id == PBR_INVALID_SLOT {
                 continue;
             }
-            if let Some(binding) = render_state.target_texture_binds.get(&texture_id)
+            if let Some(binding) = resources.target_texture_binds.get(&texture_id)
                 && let Some(realm_id) = resolve_target_ui_realm(engine_state, binding.target_id)
             {
                 return Some(UiTextureSource {
@@ -290,6 +308,11 @@ fn intersect_plane_model(
     if direction_local.z.abs() < 1e-6 {
         return None;
     }
+    // RealmPlane is double-sided in rasterization, but pointer interaction is
+    // only valid for the front face (local +Z normal).
+    if direction_local.z >= -1e-6 {
+        return None;
+    }
 
     let local_t = -origin_local.z / direction_local.z;
     if local_t <= 0.0 {
@@ -315,7 +338,7 @@ fn intersect_plane_model(
     let height = (aabb.max.y - aabb.min.y).max(1e-6);
     let uv = Vec2::new(
         ((hit_local.x - aabb.min.x) / width).clamp(0.0, 1.0),
-        ((hit_local.y - aabb.min.y) / height).clamp(0.0, 1.0),
+        1.0 - ((hit_local.y - aabb.min.y) / height).clamp(0.0, 1.0),
     );
     Some((world_distance, uv))
 }

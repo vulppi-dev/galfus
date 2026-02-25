@@ -4,7 +4,6 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CmdTextureCreateFromBufferArgs {
-    pub window_id: u32,
     pub texture_id: u32,
     pub label: Option<String>,
     pub buffer_id: u64,
@@ -56,7 +55,6 @@ impl Default for TextureCreateMode {
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CmdTextureCreateSolidColorArgs {
-    pub window_id: u32,
     pub texture_id: u32,
     pub label: Option<String>,
     pub color: Vec4,
@@ -78,7 +76,6 @@ pub struct CmdResultTextureCreateSolidColor {
 #[derive(Debug, Default, Deserialize, Serialize, Clone)]
 #[serde(default, rename_all = "camelCase")]
 pub struct CmdTextureDisposeArgs {
-    pub window_id: u32,
     pub texture_id: u32,
 }
 
@@ -92,7 +89,6 @@ pub struct CmdResultTextureDispose {
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CmdTextureBindTargetArgs {
-    pub window_id: u32,
     pub texture_id: u32,
     pub target_id: u64,
     #[serde(default)]

@@ -1,17 +1,16 @@
 use glam::{Mat4, Vec2};
 use serde::{Deserialize, Serialize};
 
-use crate::core::resources::common::default_layer_mask;
-use crate::core::resources::{
-    CameraComponent, CameraKind, CameraRecord, ViewPosition, ensure_render_target,
-};
+use crate::core::realm::RealmId;
+use crate::core::resources::common::{default_layer_mask, mark_realm_windows_dirty};
+use crate::core::resources::{CameraComponent, CameraKind, CameraNode, ViewPosition};
 use crate::core::state::EngineState;
-
-// MARK: - Create Camera
+use crate::core::system::push_error_event;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CmdCameraCreateArgs {
+    pub realm_id: u32,
     pub camera_id: u32,
     pub label: Option<String>,
     pub transform: Mat4,
@@ -32,26 +31,6 @@ fn default_ortho_scale() -> f32 {
     10.0
 }
 
-fn collect_window_projection_sizes(
-    engine: &EngineState,
-) -> std::collections::HashMap<u32, (u32, u32)> {
-    let mut sizes = std::collections::HashMap::new();
-    for present in engine.universal_state.presents.entries.values() {
-        let surface_size = engine
-            .universal_state
-            .surfaces
-            .entries
-            .get(&present.value.surface)
-            .map(|entry| entry.value.size)
-            .unwrap_or(glam::UVec2::new(1, 1));
-        sizes.insert(
-            present.value.window_id,
-            (surface_size.x.max(1), surface_size.y.max(1)),
-        );
-    }
-    sizes
-}
-
 #[derive(Debug, Default, Deserialize, Serialize, Clone)]
 #[serde(default, rename_all = "camelCase")]
 pub struct CmdResultCameraCreate {
@@ -59,146 +38,10 @@ pub struct CmdResultCameraCreate {
     pub message: String,
 }
 
-pub fn engine_cmd_camera_create(
-    engine: &mut EngineState,
-    args: &CmdCameraCreateArgs,
-) -> CmdResultCameraCreate {
-    let window_projection_sizes = collect_window_projection_sizes(engine);
-    let window_states = &mut engine.window.states;
-
-    for (_, window_state) in window_states.iter_mut() {
-        if window_state
-            .render_state
-            .scene
-            .cameras
-            .contains_key(&args.camera_id)
-        {
-            return CmdResultCameraCreate {
-                success: false,
-                message: format!("Camera with id {} already exists", args.camera_id),
-            };
-        }
-    }
-
-    for (window_id, window_state) in window_states.iter_mut() {
-        let (target_width, target_height) = args
-            .view_position
-            .as_ref()
-            .map(|vp| {
-                let (base_width, base_height) = window_projection_sizes
-                    .get(window_id)
-                    .copied()
-                    .unwrap_or((window_state.config.width, window_state.config.height));
-                vp.resolve_size(base_width, base_height)
-            })
-            .unwrap_or_else(|| {
-                window_projection_sizes
-                    .get(window_id)
-                    .copied()
-                    .unwrap_or((window_state.config.width, window_state.config.height))
-            });
-
-        let component = CameraComponent::new(
-            args.transform,
-            args.kind,
-            args.flags,
-            args.near_far,
-            (target_width, target_height),
-            args.ortho_scale,
-        );
-        let mut record = CameraRecord::new(
-            args.label.clone(),
-            component,
-            args.layer_mask,
-            args.order,
-            args.view_position.clone(),
-            args.ortho_scale,
-        );
-        record.last_projection_size = glam::UVec2::new(target_width, target_height);
-        if let Some(device) = engine.device.as_ref() {
-            ensure_render_target(
-                device,
-                &mut record.render_target,
-                target_width,
-                target_height,
-                wgpu::TextureFormat::Rgba16Float,
-            );
-            ensure_render_target(
-                device,
-                &mut record.emissive_target,
-                target_width,
-                target_height,
-                wgpu::TextureFormat::Rgba16Float,
-            );
-            ensure_render_target(
-                device,
-                &mut record.post_target,
-                target_width,
-                target_height,
-                wgpu::TextureFormat::Rgba16Float,
-            );
-            ensure_render_target(
-                device,
-                &mut record.outline_target,
-                target_width,
-                target_height,
-                wgpu::TextureFormat::Rgba8Unorm,
-            );
-            ensure_render_target(
-                device,
-                &mut record.ssao_target,
-                target_width,
-                target_height,
-                wgpu::TextureFormat::Rgba16Float,
-            );
-            ensure_render_target(
-                device,
-                &mut record.ssao_blur_target,
-                target_width,
-                target_height,
-                wgpu::TextureFormat::Rgba16Float,
-            );
-            ensure_render_target(
-                device,
-                &mut record.bloom_target,
-                target_width,
-                target_height,
-                wgpu::TextureFormat::Rgba16Float,
-            );
-            for (level, target) in record.bloom_chain.iter_mut().enumerate() {
-                let level_width = crate::core::render::bloom_chain_size(target_width, level);
-                let level_height = crate::core::render::bloom_chain_size(target_height, level);
-                ensure_render_target(
-                    device,
-                    target,
-                    level_width,
-                    level_height,
-                    wgpu::TextureFormat::Rgba16Float,
-                );
-            }
-        }
-        window_state
-            .render_state
-            .scene
-            .cameras
-            .insert(args.camera_id, record);
-        if let Some(shadow) = window_state.render_state.shadow.as_mut() {
-            shadow.mark_dirty();
-        }
-        window_state.is_dirty = true;
-    }
-
-    CmdResultCameraCreate {
-        success: true,
-        message: "Camera created successfully".into(),
-    }
-}
-
-// MARK: - Update Camera
-
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CmdCameraUpdateArgs {
+    pub realm_id: u32,
     pub camera_id: u32,
     pub label: Option<String>,
     pub transform: Option<Mat4>,
@@ -218,156 +61,10 @@ pub struct CmdResultCameraUpdate {
     pub message: String,
 }
 
-pub fn engine_cmd_camera_update(
-    engine: &mut EngineState,
-    args: &CmdCameraUpdateArgs,
-) -> CmdResultCameraUpdate {
-    let window_projection_sizes = collect_window_projection_sizes(engine);
-    let window_states = &mut engine.window.states;
-
-    let mut found = false;
-    for (window_id, window_state) in window_states.iter_mut() {
-        if let Some(record) = window_state
-            .render_state
-            .scene
-            .cameras
-            .get_mut(&args.camera_id)
-        {
-            found = true;
-
-            if args.label.is_some() {
-                record.label = args.label.clone();
-            }
-
-            // Update view_position if provided
-            if let Some(view_position) = args.view_position.clone() {
-                record.view_position = Some(view_position);
-            }
-
-            // Calculate target size from effective window surface when available
-            let (base_width, base_height) = window_projection_sizes
-                .get(window_id)
-                .copied()
-                .unwrap_or((window_state.config.width, window_state.config.height));
-            let (target_width, target_height) = record
-                .view_position
-                .as_ref()
-                .map(|vp| vp.resolve_size(base_width, base_height))
-                .unwrap_or((base_width, base_height));
-
-            if let Some(ortho_scale) = args.ortho_scale {
-                record.ortho_scale = ortho_scale;
-            }
-            let ortho_scale = record.ortho_scale;
-
-            // Update camera component
-            record.data.update(
-                args.transform,
-                args.kind,
-                args.flags,
-                args.near_far,
-                (target_width, target_height),
-                ortho_scale,
-            );
-            record.last_projection_size = glam::UVec2::new(target_width, target_height);
-
-            if let Some(device) = engine.device.as_ref() {
-                ensure_render_target(
-                    device,
-                    &mut record.render_target,
-                    target_width,
-                    target_height,
-                    wgpu::TextureFormat::Rgba16Float,
-                );
-                ensure_render_target(
-                    device,
-                    &mut record.emissive_target,
-                    target_width,
-                    target_height,
-                    wgpu::TextureFormat::Rgba16Float,
-                );
-                ensure_render_target(
-                    device,
-                    &mut record.post_target,
-                    target_width,
-                    target_height,
-                    wgpu::TextureFormat::Rgba16Float,
-                );
-                ensure_render_target(
-                    device,
-                    &mut record.outline_target,
-                    target_width,
-                    target_height,
-                    wgpu::TextureFormat::Rgba8Unorm,
-                );
-                ensure_render_target(
-                    device,
-                    &mut record.ssao_target,
-                    target_width,
-                    target_height,
-                    wgpu::TextureFormat::Rgba16Float,
-                );
-                ensure_render_target(
-                    device,
-                    &mut record.ssao_blur_target,
-                    target_width,
-                    target_height,
-                    wgpu::TextureFormat::Rgba16Float,
-                );
-                ensure_render_target(
-                    device,
-                    &mut record.bloom_target,
-                    target_width,
-                    target_height,
-                    wgpu::TextureFormat::Rgba16Float,
-                );
-                for (level, target) in record.bloom_chain.iter_mut().enumerate() {
-                    let level_width = crate::core::render::bloom_chain_size(target_width, level);
-                    let level_height = crate::core::render::bloom_chain_size(target_height, level);
-                    ensure_render_target(
-                        device,
-                        target,
-                        level_width,
-                        level_height,
-                        wgpu::TextureFormat::Rgba16Float,
-                    );
-                }
-            }
-
-            if let Some(layer_mask) = args.layer_mask {
-                record.layer_mask = layer_mask;
-            }
-
-            if let Some(order) = args.order {
-                record.order = order;
-            }
-
-            record.mark_dirty();
-            if let Some(shadow) = window_state.render_state.shadow.as_mut() {
-                shadow.mark_dirty();
-            }
-            window_state.is_dirty = true;
-        }
-    }
-
-    if found {
-        CmdResultCameraUpdate {
-            success: true,
-            message: "Camera updated successfully".into(),
-        }
-    } else {
-        CmdResultCameraUpdate {
-            success: false,
-            message: format!("Camera with id {} not found", args.camera_id),
-        }
-    }
-}
-
-// MARK: - Dispose Camera
-
 #[derive(Debug, Default, Deserialize, Serialize, Clone)]
 #[serde(default, rename_all = "camelCase")]
 pub struct CmdCameraDisposeArgs {
+    pub realm_id: u32,
     pub camera_id: u32,
 }
 
@@ -378,38 +75,203 @@ pub struct CmdResultCameraDispose {
     pub message: String,
 }
 
+fn projection_size_for_realm(engine: &EngineState, realm_id: RealmId) -> (u32, u32) {
+    let Some(realm) = engine.universal_state.realms.entries.get(&realm_id) else {
+        return (1, 1);
+    };
+    if let Some(surface_id) = realm.value.output_surface
+        && let Some(surface) = engine.universal_state.surfaces.entries.get(&surface_id)
+    {
+        return (surface.value.size.x.max(1), surface.value.size.y.max(1));
+    }
+    if let Some(window_id) = realm.value.host_window_id
+        && let Some(window) = engine.window.states.get(&window_id)
+    {
+        return (window.inner_size.x.max(1), window.inner_size.y.max(1));
+    }
+    (1, 1)
+}
+
+fn camera_create_error(
+    engine: &mut EngineState,
+    message: String,
+    command: &str,
+) -> CmdResultCameraCreate {
+    push_error_event(
+        engine,
+        "camera",
+        message.clone(),
+        None,
+        Some(command.to_string()),
+    );
+    CmdResultCameraCreate {
+        success: false,
+        message,
+    }
+}
+
+pub fn engine_cmd_camera_create(
+    engine: &mut EngineState,
+    args: &CmdCameraCreateArgs,
+) -> CmdResultCameraCreate {
+    let realm_id = RealmId(args.realm_id);
+    if !engine
+        .universal_state
+        .realms
+        .entries
+        .contains_key(&realm_id)
+    {
+        return camera_create_error(
+            engine,
+            format!("Realm {} not found", args.realm_id),
+            "camera-upsert",
+        );
+    }
+    let projection_size = projection_size_for_realm(engine, realm_id);
+    let entities = engine
+        .universal_state
+        .realm_entities
+        .entry(realm_id)
+        .or_default();
+    if entities.cameras.contains_key(&args.camera_id) {
+        return camera_create_error(
+            engine,
+            format!("Camera with id {} already exists", args.camera_id),
+            "camera-upsert",
+        );
+    }
+
+    let data = CameraComponent::new(
+        args.transform,
+        args.kind,
+        args.flags,
+        args.near_far,
+        projection_size,
+        args.ortho_scale,
+    );
+    entities.cameras.insert(
+        args.camera_id,
+        CameraNode {
+            label: args.label.clone(),
+            data,
+            layer_mask: args.layer_mask,
+            order: args.order,
+            ortho_scale: args.ortho_scale,
+            view_position: args.view_position.clone(),
+        },
+    );
+    mark_realm_windows_dirty(engine, args.realm_id);
+
+    CmdResultCameraCreate {
+        success: true,
+        message: "Camera created successfully".into(),
+    }
+}
+
+pub fn engine_cmd_camera_update(
+    engine: &mut EngineState,
+    args: &CmdCameraUpdateArgs,
+) -> CmdResultCameraUpdate {
+    let realm_id = RealmId(args.realm_id);
+    let projection_size = projection_size_for_realm(engine, realm_id);
+    let Some(entities) = engine.universal_state.realm_entities.get_mut(&realm_id) else {
+        let message = format!("Realm {} not found", args.realm_id);
+        push_error_event(
+            engine,
+            "camera",
+            message.clone(),
+            None,
+            Some("camera-upsert".into()),
+        );
+        return CmdResultCameraUpdate {
+            success: false,
+            message,
+        };
+    };
+    let Some(camera) = entities.cameras.get_mut(&args.camera_id) else {
+        let message = format!("Camera with id {} not found", args.camera_id);
+        push_error_event(
+            engine,
+            "camera",
+            message.clone(),
+            None,
+            Some("camera-upsert".into()),
+        );
+        return CmdResultCameraUpdate {
+            success: false,
+            message,
+        };
+    };
+
+    if args.label.is_some() {
+        camera.label = args.label.clone();
+    }
+    if let Some(layer_mask) = args.layer_mask {
+        camera.layer_mask = layer_mask;
+    }
+    if let Some(order) = args.order {
+        camera.order = order;
+    }
+    if let Some(view_position) = args.view_position.clone() {
+        camera.view_position = Some(view_position);
+    }
+    if let Some(ortho_scale) = args.ortho_scale {
+        camera.ortho_scale = ortho_scale;
+    }
+    camera.data.update(
+        args.transform,
+        args.kind,
+        args.flags,
+        args.near_far,
+        projection_size,
+        camera.ortho_scale,
+    );
+    mark_realm_windows_dirty(engine, args.realm_id);
+
+    CmdResultCameraUpdate {
+        success: true,
+        message: "Camera updated successfully".into(),
+    }
+}
+
 pub fn engine_cmd_camera_dispose(
     engine: &mut EngineState,
     args: &CmdCameraDisposeArgs,
 ) -> CmdResultCameraDispose {
-    let window_states = &mut engine.window.states;
+    let realm_id = RealmId(args.realm_id);
+    let Some(entities) = engine.universal_state.realm_entities.get_mut(&realm_id) else {
+        let message = format!("Realm {} not found", args.realm_id);
+        push_error_event(
+            engine,
+            "camera",
+            message.clone(),
+            None,
+            Some("camera-dispose".into()),
+        );
+        return CmdResultCameraDispose {
+            success: false,
+            message,
+        };
+    };
 
-    let mut found = false;
-    for (_, window_state) in window_states.iter_mut() {
-        if window_state
-            .render_state
-            .scene
-            .cameras
-            .remove(&args.camera_id)
-            .is_some()
-        {
-            found = true;
-            if let Some(shadow) = window_state.render_state.shadow.as_mut() {
-                shadow.mark_dirty();
-            }
-            window_state.is_dirty = true;
-        }
-    }
-
-    if found {
+    if entities.cameras.remove(&args.camera_id).is_some() {
+        mark_realm_windows_dirty(engine, args.realm_id);
         CmdResultCameraDispose {
             success: true,
             message: "Camera disposed successfully".into(),
         }
     } else {
+        let message = format!("Camera with id {} not found", args.camera_id);
+        push_error_event(
+            engine,
+            "camera",
+            message.clone(),
+            None,
+            Some("camera-dispose".into()),
+        );
         CmdResultCameraDispose {
             success: false,
-            message: format!("Camera with id {} not found", args.camera_id),
+            message,
         }
     }
 }

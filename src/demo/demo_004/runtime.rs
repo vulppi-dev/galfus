@@ -16,6 +16,7 @@ use std::rc::Rc;
 
 pub fn run(ctx: DemoContext, setup: &Demo004Setup) -> bool {
     let window_id = ctx.window_id;
+    let realm_id = ctx.realm_id;
     let ids = setup.ids;
     let cube_models = &setup.cube_models;
 
@@ -29,7 +30,6 @@ pub fn run(ctx: DemoContext, setup: &Demo004Setup) -> bool {
     upload_texture_bytes(&skybox_bytes, ids.skybox_buffer_id);
     let _ = send_commands(vec![EngineCmd::CmdTextureCreateFromBuffer(
         CmdTextureCreateFromBufferArgs {
-            window_id,
             texture_id: ids.skybox_texture_id,
             label: Some("Skybox Texture".into()),
             buffer_id: ids.skybox_buffer_id,
@@ -56,6 +56,7 @@ pub fn run(ctx: DemoContext, setup: &Demo004Setup) -> bool {
             let camera_transform = Mat4::look_at_rh(camera_pos, Vec3::ZERO, Vec3::Y).inverse();
             cmds.push(EngineCmd::CmdCameraUpsert(
                 crate::core::cmd::CmdCameraUpsertArgs::Update(CmdCameraUpdateArgs {
+                    realm_id,
                     camera_id: ids.camera_id,
                     label: None,
                     transform: Some(camera_transform),
@@ -70,12 +71,12 @@ pub fn run(ctx: DemoContext, setup: &Demo004Setup) -> bool {
             ));
             cmds.push(EngineCmd::CmdModelUpsert(
                 crate::core::cmd::CmdModelUpsertArgs::Update(CmdModelUpdateArgs {
-                    window_id,
+                    realm_id,
                     model_id: ids.listener_model_id,
                     label: None,
                     geometry_id: None,
                     material_id: None,
-                    transform: Some(camera_transform),
+                    transform: Some(Mat4::from_translation(camera_pos)),
                     layer_mask: None,
                     cast_shadow: None,
                     receive_shadow: None,
@@ -84,19 +85,19 @@ pub fn run(ctx: DemoContext, setup: &Demo004Setup) -> bool {
                 }),
             ));
             for (index, (model_id, base_pos, _outline)) in cube_models.iter().enumerate() {
-                let wobble = time_f + index as f32 * 0.6;
-                let position = *base_pos + Vec3::new(0.0, wobble.sin() * 0.25, 0.0);
-                let transform = Mat4::from_translation(position)
-                    * Mat4::from_euler(
-                        glam::EulerRot::XYZ,
-                        wobble * 0.9,
-                        wobble * 0.6,
-                        wobble * 0.3,
-                    )
-                    * Mat4::from_scale(Vec3::splat(1.15));
+                let phase = time_f * 0.35 + index as f32 * 0.8;
+                let vertical = if index >= 4 { phase.sin() * 0.08 } else { 0.0 };
+                let rotation = if index % 2 == 0 {
+                    phase * 0.25
+                } else {
+                    -phase * 0.2
+                };
+                let transform = Mat4::from_translation(*base_pos + Vec3::new(0.0, vertical, 0.0))
+                    * Mat4::from_rotation_y(rotation)
+                    * Mat4::from_scale(Vec3::splat(1.05));
                 cmds.push(EngineCmd::CmdModelUpsert(
                     crate::core::cmd::CmdModelUpsertArgs::Update(CmdModelUpdateArgs {
-                        window_id,
+                        realm_id,
                         model_id: *model_id,
                         label: None,
                         geometry_id: None,

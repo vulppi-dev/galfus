@@ -53,10 +53,6 @@ impl VertexAllocatorSystem {
         &self.records
     }
 
-    pub fn records_mut(&mut self) -> &mut HashMap<u32, GeometryRecord> {
-        &mut self.records
-    }
-
     pub fn geometry_has_streams(&self, geometry_id: u32, streams: &[VertexStream]) -> Option<bool> {
         let record = self.records.get(&geometry_id)?;
         let has_stream = |stream: VertexStream| match &record.storage {

@@ -191,6 +191,11 @@ pub fn engine_cmd_target_dispose(
         .remove(&target_id);
     engine
         .universal_state
+        .global_resources
+        .target_texture_binds
+        .retain(|_, binding| binding.target_id != target_id);
+    engine
+        .universal_state
         .target_graph_cache
         .prune_dead_entries(
             &engine.universal_state.targets.entries,
@@ -243,13 +248,12 @@ pub fn engine_cmd_target_layer_upsert(
         }
     }
     if let Some(camera_id) = args.camera_id {
-        let camera_exists = engine.window.states.values().any(|window_state| {
-            window_state
-                .render_state
-                .scene
-                .cameras
-                .contains_key(&camera_id)
-        });
+        let camera_exists = engine
+            .universal_state
+            .realm_entities
+            .get(&crate::core::realm::RealmId(args.realm_id))
+            .map(|entities| entities.cameras.contains_key(&camera_id))
+            .unwrap_or(false);
         if !camera_exists {
             return CmdResultTargetLayerUpsert {
                 success: false,

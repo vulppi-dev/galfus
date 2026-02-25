@@ -128,7 +128,14 @@ fn setup_stress(ctx: DemoContext) -> Demo013Setup {
 
     let camera_main_id = 910;
     let camera_aux_id = 911;
-    let scene_cmds = build_scene_cmds(window_main, window_aux, camera_main_id, camera_aux_id);
+    let scene_cmds = build_scene_cmds(
+        window_main,
+        window_aux,
+        host_realm_main,
+        host_realm_aux,
+        camera_main_id,
+        camera_aux_id,
+    );
     assert_eq!(send_commands(scene_cmds), VulframResult::Success);
 
     let (targets, target_cmds) = build_target_cmds(window_main, window_aux);
@@ -301,6 +308,8 @@ fn build_target_cmds(window_main: u32, window_aux: u32) -> (Demo013TargetIds, Ve
 fn build_scene_cmds(
     window_main: u32,
     window_aux: u32,
+    host_realm_main: u32,
+    host_realm_aux: u32,
     camera_main_id: u32,
     camera_aux_id: u32,
 ) -> Vec<EngineCmd> {
@@ -383,49 +392,46 @@ fn build_scene_cmds(
             },
         )),
         EngineCmd::CmdPrimitiveGeometryCreate(CmdPrimitiveGeometryCreateArgs {
-            window_id: window_main,
             geometry_id: 9200,
             label: Some("Demo 013 Main Cube".into()),
             shape: PrimitiveShape::Cube,
             options: None,
         }),
         EngineCmd::CmdPrimitiveGeometryCreate(CmdPrimitiveGeometryCreateArgs {
-            window_id: window_main,
             geometry_id: 9201,
             label: Some("Demo 013 Main Floor".into()),
             shape: PrimitiveShape::Plane,
             options: None,
         }),
         EngineCmd::CmdPrimitiveGeometryCreate(CmdPrimitiveGeometryCreateArgs {
-            window_id: window_aux,
             geometry_id: 9210,
             label: Some("Demo 013 Aux Cube".into()),
             shape: PrimitiveShape::Cube,
             options: None,
         }),
         EngineCmd::CmdPrimitiveGeometryCreate(CmdPrimitiveGeometryCreateArgs {
-            window_id: window_aux,
             geometry_id: 9211,
             label: Some("Demo 013 Aux Floor".into()),
             shape: PrimitiveShape::Plane,
             options: None,
         }),
         create_camera_cmd(
+            host_realm_main,
             camera_main_id,
             "Demo 013 Main Camera",
             Mat4::look_at_rh(Vec3::new(0.0, 3.0, 8.0), Vec3::ZERO, Vec3::Y).inverse(),
         ),
         create_camera_cmd(
+            host_realm_aux,
             camera_aux_id,
             "Demo 013 Aux Camera",
             Mat4::look_at_rh(Vec3::new(1.5, 2.6, 6.2), Vec3::ZERO, Vec3::Y).inverse(),
         ),
-        create_point_light_cmd(window_main, 9220, Vec4::new(3.0, 5.0, 2.0, 1.0)),
-        create_ambient_light_cmd(window_main, 9221, Vec4::new(0.3, 0.3, 0.3, 1.0), 0.7),
-        create_point_light_cmd(window_aux, 9230, Vec4::new(2.0, 4.0, 2.0, 1.0)),
-        create_ambient_light_cmd(window_aux, 9231, Vec4::new(0.35, 0.35, 0.35, 1.0), 0.7),
+        create_point_light_cmd(host_realm_main, 9220, Vec4::new(3.0, 5.0, 2.0, 1.0)),
+        create_ambient_light_cmd(host_realm_main, 9221, Vec4::new(0.3, 0.3, 0.3, 1.0), 0.7),
+        create_point_light_cmd(host_realm_aux, 9230, Vec4::new(2.0, 4.0, 2.0, 1.0)),
+        create_ambient_light_cmd(host_realm_aux, 9231, Vec4::new(0.35, 0.35, 0.35, 1.0), 0.7),
         create_standard_material_cmd(
-            window_main,
             9240,
             "Demo 013 Main Mat",
             Vec4::new(0.2, 0.6, 0.9, 1.0),
@@ -433,7 +439,6 @@ fn build_scene_cmds(
             None,
         ),
         create_standard_material_cmd(
-            window_main,
             9241,
             "Demo 013 Main Floor Mat",
             Vec4::new(0.4, 0.4, 0.45, 1.0),
@@ -441,7 +446,6 @@ fn build_scene_cmds(
             None,
         ),
         create_standard_material_cmd(
-            window_aux,
             9250,
             "Demo 013 Aux Mat",
             Vec4::new(0.15, 0.5, 0.25, 1.0),
@@ -449,7 +453,6 @@ fn build_scene_cmds(
             None,
         ),
         create_standard_material_cmd(
-            window_aux,
             9251,
             "Demo 013 Aux Floor Mat",
             Vec4::new(0.35, 0.35, 0.4, 1.0),
@@ -458,7 +461,7 @@ fn build_scene_cmds(
         ),
         EngineCmd::CmdModelUpsert(crate::core::cmd::CmdModelUpsertArgs::Create(
             CmdModelCreateArgs {
-                window_id: window_main,
+                realm_id: host_realm_main,
                 model_id: 9260,
                 label: Some("Demo 013 Main Model".into()),
                 geometry_id: 9200,
@@ -472,11 +475,11 @@ fn build_scene_cmds(
                 outline_color: Vec4::new(0.9, 0.3, 0.2, 1.0),
             },
         )),
-        create_floor_cmd(window_main, 9201, 9241),
+        create_floor_cmd(host_realm_main, 9201, 9241),
         create_shadow_config_cmd(window_main),
         EngineCmd::CmdModelUpsert(crate::core::cmd::CmdModelUpsertArgs::Create(
             CmdModelCreateArgs {
-                window_id: window_aux,
+                realm_id: host_realm_aux,
                 model_id: 9270,
                 label: Some("Demo 013 Aux Model".into()),
                 geometry_id: 9210,
@@ -490,7 +493,7 @@ fn build_scene_cmds(
                 outline_color: Vec4::new(0.1, 0.9, 0.4, 1.0),
             },
         )),
-        create_floor_cmd(window_aux, 9211, 9251),
+        create_floor_cmd(host_realm_aux, 9211, 9251),
         create_shadow_config_cmd(window_aux),
     ]
 }

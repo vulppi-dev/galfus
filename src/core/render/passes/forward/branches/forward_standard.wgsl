@@ -421,12 +421,6 @@ fn sample_shadow_page_at(
     return select(1.0, shadow, shadow_valid);
 }
 
-fn dir_component(v: vec3<f32>, axis: u32) -> f32 {
-    if (axis == 0u) { return v.x; }
-    if (axis == 1u) { return v.y; }
-    return v.z;
-}
-
 fn face_from_axis(axis: u32, comp: f32) -> u32 {
     let pos = comp >= 0.0;
     if (axis == 0u) { return select(1u, 0u, pos); }
@@ -457,25 +451,19 @@ fn point_shadow_factor(light: Light, world_pos: vec3<f32>, ndotl: f32) -> f32 {
     let inv_dist = select(0.0, 1.0 / dist, dist_valid);
     let dir = v * inv_dist;
     let ad = abs(dir);
-    var a0: u32 = 0u;
-    var m0: f32 = ad.x;
-    var a1: u32 = 1u;
-    var m1: f32 = ad.y;
-    if (m1 > m0) {
-        let tmpa = a0; a0 = a1; a1 = tmpa;
-        let tmpm = m0; m0 = m1; m1 = tmpm;
-    }
-    if (ad.z > m0) {
-        a1 = a0; m1 = m0;
-        a0 = 2u; m0 = ad.z;
-    } else if (ad.z > m1) {
-        a1 = 2u; m1 = ad.z;
-    }
-    let face0 = face_from_axis(a0, dir_component(dir, a0));
-    let face1 = face_from_axis(a1, dir_component(dir, a1));
-    let s0 = sample_point_face(light, face0, world_pos, ndotl);
-    let s1 = sample_point_face(light, face1, world_pos, ndotl);
-    let shadow = min(s0, s1);
+    let wx = ad.x * ad.x;
+    let wy = ad.y * ad.y;
+    let wz = ad.z * ad.z;
+    let wsum = max(wx + wy + wz, 1e-6);
+
+    let face_x = face_from_axis(0u, dir.x);
+    let face_y = face_from_axis(1u, dir.y);
+    let face_z = face_from_axis(2u, dir.z);
+
+    let sx = sample_point_face(light, face_x, world_pos, ndotl);
+    let sy = sample_point_face(light, face_y, world_pos, ndotl);
+    let sz = sample_point_face(light, face_z, world_pos, ndotl);
+    let shadow = (sx * wx + sy * wy + sz * wz) / wsum;
     return select(1.0, shadow, dist_valid);
 }
 
@@ -630,19 +618,21 @@ struct FragmentOutput {
 }
 
 @fragment
-fn fs_main(in: VertexOutput) -> FragmentOutput {
+fn fs_main(in: VertexOutput, @builtin(front_facing) is_front: bool) -> FragmentOutput {
+    let uv0 = vec2<f32>(1.0 - in.uv0.x, in.uv0.y);
+    let normal_geom = normalize(select(-in.normal, in.normal, is_front));
     let base_color = input_at(material.input_indices.x);
     let emissive_color = input_at(material.input_indices.w).rgb;
     let spec_enabled = (material.surface_flags.y & STANDARD_FLAG_SPECULAR) != 0u;
 
     let base_tex_slot = get_slot(material.texture_slots, TEX_BASE);
     let base_sampler = get_slot(material.sampler_indices, TEX_BASE);
-    let base_tex = sample_material(base_tex_slot, base_sampler, in.uv0);
+    let base_tex = sample_material(base_tex_slot, base_sampler, uv0);
     let toon_slot = get_slot(material.texture_slots, TEX_TOON);
     let toon_sampler = get_slot(material.sampler_indices, TEX_TOON);
     let emissive_slot = get_slot(material.texture_slots, TEX_EMISSIVE);
     let emissive_sampler = get_slot(material.sampler_indices, TEX_EMISSIVE);
-    let emissive_tex = sample_material(emissive_slot, emissive_sampler, in.uv0);
+    let emissive_tex = sample_material(emissive_slot, emissive_sampler, uv0);
     let emissive = emissive_color * emissive_tex.rgb;
 
     var color = base_color.rgb * base_tex.rgb * in.color0.rgb;
@@ -655,8 +645,8 @@ fn fs_main(in: VertexOutput) -> FragmentOutput {
     if (count > 0u) {
         let normal_slot = get_slot(material.texture_slots, TEX_NORMAL);
         let normal_sampler = get_slot(material.sampler_indices, TEX_NORMAL);
-        let n_geom = normalize(in.normal);
-        let n = apply_normal_map(in.normal, in.world_position, in.uv0, normal_slot, normal_sampler);
+        let n_geom = normal_geom;
+        let n = apply_normal_map(normal_geom, in.world_position, uv0, normal_slot, normal_sampler);
         var spec_color_final = vec3<f32>(0.0);
         var spec_power = 0.0;
         var view_dir = vec3<f32>(0.0);
@@ -665,7 +655,7 @@ fn fs_main(in: VertexOutput) -> FragmentOutput {
             spec_power = input_at(material.input_indices.z).x;
             let spec_slot = get_slot(material.texture_slots, TEX_SPEC);
             let spec_sampler = get_slot(material.sampler_indices, TEX_SPEC);
-            let spec_tex = sample_material(spec_slot, spec_sampler, in.uv0);
+            let spec_tex = sample_material(spec_slot, spec_sampler, uv0);
             spec_color_final = spec_color.rgb * spec_tex.rgb;
             view_dir = normalize(camera.position.xyz - in.world_position);
         }

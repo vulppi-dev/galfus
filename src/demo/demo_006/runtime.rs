@@ -11,8 +11,10 @@ use crate::demo::demo_006::setup::{Demo006RealmIds, Demo006Setup};
 use crate::demo::send_commands;
 use crate::demo::{DemoContext, draw_axes_gizmos, run_loop_with_events};
 
-pub fn run(ctx: DemoContext, setup: &Demo006Setup, _realms: &Demo006RealmIds) -> bool {
+pub fn run(ctx: DemoContext, setup: &Demo006Setup, realms: &Demo006RealmIds) -> bool {
     let window_id = ctx.window_id;
+    let realm_main_id = ctx.realm_id;
+    let realm_id = realms._realm_3d_embed;
     let ids = setup.ids;
     let mut ui_version = 1u64;
     let mut ui_panel_version = 1u64;
@@ -27,7 +29,7 @@ pub fn run(ctx: DemoContext, setup: &Demo006Setup, _realms: &Demo006RealmIds) ->
             let t = total_ms as f32 / 1000.0;
             let mut cmds = vec![EngineCmd::CmdModelUpsert(
                 crate::core::cmd::CmdModelUpsertArgs::Update(CmdModelUpdateArgs {
-                    window_id,
+                    realm_id,
                     model_id: ids.model_cube_id,
                     label: None,
                     geometry_id: None,
@@ -47,7 +49,7 @@ pub fn run(ctx: DemoContext, setup: &Demo006Setup, _realms: &Demo006RealmIds) ->
             )];
             cmds.push(EngineCmd::CmdModelUpsert(
                 crate::core::cmd::CmdModelUpsertArgs::Update(CmdModelUpdateArgs {
-                    window_id,
+                    realm_id,
                     model_id: ids.model_realm_plane_id,
                     label: None,
                     geometry_id: None,
@@ -55,10 +57,35 @@ pub fn run(ctx: DemoContext, setup: &Demo006Setup, _realms: &Demo006RealmIds) ->
                     transform: Some(
                         Mat4::from_translation(Vec3::new(1.0, 2.0, 3.8))
                             * Mat4::from_rotation_y(
-                                std::f32::consts::PI - 0.35 + (t * 0.45).sin() * 0.08,
+                                std::f32::consts::PI - 0.35
+                                    + std::f32::consts::PI
+                                    + (t * 0.45).sin() * 0.08,
                             )
                             * Mat4::from_rotation_x(-0.08)
                             * Mat4::from_scale(Vec3::new(2.4, 1.0, 1.0)),
+                    ),
+                    layer_mask: None,
+                    cast_shadow: None,
+                    receive_shadow: None,
+                    cast_outline: None,
+                    outline_color: None,
+                }),
+            ));
+            cmds.push(EngineCmd::CmdModelUpsert(
+                crate::core::cmd::CmdModelUpsertArgs::Update(CmdModelUpdateArgs {
+                    realm_id: realm_main_id,
+                    model_id: ids.model_realm_plane_main_id,
+                    label: None,
+                    geometry_id: None,
+                    material_id: None,
+                    transform: Some(
+                        Mat4::from_translation(Vec3::new(0.4, 1.6, 2.4))
+                            * Mat4::from_rotation_y(
+                                std::f32::consts::PI - 0.22
+                                    + (t * std::f32::consts::TAU * 0.18) % std::f32::consts::TAU,
+                            )
+                            * Mat4::from_rotation_x(-0.02)
+                            * Mat4::from_scale(Vec3::new(6.0, 1.0, 3.2)),
                     ),
                     layer_mask: None,
                     cast_shadow: None,

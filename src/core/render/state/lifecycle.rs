@@ -41,6 +41,7 @@ impl RenderState {
                 textures: HashMap::new(),
                 forward_atlas_entries: HashMap::new(),
             },
+            detached_cameras: HashMap::new(),
             camera_order: Vec::new(),
             target_texture_binds: HashMap::new(),
             external_textures: HashMap::new(),
@@ -50,7 +51,6 @@ impl RenderState {
             light_system: None,
             gizmos: GizmoSystem::new(),
             shadow: None,
-            forward_atlas: None,
             cache: RenderCache::new(),
             post_uniform_buffer: None,
             ssao_uniform_buffer: None,
@@ -71,6 +71,7 @@ impl RenderState {
     /// Explicitly drop all render state resources
     pub fn drop_all(&mut self) {
         self.scene.cameras.clear();
+        self.detached_cameras.clear();
         self.camera_order.clear();
         self.scene.models.clear();
         self.scene.lights.clear();
@@ -92,7 +93,6 @@ impl RenderState {
         self.vertex = None;
         self.light_system = None;
         self.shadow = None;
-        self.forward_atlas = None;
         self.cache.clear();
         self.post_uniform_buffer = None;
         self.ssao_uniform_buffer = None;

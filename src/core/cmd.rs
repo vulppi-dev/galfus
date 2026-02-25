@@ -1190,12 +1190,13 @@ pub fn engine_process_batch(
                 });
             }
             EngineCmd::CmdGizmoDrawLine(args) => {
-                for window_state in engine.window.states.values_mut() {
-                    window_state
-                        .render_state
+                for (window_id, render_state) in engine.render.states.iter_mut() {
+                    render_state
                         .gizmos
                         .add_line(args.start, args.end, args.color);
-                    window_state.is_dirty = true;
+                    if let Some(window_state) = engine.window.states.get_mut(window_id) {
+                        window_state.is_dirty = true;
+                    }
                 }
                 engine.response_queue.push(CommandResponseEnvelope {
                     id: pack.id,
@@ -1205,12 +1206,11 @@ pub fn engine_process_batch(
                 });
             }
             EngineCmd::CmdGizmoDrawAabb(args) => {
-                for window_state in engine.window.states.values_mut() {
-                    window_state
-                        .render_state
-                        .gizmos
-                        .add_aabb(args.min, args.max, args.color);
-                    window_state.is_dirty = true;
+                for (window_id, render_state) in engine.render.states.iter_mut() {
+                    render_state.gizmos.add_aabb(args.min, args.max, args.color);
+                    if let Some(window_state) = engine.window.states.get_mut(window_id) {
+                        window_state.is_dirty = true;
+                    }
                 }
                 engine.response_queue.push(CommandResponseEnvelope {
                     id: pack.id,

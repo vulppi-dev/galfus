@@ -263,6 +263,29 @@ pub fn ensure_render_target(
 }
 
 #[derive(Debug, Clone)]
+pub struct CameraNode {
+    pub label: Option<String>,
+    pub data: CameraComponent,
+    pub layer_mask: u32,
+    pub order: i32,
+    pub ortho_scale: f32,
+    pub view_position: Option<ViewPosition>,
+}
+
+impl CameraNode {
+    pub fn to_render_record(&self) -> CameraRecord {
+        CameraRecord::new(
+            self.label.clone(),
+            self.data,
+            self.layer_mask,
+            self.order,
+            self.view_position.clone(),
+            self.ortho_scale,
+        )
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct CameraRecord {
     pub label: Option<String>,
     pub data: CameraComponent,

@@ -625,8 +625,20 @@ fn resolve_hit_connector(
     let target_size = window_size.unwrap_or_else(|| UVec2::new(1, 1));
     for connector in connectors {
         if connector.state.input_flags & INPUT_FLAG_RAYCAST != 0 {
-            if hit_test_rect_clip(position, connector.state.rect, connector.state.clip) {
-                let uv = resolve_rect_uv(position, connector.state.rect);
+            if hit_test_connector(
+                position,
+                connector.state.rect,
+                connector.state.clip,
+                connector.source_size,
+                target_size,
+            ) {
+                let uv = resolve_connector_uv_from_sizes(
+                    connector.state.rect,
+                    connector.state.clip,
+                    position,
+                    connector.source_size,
+                    target_size,
+                );
                 return Some(HitResult {
                     connector_id: connector.id,
                     uv,
@@ -661,19 +673,25 @@ fn resolve_connector_uv(
         .entries
         .get(&connector.source_surface)
         .map(|entry| entry.value.size)?;
-    let (viewport, _) =
-        resolve_overlay_geometry(connector.rect, connector.clip, source_size, target_size)?;
-    let u = ((position.x - viewport.x) / viewport.z.max(1.0)).clamp(0.0, 1.0);
-    let v = ((position.y - viewport.y) / viewport.w.max(1.0)).clamp(0.0, 1.0);
-    Some(Vec2::new(u, v))
+    resolve_connector_uv_from_sizes(
+        connector.rect,
+        connector.clip,
+        position,
+        source_size,
+        target_size,
+    )
 }
 
-fn resolve_rect_uv(position: Vec2, rect: glam::Vec4) -> Option<Vec2> {
-    if rect.z <= 0.0 || rect.w <= 0.0 {
-        return None;
-    }
-    let u = ((position.x - rect.x) / rect.z).clamp(0.0, 1.0);
-    let v = ((position.y - rect.y) / rect.w).clamp(0.0, 1.0);
+fn resolve_connector_uv_from_sizes(
+    rect: glam::Vec4,
+    clip: Option<glam::Vec4>,
+    position: Vec2,
+    source_size: UVec2,
+    target_size: UVec2,
+) -> Option<Vec2> {
+    let (viewport, _) = resolve_overlay_geometry(rect, clip, source_size, target_size)?;
+    let u = ((position.x - viewport.x) / viewport.z.max(1.0)).clamp(0.0, 1.0);
+    let v = ((position.y - viewport.y) / viewport.w.max(1.0)).clamp(0.0, 1.0);
     Some(Vec2::new(u, v))
 }
 
@@ -838,17 +856,6 @@ fn hit_test_connector(
         && position.x <= clip_rect.x + clip_rect.z
         && position.y <= clip_rect.y + clip_rect.w;
     inside_viewport && inside_clip
-}
-
-fn hit_test_rect_clip(position: Vec2, rect: glam::Vec4, clip: Option<glam::Vec4>) -> bool {
-    let mut clip_rect = glam::Vec4::new(rect.x, rect.y, rect.z, rect.w);
-    if let Some(clip) = clip {
-        clip_rect = intersect_rect(clip_rect, clip);
-    }
-    position.x >= clip_rect.x
-        && position.y >= clip_rect.y
-        && position.x <= clip_rect.x + clip_rect.z
-        && position.y <= clip_rect.y + clip_rect.w
 }
 
 fn resolve_overlay_geometry(

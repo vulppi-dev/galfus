@@ -4,6 +4,7 @@ use crate::core::audio::{
     CmdAudioSourceCreateArgs,
 };
 use crate::core::cmd::EngineCmd;
+use crate::core::resources::shadow::{CmdShadowConfigureArgs, ShadowConfig};
 use crate::core::resources::{
     CmdEnvironmentUpdateArgs, CmdModelCreateArgs, CmdPrimitiveGeometryCreateArgs,
     EnvironmentConfig, MsaaConfig, PostProcessConfig, PrimitiveShape, SkyboxConfig, SkyboxMode,
@@ -13,8 +14,7 @@ use crate::demo::demo_004::config::build_demo_004_post_config;
 use crate::demo::io::{receive_responses, send_commands};
 use crate::demo::{
     create_ambient_light_cmd, create_camera_cmd, create_floor_cmd, create_point_light_cmd,
-    create_shadow_config_cmd, create_standard_material_cmd, load_texture_bytes,
-    upload_binary_bytes,
+    create_standard_material_cmd, load_texture_bytes, upload_binary_bytes,
 };
 use glam::{Mat4, Quat, Vec3, Vec4};
 
@@ -68,22 +68,26 @@ impl Demo004Setup {
         let cube_models = vec![
             (
                 501,
-                Vec3::new(-2.5, 0.0, 0.0),
+                Vec3::new(-3.4, 0.0, 0.0),
                 Vec4::new(1.0, 0.1, 0.1, 1.0),
             ),
-            (502, Vec3::new(0.0, 0.0, 0.0), Vec4::new(0.1, 1.0, 0.1, 1.0)),
-            (503, Vec3::new(2.5, 0.0, 0.0), Vec4::new(0.1, 0.1, 1.0, 1.0)),
             (
-                504,
-                Vec3::new(-0.6, 0.2, -0.2),
-                Vec4::new(1.0, 0.6, 0.1, 1.0),
+                502,
+                Vec3::new(-1.1, 0.2, 1.8),
+                Vec4::new(0.1, 1.0, 0.1, 1.0),
             ),
-            (505, Vec3::new(0.4, 0.1, 0.3), Vec4::new(0.6, 1.0, 0.9, 1.0)),
             (
-                506,
-                Vec3::new(0.0, -0.1, 0.8),
-                Vec4::new(0.9, 0.4, 1.0, 1.0),
+                503,
+                Vec3::new(1.2, 0.0, -1.9),
+                Vec4::new(0.1, 0.1, 1.0, 1.0),
             ),
+            (504, Vec3::new(3.1, 0.3, 0.4), Vec4::new(1.0, 0.6, 0.1, 1.0)),
+            (
+                505,
+                Vec3::new(-2.0, 1.7, -1.1),
+                Vec4::new(0.6, 1.0, 0.9, 1.0),
+            ),
+            (506, Vec3::new(2.2, 1.2, 1.5), Vec4::new(0.9, 0.4, 1.0, 1.0)),
         ];
 
         let post_config = build_demo_004_post_config();
@@ -134,28 +138,26 @@ impl Demo004Setup {
                 },
             )),
             EngineCmd::CmdPrimitiveGeometryCreate(CmdPrimitiveGeometryCreateArgs {
-                window_id,
                 geometry_id: self.ids.geometry_id,
                 label: Some("Graph Cube".into()),
                 shape: PrimitiveShape::Cube,
                 options: None,
             }),
             EngineCmd::CmdPrimitiveGeometryCreate(CmdPrimitiveGeometryCreateArgs {
-                window_id,
                 geometry_id: self.ids.emitter_geometry_id,
                 label: Some("Audio Emitter".into()),
                 shape: PrimitiveShape::Sphere,
                 options: None,
             }),
             create_camera_cmd(
+                realm_id,
                 self.ids.camera_id,
                 "Graph Camera",
                 Mat4::look_at_rh(Vec3::new(0.0, 3.5, 8.0), Vec3::ZERO, Vec3::Y).inverse(),
             ),
-            create_point_light_cmd(window_id, 2, Vec4::new(0.0, 5.0, 2.0, 1.0)),
-            create_ambient_light_cmd(window_id, 3, Vec4::new(0.3, 0.3, 0.3, 1.0), 0.6),
+            create_point_light_cmd(realm_id, 2, Vec4::new(0.0, 5.0, 2.0, 1.0)),
+            create_ambient_light_cmd(realm_id, 3, Vec4::new(0.3, 0.3, 0.3, 1.0), 0.6),
             create_standard_material_cmd(
-                window_id,
                 self.ids.material_id,
                 "Graph Material",
                 Vec4::ONE,
@@ -163,7 +165,6 @@ impl Demo004Setup {
                 None,
             ),
             create_standard_material_cmd(
-                window_id,
                 self.ids.floor_material_id,
                 "Graph Floor Material",
                 Vec4::ONE,
@@ -171,7 +172,6 @@ impl Demo004Setup {
                 None,
             ),
             create_standard_material_cmd(
-                window_id,
                 self.ids.emissive_material_id,
                 "Graph Emissive Material",
                 Vec4::ONE,
@@ -179,7 +179,6 @@ impl Demo004Setup {
                 Some(Vec4::new(5.0, 5.0, 5.0, 1.0)),
             ),
             create_standard_material_cmd(
-                window_id,
                 self.ids.emitter_material_id,
                 "Audio Emitter Material",
                 Vec4::new(1.0, 0.8, 0.2, 1.0),
@@ -188,7 +187,7 @@ impl Demo004Setup {
             ),
             EngineCmd::CmdModelUpsert(crate::core::cmd::CmdModelUpsertArgs::Create(
                 CmdModelCreateArgs {
-                    window_id,
+                    realm_id,
                     model_id: self.cube_models[0].0,
                     label: Some("Graph Cube R".into()),
                     geometry_id: self.ids.geometry_id,
@@ -203,7 +202,7 @@ impl Demo004Setup {
             )),
             EngineCmd::CmdModelUpsert(crate::core::cmd::CmdModelUpsertArgs::Create(
                 CmdModelCreateArgs {
-                    window_id,
+                    realm_id,
                     model_id: self.cube_models[1].0,
                     label: Some("Graph Cube G".into()),
                     geometry_id: self.ids.geometry_id,
@@ -218,7 +217,7 @@ impl Demo004Setup {
             )),
             EngineCmd::CmdModelUpsert(crate::core::cmd::CmdModelUpsertArgs::Create(
                 CmdModelCreateArgs {
-                    window_id,
+                    realm_id,
                     model_id: self.cube_models[2].0,
                     label: Some("Graph Cube B".into()),
                     geometry_id: self.ids.geometry_id,
@@ -233,7 +232,7 @@ impl Demo004Setup {
             )),
             EngineCmd::CmdModelUpsert(crate::core::cmd::CmdModelUpsertArgs::Create(
                 CmdModelCreateArgs {
-                    window_id,
+                    realm_id,
                     model_id: self.cube_models[3].0,
                     label: Some("Graph Cube D".into()),
                     geometry_id: self.ids.geometry_id,
@@ -248,7 +247,7 @@ impl Demo004Setup {
             )),
             EngineCmd::CmdModelUpsert(crate::core::cmd::CmdModelUpsertArgs::Create(
                 CmdModelCreateArgs {
-                    window_id,
+                    realm_id,
                     model_id: self.cube_models[4].0,
                     label: Some("Graph Cube E".into()),
                     geometry_id: self.ids.geometry_id,
@@ -263,7 +262,7 @@ impl Demo004Setup {
             )),
             EngineCmd::CmdModelUpsert(crate::core::cmd::CmdModelUpsertArgs::Create(
                 CmdModelCreateArgs {
-                    window_id,
+                    realm_id,
                     model_id: self.cube_models[5].0,
                     label: Some("Graph Cube F".into()),
                     geometry_id: self.ids.geometry_id,
@@ -278,7 +277,7 @@ impl Demo004Setup {
             )),
             EngineCmd::CmdModelUpsert(crate::core::cmd::CmdModelUpsertArgs::Create(
                 CmdModelCreateArgs {
-                    window_id,
+                    realm_id,
                     model_id: self.ids.listener_model_id,
                     label: Some("Audio Listener".into()),
                     geometry_id: self.ids.geometry_id,
@@ -293,7 +292,7 @@ impl Demo004Setup {
             )),
             EngineCmd::CmdModelUpsert(crate::core::cmd::CmdModelUpsertArgs::Create(
                 CmdModelCreateArgs {
-                    window_id,
+                    realm_id,
                     model_id: self.ids.emitter_model_id,
                     label: Some("Audio Emitter Sphere".into()),
                     geometry_id: self.ids.emitter_geometry_id,
@@ -307,8 +306,19 @@ impl Demo004Setup {
                     outline_color: Vec4::ZERO,
                 },
             )),
-            create_floor_cmd(window_id, self.ids.geometry_id, self.ids.floor_material_id),
-            create_shadow_config_cmd(window_id),
+            create_floor_cmd(realm_id, self.ids.geometry_id, self.ids.floor_material_id),
+            EngineCmd::CmdShadowConfigure(CmdShadowConfigureArgs {
+                window_id,
+                config: ShadowConfig {
+                    tile_resolution: 2048,
+                    atlas_tiles_w: 16,
+                    atlas_tiles_h: 16,
+                    atlas_layers: 2,
+                    virtual_grid_size: 1,
+                    smoothing: 2,
+                    normal_bias: 0.03,
+                },
+            }),
             EngineCmd::CmdAudioListenerUpsert(
                 crate::core::cmd::CmdAudioListenerUpsertArgs::Create(CmdAudioListenerCreateArgs {
                     realm_id,

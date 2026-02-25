@@ -28,6 +28,8 @@ use crate::demo::{
 pub struct Demo006Ids {
     pub camera_main_id: u32,
     pub camera_embed_id: u32,
+    pub light_main_ambient_id: u32,
+    pub light_main_key_id: u32,
     pub light_ambient_id: u32,
     pub light_key_id: u32,
     pub geometry_cube_id: u32,
@@ -37,6 +39,7 @@ pub struct Demo006Ids {
     pub texture_ui_panel_id: u32,
     pub material_realm_plane_id: u32,
     pub model_realm_plane_id: u32,
+    pub model_realm_plane_main_id: u32,
     pub ui_document_id: u32,
     pub ui_root_id: u32,
     pub ui_title_id: u32,
@@ -74,6 +77,8 @@ impl Demo006Setup {
         let ids = Demo006Ids {
             camera_main_id: 1,
             camera_embed_id: 2,
+            light_main_ambient_id: 9,
+            light_main_key_id: 10,
             light_ambient_id: 11,
             light_key_id: 12,
             geometry_cube_id: 1200,
@@ -83,6 +88,7 @@ impl Demo006Setup {
             texture_ui_panel_id: 1221,
             material_realm_plane_id: 1222,
             model_realm_plane_id: 1320,
+            model_realm_plane_main_id: 1321,
             ui_document_id: 1500,
             ui_root_id: 1501,
             ui_title_id: 1502,
@@ -154,6 +160,7 @@ impl Demo006Setup {
             )),
             EngineCmd::CmdCameraUpsert(crate::core::cmd::CmdCameraUpsertArgs::Create(
                 CmdCameraCreateArgs {
+                    realm_id: host_realm_main,
                     camera_id: self.ids.camera_main_id,
                     label: Some("Demo 006 Camera".into()),
                     transform: Mat4::look_at_rh(Vec3::new(0.0, 3.2, 8.5), Vec3::ZERO, Vec3::Y)
@@ -169,6 +176,7 @@ impl Demo006Setup {
             )),
             EngineCmd::CmdCameraUpsert(crate::core::cmd::CmdCameraUpsertArgs::Create(
                 CmdCameraCreateArgs {
+                    realm_id: realm_3d_embed,
                     camera_id: self.ids.camera_embed_id,
                     label: Some("Demo 006 Embed Camera".into()),
                     transform: Mat4::look_at_rh(Vec3::new(0.0, 3.2, 8.5), Vec3::ZERO, Vec3::Y)
@@ -183,21 +191,18 @@ impl Demo006Setup {
                 },
             )),
             EngineCmd::CmdPrimitiveGeometryCreate(CmdPrimitiveGeometryCreateArgs {
-                window_id: window_main,
                 geometry_id: self.ids.geometry_cube_id,
                 label: Some("Demo 006 Cube".into()),
                 shape: PrimitiveShape::Cube,
                 options: None,
             }),
             EngineCmd::CmdPrimitiveGeometryCreate(CmdPrimitiveGeometryCreateArgs {
-                window_id: window_main,
                 geometry_id: self.ids.geometry_realm_plane_id,
                 label: Some("Demo 006 RealmPlane".into()),
                 shape: PrimitiveShape::Plane,
                 options: None,
             }),
             create_standard_material_cmd(
-                window_main,
                 self.ids.material_cube_id,
                 "Demo 006 Cube Material",
                 Vec4::new(0.2, 0.8, 1.0, 1.0),
@@ -205,25 +210,34 @@ impl Demo006Setup {
                 None,
             ),
             create_ambient_light_cmd(
-                window_main,
+                host_realm_main,
+                self.ids.light_main_ambient_id,
+                Vec4::new(0.9, 0.9, 1.0, 1.0),
+                1.35,
+            ),
+            create_point_light_cmd(
+                host_realm_main,
+                self.ids.light_main_key_id,
+                Vec4::new(3.0, 4.8, 4.0, 1.0),
+            ),
+            create_ambient_light_cmd(
+                realm_3d_embed,
                 self.ids.light_ambient_id,
                 Vec4::new(0.85, 0.9, 1.0, 1.0),
                 1.25,
             ),
             create_point_light_cmd(
-                window_main,
+                realm_3d_embed,
                 self.ids.light_key_id,
                 Vec4::new(3.5, 4.5, 5.5, 1.0),
             ),
             EngineCmd::CmdTextureBindTarget(CmdTextureBindTargetArgs {
-                window_id: window_main,
                 texture_id: self.ids.texture_ui_panel_id,
                 target_id: target_ids.texture_ui_panel_3d,
                 label: Some("Demo 006 UI Panel Texture".into()),
             }),
             EngineCmd::CmdMaterialUpsert(crate::core::cmd::CmdMaterialUpsertArgs::Create(
                 CmdMaterialCreateArgs {
-                    window_id: window_main,
                     material_id: self.ids.material_realm_plane_id,
                     label: Some("Demo 006 RealmPlane Material".into()),
                     kind: MaterialKind::Standard,
@@ -238,13 +252,13 @@ impl Demo006Setup {
             )),
             EngineCmd::CmdModelUpsert(crate::core::cmd::CmdModelUpsertArgs::Create(
                 CmdModelCreateArgs {
-                    window_id: window_main,
+                    realm_id: realm_3d_embed,
                     model_id: self.ids.model_realm_plane_id,
                     label: Some("Demo 006 RealmPlane Model".into()),
                     geometry_id: self.ids.geometry_realm_plane_id,
                     material_id: Some(self.ids.material_realm_plane_id),
                     transform: Mat4::from_translation(Vec3::new(1.0, 2.0, 3.8))
-                        * Mat4::from_rotation_y(std::f32::consts::PI - 0.35)
+                        * Mat4::from_rotation_y(std::f32::consts::PI - 0.35 + std::f32::consts::PI)
                         * Mat4::from_rotation_x(-0.08)
                         * Mat4::from_scale(Vec3::new(2.4, 1.0, 1.0)),
                     layer_mask: 0xFFFFFFFF,
@@ -252,6 +266,24 @@ impl Demo006Setup {
                     receive_shadow: false,
                     cast_outline: false,
                     outline_color: Vec4::ZERO,
+                },
+            )),
+            EngineCmd::CmdModelUpsert(crate::core::cmd::CmdModelUpsertArgs::Create(
+                CmdModelCreateArgs {
+                    realm_id: host_realm_main,
+                    model_id: self.ids.model_realm_plane_main_id,
+                    label: Some("Demo 006 RealmPlane Main".into()),
+                    geometry_id: self.ids.geometry_realm_plane_id,
+                    material_id: Some(self.ids.material_realm_plane_id),
+                    transform: Mat4::from_translation(Vec3::new(0.4, 1.6, 2.4))
+                        * Mat4::from_rotation_y(std::f32::consts::PI - 0.22 + std::f32::consts::PI)
+                        * Mat4::from_rotation_x(-0.02)
+                        * Mat4::from_scale(Vec3::new(6.0, 1.0, 3.2)),
+                    layer_mask: 0xFFFFFFFF,
+                    cast_shadow: false,
+                    receive_shadow: false,
+                    cast_outline: true,
+                    outline_color: Vec4::new(0.95, 0.4, 0.4, 1.0),
                 },
             )),
         ];
@@ -272,7 +304,7 @@ impl Demo006Setup {
         for (index, position) in cube_positions.iter().enumerate() {
             setup_cmds.push(EngineCmd::CmdModelUpsert(
                 crate::core::cmd::CmdModelUpsertArgs::Create(CmdModelCreateArgs {
-                    window_id: window_main,
+                    realm_id: realm_3d_embed,
                     model_id: self.ids.model_cube_id + index as u32,
                     label: Some(format!("Demo 006 Cube {}", index + 1)),
                     geometry_id: self.ids.geometry_cube_id,
@@ -289,7 +321,7 @@ impl Demo006Setup {
         }
 
         assert_eq!(send_commands(setup_cmds), VulframResult::Success);
-        assert_command_batch_success(21, "setup");
+        assert_command_batch_success(24, "setup");
 
         // Ensure widget realm viewport layer uses the intended camera after camera creation.
         let widget_camera_layer = EngineCmd::CmdTargetLayerUpsert(CmdTargetLayerUpsertArgs {

@@ -1,7 +1,10 @@
 use std::collections::HashMap;
 
 use crate::core::audio::{AudioListenerBinding, AudioSourceParams, AudioStreamState};
-use crate::core::resources::EnvironmentConfig;
+use crate::core::resources::{
+    CameraNode, EnvironmentConfig, ForwardAtlasEntry, GeometryPrimitiveType, LightRecord,
+    MaterialPbrRecord, MaterialStandardRecord, ModelRecord, TargetTextureBinding, TextureRecord,
+};
 use crate::core::target::{TargetGraphCache, TargetLayerTable, TargetTable};
 use crate::core::ui::UiState;
 
@@ -179,6 +182,29 @@ pub struct AudioState {
 }
 
 #[derive(Debug, Default)]
+pub struct RealmEntities {
+    pub cameras: HashMap<u32, CameraNode>,
+    pub models: HashMap<u32, ModelRecord>,
+    pub lights: HashMap<u32, LightRecord>,
+}
+
+#[derive(Debug, Clone)]
+pub struct GlobalGeometryRecord {
+    pub label: Option<String>,
+    pub entries: Vec<(GeometryPrimitiveType, Vec<u8>)>,
+}
+
+#[derive(Debug, Default)]
+pub struct GlobalResources {
+    pub materials_standard: HashMap<u32, MaterialStandardRecord>,
+    pub materials_pbr: HashMap<u32, MaterialPbrRecord>,
+    pub textures: HashMap<u32, TextureRecord>,
+    pub forward_atlas_entries: HashMap<u32, ForwardAtlasEntry>,
+    pub target_texture_binds: HashMap<u32, TargetTextureBinding>,
+    pub geometries: HashMap<u32, GlobalGeometryRecord>,
+}
+
+#[derive(Debug, Default)]
 pub struct UniversalState {
     pub realms: RealmTable,
     pub surfaces: SurfaceTable,
@@ -194,10 +220,11 @@ pub struct UniversalState {
     pub target_autolink_failures: Vec<super::TargetAutoLinkFailure>,
     pub environment_profiles: HashMap<u32, EnvironmentConfig>,
     pub default_environment_id: Option<u32>,
-    pub audio: AudioState,
     pub input_routing: InputRoutingState,
     pub surface_cache: SurfaceCache,
     pub frame_report: super::FrameReport,
+    pub realm_entities: HashMap<RealmId, RealmEntities>,
+    pub global_resources: GlobalResources,
 }
 
 #[derive(Debug, Clone)]

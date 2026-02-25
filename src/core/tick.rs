@@ -99,8 +99,8 @@ pub fn vulfram_tick(time: u64, delta_time: u32) -> VulframResult {
         // MARK: Render Frame Lifecycle
         engine.state.frame_index = engine.state.frame_index.wrapping_add(1);
         let frame_index = engine.state.frame_index;
-        for window_state in engine.state.window.states.values_mut() {
-            window_state.render_state.begin_frame(frame_index);
+        for render_state in engine.state.render.states.values_mut() {
+            render_state.begin_frame(frame_index);
         }
 
         // MARK: Request Redraw

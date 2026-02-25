@@ -1,0 +1,29 @@
+flowchart TB
+  TL["target_layers: realm -> target"]
+  TG["targets: window / widget-realm-viewport / realm-plane / texture"]
+  AG["sync_auto_graph"]
+  RS["realms with output_surface"]
+  CS["connectors"]
+  PS["presents"]
+
+  TL --> AG
+  TG --> AG
+  AG --> RS
+  AG --> CS
+  AG --> PS
+
+  HW["host_window_id per realm"]
+  WS["window.states by window_id"]
+  RWS["render.states by window_id"]
+
+  RS --> HW
+  HW --> WS
+  WS --> RWS
+
+  OWN1["realm_entities are owned by realmId"]
+  OWN2["surfaces/connectors/presents are core-managed"]
+  OWN3["window lifecycle only controls presentation surfaces"]
+
+  RS --> OWN1
+  AG --> OWN2
+  WS --> OWN3

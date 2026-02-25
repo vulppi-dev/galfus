@@ -126,7 +126,6 @@ pub enum MaterialOptions {
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CmdMaterialCreateArgs {
-    pub window_id: u32,
     pub material_id: u32,
     pub label: Option<String>,
     pub kind: MaterialKind,
@@ -146,7 +145,6 @@ pub struct CmdResultMaterialCreate {
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CmdMaterialUpdateArgs {
-    pub window_id: u32,
     pub material_id: u32,
     pub label: Option<String>,
     pub kind: Option<MaterialKind>,
@@ -166,7 +164,6 @@ pub struct CmdResultMaterialUpdate {
 #[derive(Debug, Default, Deserialize, Serialize, Clone)]
 #[serde(default, rename_all = "camelCase")]
 pub struct CmdMaterialDisposeArgs {
-    pub window_id: u32,
     pub material_id: u32,
 }
 

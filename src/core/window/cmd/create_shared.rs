@@ -33,6 +33,11 @@ pub fn register_window_realm(
         cache_policy: 0,
         last_render_frame: 0,
     });
+    engine
+        .universal_state
+        .realm_entities
+        .entry(realm_id)
+        .or_default();
     let present_id = engine.universal_state.presents.alloc(PresentState {
         window_id,
         surface: surface_id,

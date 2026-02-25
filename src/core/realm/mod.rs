@@ -11,8 +11,8 @@ pub use graph::{RealmGraphEdge, RealmGraphPlan, RealmGraphPlanner};
 pub use report::{FrameCutEdge, FrameReport, SurfaceCacheEntry, TargetAutoLinkFailure};
 #[allow(unused_imports)]
 pub use state::{
-    AudioState, AutoLink, ConnectorId, ConnectorState, ConnectorTable, InputCapture,
-    InputRoutingState, PresentId, PresentState, PresentTable, RealmId, RealmKind, RealmState,
-    RealmTable, SurfaceCache, SurfaceId, SurfaceKind, SurfaceState, SurfaceTable, TableEntry,
-    UniversalState,
+    AudioState, AutoLink, ConnectorId, ConnectorState, ConnectorTable, GlobalGeometryRecord,
+    GlobalResources, InputCapture, InputRoutingState, PresentId, PresentState, PresentTable,
+    RealmEntities, RealmId, RealmKind, RealmState, RealmTable, SurfaceCache, SurfaceId,
+    SurfaceKind, SurfaceState, SurfaceTable, TableEntry, UniversalState,
 };

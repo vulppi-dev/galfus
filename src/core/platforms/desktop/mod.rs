@@ -82,7 +82,6 @@ impl PlatformProxy for DesktopProxy {
         let start = Instant::now();
         let now_ms = state.time;
         let input_windows = active_windows_from_events(&state.event_queue);
-        let pending_texture_windows = state.texture_async.pending_texture_window_ids();
         let pending_ui_image_windows = windows_with_pending_ui_images(state);
         let has_ui_animations = !state.universal_state.ui.animations.is_empty();
         let has_ui_repaint_request = state
@@ -101,12 +100,11 @@ impl PlatformProxy for DesktopProxy {
         }
         for (window_id, window_state) in state.window.states.iter_mut() {
             let has_recent_input = now_ms <= window_state.redraw_force_until_ms;
-            let has_async_texture_loading = pending_texture_windows.contains(window_id);
             let should_redraw = window_state.is_dirty
                 || has_recent_input
                 || has_ui_animations
                 || has_ui_repaint_request
-                || has_async_texture_loading
+                || state.texture_async.has_pending()
                 || pending_ui_image_windows.contains(window_id)
                 || has_unbound_ui_async_loading;
             if should_redraw {

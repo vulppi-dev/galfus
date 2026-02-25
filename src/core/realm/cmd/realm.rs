@@ -89,6 +89,11 @@ pub fn engine_cmd_realm_create(
     if kind == RealmKind::TwoD {
         engine.universal_state.ui.ensure_realm(realm_id);
     }
+    engine
+        .universal_state
+        .realm_entities
+        .entry(realm_id)
+        .or_default();
 
     CmdResultRealmCreate {
         success: true,
@@ -111,6 +116,7 @@ pub fn engine_cmd_realm_dispose(
     if entry.value.kind == RealmKind::TwoD {
         engine.universal_state.ui.remove_realm(realm_id);
     }
+    engine.universal_state.realm_entities.remove(&realm_id);
     engine
         .universal_state
         .host_realm_index

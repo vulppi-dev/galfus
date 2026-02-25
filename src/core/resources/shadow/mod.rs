@@ -34,7 +34,7 @@ impl Default for ShadowConfig {
             atlas_layers: 2,
             virtual_grid_size: 1,
             smoothing: 2,
-            normal_bias: 0.01,
+            normal_bias: 0.03,
         }
     }
 }
@@ -139,8 +139,8 @@ impl ShadowManager {
                 table_capacity,
                 bias_min: 0.00001, // Very small default for Reverse Z + Float32
                 bias_slope: 0.0001,
-                point_bias_min: 0.0001,
-                point_bias_slope: 0.0005,
+                point_bias_min: 0.001,
+                point_bias_slope: 0.003,
                 normal_bias: config.normal_bias,
                 _padding: [0.0; 3],
             },
@@ -178,8 +178,8 @@ impl ShadowManager {
                 table_capacity: self.table_capacity,
                 bias_min: 0.00001,
                 bias_slope: 0.0001,
-                point_bias_min: 0.0001,
-                point_bias_slope: 0.0005,
+                point_bias_min: 0.001,
+                point_bias_slope: 0.003,
                 normal_bias: config.normal_bias,
                 _padding: [0.0; 3],
             },

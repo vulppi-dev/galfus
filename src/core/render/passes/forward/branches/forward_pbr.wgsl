@@ -401,12 +401,6 @@ fn face_from_axis(axis: u32, sign: f32) -> u32 {
     return select(5u, 4u, sign > 0.0);
 }
 
-fn dir_component(dir: vec3<f32>, axis: u32) -> f32 {
-    if (axis == 0u) { return dir.x; }
-    if (axis == 1u) { return dir.y; }
-    return dir.z;
-}
-
 fn sample_point_face(light: Light, face: u32, world_pos: vec3<f32>, ndotl: f32) -> f32 {
     let light_base = light.shadow_index * 6u + face;
     let view_projection = point_light_vp[light_base];
@@ -429,25 +423,19 @@ fn point_shadow_factor(light: Light, world_pos: vec3<f32>, ndotl: f32) -> f32 {
     let inv_dist = select(0.0, 1.0 / dist, dist_valid);
     let dir = v * inv_dist;
     let ad = abs(dir);
-    var a0: u32 = 0u;
-    var m0: f32 = ad.x;
-    var a1: u32 = 1u;
-    var m1: f32 = ad.y;
-    if (m1 > m0) {
-        let tmpa = a0; a0 = a1; a1 = tmpa;
-        let tmpm = m0; m0 = m1; m1 = tmpm;
-    }
-    if (ad.z > m0) {
-        a1 = a0; m1 = m0;
-        a0 = 2u; m0 = ad.z;
-    } else if (ad.z > m1) {
-        a1 = 2u; m1 = ad.z;
-    }
-    let face0 = face_from_axis(a0, dir_component(dir, a0));
-    let face1 = face_from_axis(a1, dir_component(dir, a1));
-    let s0 = sample_point_face(light, face0, world_pos, ndotl);
-    let s1 = sample_point_face(light, face1, world_pos, ndotl);
-    let shadow = min(s0, s1);
+    let wx = ad.x * ad.x;
+    let wy = ad.y * ad.y;
+    let wz = ad.z * ad.z;
+    let wsum = max(wx + wy + wz, 1e-6);
+
+    let face_x = face_from_axis(0u, dir.x);
+    let face_y = face_from_axis(1u, dir.y);
+    let face_z = face_from_axis(2u, dir.z);
+
+    let sx = sample_point_face(light, face_x, world_pos, ndotl);
+    let sy = sample_point_face(light, face_y, world_pos, ndotl);
+    let sz = sample_point_face(light, face_z, world_pos, ndotl);
+    let shadow = (sx * wx + sy * wy + sz * wz) / wsum;
     return select(1.0, shadow, dist_valid);
 }
 
@@ -628,7 +616,9 @@ struct FragmentOutput {
 }
 
 @fragment
-fn fs_main(in: VertexOutput) -> FragmentOutput {
+fn fs_main(in: VertexOutput, @builtin(front_facing) is_front: bool) -> FragmentOutput {
+    let uv0 = vec2<f32>(1.0 - in.uv0.x, in.uv0.y);
+    let normal_geom = normalize(select(-in.normal, in.normal, is_front));
     let base_param = input_at(material.input_indices.x);
     let base_color = base_param.rgb;
     let base_alpha = base_param.a;
@@ -638,13 +628,13 @@ fn fs_main(in: VertexOutput) -> FragmentOutput {
 
     let base_slot = get_slot(material.texture_slots, TEX_BASE);
     let base_sampler = get_slot(material.sampler_indices, TEX_BASE);
-    let base_tex = sample_material(base_slot, base_sampler, in.uv0);
+    let base_tex = sample_material(base_slot, base_sampler, uv0);
     let albedo = base_color * base_tex.rgb * in.color0.rgb;
     let alpha = base_alpha * base_tex.a;
 
     let mr_slot = get_slot(material.texture_slots, TEX_METAL_ROUGH);
     let mr_sampler = get_slot(material.sampler_indices, TEX_METAL_ROUGH);
-    let mr_tex = sample_material(mr_slot, mr_sampler, in.uv0);
+    let mr_tex = sample_material(mr_slot, mr_sampler, uv0);
     let metallic = clamp(mra.x * mr_tex.b, 0.0, 1.0);
     let roughness = clamp(mra.y * mr_tex.g, 0.04, 1.0);
     var ao = clamp(mra.z, 0.0, 1.0);
@@ -652,12 +642,12 @@ fn fs_main(in: VertexOutput) -> FragmentOutput {
     let ao_slot = get_slot(material.texture_slots, TEX_AO);
     let ao_sampler = get_slot(material.sampler_indices, TEX_AO);
     if (ao_slot != PBR_INVALID_SLOT) {
-        ao *= sample_material(ao_slot, ao_sampler, in.uv0).r;
+        ao *= sample_material(ao_slot, ao_sampler, uv0).r;
     }
 
     let emissive_slot = get_slot(material.texture_slots, TEX_EMISSIVE);
     let emissive_sampler = get_slot(material.sampler_indices, TEX_EMISSIVE);
-    let emissive_tex = sample_material(emissive_slot, emissive_sampler, in.uv0);
+    let emissive_tex = sample_material(emissive_slot, emissive_sampler, uv0);
     let emissive = emissive_color * emissive_tex.rgb;
 
     let cam = light_params.camera_index;
@@ -669,8 +659,8 @@ fn fs_main(in: VertexOutput) -> FragmentOutput {
     if (count > 0u) {
         let normal_slot = get_slot(material.texture_slots, TEX_NORMAL);
         let normal_sampler = get_slot(material.sampler_indices, TEX_NORMAL);
-        let n_geom = normalize(in.normal);
-        let n = apply_normal_map(in.normal, in.world_position, in.uv0, normal_slot, normal_sampler, normal_scale);
+        let n_geom = normal_geom;
+        let n = apply_normal_map(normal_geom, in.world_position, uv0, normal_slot, normal_sampler, normal_scale);
         let v = normalize(camera.position.xyz - in.world_position);
         for (var i = 0u; i < count; i++) {
             let idx = visible_indices[base + i];

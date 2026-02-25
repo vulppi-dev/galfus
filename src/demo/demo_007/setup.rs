@@ -210,21 +210,18 @@ impl Demo007Setup {
                 },
             )),
             EngineCmd::CmdPrimitiveGeometryCreate(CmdPrimitiveGeometryCreateArgs {
-                window_id: window_main,
                 geometry_id: self.ids.geometry_cube_id,
                 label: Some("Demo 007 Cube".into()),
                 shape: PrimitiveShape::Cube,
                 options: None,
             }),
             EngineCmd::CmdPrimitiveGeometryCreate(CmdPrimitiveGeometryCreateArgs {
-                window_id: window_main,
                 geometry_id: self.ids.geometry_cone_id,
                 label: Some("Demo 007 Cone (Pyramid)".into()),
                 shape: PrimitiveShape::Pyramid,
                 options: None,
             }),
             EngineCmd::CmdPrimitiveGeometryCreate(CmdPrimitiveGeometryCreateArgs {
-                window_id: window_main,
                 geometry_id: self.ids.geometry_torus_id,
                 label: Some("Demo 007 Torus".into()),
                 shape: PrimitiveShape::Torus,
@@ -232,7 +229,6 @@ impl Demo007Setup {
             }),
             EngineCmd::CmdMaterialUpsert(crate::core::cmd::CmdMaterialUpsertArgs::Create(
                 CmdMaterialCreateArgs {
-                    window_id: window_main,
                     material_id: self.ids.material_shape_id,
                     label: Some("Demo 007 Shape Material".into()),
                     kind: MaterialKind::Standard,
@@ -242,10 +238,11 @@ impl Demo007Setup {
                     })),
                 },
             )),
-            create_ambient_light_cmd(window_main, 7110, Vec4::new(0.8, 0.85, 1.0, 1.0), 1.2),
-            create_point_light_cmd(window_main, 7111, Vec4::new(4.0, 6.0, 3.0, 1.0)),
+            create_ambient_light_cmd(realm_3d, 7110, Vec4::new(0.8, 0.85, 1.0, 1.0), 1.2),
+            create_point_light_cmd(realm_3d, 7111, Vec4::new(4.0, 6.0, 3.0, 1.0)),
             EngineCmd::CmdCameraUpsert(crate::core::cmd::CmdCameraUpsertArgs::Create(
                 CmdCameraCreateArgs {
+                    realm_id: realm_3d,
                     camera_id: self.ids.camera_a_id,
                     label: Some("Demo 007 Camera A".into()),
                     transform: Mat4::look_at_rh(Vec3::new(0.0, 3.0, 10.0), Vec3::ZERO, Vec3::Y)
@@ -261,6 +258,7 @@ impl Demo007Setup {
             )),
             EngineCmd::CmdCameraUpsert(crate::core::cmd::CmdCameraUpsertArgs::Create(
                 CmdCameraCreateArgs {
+                    realm_id: realm_3d,
                     camera_id: self.ids.camera_b_id,
                     label: Some("Demo 007 Camera B".into()),
                     transform: Mat4::look_at_rh(Vec3::new(10.0, 3.0, 0.0), Vec3::ZERO, Vec3::Y)
@@ -276,6 +274,7 @@ impl Demo007Setup {
             )),
             EngineCmd::CmdCameraUpsert(crate::core::cmd::CmdCameraUpsertArgs::Create(
                 CmdCameraCreateArgs {
+                    realm_id: realm_3d,
                     camera_id: self.ids.camera_c_id,
                     label: Some("Demo 007 Camera C".into()),
                     transform: Mat4::look_at_rh(Vec3::new(0.0, 3.0, -10.0), Vec3::ZERO, Vec3::Y)
@@ -291,6 +290,7 @@ impl Demo007Setup {
             )),
             EngineCmd::CmdCameraUpsert(crate::core::cmd::CmdCameraUpsertArgs::Create(
                 CmdCameraCreateArgs {
+                    realm_id: realm_3d,
                     camera_id: self.ids.camera_d_id,
                     label: Some("Demo 007 Camera D".into()),
                     transform: Mat4::look_at_rh(Vec3::new(-10.0, 3.0, 0.0), Vec3::ZERO, Vec3::Y)
@@ -320,7 +320,7 @@ impl Demo007Setup {
         for (index, model_id) in self.ids.model_ids.iter().enumerate() {
             cmds.push(EngineCmd::CmdModelUpsert(
                 crate::core::cmd::CmdModelUpsertArgs::Create(CmdModelCreateArgs {
-                    window_id: window_main,
+                    realm_id: realm_3d,
                     model_id: *model_id,
                     label: Some(format!("Demo 007 Shape {}", index + 1)),
                     geometry_id: model_geometries[index],

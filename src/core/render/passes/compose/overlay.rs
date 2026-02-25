@@ -133,11 +133,13 @@ pub fn pass_compose_overlays(
 pub fn pass_compose_surface(
     render_state: &mut RenderState,
     device: &wgpu::Device,
+    queue: &wgpu::Queue,
     encoder: &mut wgpu::CommandEncoder,
     target_view: &wgpu::TextureView,
     target_format: wgpu::TextureFormat,
     target_size: glam::UVec2,
     source_view: &wgpu::TextureView,
+    source_size: glam::UVec2,
     frame_index: u64,
 ) {
     let library = match render_state.library.as_ref() {
@@ -181,7 +183,7 @@ pub fn pass_compose_surface(
             },
             fragment: Some(wgpu::FragmentState {
                 module: &library.compose_shader,
-                entry_point: Some("fs_main"),
+                entry_point: Some("fs_cover"),
                 targets: &[Some(wgpu::ColorTargetState {
                     format: target_format,
                     blend: None,
@@ -196,6 +198,23 @@ pub fn pass_compose_surface(
             cache: None,
         })
     });
+
+    let target_w = target_size.x.max(1) as f32;
+    let target_h = target_size.y.max(1) as f32;
+    let source_w = source_size.x.max(1) as f32;
+    let source_h = source_size.y.max(1) as f32;
+    let target_aspect = target_w / target_h;
+    let source_aspect = source_w / source_h;
+
+    let (scale_x, scale_y) = if target_aspect > source_aspect {
+        (1.0, (source_aspect / target_aspect).clamp(0.0, 1.0))
+    } else {
+        ((target_aspect / source_aspect).clamp(0.0, 1.0), 1.0)
+    };
+    let offset_x = (1.0 - scale_x) * 0.5;
+    let offset_y = (1.0 - scale_y) * 0.5;
+    let cover = [scale_x, scale_y, offset_x, offset_y];
+    queue.write_buffer(uniform_buffer, 0, bytemuck::bytes_of(&cover));
 
     let bind_group = build_compose_bind_group(
         device,

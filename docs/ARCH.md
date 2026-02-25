@@ -76,6 +76,7 @@ Components represent high-level logic and are attached to entities:
 
 They are created and updated via commands in `vulfram_send_queue`.
 Each component is associated with a host-chosen ID (e.g. `camera_id`, `model_id`, `light_id`).
+Component ownership is realm-scoped (`realmId`).
 
 ### 2.2 Resources
 
@@ -91,6 +92,7 @@ They are referenced from components via **logical IDs**:
 
 Some data (static, per-component values like local colors or viewports) live inside
 the component and are **not** standalone resources.
+Resource ownership is global (window-agnostic lifecycle).
 
 ### 2.3 Internal Instances
 

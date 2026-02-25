@@ -3,6 +3,7 @@ pub mod gizmos;
 pub mod graph;
 mod passes;
 mod realm_graph;
+pub mod runtime;
 pub mod state;
 
 use crate::core::realm::{FrameReport, RealmGraphPlanner, RealmId};
@@ -17,6 +18,7 @@ use realm_graph::{
     collect_surface_views, compose_realm_connectors, ensure_surface_target, map_realms_to_windows,
     resolve_realm_surface, update_surface_cache,
 };
+pub use runtime::RenderManager;
 pub use state::RenderState;
 use std::collections::HashSet;
 
@@ -95,55 +97,64 @@ pub fn render_frames(engine_state: &mut EngineState) {
         .any(|graph| graph.plan().has_pass("shadow"));
 
     if shadow_enabled {
-        if let Some((_, window_state)) = engine_state.window.states.iter_mut().next() {
-            #[cfg(not(feature = "wasm"))]
-            let shadow_start = std::time::Instant::now();
-            #[cfg(feature = "wasm")]
-            let shadow_start = now_ns();
-            // Ensure data is ready but WITHOUT shadow atlas binding to avoid conflicts
-            window_state
-                .render_state
-                .prepare_render(device, frame_spec, false);
+        #[cfg(not(feature = "wasm"))]
+        let shadow_start = std::time::Instant::now();
+        #[cfg(feature = "wasm")]
+        let shadow_start = now_ns();
+
+        let window_ids: Vec<u32> = engine_state.render.states.keys().copied().collect();
+        for (index, window_id) in window_ids.iter().copied().enumerate() {
+            let Some(render_state) = engine_state.render.get_mut(&window_id) else {
+                log::error!("Render state not found for window {}", window_id);
+                continue;
+            };
+
+            // Ensure data is ready but WITHOUT shadow atlas binding to avoid conflicts.
+            render_state.prepare_render(device, frame_spec, false);
 
             let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
                 label: Some("Shadow Update Encoder"),
             });
 
-            if let Some(gpu_profiler) = engine_state.gpu_profiler.as_ref() {
-                if gpu_profiler.query_count() >= 2 {
-                    encoder.write_timestamp(gpu_profiler.query_set(), 0);
-                    gpu_written = true;
-                }
+            // Keep GPU timestamps lightweight: only first shadow update writes markers.
+            if index == 0
+                && let Some(gpu_profiler) = engine_state.gpu_profiler.as_ref()
+                && gpu_profiler.query_count() >= 2
+            {
+                encoder.write_timestamp(gpu_profiler.query_set(), 0);
+                gpu_written = true;
             }
 
             passes::pass_shadow_update(
-                &mut window_state.render_state,
+                render_state,
                 device,
                 queue,
                 &mut encoder,
                 engine_state.frame_index,
             );
 
-            if let Some(gpu_profiler) = engine_state.gpu_profiler.as_ref() {
-                if gpu_profiler.query_count() >= 2 {
-                    encoder.write_timestamp(gpu_profiler.query_set(), 1);
-                    gpu_written = true;
-                }
+            if index == 0
+                && let Some(gpu_profiler) = engine_state.gpu_profiler.as_ref()
+                && gpu_profiler.query_count() >= 2
+            {
+                encoder.write_timestamp(gpu_profiler.query_set(), 1);
+                gpu_written = true;
             }
 
-            if let Some(shadow) = &mut window_state.render_state.shadow {
+            if let Some(shadow) = &mut render_state.shadow {
                 shadow.sync_table();
             }
 
             queue.submit(Some(encoder.finish()));
-            #[cfg(not(feature = "wasm"))]
-            {
-                engine_state.profiling.render.shadow_ns = shadow_start.elapsed().as_nanos() as u64;
-            }
-            #[cfg(feature = "wasm")]
-            {
-                engine_state.profiling.render.shadow_ns = now_ns().saturating_sub(shadow_start);
-            }
+        }
+
+        #[cfg(not(feature = "wasm"))]
+        {
+            engine_state.profiling.render.shadow_ns = shadow_start.elapsed().as_nanos() as u64;
+        }
+        #[cfg(feature = "wasm")]
+        {
+            engine_state.profiling.render.shadow_ns = now_ns().saturating_sub(shadow_start);
         }
     }
 
@@ -181,7 +192,11 @@ pub fn render_frames(engine_state: &mut EngineState) {
         &engine_state.universal_state.auto_links,
     );
     refresh_window_target_textures(
-        &mut engine_state.window.states,
+        &mut engine_state.render.states,
+        &engine_state
+            .universal_state
+            .global_resources
+            .target_texture_binds,
         &target_surface_map,
         &engine_state.surface_targets,
     );
@@ -199,7 +214,10 @@ pub fn render_frames(engine_state: &mut EngineState) {
             let Some(window_id) = realm_windows.get(realm_id) else {
                 continue;
             };
-            let Some(window_state) = engine_state.window.states.get_mut(window_id) else {
+            let Some(window_state) = engine_state.window.states.get(window_id) else {
+                continue;
+            };
+            let Some(render_state) = engine_state.render.get_mut(window_id) else {
                 continue;
             };
             let Some(surface_id) = resolve_realm_surface(&engine_state.universal_state, *realm_id)
@@ -218,12 +236,17 @@ pub fn render_frames(engine_state: &mut EngineState) {
                 continue;
             }
 
-            let target_size = engine_state
-                .universal_state
-                .surfaces
-                .entries
+            let target_size = surface_views
                 .get(&surface_id)
-                .map(|entry| entry.value.size)
+                .map(|snapshot| snapshot.size)
+                .or_else(|| {
+                    engine_state
+                        .universal_state
+                        .surfaces
+                        .entries
+                        .get(&surface_id)
+                        .map(|entry| entry.value.size)
+                })
                 .unwrap_or(window_state.inner_size);
             let target_format = engine_state
                 .universal_state
@@ -249,21 +272,30 @@ pub fn render_frames(engine_state: &mut EngineState) {
             #[cfg(feature = "wasm")]
             let window_start = now_ns();
 
-            let render_state = &mut window_state.render_state;
+            sync_scene_from_realm_and_globals(
+                render_state,
+                &engine_state.universal_state,
+                *realm_id,
+            );
             if synced_windows.insert(*window_id) {
-                let camera_target_sizes = collect_window_camera_target_sizes(
-                    &engine_state.universal_state,
-                    *window_id,
-                    window_state.inner_size,
+                sync_window_geometry_registry(
+                    render_state,
+                    &engine_state.universal_state.global_resources.geometries,
                 );
-                if render_state.sync_camera_targets_and_projection(
-                    device,
-                    window_state.inner_size,
-                    Some(&camera_target_sizes),
-                ) {
-                    if let Some(shadow) = render_state.shadow.as_mut() {
-                        shadow.mark_dirty();
-                    }
+            }
+            let camera_target_sizes = collect_window_camera_target_sizes(
+                &engine_state.universal_state,
+                *realm_id,
+                *window_id,
+                window_state.inner_size,
+            );
+            if render_state.sync_camera_targets_and_projection(
+                device,
+                window_state.inner_size,
+                Some(&camera_target_sizes),
+            ) {
+                if let Some(shadow) = render_state.shadow.as_mut() {
+                    shadow.mark_dirty();
                 }
             }
             render_state.prepare_render(device, frame_spec, true);
@@ -398,11 +430,18 @@ pub fn render_frames(engine_state: &mut EngineState) {
                 continue;
             }
             let window_id = present.value.window_id;
-            let Some(window_state) = engine_state.window.states.get_mut(&window_id) else {
-                continue;
-            };
             let Some(surface_target) = engine_state.surface_targets.get(&present.value.surface)
             else {
+                continue;
+            };
+            let (window_states, render_states) = (
+                &mut engine_state.window.states,
+                &mut engine_state.render.states,
+            );
+            let Some(window_state) = window_states.get_mut(&window_id) else {
+                continue;
+            };
+            let Some(render_state) = render_states.get_mut(&window_id) else {
                 continue;
             };
 
@@ -420,13 +459,18 @@ pub fn render_frames(engine_state: &mut EngineState) {
                 .texture
                 .create_view(&wgpu::TextureViewDescriptor::default());
             passes::pass_compose_surface(
-                &mut window_state.render_state,
+                render_state,
                 device,
+                queue,
                 &mut encoder,
                 &surface_view,
                 window_state.config.format,
                 glam::UVec2::new(window_state.config.width, window_state.config.height),
                 &surface_target.view,
+                glam::UVec2::new(
+                    surface_target.texture.size().width,
+                    surface_target.texture.size().height,
+                ),
                 engine_state.frame_index,
             );
 
@@ -730,6 +774,193 @@ fn execute_graph_to_view(
     gpu_written
 }
 
+fn sync_scene_from_realm_and_globals(
+    render_state: &mut RenderState,
+    universal: &crate::core::realm::UniversalState,
+    realm_id: RealmId,
+) {
+    let previous_cameras = std::mem::take(&mut render_state.scene.cameras);
+    render_state.detached_cameras.extend(previous_cameras);
+    let live_camera_ids: std::collections::HashSet<u32> = universal
+        .realm_entities
+        .values()
+        .flat_map(|entities| entities.cameras.keys().copied())
+        .collect();
+    render_state
+        .detached_cameras
+        .retain(|camera_id, _| live_camera_ids.contains(camera_id));
+    let mut previous_models = std::mem::take(&mut render_state.scene.models);
+    let mut previous_lights = std::mem::take(&mut render_state.scene.lights);
+    render_state.scene.cameras.clear();
+    render_state.scene.models.clear();
+    render_state.scene.lights.clear();
+
+    if let Some(entities) = universal.realm_entities.get(&realm_id) {
+        for (camera_id, node) in &entities.cameras {
+            let mut record = render_state
+                .detached_cameras
+                .remove(camera_id)
+                .unwrap_or_else(|| node.to_render_record());
+            record.label = node.label.clone();
+            record.data = node.data;
+            record.layer_mask = node.layer_mask;
+            record.order = node.order;
+            record.ortho_scale = node.ortho_scale;
+            record.view_position = node.view_position.clone();
+            record.mark_dirty();
+            render_state.scene.cameras.insert(*camera_id, record);
+        }
+        for (model_id, node) in &entities.models {
+            if let Some(mut record) = previous_models.remove(model_id) {
+                let data_changed = record.data.transform != node.data.transform
+                    || record.data.translation != node.data.translation
+                    || record.data.rotation != node.data.rotation
+                    || record.data.scale != node.data.scale
+                    || record.data.flags != node.data.flags
+                    || record.data.outline_color != node.data.outline_color;
+                let metadata_changed = record.geometry_id != node.geometry_id
+                    || record.material_id != node.material_id
+                    || record.layer_mask != node.layer_mask
+                    || record.cast_shadow != node.cast_shadow
+                    || record.receive_shadow != node.receive_shadow
+                    || record.cast_outline != node.cast_outline;
+                record.label = node.label.clone();
+                record.data = node.data;
+                record.geometry_id = node.geometry_id;
+                record.material_id = node.material_id;
+                record.layer_mask = node.layer_mask;
+                record.cast_shadow = node.cast_shadow;
+                record.receive_shadow = node.receive_shadow;
+                record.cast_outline = node.cast_outline;
+                if data_changed || metadata_changed {
+                    record.mark_dirty();
+                }
+                render_state.scene.models.insert(*model_id, record);
+            } else {
+                render_state.scene.models.insert(*model_id, node.clone());
+            }
+        }
+        for (light_id, node) in &entities.lights {
+            if let Some(mut record) = previous_lights.remove(light_id) {
+                let changed = record.data.position != node.data.position
+                    || record.data.direction != node.data.direction
+                    || record.data.color != node.data.color
+                    || record.data.ground_color != node.data.ground_color
+                    || record.data.view != node.data.view
+                    || record.data.projection != node.data.projection
+                    || record.data.view_projection != node.data.view_projection
+                    || record.data.intensity_range != node.data.intensity_range
+                    || record.data.spot_inner_outer != node.data.spot_inner_outer
+                    || record.data.kind_flags != node.data.kind_flags
+                    || record.layer_mask != node.layer_mask
+                    || record.cast_shadow != node.cast_shadow;
+                record.label = node.label.clone();
+                record.data = node.data;
+                record.layer_mask = node.layer_mask;
+                record.cast_shadow = node.cast_shadow;
+                if changed {
+                    record.mark_dirty();
+                }
+                render_state.scene.lights.insert(*light_id, record);
+            } else {
+                render_state.scene.lights.insert(*light_id, node.clone());
+            }
+        }
+    } else {
+        previous_models.clear();
+        previous_lights.clear();
+    }
+
+    let mut previous_materials_standard =
+        std::mem::take(&mut render_state.scene.materials_standard);
+    render_state.scene.materials_standard.clear();
+    for (material_id, node) in &universal.global_resources.materials_standard {
+        if let Some(mut record) = previous_materials_standard.remove(material_id) {
+            let changed = record.label != node.label
+                || bytemuck::bytes_of(&record.data) != bytemuck::bytes_of(&node.data)
+                || record.inputs != node.inputs
+                || record.texture_ids != node.texture_ids
+                || record.surface_type != node.surface_type;
+            record.label = node.label.clone();
+            record.data = node.data;
+            record.inputs = node.inputs.clone();
+            record.texture_ids = node.texture_ids;
+            record.surface_type = node.surface_type;
+            if changed {
+                record.mark_dirty();
+                record.bind_group = None;
+            }
+            render_state
+                .scene
+                .materials_standard
+                .insert(*material_id, record);
+        } else {
+            render_state
+                .scene
+                .materials_standard
+                .insert(*material_id, node.clone());
+        }
+    }
+    let mut previous_materials_pbr = std::mem::take(&mut render_state.scene.materials_pbr);
+    render_state.scene.materials_pbr.clear();
+    for (material_id, node) in &universal.global_resources.materials_pbr {
+        if let Some(mut record) = previous_materials_pbr.remove(material_id) {
+            let changed = record.label != node.label
+                || bytemuck::bytes_of(&record.data) != bytemuck::bytes_of(&node.data)
+                || record.inputs != node.inputs
+                || record.texture_ids != node.texture_ids
+                || record.surface_type != node.surface_type;
+            record.label = node.label.clone();
+            record.data = node.data;
+            record.inputs = node.inputs.clone();
+            record.texture_ids = node.texture_ids;
+            record.surface_type = node.surface_type;
+            if changed {
+                record.mark_dirty();
+                record.bind_group = None;
+            }
+            render_state
+                .scene
+                .materials_pbr
+                .insert(*material_id, record);
+        } else {
+            render_state
+                .scene
+                .materials_pbr
+                .insert(*material_id, node.clone());
+        }
+    }
+    render_state.scene.textures = universal.global_resources.textures.clone();
+    render_state.scene.forward_atlas_entries =
+        universal.global_resources.forward_atlas_entries.clone();
+    render_state.target_texture_binds = universal.global_resources.target_texture_binds.clone();
+}
+
+fn sync_window_geometry_registry(
+    render_state: &mut RenderState,
+    geometries: &std::collections::HashMap<u32, crate::core::realm::GlobalGeometryRecord>,
+) {
+    let Some(vertex) = render_state.vertex.as_mut() else {
+        return;
+    };
+    for (geometry_id, record) in geometries {
+        if vertex.records().contains_key(geometry_id) {
+            continue;
+        }
+        let _ = vertex.create_geometry(*geometry_id, record.label.clone(), record.entries.clone());
+    }
+
+    let stale_ids: Vec<u32> = vertex
+        .records()
+        .keys()
+        .filter(|geometry_id| !geometries.contains_key(geometry_id))
+        .copied()
+        .collect();
+    for geometry_id in stale_ids {
+        let _ = vertex.destroy_geometry(geometry_id);
+    }
+}
+
 fn apply_ui_platform_actions(engine_state: &mut EngineState, actions: Vec<UiPlatformAction>) {
     for action in actions {
         match action {
@@ -1022,13 +1253,13 @@ fn apply_target_size_requests(
         if target.msaa_samples.is_none() {
             let msaa = target
                 .window_id
-                .and_then(|window_id| engine_state.window.states.get(&window_id))
+                .and_then(|window_id| engine_state.render.get(&window_id))
                 .map(|state| {
                     engine_state
                         .device
                         .as_ref()
                         .map(|device| {
-                            state.render_state.msaa_sample_count_for_format(
+                            state.msaa_sample_count_for_format(
                                 device,
                                 wgpu::TextureFormat::Rgba16Float,
                             )
@@ -1071,24 +1302,27 @@ fn build_target_surface_map(
 }
 
 fn refresh_window_target_textures(
-    windows: &mut std::collections::HashMap<u32, crate::core::window::WindowState>,
+    render_states: &mut std::collections::HashMap<u32, RenderState>,
+    target_texture_binds: &std::collections::HashMap<
+        u32,
+        crate::core::resources::TargetTextureBinding,
+    >,
     target_surfaces: &std::collections::HashMap<TargetId, crate::core::realm::SurfaceId>,
     surface_targets: &std::collections::HashMap<
         crate::core::realm::SurfaceId,
         crate::core::resources::RenderTarget,
     >,
 ) {
-    for window_state in windows.values_mut() {
-        window_state.render_state.external_textures.clear();
-        for (texture_id, binding) in &window_state.render_state.target_texture_binds {
+    for render_state in render_states.values_mut() {
+        render_state.external_textures.clear();
+        for (texture_id, binding) in target_texture_binds {
             let Some(surface_id) = target_surfaces.get(&binding.target_id) else {
                 continue;
             };
             let Some(surface_target) = surface_targets.get(surface_id) else {
                 continue;
             };
-            window_state
-                .render_state
+            render_state
                 .external_textures
                 .insert(*texture_id, surface_target.view.clone());
         }
@@ -1097,11 +1331,15 @@ fn refresh_window_target_textures(
 
 fn collect_window_camera_target_sizes(
     universal: &crate::core::realm::UniversalState,
+    realm_id: crate::core::realm::RealmId,
     window_id: u32,
     window_size: glam::UVec2,
 ) -> std::collections::HashMap<u32, glam::UVec2> {
     let mut sizes = std::collections::HashMap::new();
     for layer in universal.target_layers.entries.values() {
+        if layer.realm_id != realm_id.0 {
+            continue;
+        }
         let Some(camera_id) = layer.camera_id else {
             continue;
         };
@@ -1115,7 +1353,8 @@ fn collect_window_camera_target_sizes(
         let mut size = target
             .size
             .unwrap_or(glam::UVec2::new(window_size.x.max(1), window_size.y.max(1)));
-        if let Some(link) = universal.auto_links.get(&(layer.realm_id, layer.target_id))
+        if target.size.is_none()
+            && let Some(link) = universal.auto_links.get(&(layer.realm_id, layer.target_id))
             && let Some(surface) = universal.surfaces.entries.get(&link.surface_id)
         {
             size = surface.value.size;

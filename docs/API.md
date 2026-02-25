@@ -104,11 +104,17 @@ The core manages several first-class resources:
 - **Materials**: Define the appearance of meshes.
 - **Shadows**: Global shadow mapping configuration per window.
 
+State ownership split (current):
+
+- `camera`, `model`, and `light` are realm-owned entities (`realmId` scoped).
+- `material`, `texture`, and `geometry` are global shareable registries.
+- Window lifecycle affects presentation/surfaces, not global resource ownership.
+
 ---
 
 ## 4. Components and Instances (Current)
 
-The render state keeps a **scene** with camera/model records:
+The render state consumes realm/global registries to build the active per-realm scene each frame:
 
 - `CameraRecord`
   - `label: Option<String>` (semantic name)

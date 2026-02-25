@@ -1,12 +1,8 @@
-use glam::{UVec2, Vec4};
+use glam::Vec4;
 
-use crate::core::resources::texture::ForwardAtlasHandle;
-
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct TextureRecord {
     pub label: Option<String>,
-    pub _size: wgpu::Extent3d,
-    pub _format: wgpu::TextureFormat,
     pub _texture: wgpu::Texture,
     pub view: wgpu::TextureView,
 }
@@ -17,12 +13,9 @@ pub struct TargetTextureBinding {
     pub label: Option<String>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ForwardAtlasEntry {
     pub label: Option<String>,
-    pub handle: ForwardAtlasHandle,
-    pub _size: UVec2,
     pub uv_scale_bias: Vec4,
     pub layer: u32,
-    pub _format: wgpu::TextureFormat,
 }

@@ -30,20 +30,26 @@ pub fn engine_cmd_model_list(
     engine: &mut EngineState,
     args: &CmdModelListArgs,
 ) -> CmdResultModelList {
-    let window_state = match engine.window.states.get(&args.window_id) {
-        Some(ws) => ws,
-        None => {
-            return CmdResultModelList {
-                success: false,
-                message: format!("Window {} not found", args.window_id),
-                ..Default::default()
-            };
-        }
+    let Some(realm_id) = engine
+        .universal_state
+        .host_realm_index
+        .get(&args.window_id)
+        .copied()
+    else {
+        return CmdResultModelList {
+            success: false,
+            message: format!("No host realm for window {}", args.window_id),
+            ..Default::default()
+        };
     };
-
-    let models = window_state
-        .render_state
-        .scene
+    let Some(entities) = engine.universal_state.realm_entities.get(&realm_id) else {
+        return CmdResultModelList {
+            success: false,
+            message: format!("Realm {} not found", realm_id.0),
+            ..Default::default()
+        };
+    };
+    let models = entities
         .models
         .iter()
         .map(|(&id, rec)| ResourceEntry {
@@ -81,27 +87,19 @@ pub fn engine_cmd_material_list(
     engine: &mut EngineState,
     args: &CmdMaterialListArgs,
 ) -> CmdResultMaterialList {
-    let window_state = match engine.window.states.get(&args.window_id) {
-        Some(ws) => ws,
-        None => {
-            return CmdResultMaterialList {
-                success: false,
-                message: format!("Window {} not found", args.window_id),
-                ..Default::default()
-            };
-        }
-    };
+    let _ = args;
+    let resources = &engine.universal_state.global_resources;
 
     let mut materials = Vec::new();
 
-    for (&id, rec) in &window_state.render_state.scene.materials_standard {
+    for (&id, rec) in &resources.materials_standard {
         materials.push(ResourceEntry {
             id,
             label: rec.label.clone(),
         });
     }
 
-    for (&id, rec) in &window_state.render_state.scene.materials_pbr {
+    for (&id, rec) in &resources.materials_pbr {
         materials.push(ResourceEntry {
             id,
             label: rec.label.clone(),
@@ -137,34 +135,26 @@ pub fn engine_cmd_texture_list(
     engine: &mut EngineState,
     args: &CmdTextureListArgs,
 ) -> CmdResultTextureList {
-    let window_state = match engine.window.states.get(&args.window_id) {
-        Some(ws) => ws,
-        None => {
-            return CmdResultTextureList {
-                success: false,
-                message: format!("Window {} not found", args.window_id),
-                ..Default::default()
-            };
-        }
-    };
+    let _ = args;
+    let resources = &engine.universal_state.global_resources;
 
     let mut textures = Vec::new();
 
-    for (&id, rec) in &window_state.render_state.scene.textures {
+    for (&id, rec) in &resources.textures {
         textures.push(ResourceEntry {
             id,
             label: rec.label.clone(),
         });
     }
 
-    for (&id, entry) in &window_state.render_state.scene.forward_atlas_entries {
+    for (&id, entry) in &resources.forward_atlas_entries {
         textures.push(ResourceEntry {
             id,
             label: entry.label.clone(),
         });
     }
 
-    for (&id, entry) in &window_state.render_state.target_texture_binds {
+    for (&id, entry) in &resources.target_texture_binds {
         textures.push(ResourceEntry {
             id,
             label: entry.label.clone(),
@@ -200,28 +190,17 @@ pub fn engine_cmd_geometry_list(
     engine: &mut EngineState,
     args: &CmdGeometryListArgs,
 ) -> CmdResultGeometryList {
-    let window_state = match engine.window.states.get(&args.window_id) {
-        Some(ws) => ws,
-        None => {
-            return CmdResultGeometryList {
-                success: false,
-                message: format!("Window {} not found", args.window_id),
-                ..Default::default()
-            };
-        }
-    };
-
-    let geometries = if let Some(va) = &window_state.render_state.vertex {
-        va.records()
-            .iter()
-            .map(|(&id, rec)| ResourceEntry {
-                id,
-                label: rec.label.clone(),
-            })
-            .collect()
-    } else {
-        Vec::new()
-    };
+    let _ = args;
+    let geometries = engine
+        .universal_state
+        .global_resources
+        .geometries
+        .iter()
+        .map(|(&id, rec)| ResourceEntry {
+            id,
+            label: rec.label.clone(),
+        })
+        .collect();
 
     CmdResultGeometryList {
         success: true,
@@ -252,20 +231,26 @@ pub fn engine_cmd_light_list(
     engine: &mut EngineState,
     args: &CmdLightListArgs,
 ) -> CmdResultLightList {
-    let window_state = match engine.window.states.get(&args.window_id) {
-        Some(ws) => ws,
-        None => {
-            return CmdResultLightList {
-                success: false,
-                message: format!("Window {} not found", args.window_id),
-                ..Default::default()
-            };
-        }
+    let Some(realm_id) = engine
+        .universal_state
+        .host_realm_index
+        .get(&args.window_id)
+        .copied()
+    else {
+        return CmdResultLightList {
+            success: false,
+            message: format!("No host realm for window {}", args.window_id),
+            ..Default::default()
+        };
     };
-
-    let lights = window_state
-        .render_state
-        .scene
+    let Some(entities) = engine.universal_state.realm_entities.get(&realm_id) else {
+        return CmdResultLightList {
+            success: false,
+            message: format!("Realm {} not found", realm_id.0),
+            ..Default::default()
+        };
+    };
+    let lights = entities
         .lights
         .iter()
         .map(|(&id, rec)| ResourceEntry {
@@ -303,20 +288,26 @@ pub fn engine_cmd_camera_list(
     engine: &mut EngineState,
     args: &CmdCameraListArgs,
 ) -> CmdResultCameraList {
-    let window_state = match engine.window.states.get(&args.window_id) {
-        Some(ws) => ws,
-        None => {
-            return CmdResultCameraList {
-                success: false,
-                message: format!("Window {} not found", args.window_id),
-                ..Default::default()
-            };
-        }
+    let Some(realm_id) = engine
+        .universal_state
+        .host_realm_index
+        .get(&args.window_id)
+        .copied()
+    else {
+        return CmdResultCameraList {
+            success: false,
+            message: format!("No host realm for window {}", args.window_id),
+            ..Default::default()
+        };
     };
-
-    let cameras = window_state
-        .render_state
-        .scene
+    let Some(entities) = engine.universal_state.realm_entities.get(&realm_id) else {
+        return CmdResultCameraList {
+            success: false,
+            message: format!("Realm {} not found", realm_id.0),
+            ..Default::default()
+        };
+    };
+    let cameras = entities
         .cameras
         .iter()
         .map(|(&id, rec)| ResourceEntry {
