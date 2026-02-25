@@ -30,6 +30,8 @@ Returns `CmdResultTargetUpsert`:
 - `windowId` is not accepted for `kind = "texture"`.
 - `widget-realm-viewport` is intended for `UiNodeProps::WidgetRealmViewport` sampling.
   It participates in auto-graph routing/input, but is not composed as a visible connector overlay on the host UI realm.
+- `realm-plane` is rendered as double-sided in rasterization.
+  Pointer raycast accepts front-face hits only.
 - `size` is accepted only for `kind = "texture"`.
 
 When validation fails:

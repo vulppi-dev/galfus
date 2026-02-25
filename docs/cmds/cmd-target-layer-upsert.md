@@ -41,6 +41,12 @@ Pointer routing mode is inferred internally by the core from target kind.
 For `window` and `widget-realm-viewport` layers sourced from `Realm3D`,
 raycast routing is enabled automatically.
 
+Composition behavior for connector-like targets (`window` non-host layer and `realm-plane`):
+
+- Follows **cover fit** semantics.
+- Height is fitted first.
+- Width overflow is center-clipped (no stretch/deformation).
+
 Environment selection priority per layer:
 1. `environmentId` from the layer (if set);
 2. current default environment profile;

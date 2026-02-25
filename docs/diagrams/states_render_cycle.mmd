@@ -1,20 +1,28 @@
 flowchart TD
-  A["build realm plan"]
-  B["for each realm in order"]
-  C["resolve window and surface"]
-  D["sync scene and camera targets"]
-  E["prepare_render"]
-  F["execute render graph passes"]
-  G["compose connectors"]
-  H["present"]
+  P0["sync_auto_graph and realm plan"]
+  P1["collect present sizes and surface views"]
+  P2["for each realm in plan order"]
+  P3["resolve realm output surface"]
+  P4["sync_scene_from_realm_and_globals"]
+  P5["sync_camera_targets_and_projection"]
+  P6["prepare_render"]
+  P7["execute realm render graph passes"]
+  P8["compose_realm_connectors onto realm surface"]
+  P9["compose surface to window"]
+  P10["present swapchain image"]
 
-  A --> B
-  B --> C
-  C --> D
-  D --> E
-  E --> F
-  F --> G
-  G --> H
+  P0 --> P1
+  P1 --> P2
+  P2 --> P3
+  P3 --> P4
+  P4 --> P5
+  P5 --> P6
+  P6 --> P7
+  P7 --> P8
+  P8 --> P9
+  P9 --> P10
 
-  N1["Passes include forward skybox shadow ui post"]
-  F --> N1
+  PASS["Typical pass chain: skybox -> forward -> outline -> ssao -> bloom -> post -> ui"]
+  COVER["compose uses cover fit: preserve aspect, clip width when needed"]
+  P7 --> PASS
+  P9 --> COVER

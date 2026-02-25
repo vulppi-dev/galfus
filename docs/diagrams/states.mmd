@@ -1,25 +1,34 @@
-flowchart LR
-  A["EngineState"]
-  B["UniversalState"]
-  C["WindowManager"]
-  D["RenderManager"]
-  E["AudioState"]
-  F["RealmEntities and GlobalResources"]
-  G["WindowState"]
+flowchart TB
+  ES["EngineState"]
+  US["UniversalState"]
+  WM["WindowManager"]
+  RM["RenderManager"]
+  AS["AudioState"]
 
-  A --> B
-  A --> C
-  A --> D
-  A --> E
-  C --> G
-  B --> F
-  F --> D
+  ES --> US
+  ES --> WM
+  ES --> RM
+  ES --> AS
 
-  N1["Detalhes em diagramas menores"]
-  N2["states_realm_window.mmd"]
-  N3["states_data_sync.mmd"]
-  N4["states_render_cycle.mmd"]
+  USR["realm_entities (realm-owned)"]
+  USG["global_resources (shared)"]
+  UST["targets and target_layers"]
+  USS["surfaces, connectors, presents"]
+  WIN["window.states (native/canvas)"]
+  RST["render.states (per window_id)"]
 
-  N1 --> N2
-  N1 --> N3
-  N1 --> N4
+  US --> USR
+  US --> USG
+  US --> UST
+  US --> USS
+  WM --> WIN
+  RM --> RST
+
+  NOTE["Detalhes nos arquivos menores"]
+  D1["states_realm_window.mmd"]
+  D2["states_data_sync.mmd"]
+  D3["states_render_cycle.mmd"]
+
+  NOTE --> D1
+  NOTE --> D2
+  NOTE --> D3

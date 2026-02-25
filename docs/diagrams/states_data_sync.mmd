@@ -1,20 +1,21 @@
 flowchart LR
-  A["UniversalState.realm_entities for realm_id"]
-  B["UniversalState.global_resources"]
-  C["sync_scene_from_realm_and_globals"]
-  D["RenderState.scene.cameras models lights"]
-  E["RenderState.scene.materials textures"]
-  F["prepare_render uploads dirty data"]
+  RE["realm_entities[realm_id]"]
+  GR["global_resources"]
+  SYNC["sync_scene_from_realm_and_globals"]
+  SCN["RenderState.scene (cameras/models/lights/materials/textures)"]
+  CAM["sync_camera_targets_and_projection"]
+  PREP["prepare_render"]
 
-  A --> C
-  B --> C
-  C --> D
-  C --> E
-  D --> F
-  E --> F
+  RE --> SYNC
+  GR --> SYNC
+  SYNC --> SCN
+  SCN --> CAM
+  CAM --> PREP
 
-  N1["Realm data is selected by realm_id"]
-  N2["Global resources are shared"]
+  C1["cameras/models/lights come from current realm only"]
+  C2["materials/textures/geometries are shared globals"]
+  C3["projection size tracks resolved target/surface size"]
 
-  A --> N1
-  B --> N2
+  RE --> C1
+  GR --> C2
+  CAM --> C3

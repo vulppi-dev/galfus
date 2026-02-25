@@ -1,25 +1,29 @@
-flowchart LR
-  R["EngineState.render.states"]
-  A["UniversalState.realms"]
-  B["RealmState"]
-  C["host_window_id"]
-  D["WindowManager.states"]
-  E["WindowState"]
-  F["RenderState by window_id"]
+flowchart TB
+  TL["target_layers: realm -> target"]
+  TG["targets: window / widget-realm-viewport / realm-plane / texture"]
+  AG["sync_auto_graph"]
+  RS["realms with output_surface"]
+  CS["connectors"]
+  PS["presents"]
 
-  R --> F
-  A --> B
-  B --> C
-  C --> D
-  D --> E
-  E --> F
+  TL --> AG
+  TG --> AG
+  AG --> RS
+  AG --> CS
+  AG --> PS
 
-  G["Realm ownership"]
-  H["realm_entities by RealmId"]
-  I["Window ownership"]
-  J["presentation and redraw"]
+  HW["host_window_id per realm"]
+  WS["window.states by window_id"]
+  RWS["render.states by window_id"]
 
-  B --> G
-  G --> H
-  E --> I
-  I --> J
+  RS --> HW
+  HW --> WS
+  WS --> RWS
+
+  OWN1["realm_entities are owned by realmId"]
+  OWN2["surfaces/connectors/presents are core-managed"]
+  OWN3["window lifecycle only controls presentation surfaces"]
+
+  RS --> OWN1
+  AG --> OWN2
+  WS --> OWN3
