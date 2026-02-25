@@ -1,21 +1,19 @@
 use serde::{Deserialize, Serialize};
 
-mod attention;
 mod close;
 mod create;
 mod cursor;
-mod decorations;
-mod properties;
+mod measurement;
+mod state;
 
-pub use attention::*;
 pub use close::*;
 pub use create::*;
 pub use cursor::*;
-pub use decorations::*;
-pub use properties::*;
+pub use measurement::*;
+pub use state::*;
 
 // Shared types
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone, Copy)]
 #[serde(rename_all = "kebab-case")]
 pub enum EngineWindowState {
     Minimized = 0,

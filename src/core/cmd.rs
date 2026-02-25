@@ -89,25 +89,9 @@ pub enum EngineCmd {
     CmdSystemDiagnosticsSet(sys::CmdSystemDiagnosticsSetArgs),
     CmdWindowCreate(win::CmdWindowCreateArgs),
     CmdWindowClose(win::CmdWindowCloseArgs),
-    CmdWindowSetTitle(win::CmdWindowSetTitleArgs),
-    CmdWindowSetPosition(win::CmdWindowSetPositionArgs),
-    CmdWindowGetPosition(win::CmdWindowGetPositionArgs),
-    CmdWindowSetSize(win::CmdWindowSetSizeArgs),
-    CmdWindowGetSize(win::CmdWindowGetSizeArgs),
-    CmdWindowGetOuterSize(win::CmdWindowGetOuterSizeArgs),
-    CmdWindowGetSurfaceSize(win::CmdWindowGetSurfaceSizeArgs),
-    CmdWindowSetState(win::CmdWindowSetStateArgs),
-    CmdWindowGetState(win::CmdWindowGetStateArgs),
-    CmdWindowSetIcon(win::CmdWindowSetIconArgs),
-    CmdWindowSetDecorations(win::CmdWindowSetDecorationsArgs),
-    CmdWindowHasDecorations(win::CmdWindowHasDecorationsArgs),
-    CmdWindowSetResizable(win::CmdWindowSetResizableArgs),
-    CmdWindowIsResizable(win::CmdWindowIsResizableArgs),
-    CmdWindowRequestAttention(win::CmdWindowRequestAttentionArgs),
-    CmdWindowFocus(win::CmdWindowFocusArgs),
-    CmdWindowSetCursorVisible(win::CmdWindowSetCursorVisibleArgs),
-    CmdWindowSetCursorGrab(win::CmdWindowSetCursorGrabArgs),
-    CmdWindowSetCursorIcon(win::CmdWindowSetCursorIconArgs),
+    CmdWindowMeasurement(win::CmdWindowMeasurementArgs),
+    CmdWindowCursor(win::CmdWindowCursorArgs),
+    CmdWindowState(win::CmdWindowStateArgs),
     CmdUploadBufferDiscardAll(buf::CmdUploadBufferDiscardAllArgs),
     CmdCameraUpsert(CmdCameraUpsertArgs),
     CmdCameraDispose(res::CmdCameraDisposeArgs),
@@ -192,25 +176,9 @@ pub enum CommandResponse {
     SystemDiagnosticsSet(sys::CmdResultSystemDiagnosticsSet),
     WindowCreate(win::CmdResultWindowCreate),
     WindowClose(win::CmdResultWindowClose),
-    WindowSetTitle(win::CmdResultWindowSetTitle),
-    WindowSetPosition(win::CmdResultWindowSetPosition),
-    WindowGetPosition(win::CmdResultWindowGetPosition),
-    WindowSetSize(win::CmdResultWindowSetSize),
-    WindowGetSize(win::CmdResultWindowGetSize),
-    WindowGetOuterSize(win::CmdResultWindowGetOuterSize),
-    WindowGetSurfaceSize(win::CmdResultWindowGetSurfaceSize),
-    WindowSetState(win::CmdResultWindowSetState),
-    WindowGetState(win::CmdResultWindowGetState),
-    WindowSetIcon(win::CmdResultWindowSetIcon),
-    WindowSetDecorations(win::CmdResultWindowSetDecorations),
-    WindowHasDecorations(win::CmdResultWindowHasDecorations),
-    WindowSetResizable(win::CmdResultWindowSetResizable),
-    WindowIsResizable(win::CmdResultWindowIsResizable),
-    WindowRequestAttention(win::CmdResultWindowRequestAttention),
-    WindowFocus(win::CmdResultWindowFocus),
-    WindowSetCursorVisible(win::CmdResultWindowSetCursorVisible),
-    WindowSetCursorGrab(win::CmdResultWindowSetCursorGrab),
-    WindowSetCursorIcon(win::CmdResultWindowSetCursorIcon),
+    WindowMeasurement(win::CmdResultWindowMeasurement),
+    WindowCursor(win::CmdResultWindowCursor),
+    WindowState(win::CmdResultWindowState),
     UploadBufferDiscardAll(buf::CmdResultUploadBufferDiscardAll),
     CameraUpsert(CmdResultSimple),
     CameraDispose(res::CmdResultCameraDispose),
@@ -322,6 +290,9 @@ fn maybe_emit_response_error_event(
         }
         CommandResponse::CameraUpsert(result) => failure_case!(result, "camera-upsert"),
         CommandResponse::WindowCreate(result) => failure_case!(result, "window-create"),
+        CommandResponse::WindowMeasurement(result) => failure_case!(result, "window-measurement"),
+        CommandResponse::WindowCursor(result) => failure_case!(result, "window-cursor"),
+        CommandResponse::WindowState(result) => failure_case!(result, "window-state"),
         CommandResponse::CameraDispose(result) => failure_case!(result, "camera-dispose"),
         CommandResponse::ModelUpsert(result) => failure_case!(result, "model-upsert"),
         CommandResponse::PoseUpdate(result) => failure_case!(result, "pose-update"),
@@ -477,137 +448,25 @@ pub fn engine_process_batch(
                     response: CommandResponse::WindowClose(result),
                 });
             }
-            EngineCmd::CmdWindowSetTitle(args) => {
-                let result = win::engine_cmd_window_set_title(engine, &args);
+            EngineCmd::CmdWindowMeasurement(args) => {
+                let result = win::engine_cmd_window_measurement(engine, &args);
                 engine.response_queue.push(CommandResponseEnvelope {
                     id: pack.id,
-                    response: CommandResponse::WindowSetTitle(result),
+                    response: CommandResponse::WindowMeasurement(result),
                 });
             }
-            EngineCmd::CmdWindowSetPosition(args) => {
-                let result = win::engine_cmd_window_set_position(engine, &args);
+            EngineCmd::CmdWindowCursor(args) => {
+                let result = win::engine_cmd_window_cursor(engine, &args);
                 engine.response_queue.push(CommandResponseEnvelope {
                     id: pack.id,
-                    response: CommandResponse::WindowSetPosition(result),
+                    response: CommandResponse::WindowCursor(result),
                 });
             }
-            EngineCmd::CmdWindowGetPosition(args) => {
-                let result = win::engine_cmd_window_get_position(engine, &args);
+            EngineCmd::CmdWindowState(args) => {
+                let result = win::engine_cmd_window_state(engine, &args);
                 engine.response_queue.push(CommandResponseEnvelope {
                     id: pack.id,
-                    response: CommandResponse::WindowGetPosition(result),
-                });
-            }
-            EngineCmd::CmdWindowSetSize(args) => {
-                let result = win::engine_cmd_window_set_size(engine, &args);
-                engine.response_queue.push(CommandResponseEnvelope {
-                    id: pack.id,
-                    response: CommandResponse::WindowSetSize(result),
-                });
-            }
-            EngineCmd::CmdWindowGetSize(args) => {
-                let result = win::engine_cmd_window_get_size(engine, &args);
-                engine.response_queue.push(CommandResponseEnvelope {
-                    id: pack.id,
-                    response: CommandResponse::WindowGetSize(result),
-                });
-            }
-            EngineCmd::CmdWindowGetOuterSize(args) => {
-                let result = win::engine_cmd_window_get_outer_size(engine, &args);
-                engine.response_queue.push(CommandResponseEnvelope {
-                    id: pack.id,
-                    response: CommandResponse::WindowGetOuterSize(result),
-                });
-            }
-            EngineCmd::CmdWindowGetSurfaceSize(args) => {
-                let result = win::engine_cmd_window_get_surface_size(engine, &args);
-                engine.response_queue.push(CommandResponseEnvelope {
-                    id: pack.id,
-                    response: CommandResponse::WindowGetSurfaceSize(result),
-                });
-            }
-            EngineCmd::CmdWindowSetState(args) => {
-                let result = win::engine_cmd_window_set_state(engine, &args);
-                engine.response_queue.push(CommandResponseEnvelope {
-                    id: pack.id,
-                    response: CommandResponse::WindowSetState(result),
-                });
-            }
-            EngineCmd::CmdWindowGetState(args) => {
-                let result = win::engine_cmd_window_get_state(engine, &args);
-                engine.response_queue.push(CommandResponseEnvelope {
-                    id: pack.id,
-                    response: CommandResponse::WindowGetState(result),
-                });
-            }
-            EngineCmd::CmdWindowSetIcon(args) => {
-                let result = win::engine_cmd_window_set_icon(engine, &args);
-                engine.response_queue.push(CommandResponseEnvelope {
-                    id: pack.id,
-                    response: CommandResponse::WindowSetIcon(result),
-                });
-            }
-            EngineCmd::CmdWindowSetDecorations(args) => {
-                let result = win::engine_cmd_window_set_decorations(engine, &args);
-                engine.response_queue.push(CommandResponseEnvelope {
-                    id: pack.id,
-                    response: CommandResponse::WindowSetDecorations(result),
-                });
-            }
-            EngineCmd::CmdWindowHasDecorations(args) => {
-                let result = win::engine_cmd_window_has_decorations(engine, &args);
-                engine.response_queue.push(CommandResponseEnvelope {
-                    id: pack.id,
-                    response: CommandResponse::WindowHasDecorations(result),
-                });
-            }
-            EngineCmd::CmdWindowSetResizable(args) => {
-                let result = win::engine_cmd_window_set_resizable(engine, &args);
-                engine.response_queue.push(CommandResponseEnvelope {
-                    id: pack.id,
-                    response: CommandResponse::WindowSetResizable(result),
-                });
-            }
-            EngineCmd::CmdWindowIsResizable(args) => {
-                let result = win::engine_cmd_window_is_resizable(engine, &args);
-                engine.response_queue.push(CommandResponseEnvelope {
-                    id: pack.id,
-                    response: CommandResponse::WindowIsResizable(result),
-                });
-            }
-            EngineCmd::CmdWindowRequestAttention(args) => {
-                let result = win::engine_cmd_window_request_attention(engine, &args);
-                engine.response_queue.push(CommandResponseEnvelope {
-                    id: pack.id,
-                    response: CommandResponse::WindowRequestAttention(result),
-                });
-            }
-            EngineCmd::CmdWindowFocus(args) => {
-                let result = win::engine_cmd_window_focus(engine, &args);
-                engine.response_queue.push(CommandResponseEnvelope {
-                    id: pack.id,
-                    response: CommandResponse::WindowFocus(result),
-                });
-            }
-            EngineCmd::CmdWindowSetCursorVisible(args) => {
-                let result = win::engine_cmd_window_set_cursor_visible(engine, &args);
-                engine.response_queue.push(CommandResponseEnvelope {
-                    id: pack.id,
-                    response: CommandResponse::WindowSetCursorVisible(result),
-                });
-            }
-            EngineCmd::CmdWindowSetCursorGrab(args) => {
-                let result = win::engine_cmd_window_set_cursor_grab(engine, &args);
-                engine.response_queue.push(CommandResponseEnvelope {
-                    id: pack.id,
-                    response: CommandResponse::WindowSetCursorGrab(result),
-                });
-            }
-            EngineCmd::CmdWindowSetCursorIcon(args) => {
-                let result = win::engine_cmd_window_set_cursor_icon(engine, &args);
-                engine.response_queue.push(CommandResponseEnvelope {
-                    id: pack.id,
-                    response: CommandResponse::WindowSetCursorIcon(result),
+                    response: CommandResponse::WindowState(result),
                 });
             }
             EngineCmd::CmdUploadBufferDiscardAll(args) => {

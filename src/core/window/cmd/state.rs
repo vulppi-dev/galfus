@@ -1,0 +1,234 @@
+#[cfg(not(feature = "wasm"))]
+use crate::core::buffers::state::UploadType;
+#[cfg(not(feature = "wasm"))]
+use crate::core::image::ImageDecoder;
+#[cfg(not(feature = "wasm"))]
+use crate::core::platform::winit;
+use serde::{Deserialize, Serialize};
+
+use crate::core::state::EngineState;
+
+use super::EngineWindowState;
+
+#[derive(Debug, Deserialize, Serialize, Clone, Copy)]
+#[serde(rename_all = "kebab-case")]
+pub enum UserAttentionType {
+    Critical = 0,
+    Informational,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone, Copy)]
+#[serde(rename_all = "kebab-case")]
+pub enum WindowStateAction {
+    Focus,
+    RequestAttention,
+}
+
+#[derive(Debug, Default, Deserialize, Serialize, Clone)]
+#[serde(default, rename_all = "camelCase")]
+pub struct CmdWindowStateArgs {
+    pub window_id: u32,
+    pub title: Option<String>,
+    pub state: Option<EngineWindowState>,
+    pub icon_buffer_id: Option<u64>,
+    pub decorations: Option<bool>,
+    pub resizable: Option<bool>,
+    pub action: Option<WindowStateAction>,
+    pub attention_type: Option<UserAttentionType>,
+    pub get_state: bool,
+    pub get_decorations: bool,
+    pub get_resizable: bool,
+}
+
+#[derive(Debug, Default, Deserialize, Serialize, Clone)]
+#[serde(default, rename_all = "camelCase")]
+pub struct CmdResultWindowState {
+    pub success: bool,
+    pub message: String,
+    #[serde(default)]
+    pub state: Option<EngineWindowState>,
+    #[serde(default)]
+    pub decorations: Option<bool>,
+    #[serde(default)]
+    pub resizable: Option<bool>,
+}
+
+#[cfg(not(feature = "wasm"))]
+fn set_window_icon(engine: &mut EngineState, window_id: u32, buffer_id: u64) -> Result<(), String> {
+    if !engine.window.states.contains_key(&window_id) {
+        return Err(format!("Window with id {} not found", window_id));
+    }
+
+    let Some(buffer) = engine.buffers.remove_upload(buffer_id) else {
+        return Err(format!("Buffer with id {} not found", buffer_id));
+    };
+
+    if buffer.upload_type != UploadType::ImageData {
+        return Err(format!(
+            "Invalid buffer type. Expected ImageData, got {:?}",
+            buffer.upload_type
+        ));
+    }
+
+    let Some(image_buffer) = ImageDecoder::try_decode(&buffer.data) else {
+        return Err(
+            "Failed to decode image. Supported formats: PNG, JPEG, WebP, AVIF, EXR, HDR".into(),
+        );
+    };
+
+    let image_data = match image_buffer.pixels {
+        crate::core::image::ImagePixels::Rgba8(data) => data,
+        crate::core::image::ImagePixels::Rgba16F(_) => {
+            return Err("Window icon requires RGBA8 image data".into());
+        }
+    };
+
+    let icon = winit::window::Icon::from_rgba(image_data, image_buffer.width, image_buffer.height)
+        .map_err(|e| format!("Failed to create icon: {:?}", e))?;
+
+    let Some(window_state) = engine.window.states.get(&window_id) else {
+        return Err(format!("Window with id {} not found", window_id));
+    };
+
+    window_state.window.set_window_icon(Some(icon));
+    Ok(())
+}
+
+#[cfg(not(feature = "wasm"))]
+fn read_window_state(window_state: &crate::core::window::WindowState) -> EngineWindowState {
+    if window_state.window.is_minimized().unwrap_or(false) {
+        EngineWindowState::Minimized
+    } else if window_state.window.is_maximized() {
+        EngineWindowState::Maximized
+    } else if window_state.window.fullscreen().is_some() {
+        match window_state.window.fullscreen() {
+            Some(winit::window::Fullscreen::Exclusive(_)) => EngineWindowState::Fullscreen,
+            Some(winit::window::Fullscreen::Borderless(_)) => EngineWindowState::WindowedFullscreen,
+            None => EngineWindowState::Windowed,
+        }
+    } else {
+        EngineWindowState::Windowed
+    }
+}
+
+#[cfg(not(feature = "wasm"))]
+fn apply_window_state(window_state: &crate::core::window::WindowState, state: EngineWindowState) {
+    match state {
+        EngineWindowState::Minimized => {
+            window_state.window.set_minimized(true);
+        }
+        EngineWindowState::Maximized => {
+            window_state.window.set_maximized(true);
+        }
+        EngineWindowState::Windowed => {
+            window_state.window.set_minimized(false);
+            window_state.window.set_maximized(false);
+            window_state.window.set_fullscreen(None);
+        }
+        EngineWindowState::Fullscreen => {
+            if let Some(monitor) = window_state.window.current_monitor() {
+                if let Some(video_mode) = monitor.video_modes().next() {
+                    let fullscreen = Some(winit::window::Fullscreen::Exclusive(video_mode));
+                    window_state.window.set_fullscreen(fullscreen);
+                }
+            }
+        }
+        EngineWindowState::WindowedFullscreen => {
+            let monitor = window_state.window.current_monitor();
+            let fullscreen = Some(winit::window::Fullscreen::Borderless(monitor));
+            window_state.window.set_fullscreen(fullscreen);
+        }
+    }
+}
+
+#[cfg(not(feature = "wasm"))]
+pub fn engine_cmd_window_state(
+    engine: &mut EngineState,
+    args: &CmdWindowStateArgs,
+) -> CmdResultWindowState {
+    let Some(window_state) = engine.window.states.get(&args.window_id) else {
+        return CmdResultWindowState {
+            success: false,
+            message: format!("Window with id {} not found", args.window_id),
+            ..Default::default()
+        };
+    };
+
+    if let Some(title) = args.title.as_ref() {
+        window_state.window.set_title(title);
+    }
+
+    if let Some(state) = args.state {
+        apply_window_state(window_state, state);
+    }
+
+    if let Some(decorations) = args.decorations {
+        window_state.window.set_decorations(decorations);
+    }
+
+    if let Some(resizable) = args.resizable {
+        window_state.window.set_resizable(resizable);
+    }
+
+    if let Some(action) = args.action {
+        match action {
+            WindowStateAction::Focus => {
+                window_state.window.focus_window();
+            }
+            WindowStateAction::RequestAttention => {
+                let attention_type = args.attention_type.map(|t| match t {
+                    UserAttentionType::Critical => winit::window::UserAttentionType::Critical,
+                    UserAttentionType::Informational => {
+                        winit::window::UserAttentionType::Informational
+                    }
+                });
+                window_state.window.request_user_attention(attention_type);
+            }
+        }
+    }
+
+    if let Some(buffer_id) = args.icon_buffer_id {
+        if let Err(message) = set_window_icon(engine, args.window_id, buffer_id) {
+            return CmdResultWindowState {
+                success: false,
+                message,
+                ..Default::default()
+            };
+        }
+    }
+
+    let read_state = args.get_state || args.state.is_some();
+    let read_decorations = args.get_decorations || args.decorations.is_some();
+    let read_resizable = args.get_resizable || args.resizable.is_some();
+
+    let Some(window_state) = engine.window.states.get(&args.window_id) else {
+        return CmdResultWindowState {
+            success: false,
+            message: format!("Window with id {} not found", args.window_id),
+            ..Default::default()
+        };
+    };
+
+    CmdResultWindowState {
+        success: true,
+        message: "Window state command applied successfully".into(),
+        state: read_state.then(|| read_window_state(window_state)),
+        decorations: read_decorations.then(|| window_state.window.is_decorated()),
+        resizable: read_resizable.then(|| window_state.window.is_resizable()),
+    }
+}
+
+#[cfg(feature = "wasm")]
+pub fn engine_cmd_window_state(
+    _engine: &mut EngineState,
+    args: &CmdWindowStateArgs,
+) -> CmdResultWindowState {
+    CmdResultWindowState {
+        success: false,
+        message: format!(
+            "Window state commands are not supported in wasm (window_id={})",
+            args.window_id
+        ),
+        ..Default::default()
+    }
+}
