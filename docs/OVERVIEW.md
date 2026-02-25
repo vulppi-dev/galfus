@@ -235,7 +235,7 @@ CmdTargetLayerUpsert(realmId=11, targetId=9002, layout=left/top/width/height/zIn
 ```
 
 Rules:
-- `windowId` is mandatory for `window`, `widget-realm-viewport`, and `realm-plane`.
+- `windowId` is mandatory only for `window`.
 - `size` is accepted only for `texture`.
 - For `window`/`widget-realm-viewport` connector layers and `realm-plane`, output surface size follows
   `TargetLayerLayout.width` and `TargetLayerLayout.height`.

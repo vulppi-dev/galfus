@@ -4,6 +4,8 @@ use crate::core::cmd::EngineCmd;
 use crate::core::resources::{
     CmdGeometryCreateArgs, CmdModelCreateArgs, CmdPoseUpdateArgs, GeometryPrimitiveEntry,
 };
+use crate::core::target::cmd::{CmdTargetLayerUpsertArgs, CmdTargetUpsertArgs};
+use crate::core::target::{TargetKind, TargetLayerLayout};
 use crate::demo::io::{receive_responses, send_commands};
 use crate::demo::loop_utils::run_loop;
 use crate::demo::{
@@ -20,6 +22,7 @@ pub fn run(ctx: DemoContext) -> bool {
     let material_id: u32 = 402;
     let camera_id: u32 = 1;
     let bone_count: u32 = 16;
+    let target_main_id: u64 = 10003;
 
     let (positions, normals, uvs, joints, weights, indices) =
         build_skinned_plane(64, 64, 10.0, bone_count);
@@ -32,6 +35,22 @@ pub fn run(ctx: DemoContext) -> bool {
     upload_buffer(2005, UploadType::IndexData, &indices);
 
     let setup_cmds = vec![
+        EngineCmd::CmdTargetUpsert(CmdTargetUpsertArgs {
+            target_id: target_main_id,
+            kind: TargetKind::Window,
+            window_id: Some(window_id),
+            size: None,
+            format_policy: None,
+            alpha_policy: None,
+            msaa_samples: None,
+        }),
+        EngineCmd::CmdTargetLayerUpsert(CmdTargetLayerUpsertArgs {
+            realm_id,
+            target_id: target_main_id,
+            layout: TargetLayerLayout::default(),
+            camera_id: Some(camera_id),
+            environment_id: None,
+        }),
         EngineCmd::CmdGeometryUpsert(crate::core::cmd::CmdGeometryUpsertArgs::Create(
             CmdGeometryCreateArgs {
                 geometry_id,

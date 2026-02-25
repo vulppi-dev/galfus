@@ -2,6 +2,8 @@ use crate::core::VulframResult;
 use crate::core::cmd::EngineCmd;
 use crate::core::render::gizmos::CmdGizmoDrawAabbArgs;
 use crate::core::resources::{CmdModelUpdateArgs, CmdPrimitiveGeometryCreateArgs, PrimitiveShape};
+use crate::core::target::cmd::{CmdTargetLayerUpsertArgs, CmdTargetUpsertArgs};
+use crate::core::target::{TargetKind, TargetLayerLayout};
 use crate::demo::io::{receive_responses, send_commands};
 use crate::demo::loop_utils::run_loop;
 use crate::demo::{
@@ -19,10 +21,27 @@ pub fn run(ctx: DemoContext) -> bool {
     let material_instance: u32 = 10;
     let texture_test: u32 = 20;
     let texture_buffer: u64 = 1;
+    let target_main_id: u64 = 10001;
 
     upload_texture("assets/colo_test_texture.png", texture_buffer);
 
     let mut setup_cmds = vec![
+        EngineCmd::CmdTargetUpsert(CmdTargetUpsertArgs {
+            target_id: target_main_id,
+            kind: TargetKind::Window,
+            window_id: Some(window_id),
+            size: None,
+            format_policy: None,
+            alpha_policy: None,
+            msaa_samples: None,
+        }),
+        EngineCmd::CmdTargetLayerUpsert(CmdTargetLayerUpsertArgs {
+            realm_id,
+            target_id: target_main_id,
+            layout: TargetLayerLayout::default(),
+            camera_id: Some(camera_id),
+            environment_id: None,
+        }),
         EngineCmd::CmdPrimitiveGeometryCreate(CmdPrimitiveGeometryCreateArgs {
             geometry_id: geometry_cube,
             label: Some("Default Cube".to_string()),

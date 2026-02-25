@@ -83,11 +83,7 @@ pub fn engine_cmd_target_upsert(
     engine: &mut EngineState,
     args: &CmdTargetUpsertArgs,
 ) -> CmdResultTargetUpsert {
-    if matches!(
-        args.kind,
-        TargetKind::Window | TargetKind::WidgetRealmViewport | TargetKind::RealmPlane
-    ) && args.window_id.is_none()
-    {
+    if matches!(args.kind, TargetKind::Window) && args.window_id.is_none() {
         return CmdResultTargetUpsert {
             success: false,
             message: format!("Target {:?} requires windowId", args.kind),
@@ -340,5 +336,87 @@ pub fn engine_cmd_target_layer_dispose(
     CmdResultTargetLayerDispose {
         success: true,
         message: "TargetLayer disposed".into(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{CmdTargetUpsertArgs, engine_cmd_target_upsert};
+    use crate::core::state::EngineState;
+    use crate::core::target::TargetKind;
+    use glam::UVec2;
+
+    #[test]
+    fn target_upsert_window_requires_window_id() {
+        let mut engine = EngineState::new();
+        let result = engine_cmd_target_upsert(
+            &mut engine,
+            &CmdTargetUpsertArgs {
+                target_id: 1,
+                kind: TargetKind::Window,
+                window_id: None,
+                size: None,
+                format_policy: None,
+                alpha_policy: None,
+                msaa_samples: None,
+            },
+        );
+        assert!(!result.success);
+        assert!(result.message.contains("requires windowId"));
+    }
+
+    #[test]
+    fn target_upsert_widget_viewport_allows_missing_window_id() {
+        let mut engine = EngineState::new();
+        let result = engine_cmd_target_upsert(
+            &mut engine,
+            &CmdTargetUpsertArgs {
+                target_id: 2,
+                kind: TargetKind::WidgetRealmViewport,
+                window_id: None,
+                size: None,
+                format_policy: None,
+                alpha_policy: None,
+                msaa_samples: None,
+            },
+        );
+        assert!(result.success);
+    }
+
+    #[test]
+    fn target_upsert_realm_plane_allows_missing_window_id() {
+        let mut engine = EngineState::new();
+        let result = engine_cmd_target_upsert(
+            &mut engine,
+            &CmdTargetUpsertArgs {
+                target_id: 3,
+                kind: TargetKind::RealmPlane,
+                window_id: None,
+                size: None,
+                format_policy: None,
+                alpha_policy: None,
+                msaa_samples: None,
+            },
+        );
+        assert!(result.success);
+    }
+
+    #[test]
+    fn target_upsert_texture_rejects_window_id() {
+        let mut engine = EngineState::new();
+        let result = engine_cmd_target_upsert(
+            &mut engine,
+            &CmdTargetUpsertArgs {
+                target_id: 4,
+                kind: TargetKind::Texture,
+                window_id: Some(10),
+                size: Some(UVec2::new(128, 128)),
+                format_policy: None,
+                alpha_policy: None,
+                msaa_samples: None,
+            },
+        );
+        assert!(!result.success);
+        assert!(result.message.contains("does not accept windowId"));
     }
 }

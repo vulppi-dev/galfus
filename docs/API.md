@@ -383,7 +383,7 @@ CmdTargetLayerUpsert(realmId=11, targetId=9002, layout=left/top/width/height/zIn
 ```
 
 Rules:
-- `windowId` is mandatory for `window`, `widget-realm-viewport`, and `realm-plane`.
+- `windowId` is mandatory only for `window`.
   `widget-realm-viewport` is intended to be consumed by `UiNodeProps::WidgetRealmViewport`.
   Its internal auto-link is used for dependency/routing and UI sampling, not for visible connector composition.
 - `size` is accepted only for `texture`.
