@@ -616,7 +616,9 @@ struct FragmentOutput {
 }
 
 @fragment
-fn fs_main(in: VertexOutput) -> FragmentOutput {
+fn fs_main(in: VertexOutput, @builtin(front_facing) is_front: bool) -> FragmentOutput {
+    let uv0 = select(in.uv0, vec2<f32>(1.0 - in.uv0.x, in.uv0.y), is_front);
+    let normal_geom = normalize(select(in.normal, -in.normal, is_front));
     let base_param = input_at(material.input_indices.x);
     let base_color = base_param.rgb;
     let base_alpha = base_param.a;
@@ -626,13 +628,13 @@ fn fs_main(in: VertexOutput) -> FragmentOutput {
 
     let base_slot = get_slot(material.texture_slots, TEX_BASE);
     let base_sampler = get_slot(material.sampler_indices, TEX_BASE);
-    let base_tex = sample_material(base_slot, base_sampler, in.uv0);
+    let base_tex = sample_material(base_slot, base_sampler, uv0);
     let albedo = base_color * base_tex.rgb * in.color0.rgb;
     let alpha = base_alpha * base_tex.a;
 
     let mr_slot = get_slot(material.texture_slots, TEX_METAL_ROUGH);
     let mr_sampler = get_slot(material.sampler_indices, TEX_METAL_ROUGH);
-    let mr_tex = sample_material(mr_slot, mr_sampler, in.uv0);
+    let mr_tex = sample_material(mr_slot, mr_sampler, uv0);
     let metallic = clamp(mra.x * mr_tex.b, 0.0, 1.0);
     let roughness = clamp(mra.y * mr_tex.g, 0.04, 1.0);
     var ao = clamp(mra.z, 0.0, 1.0);
@@ -640,12 +642,12 @@ fn fs_main(in: VertexOutput) -> FragmentOutput {
     let ao_slot = get_slot(material.texture_slots, TEX_AO);
     let ao_sampler = get_slot(material.sampler_indices, TEX_AO);
     if (ao_slot != PBR_INVALID_SLOT) {
-        ao *= sample_material(ao_slot, ao_sampler, in.uv0).r;
+        ao *= sample_material(ao_slot, ao_sampler, uv0).r;
     }
 
     let emissive_slot = get_slot(material.texture_slots, TEX_EMISSIVE);
     let emissive_sampler = get_slot(material.sampler_indices, TEX_EMISSIVE);
-    let emissive_tex = sample_material(emissive_slot, emissive_sampler, in.uv0);
+    let emissive_tex = sample_material(emissive_slot, emissive_sampler, uv0);
     let emissive = emissive_color * emissive_tex.rgb;
 
     let cam = light_params.camera_index;
@@ -657,8 +659,8 @@ fn fs_main(in: VertexOutput) -> FragmentOutput {
     if (count > 0u) {
         let normal_slot = get_slot(material.texture_slots, TEX_NORMAL);
         let normal_sampler = get_slot(material.sampler_indices, TEX_NORMAL);
-        let n_geom = normalize(in.normal);
-        let n = apply_normal_map(in.normal, in.world_position, in.uv0, normal_slot, normal_sampler, normal_scale);
+        let n_geom = normal_geom;
+        let n = apply_normal_map(normal_geom, in.world_position, uv0, normal_slot, normal_sampler, normal_scale);
         let v = normalize(camera.position.xyz - in.world_position);
         for (var i = 0u; i < count; i++) {
             let idx = visible_indices[base + i];

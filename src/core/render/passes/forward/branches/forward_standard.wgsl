@@ -618,19 +618,21 @@ struct FragmentOutput {
 }
 
 @fragment
-fn fs_main(in: VertexOutput) -> FragmentOutput {
+fn fs_main(in: VertexOutput, @builtin(front_facing) is_front: bool) -> FragmentOutput {
+    let uv0 = select(in.uv0, vec2<f32>(1.0 - in.uv0.x, in.uv0.y), is_front);
+    let normal_geom = normalize(select(in.normal, -in.normal, is_front));
     let base_color = input_at(material.input_indices.x);
     let emissive_color = input_at(material.input_indices.w).rgb;
     let spec_enabled = (material.surface_flags.y & STANDARD_FLAG_SPECULAR) != 0u;
 
     let base_tex_slot = get_slot(material.texture_slots, TEX_BASE);
     let base_sampler = get_slot(material.sampler_indices, TEX_BASE);
-    let base_tex = sample_material(base_tex_slot, base_sampler, in.uv0);
+    let base_tex = sample_material(base_tex_slot, base_sampler, uv0);
     let toon_slot = get_slot(material.texture_slots, TEX_TOON);
     let toon_sampler = get_slot(material.sampler_indices, TEX_TOON);
     let emissive_slot = get_slot(material.texture_slots, TEX_EMISSIVE);
     let emissive_sampler = get_slot(material.sampler_indices, TEX_EMISSIVE);
-    let emissive_tex = sample_material(emissive_slot, emissive_sampler, in.uv0);
+    let emissive_tex = sample_material(emissive_slot, emissive_sampler, uv0);
     let emissive = emissive_color * emissive_tex.rgb;
 
     var color = base_color.rgb * base_tex.rgb * in.color0.rgb;
@@ -643,8 +645,8 @@ fn fs_main(in: VertexOutput) -> FragmentOutput {
     if (count > 0u) {
         let normal_slot = get_slot(material.texture_slots, TEX_NORMAL);
         let normal_sampler = get_slot(material.sampler_indices, TEX_NORMAL);
-        let n_geom = normalize(in.normal);
-        let n = apply_normal_map(in.normal, in.world_position, in.uv0, normal_slot, normal_sampler);
+        let n_geom = normal_geom;
+        let n = apply_normal_map(normal_geom, in.world_position, uv0, normal_slot, normal_sampler);
         var spec_color_final = vec3<f32>(0.0);
         var spec_power = 0.0;
         var view_dir = vec3<f32>(0.0);
@@ -653,7 +655,7 @@ fn fs_main(in: VertexOutput) -> FragmentOutput {
             spec_power = input_at(material.input_indices.z).x;
             let spec_slot = get_slot(material.texture_slots, TEX_SPEC);
             let spec_sampler = get_slot(material.sampler_indices, TEX_SPEC);
-            let spec_tex = sample_material(spec_slot, spec_sampler, in.uv0);
+            let spec_tex = sample_material(spec_slot, spec_sampler, uv0);
             spec_color_final = spec_color.rgb * spec_tex.rgb;
             view_dir = normalize(camera.position.xyz - in.world_position);
         }

@@ -258,7 +258,7 @@ impl Demo006Setup {
                     geometry_id: self.ids.geometry_realm_plane_id,
                     material_id: Some(self.ids.material_realm_plane_id),
                     transform: Mat4::from_translation(Vec3::new(1.0, 2.0, 3.8))
-                        * Mat4::from_rotation_y(std::f32::consts::PI - 0.35)
+                        * Mat4::from_rotation_y(std::f32::consts::PI - 0.35 + std::f32::consts::PI)
                         * Mat4::from_rotation_x(-0.08)
                         * Mat4::from_scale(Vec3::new(2.4, 1.0, 1.0)),
                     layer_mask: 0xFFFFFFFF,
@@ -276,7 +276,7 @@ impl Demo006Setup {
                     geometry_id: self.ids.geometry_realm_plane_id,
                     material_id: Some(self.ids.material_realm_plane_id),
                     transform: Mat4::from_translation(Vec3::new(0.4, 1.6, 2.4))
-                        * Mat4::from_rotation_y(std::f32::consts::PI - 0.22)
+                        * Mat4::from_rotation_y(std::f32::consts::PI - 0.22 + std::f32::consts::PI)
                         * Mat4::from_rotation_x(-0.02)
                         * Mat4::from_scale(Vec3::new(6.0, 1.0, 3.2)),
                     layer_mask: 0xFFFFFFFF,

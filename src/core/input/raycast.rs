@@ -308,6 +308,11 @@ fn intersect_plane_model(
     if direction_local.z.abs() < 1e-6 {
         return None;
     }
+    // RealmPlane is double-sided in rasterization, but pointer interaction is
+    // only valid for the front face (local +Z normal).
+    if direction_local.z >= -1e-6 {
+        return None;
+    }
 
     let local_t = -origin_local.z / direction_local.z;
     if local_t <= 0.0 {
@@ -332,7 +337,7 @@ fn intersect_plane_model(
     let width = (aabb.max.x - aabb.min.x).max(1e-6);
     let height = (aabb.max.y - aabb.min.y).max(1e-6);
     let uv = Vec2::new(
-        1.0 - ((hit_local.x - aabb.min.x) / width).clamp(0.0, 1.0),
+        ((hit_local.x - aabb.min.x) / width).clamp(0.0, 1.0),
         1.0 - ((hit_local.y - aabb.min.y) / height).clamp(0.0, 1.0),
     );
     Some((world_distance, uv))

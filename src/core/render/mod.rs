@@ -768,10 +768,16 @@ fn sync_scene_from_realm_and_globals(
     universal: &crate::core::realm::UniversalState,
     realm_id: RealmId,
 ) {
-    let mut previous_cameras = std::mem::take(&mut render_state.scene.cameras);
+    let previous_cameras = std::mem::take(&mut render_state.scene.cameras);
+    render_state.detached_cameras.extend(previous_cameras);
+    let live_camera_ids: std::collections::HashSet<u32> = universal
+        .realm_entities
+        .values()
+        .flat_map(|entities| entities.cameras.keys().copied())
+        .collect();
     render_state
         .detached_cameras
-        .extend(previous_cameras.drain());
+        .retain(|camera_id, _| live_camera_ids.contains(camera_id));
     let mut previous_models = std::mem::take(&mut render_state.scene.models);
     let mut previous_lights = std::mem::take(&mut render_state.scene.lights);
     render_state.scene.cameras.clear();
@@ -780,9 +786,9 @@ fn sync_scene_from_realm_and_globals(
 
     if let Some(entities) = universal.realm_entities.get(&realm_id) {
         for (camera_id, node) in &entities.cameras {
-            let mut record = previous_cameras
+            let mut record = render_state
+                .detached_cameras
                 .remove(camera_id)
-                .or_else(|| render_state.detached_cameras.remove(camera_id))
                 .unwrap_or_else(|| node.to_render_record());
             record.label = node.label.clone();
             record.data = node.data;
