@@ -605,7 +605,7 @@ fn camera_texture_input(
     camera_id: Option<u32>,
 ) -> Option<ExternalTextureInput> {
     let camera_id = camera_id?;
-    let camera = render_state.scene.cameras.get(&camera_id)?;
+    let camera = render_state.camera_record(camera_id)?;
     let camera_target = camera
         .render_target
         .as_ref()

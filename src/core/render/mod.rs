@@ -277,19 +277,19 @@ pub fn render_frames(engine_state: &mut EngineState) {
                     render_state,
                     &engine_state.universal_state.global_resources.geometries,
                 );
-                let camera_target_sizes = collect_window_camera_target_sizes(
-                    &engine_state.universal_state,
-                    *window_id,
-                    window_state.inner_size,
-                );
-                if render_state.sync_camera_targets_and_projection(
-                    device,
-                    window_state.inner_size,
-                    Some(&camera_target_sizes),
-                ) {
-                    if let Some(shadow) = render_state.shadow.as_mut() {
-                        shadow.mark_dirty();
-                    }
+            }
+            let camera_target_sizes = collect_window_camera_target_sizes(
+                &engine_state.universal_state,
+                *window_id,
+                window_state.inner_size,
+            );
+            if render_state.sync_camera_targets_and_projection(
+                device,
+                window_state.inner_size,
+                Some(&camera_target_sizes),
+            ) {
+                if let Some(shadow) = render_state.shadow.as_mut() {
+                    shadow.mark_dirty();
                 }
             }
             render_state.prepare_render(device, frame_spec, true);
@@ -769,6 +769,9 @@ fn sync_scene_from_realm_and_globals(
     realm_id: RealmId,
 ) {
     let mut previous_cameras = std::mem::take(&mut render_state.scene.cameras);
+    render_state
+        .detached_cameras
+        .extend(previous_cameras.drain());
     let mut previous_models = std::mem::take(&mut render_state.scene.models);
     let mut previous_lights = std::mem::take(&mut render_state.scene.lights);
     render_state.scene.cameras.clear();
@@ -779,6 +782,7 @@ fn sync_scene_from_realm_and_globals(
         for (camera_id, node) in &entities.cameras {
             let mut record = previous_cameras
                 .remove(camera_id)
+                .or_else(|| render_state.detached_cameras.remove(camera_id))
                 .unwrap_or_else(|| node.to_render_record());
             record.label = node.label.clone();
             record.data = node.data;
@@ -1328,7 +1332,8 @@ fn collect_window_camera_target_sizes(
         let mut size = target
             .size
             .unwrap_or(glam::UVec2::new(window_size.x.max(1), window_size.y.max(1)));
-        if let Some(link) = universal.auto_links.get(&(layer.realm_id, layer.target_id))
+        if target.size.is_none()
+            && let Some(link) = universal.auto_links.get(&(layer.realm_id, layer.target_id))
             && let Some(surface) = universal.surfaces.entries.get(&link.surface_id)
         {
             size = surface.value.size;

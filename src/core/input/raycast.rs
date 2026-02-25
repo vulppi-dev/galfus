@@ -160,9 +160,25 @@ fn screen_ray_from_pointer(
     let ndc_x = (local_x / width) * 2.0 - 1.0;
     let ndc_y = 1.0 - (local_y / height) * 2.0;
 
-    let inv_vp = camera.data.view_projection.inverse();
-    let near_h = inv_vp * Vec4::new(ndc_x, ndc_y, 0.0, 1.0);
-    let far_h = inv_vp * Vec4::new(ndc_x, ndc_y, 1.0, 1.0);
+    // Recompute projection using the effective viewport size so picking matches
+    // the actual camera target used for rendering (e.g. widget viewport targets).
+    let mut camera_data = camera.data;
+    camera_data.update(
+        None,
+        None,
+        None,
+        None,
+        (
+            width.round().max(1.0) as u32,
+            height.round().max(1.0) as u32,
+        ),
+        camera.ortho_scale,
+    );
+
+    let inv_vp = camera_data.view_projection.inverse();
+    // Reverse-Z (WGPU): near=1, far=0 in NDC depth.
+    let near_h = inv_vp * Vec4::new(ndc_x, ndc_y, 1.0, 1.0);
+    let far_h = inv_vp * Vec4::new(ndc_x, ndc_y, 0.0, 1.0);
     if near_h.w.abs() < 1e-6 || far_h.w.abs() < 1e-6 {
         return None;
     }
@@ -174,7 +190,7 @@ fn screen_ray_from_pointer(
         return None;
     }
 
-    let camera_forward = camera.data.direction.truncate().normalize_or_zero();
+    let camera_forward = camera_data.direction.truncate().normalize_or_zero();
     if camera_forward.length_squared() > 1e-8 && direction.dot(camera_forward) < 0.0 {
         direction = -direction;
     }
@@ -316,8 +332,8 @@ fn intersect_plane_model(
     let width = (aabb.max.x - aabb.min.x).max(1e-6);
     let height = (aabb.max.y - aabb.min.y).max(1e-6);
     let uv = Vec2::new(
-        ((hit_local.x - aabb.min.x) / width).clamp(0.0, 1.0),
-        ((hit_local.y - aabb.min.y) / height).clamp(0.0, 1.0),
+        1.0 - ((hit_local.x - aabb.min.x) / width).clamp(0.0, 1.0),
+        1.0 - ((hit_local.y - aabb.min.y) / height).clamp(0.0, 1.0),
     );
     Some((world_distance, uv))
 }

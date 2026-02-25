@@ -320,7 +320,7 @@ impl Demo007Setup {
         for (index, model_id) in self.ids.model_ids.iter().enumerate() {
             cmds.push(EngineCmd::CmdModelUpsert(
                 crate::core::cmd::CmdModelUpsertArgs::Create(CmdModelCreateArgs {
-                    realm_id: window_main,
+                    realm_id: realm_3d,
                     model_id: *model_id,
                     label: Some(format!("Demo 007 Shape {}", index + 1)),
                     geometry_id: model_geometries[index],

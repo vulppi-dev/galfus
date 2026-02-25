@@ -28,6 +28,7 @@ pub use crate::core::render::graph::RenderGraphState;
 
 pub struct RenderState {
     pub scene: RenderScene,
+    pub detached_cameras: std::collections::HashMap<u32, crate::core::resources::CameraRecord>,
     pub camera_order: Vec<u32>,
     pub target_texture_binds:
         std::collections::HashMap<u32, crate::core::resources::TargetTextureBinding>,
@@ -114,6 +115,13 @@ impl RenderState {
         self.camera_environment_overrides
             .get(&camera_id)
             .unwrap_or(&self.environment)
+    }
+
+    pub fn camera_record(&self, camera_id: u32) -> Option<&crate::core::resources::CameraRecord> {
+        self.scene
+            .cameras
+            .get(&camera_id)
+            .or_else(|| self.detached_cameras.get(&camera_id))
     }
 
     pub fn sync_camera_targets_and_projection(
