@@ -2,8 +2,7 @@ use glam::{Mat4, Quat, Vec3, Vec4};
 
 use crate::core::VulframResult;
 use crate::core::audio::{
-    CmdAudioListenerCreateArgs, CmdAudioResourceCreateArgs, CmdAudioResourcePushArgs,
-    CmdAudioSourceCreateArgs,
+    CmdAudioListenerCreateArgs, CmdAudioResourceUpsertArgs, CmdAudioSourceCreateArgs,
 };
 use crate::core::cmd::EngineCmd;
 use crate::core::resources::{
@@ -296,7 +295,7 @@ impl Demo005Setup {
                     model_id: self.ids.listener_model_id,
                 }),
             ),
-            EngineCmd::CmdAudioResourceCreate(CmdAudioResourceCreateArgs {
+            EngineCmd::CmdAudioResourceUpsert(CmdAudioResourceUpsertArgs {
                 resource_id: self.ids.audio_id,
                 buffer_id: self
                     .audio_chunk_ids
@@ -388,11 +387,14 @@ impl Demo005Setup {
         if self.audio_chunk_ids.len() > 1 {
             let mut chunk_cmds = Vec::new();
             for (buffer_id, offset_bytes) in self.audio_chunk_ids.iter().skip(1) {
-                chunk_cmds.push(EngineCmd::CmdAudioResourcePush(CmdAudioResourcePushArgs {
-                    resource_id: self.ids.audio_id,
-                    buffer_id: *buffer_id,
-                    offset_bytes: *offset_bytes,
-                }));
+                chunk_cmds.push(EngineCmd::CmdAudioResourceUpsert(
+                    CmdAudioResourceUpsertArgs {
+                        resource_id: self.ids.audio_id,
+                        buffer_id: *buffer_id,
+                        total_bytes: None,
+                        offset_bytes: Some(*offset_bytes),
+                    },
+                ));
             }
             assert_eq!(send_commands(chunk_cmds), VulframResult::Success);
         }

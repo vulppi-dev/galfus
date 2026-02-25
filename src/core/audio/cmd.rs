@@ -50,34 +50,21 @@ pub struct CmdResultAudioListenerUpdate {
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct CmdAudioResourceCreateArgs {
+pub struct CmdAudioResourceUpsertArgs {
     pub resource_id: u32,
     pub buffer_id: u64,
+    #[serde(default)]
     pub total_bytes: Option<u64>,
+    #[serde(default)]
     pub offset_bytes: Option<u64>,
 }
 
 #[derive(Debug, Default, Deserialize, Serialize, Clone)]
 #[serde(default, rename_all = "camelCase")]
-pub struct CmdResultAudioResourceCreate {
+pub struct CmdResultAudioResourceUpsert {
     pub success: bool,
     pub message: String,
     pub pending: bool,
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct CmdAudioResourcePushArgs {
-    pub resource_id: u32,
-    pub buffer_id: u64,
-    pub offset_bytes: u64,
-}
-
-#[derive(Debug, Default, Deserialize, Serialize, Clone)]
-#[serde(default, rename_all = "camelCase")]
-pub struct CmdResultAudioResourcePush {
-    pub success: bool,
-    pub message: String,
     pub received_bytes: u64,
     pub total_bytes: u64,
     pub complete: bool,
@@ -145,63 +132,51 @@ pub struct CmdResultAudioSourceCreate {
 #[serde(rename_all = "camelCase")]
 pub struct CmdAudioSourceUpdateArgs {
     pub source_id: u32,
-    pub position: Vec3,
-    pub velocity: Vec3,
-    pub orientation: Quat,
-    pub gain: f32,
-    pub pitch: f32,
-    pub spatial: AudioSpatialParamsDto,
+    pub realm_id: Option<u32>,
+    pub model_id: Option<u32>,
+    pub position: Option<Vec3>,
+    pub velocity: Option<Vec3>,
+    pub orientation: Option<Quat>,
+    pub gain: Option<f32>,
+    pub pitch: Option<f32>,
+    pub spatial: Option<AudioSpatialParamsDto>,
 }
 
 #[derive(Debug, Default, Deserialize, Serialize, Clone)]
-#[serde(default, rename_all = "camelCase")]
+#[serde(rename_all = "camelCase")]
 pub struct CmdResultAudioSourceUpdate {
     pub success: bool,
     pub message: String,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(rename_all = "kebab-case")]
+pub enum AudioSourceTransportActionDto {
+    Play,
+    Pause,
+    Stop,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct CmdAudioSourcePlayArgs {
+pub struct CmdAudioSourceTransportArgs {
     pub source_id: u32,
-    pub resource_id: u32,
+    pub action: AudioSourceTransportActionDto,
+    #[serde(default)]
+    pub resource_id: Option<u32>,
+    #[serde(default)]
     pub timeline_id: Option<u32>,
-    pub intensity: f32,
+    #[serde(default)]
+    pub intensity: Option<f32>,
+    #[serde(default)]
     pub delay_ms: Option<u32>,
-    pub mode: AudioPlayModeDto,
+    #[serde(default)]
+    pub mode: Option<AudioPlayModeDto>,
 }
 
 #[derive(Debug, Default, Deserialize, Serialize, Clone)]
 #[serde(default, rename_all = "camelCase")]
-pub struct CmdResultAudioSourcePlay {
-    pub success: bool,
-    pub message: String,
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct CmdAudioSourcePauseArgs {
-    pub source_id: u32,
-    pub timeline_id: Option<u32>,
-}
-
-#[derive(Debug, Default, Deserialize, Serialize, Clone)]
-#[serde(default, rename_all = "camelCase")]
-pub struct CmdResultAudioSourcePause {
-    pub success: bool,
-    pub message: String,
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct CmdAudioSourceStopArgs {
-    pub source_id: u32,
-    pub timeline_id: Option<u32>,
-}
-
-#[derive(Debug, Default, Deserialize, Serialize, Clone)]
-#[serde(default, rename_all = "camelCase")]
-pub struct CmdResultAudioSourceStop {
+pub struct CmdResultAudioSourceTransport {
     pub success: bool,
     pub message: String,
 }
@@ -311,6 +286,60 @@ pub struct CmdAudioResourceDisposeArgs {
 pub struct CmdResultAudioResourceDispose {
     pub success: bool,
     pub message: String,
+}
+
+#[derive(Debug, Default, Deserialize, Serialize, Clone)]
+#[serde(default, rename_all = "camelCase")]
+pub struct CmdAudioStateGetArgs {
+    #[serde(default = "default_true")]
+    pub include_listener: bool,
+    #[serde(default = "default_true")]
+    pub include_sources: bool,
+    #[serde(default = "default_true")]
+    pub include_streams: bool,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct AudioListenerBindingState {
+    pub realm_id: u32,
+    pub model_id: u32,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct AudioSourceStateEntry {
+    pub source_id: u32,
+    pub realm_id: Option<u32>,
+    pub model_id: Option<u32>,
+    pub position: Vec3,
+    pub velocity: Vec3,
+    pub orientation: Quat,
+    pub gain: f32,
+    pub pitch: f32,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct AudioStreamStateEntry {
+    pub resource_id: u32,
+    pub received_bytes: u64,
+    pub total_bytes: u64,
+    pub complete: bool,
+}
+
+#[derive(Debug, Default, Deserialize, Serialize, Clone)]
+#[serde(default, rename_all = "camelCase")]
+pub struct CmdResultAudioStateGet {
+    pub success: bool,
+    pub message: String,
+    pub listener: Option<AudioListenerBindingState>,
+    pub sources: Vec<AudioSourceStateEntry>,
+    pub streams: Vec<AudioStreamStateEntry>,
+}
+
+fn default_true() -> bool {
+    true
 }
 
 fn audio_disabled_message() -> String {
@@ -429,50 +458,73 @@ pub fn process_audio_listener_binding(engine: &mut EngineState) {
     let _ = engine.audio.listener_update(state);
 }
 
-pub fn engine_cmd_audio_buffer_create_from_buffer(
+pub fn engine_cmd_audio_resource_upsert(
     engine: &mut EngineState,
-    args: &CmdAudioResourceCreateArgs,
-) -> CmdResultAudioResourceCreate {
+    args: &CmdAudioResourceUpsertArgs,
+) -> CmdResultAudioResourceUpsert {
     if !engine.audio_available {
-        return CmdResultAudioResourceCreate {
+        return CmdResultAudioResourceUpsert {
             success: false,
             message: audio_disabled_message(),
             pending: false,
+            received_bytes: 0,
+            total_bytes: 0,
+            complete: false,
         };
     }
     let buffer = match engine.buffers.remove_upload(args.buffer_id) {
         Some(b) => b,
         None => {
-            return CmdResultAudioResourceCreate {
+            return CmdResultAudioResourceUpsert {
                 success: false,
                 message: format!("Buffer with id {} not found", args.buffer_id),
                 pending: false,
+                received_bytes: 0,
+                total_bytes: 0,
+                complete: false,
             };
         }
     };
 
     if buffer.upload_type != UploadType::BinaryAsset {
-        return CmdResultAudioResourceCreate {
+        return CmdResultAudioResourceUpsert {
             success: false,
             message: format!(
                 "Invalid buffer type. Expected BinaryAsset, got {:?}",
                 buffer.upload_type
             ),
             pending: false,
+            received_bytes: 0,
+            total_bytes: 0,
+            complete: false,
         };
     }
 
-    if let Some(total_bytes) = args.total_bytes {
-        let offset = args.offset_bytes.unwrap_or(0);
+    let offset = args.offset_bytes.unwrap_or(0);
+    let has_stream = engine.audio_state.streams.contains_key(&args.resource_id);
+    let is_stream_upsert = args.total_bytes.is_some() || has_stream;
+
+    if is_stream_upsert {
+        let total_bytes = if let Some(total_bytes) = args.total_bytes {
+            total_bytes
+        } else {
+            match engine.audio_state.streams.get(&args.resource_id) {
+                Some(stream) => stream.total_bytes,
+                None => 0,
+            }
+        };
         let stream = match engine.audio_state.streams.entry(args.resource_id) {
             std::collections::hash_map::Entry::Vacant(entry) => {
                 match AudioStreamState::new(total_bytes) {
                     Ok(state) => entry.insert(state),
                     Err(message) => {
-                        return CmdResultAudioResourceCreate {
+                        return CmdResultAudioResourceUpsert {
                             success: false,
                             message,
                             pending: false,
+                            received_bytes: 0,
+                            total_bytes: 0,
+                            complete: false,
                         };
                     }
                 }
@@ -480,10 +532,13 @@ pub fn engine_cmd_audio_buffer_create_from_buffer(
             std::collections::hash_map::Entry::Occupied(entry) => entry.into_mut(),
         };
         if let Err(message) = stream.apply_chunk(offset, &buffer.data) {
-            return CmdResultAudioResourceCreate {
+            return CmdResultAudioResourceUpsert {
                 success: false,
                 message,
                 pending: false,
+                received_bytes: stream.received_bytes,
+                total_bytes: stream.total_bytes,
+                complete: stream.complete(),
             };
         }
         let complete = stream.complete();
@@ -498,31 +553,45 @@ pub fn engine_cmd_audio_buffer_create_from_buffer(
                 },
             ));
         if complete {
-            let stream = engine
-                .audio_state
-                .streams
-                .remove(&args.resource_id)
-                .unwrap();
+            let Some(stream) = engine.audio_state.streams.remove(&args.resource_id) else {
+                return CmdResultAudioResourceUpsert {
+                    success: false,
+                    message: format!("Audio stream {} not found", args.resource_id),
+                    pending: false,
+                    received_bytes: 0,
+                    total_bytes: 0,
+                    complete: false,
+                };
+            };
             match engine
                 .audio
                 .buffer_create_from_bytes(args.resource_id, stream.data)
             {
-                Ok(()) => CmdResultAudioResourceCreate {
+                Ok(()) => CmdResultAudioResourceUpsert {
                     success: true,
                     message: "Audio stream queued".into(),
                     pending: true,
+                    received_bytes: stream.received_bytes,
+                    total_bytes: stream.total_bytes,
+                    complete: true,
                 },
-                Err(message) => CmdResultAudioResourceCreate {
+                Err(message) => CmdResultAudioResourceUpsert {
                     success: false,
                     message,
                     pending: false,
+                    received_bytes: stream.received_bytes,
+                    total_bytes: stream.total_bytes,
+                    complete: true,
                 },
             }
         } else {
-            CmdResultAudioResourceCreate {
+            CmdResultAudioResourceUpsert {
                 success: true,
                 message: "Audio stream chunk queued".into(),
                 pending: true,
+                received_bytes: stream.received_bytes,
+                total_bytes: stream.total_bytes,
+                complete: false,
             }
         }
     } else {
@@ -530,120 +599,23 @@ pub fn engine_cmd_audio_buffer_create_from_buffer(
             .audio
             .buffer_create_from_bytes(args.resource_id, buffer.data)
         {
-            Ok(()) => CmdResultAudioResourceCreate {
+            Ok(()) => CmdResultAudioResourceUpsert {
                 success: true,
                 message: "Audio buffer queued".into(),
                 pending: true,
-            },
-            Err(message) => CmdResultAudioResourceCreate {
-                success: false,
-                message,
-                pending: false,
-            },
-        }
-    }
-}
-
-pub fn engine_cmd_audio_resource_push(
-    engine: &mut EngineState,
-    args: &CmdAudioResourcePushArgs,
-) -> CmdResultAudioResourcePush {
-    if !engine.audio_available {
-        return CmdResultAudioResourcePush {
-            success: false,
-            message: audio_disabled_message(),
-            received_bytes: 0,
-            total_bytes: 0,
-            complete: false,
-        };
-    }
-    let buffer = match engine.buffers.remove_upload(args.buffer_id) {
-        Some(b) => b,
-        None => {
-            return CmdResultAudioResourcePush {
-                success: false,
-                message: format!("Buffer with id {} not found", args.buffer_id),
                 received_bytes: 0,
                 total_bytes: 0,
                 complete: false,
-            };
-        }
-    };
-    if buffer.upload_type != UploadType::BinaryAsset {
-        return CmdResultAudioResourcePush {
-            success: false,
-            message: format!(
-                "Invalid buffer type. Expected BinaryAsset, got {:?}",
-                buffer.upload_type
-            ),
-            received_bytes: 0,
-            total_bytes: 0,
-            complete: false,
-        };
-    }
-    let (received_bytes, total_bytes, complete) = {
-        let stream = match engine.audio_state.streams.get_mut(&args.resource_id) {
-            Some(stream) => stream,
-            None => {
-                return CmdResultAudioResourcePush {
-                    success: false,
-                    message: format!("Audio stream {} not found", args.resource_id),
-                    received_bytes: 0,
-                    total_bytes: 0,
-                    complete: false,
-                };
-            }
-        };
-        if let Err(message) = stream.apply_chunk(args.offset_bytes, &buffer.data) {
-            return CmdResultAudioResourcePush {
-                success: false,
-                message,
-                received_bytes: stream.received_bytes,
-                total_bytes: stream.total_bytes,
-                complete: stream.complete(),
-            };
-        }
-        (stream.received_bytes, stream.total_bytes, stream.complete())
-    };
-    engine
-        .event_queue
-        .push(crate::core::cmd::EngineEvent::System(
-            crate::core::system::events::SystemEvent::AudioStreamProgress {
-                resource_id: args.resource_id,
-                received_bytes,
-                total_bytes,
-                complete,
             },
-        ));
-    if complete {
-        let stream = engine
-            .audio_state
-            .streams
-            .remove(&args.resource_id)
-            .unwrap();
-        if let Err(message) = engine
-            .audio
-            .buffer_create_from_bytes(args.resource_id, stream.data)
-        {
-            return CmdResultAudioResourcePush {
+            Err(message) => CmdResultAudioResourceUpsert {
                 success: false,
                 message,
-                received_bytes,
-                total_bytes,
-                complete: true,
-            };
+                pending: false,
+                received_bytes: 0,
+                total_bytes: 0,
+                complete: false,
+            },
         }
-    }
-    CmdResultAudioResourcePush {
-        success: true,
-        message: if complete {
-            "Audio stream complete".into()
-        } else {
-            "Audio stream chunk queued".into()
-        },
-        received_bytes,
-        total_bytes,
-        complete,
     }
 }
 
@@ -706,18 +678,65 @@ pub fn engine_cmd_audio_source_update(
             message: audio_disabled_message(),
         };
     }
-    let params = AudioSourceParams {
-        position: args.position,
-        velocity: args.velocity,
-        orientation: args.orientation,
-        gain: args.gain,
-        pitch: args.pitch,
-        spatial: args.spatial.clone().into(),
+    let mut params = match engine
+        .audio_state
+        .source_params
+        .get(&args.source_id)
+        .copied()
+    {
+        Some(params) => params,
+        None => {
+            return CmdResultAudioSourceUpdate {
+                success: false,
+                message: format!("Source {} not found", args.source_id),
+            };
+        }
     };
+    if let Some(position) = args.position {
+        params.position = position;
+    }
+    if let Some(velocity) = args.velocity {
+        params.velocity = velocity;
+    }
+    if let Some(orientation) = args.orientation {
+        params.orientation = orientation;
+    }
+    if let Some(gain) = args.gain {
+        params.gain = gain;
+    }
+    if let Some(pitch) = args.pitch {
+        params.pitch = pitch;
+    }
+    if let Some(spatial) = args.spatial.clone() {
+        params.spatial = spatial.into();
+    }
+    if let Some(realm_id) = args.realm_id {
+        let realm_id = crate::core::realm::RealmId(realm_id);
+        if engine.universal_state.realms.get(realm_id).is_none() {
+            return CmdResultAudioSourceUpdate {
+                success: false,
+                message: format!("Realm {} not found", realm_id.0),
+            };
+        }
+    }
     engine
         .audio_state
         .source_params
         .insert(args.source_id, params);
+    if args.realm_id.is_some() || args.model_id.is_some() {
+        let Some(binding) = engine.audio_state.source_bindings.get_mut(&args.source_id) else {
+            return CmdResultAudioSourceUpdate {
+                success: false,
+                message: format!("Source binding {} not found", args.source_id),
+            };
+        };
+        if let Some(realm_id) = args.realm_id {
+            binding.realm_id = realm_id;
+        }
+        if let Some(model_id) = args.model_id {
+            binding.model_id = model_id;
+        }
+    }
     match engine.audio.source_update(args.source_id, params) {
         Ok(()) => CmdResultAudioSourceUpdate {
             success: true,
@@ -730,78 +749,69 @@ pub fn engine_cmd_audio_source_update(
     }
 }
 
-pub fn engine_cmd_audio_source_play(
+pub fn engine_cmd_audio_source_transport(
     engine: &mut EngineState,
-    args: &CmdAudioSourcePlayArgs,
-) -> CmdResultAudioSourcePlay {
+    args: &CmdAudioSourceTransportArgs,
+) -> CmdResultAudioSourceTransport {
     if !engine.audio_available {
-        return CmdResultAudioSourcePlay {
+        return CmdResultAudioSourceTransport {
             success: false,
             message: audio_disabled_message(),
         };
     }
-    let intensity = args.intensity.clamp(0.0, 1.0);
-    let timeline_id = args.timeline_id.unwrap_or(0);
-    match engine.audio.source_play(
-        args.source_id,
-        args.resource_id,
-        timeline_id,
-        args.mode.clone().into(),
-        args.delay_ms,
-        intensity,
-    ) {
-        Ok(()) => CmdResultAudioSourcePlay {
-            success: true,
-            message: "Source playing".into(),
-        },
-        Err(message) => CmdResultAudioSourcePlay {
-            success: false,
-            message,
-        },
-    }
-}
-
-pub fn engine_cmd_audio_source_pause(
-    engine: &mut EngineState,
-    args: &CmdAudioSourcePauseArgs,
-) -> CmdResultAudioSourcePause {
-    if !engine.audio_available {
-        return CmdResultAudioSourcePause {
-            success: false,
-            message: audio_disabled_message(),
-        };
-    }
-    match engine.audio.source_pause(args.source_id, args.timeline_id) {
-        Ok(()) => CmdResultAudioSourcePause {
-            success: true,
-            message: "Source paused".into(),
-        },
-        Err(message) => CmdResultAudioSourcePause {
-            success: false,
-            message,
-        },
-    }
-}
-
-pub fn engine_cmd_audio_source_stop(
-    engine: &mut EngineState,
-    args: &CmdAudioSourceStopArgs,
-) -> CmdResultAudioSourceStop {
-    if !engine.audio_available {
-        return CmdResultAudioSourceStop {
-            success: false,
-            message: audio_disabled_message(),
-        };
-    }
-    match engine.audio.source_stop(args.source_id, args.timeline_id) {
-        Ok(()) => CmdResultAudioSourceStop {
-            success: true,
-            message: "Source stopped".into(),
-        },
-        Err(message) => CmdResultAudioSourceStop {
-            success: false,
-            message,
-        },
+    match args.action {
+        AudioSourceTransportActionDto::Play => {
+            let Some(resource_id) = args.resource_id else {
+                return CmdResultAudioSourceTransport {
+                    success: false,
+                    message: "resourceId is required for action=play".into(),
+                };
+            };
+            let timeline_id = args.timeline_id.unwrap_or(0);
+            let mode = args.mode.clone().unwrap_or(AudioPlayModeDto::Once);
+            let intensity = args.intensity.unwrap_or(1.0).clamp(0.0, 1.0);
+            match engine.audio.source_play(
+                args.source_id,
+                resource_id,
+                timeline_id,
+                mode.into(),
+                args.delay_ms,
+                intensity,
+            ) {
+                Ok(()) => CmdResultAudioSourceTransport {
+                    success: true,
+                    message: "Source playing".into(),
+                },
+                Err(message) => CmdResultAudioSourceTransport {
+                    success: false,
+                    message,
+                },
+            }
+        }
+        AudioSourceTransportActionDto::Pause => {
+            match engine.audio.source_pause(args.source_id, args.timeline_id) {
+                Ok(()) => CmdResultAudioSourceTransport {
+                    success: true,
+                    message: "Source paused".into(),
+                },
+                Err(message) => CmdResultAudioSourceTransport {
+                    success: false,
+                    message,
+                },
+            }
+        }
+        AudioSourceTransportActionDto::Stop => {
+            match engine.audio.source_stop(args.source_id, args.timeline_id) {
+                Ok(()) => CmdResultAudioSourceTransport {
+                    success: true,
+                    message: "Source stopped".into(),
+                },
+                Err(message) => CmdResultAudioSourceTransport {
+                    success: false,
+                    message,
+                },
+            }
+        }
     }
 }
 
@@ -849,6 +859,87 @@ pub fn engine_cmd_audio_resource_dispose(
             success: false,
             message,
         },
+    }
+}
+
+pub fn engine_cmd_audio_state_get(
+    engine: &mut EngineState,
+    args: &CmdAudioStateGetArgs,
+) -> CmdResultAudioStateGet {
+    if !engine.audio_available {
+        return CmdResultAudioStateGet {
+            success: false,
+            message: audio_disabled_message(),
+            ..Default::default()
+        };
+    }
+
+    let listener = if args.include_listener {
+        engine
+            .audio_state
+            .listener_binding
+            .map(|binding| AudioListenerBindingState {
+                realm_id: binding.realm_id,
+                model_id: binding.model_id,
+            })
+    } else {
+        None
+    };
+
+    let mut sources = if args.include_sources {
+        let mut entries: Vec<_> = engine
+            .audio_state
+            .source_params
+            .iter()
+            .map(|(&source_id, params)| {
+                let (realm_id, model_id) = engine
+                    .audio_state
+                    .source_bindings
+                    .get(&source_id)
+                    .map(|binding| (Some(binding.realm_id), Some(binding.model_id)))
+                    .unwrap_or((None, None));
+                AudioSourceStateEntry {
+                    source_id,
+                    realm_id,
+                    model_id,
+                    position: params.position,
+                    velocity: params.velocity,
+                    orientation: params.orientation,
+                    gain: params.gain,
+                    pitch: params.pitch,
+                }
+            })
+            .collect();
+        entries.sort_by_key(|entry| entry.source_id);
+        entries
+    } else {
+        Vec::new()
+    };
+
+    let mut streams = if args.include_streams {
+        let mut entries: Vec<_> = engine
+            .audio_state
+            .streams
+            .iter()
+            .map(|(&resource_id, stream)| AudioStreamStateEntry {
+                resource_id,
+                received_bytes: stream.received_bytes,
+                total_bytes: stream.total_bytes,
+                complete: stream.complete(),
+            })
+            .collect();
+        entries.sort_by_key(|entry| entry.resource_id);
+        entries
+    } else {
+        Vec::new()
+    };
+
+    CmdResultAudioStateGet {
+        success: true,
+        message: "Audio state listed".into(),
+        listener,
+        sources: std::mem::take(&mut sources),
+        streams: std::mem::take(&mut streams),
     }
 }
 

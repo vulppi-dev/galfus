@@ -235,7 +235,7 @@ Events:
 
 - `SystemEvent::AudioReady { resourceId, success, message }` (async decode)
   - Emitted when the audio buffer finishes decoding (desktop and web).
-  - Use this to decide when `CmdAudioSourcePlay` is safe to call.
+  - Use this to decide when `CmdAudioSourceTransport` with `action = "play"` is safe to call.
 - `SystemEvent::AudioStreamProgress { resourceId, receivedBytes, totalBytes, complete }` (streaming)
   - Emitted as stream chunks are received.
 

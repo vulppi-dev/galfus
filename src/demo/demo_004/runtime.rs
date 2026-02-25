@@ -1,4 +1,6 @@
-use crate::core::audio::{AudioPlayModeDto, CmdAudioSourcePlayArgs, CmdAudioSourceStopArgs};
+use crate::core::audio::{
+    AudioPlayModeDto, AudioSourceTransportActionDto, CmdAudioSourceTransportArgs,
+};
 use crate::core::cmd::EngineCmd;
 use crate::core::cmd::EngineEvent;
 use crate::core::input::events::{ElementState, KeyboardEvent};
@@ -116,19 +118,29 @@ pub fn run(ctx: DemoContext, setup: &Demo004Setup) -> bool {
                 if state.0 && state.1 != state.2 {
                     state.2 = state.1;
                     if state.1 {
-                        cmds.push(EngineCmd::CmdAudioSourcePlay(CmdAudioSourcePlayArgs {
-                            source_id: ids.audio_source_id,
-                            resource_id: ids.audio_id,
-                            timeline_id: None,
-                            intensity: 1.0,
-                            delay_ms: None,
-                            mode: AudioPlayModeDto::Loop,
-                        }));
+                        cmds.push(EngineCmd::CmdAudioSourceTransport(
+                            CmdAudioSourceTransportArgs {
+                                source_id: ids.audio_source_id,
+                                action: AudioSourceTransportActionDto::Play,
+                                resource_id: Some(ids.audio_id),
+                                timeline_id: None,
+                                intensity: Some(1.0),
+                                delay_ms: None,
+                                mode: Some(AudioPlayModeDto::Loop),
+                            },
+                        ));
                     } else {
-                        cmds.push(EngineCmd::CmdAudioSourceStop(CmdAudioSourceStopArgs {
-                            source_id: ids.audio_source_id,
-                            timeline_id: None,
-                        }));
+                        cmds.push(EngineCmd::CmdAudioSourceTransport(
+                            CmdAudioSourceTransportArgs {
+                                source_id: ids.audio_source_id,
+                                action: AudioSourceTransportActionDto::Stop,
+                                resource_id: None,
+                                timeline_id: None,
+                                intensity: None,
+                                delay_ms: None,
+                                mode: None,
+                            },
+                        ));
                     }
                 }
             }

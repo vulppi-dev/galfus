@@ -3,7 +3,9 @@ use std::rc::Rc;
 
 use glam::{Mat4, Vec3};
 
-use crate::core::audio::{AudioPlayModeDto, CmdAudioSourcePlayArgs};
+use crate::core::audio::{
+    AudioPlayModeDto, AudioSourceTransportActionDto, CmdAudioSourceTransportArgs,
+};
 use crate::core::cmd::{EngineCmd, EngineEvent};
 use crate::core::input::events::{ElementState, KeyboardEvent};
 use crate::core::resources::{CmdCameraUpdateArgs, CmdModelUpdateArgs};
@@ -124,14 +126,17 @@ pub fn run(ctx: DemoContext, setup: &Demo005Setup, realms: &Demo005RealmIds) -> 
                 let mut runtime = state_frame.borrow_mut();
                 if runtime.audio_ready && !runtime.audio_started {
                     runtime.audio_started = true;
-                    cmds.push(EngineCmd::CmdAudioSourcePlay(CmdAudioSourcePlayArgs {
-                        source_id: ids.audio_source_id,
-                        resource_id: ids.audio_id,
-                        timeline_id: None,
-                        intensity: 1.0,
-                        delay_ms: None,
-                        mode: AudioPlayModeDto::Loop,
-                    }));
+                    cmds.push(EngineCmd::CmdAudioSourceTransport(
+                        CmdAudioSourceTransportArgs {
+                            source_id: ids.audio_source_id,
+                            action: AudioSourceTransportActionDto::Play,
+                            resource_id: Some(ids.audio_id),
+                            timeline_id: None,
+                            intensity: Some(1.0),
+                            delay_ms: None,
+                            mode: Some(AudioPlayModeDto::Loop),
+                        },
+                    ));
                 }
                 if total_ms.saturating_sub(runtime.last_report_ms) > 1000 {
                     runtime.last_report_ms = total_ms;

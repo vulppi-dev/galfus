@@ -108,12 +108,10 @@ pub enum EngineCmd {
     CmdTextureBindTarget(res::CmdTextureBindTargetArgs),
     CmdAudioListenerUpsert(CmdAudioListenerUpsertArgs),
     CmdAudioListenerDispose(audio::CmdAudioListenerDisposeArgs),
-    CmdAudioResourceCreate(audio::CmdAudioResourceCreateArgs),
-    CmdAudioResourcePush(audio::CmdAudioResourcePushArgs),
+    CmdAudioResourceUpsert(audio::CmdAudioResourceUpsertArgs),
     CmdAudioSourceUpsert(CmdAudioSourceUpsertArgs),
-    CmdAudioSourcePlay(audio::CmdAudioSourcePlayArgs),
-    CmdAudioSourcePause(audio::CmdAudioSourcePauseArgs),
-    CmdAudioSourceStop(audio::CmdAudioSourceStopArgs),
+    CmdAudioSourceTransport(audio::CmdAudioSourceTransportArgs),
+    CmdAudioStateGet(audio::CmdAudioStateGetArgs),
     CmdAudioSourceDispose(audio::CmdAudioSourceDisposeArgs),
     CmdAudioResourceDispose(audio::CmdAudioResourceDisposeArgs),
     CmdGeometryUpsert(CmdGeometryUpsertArgs),
@@ -195,12 +193,10 @@ pub enum CommandResponse {
     TextureBindTarget(res::CmdResultTextureBindTarget),
     AudioListenerUpsert(CmdResultSimple),
     AudioListenerDispose(audio::CmdResultAudioListenerDispose),
-    AudioResourceCreate(audio::CmdResultAudioResourceCreate),
-    AudioResourcePush(audio::CmdResultAudioResourcePush),
+    AudioResourceUpsert(audio::CmdResultAudioResourceUpsert),
     AudioSourceUpsert(CmdResultSimple),
-    AudioSourcePlay(audio::CmdResultAudioSourcePlay),
-    AudioSourcePause(audio::CmdResultAudioSourcePause),
-    AudioSourceStop(audio::CmdResultAudioSourceStop),
+    AudioSourceTransport(audio::CmdResultAudioSourceTransport),
+    AudioStateGet(audio::CmdResultAudioStateGet),
     AudioSourceDispose(audio::CmdResultAudioSourceDispose),
     AudioResourceDispose(audio::CmdResultAudioResourceDispose),
     GeometryUpsert(CmdResultSimple),
@@ -315,14 +311,14 @@ fn maybe_emit_response_error_event(
         CommandResponse::AudioListenerDispose(result) => {
             failure_case!(result, "audio-listener-dispose")
         }
-        CommandResponse::AudioResourceCreate(result) => {
-            failure_case!(result, "audio-resource-create")
+        CommandResponse::AudioResourceUpsert(result) => {
+            failure_case!(result, "audio-resource-upsert")
         }
-        CommandResponse::AudioResourcePush(result) => failure_case!(result, "audio-resource-push"),
         CommandResponse::AudioSourceUpsert(result) => failure_case!(result, "audio-source-upsert"),
-        CommandResponse::AudioSourcePlay(result) => failure_case!(result, "audio-source-play"),
-        CommandResponse::AudioSourcePause(result) => failure_case!(result, "audio-source-pause"),
-        CommandResponse::AudioSourceStop(result) => failure_case!(result, "audio-source-stop"),
+        CommandResponse::AudioSourceTransport(result) => {
+            failure_case!(result, "audio-source-transport")
+        }
+        CommandResponse::AudioStateGet(result) => failure_case!(result, "audio-state-get"),
         CommandResponse::AudioSourceDispose(result) => {
             failure_case!(result, "audio-source-dispose")
         }
@@ -658,18 +654,11 @@ pub fn engine_process_batch(
                     response: CommandResponse::AudioListenerDispose(result),
                 });
             }
-            EngineCmd::CmdAudioResourceCreate(args) => {
-                let result = audio::engine_cmd_audio_buffer_create_from_buffer(engine, &args);
+            EngineCmd::CmdAudioResourceUpsert(args) => {
+                let result = audio::engine_cmd_audio_resource_upsert(engine, &args);
                 engine.response_queue.push(CommandResponseEnvelope {
                     id: pack.id,
-                    response: CommandResponse::AudioResourceCreate(result),
-                });
-            }
-            EngineCmd::CmdAudioResourcePush(args) => {
-                let result = audio::engine_cmd_audio_resource_push(engine, &args);
-                engine.response_queue.push(CommandResponseEnvelope {
-                    id: pack.id,
-                    response: CommandResponse::AudioResourcePush(result),
+                    response: CommandResponse::AudioResourceUpsert(result),
                 });
             }
             EngineCmd::CmdAudioSourceUpsert(args) => {
@@ -696,25 +685,18 @@ pub fn engine_process_batch(
                     response: CommandResponse::AudioSourceUpsert(result),
                 });
             }
-            EngineCmd::CmdAudioSourcePlay(args) => {
-                let result = audio::engine_cmd_audio_source_play(engine, &args);
+            EngineCmd::CmdAudioSourceTransport(args) => {
+                let result = audio::engine_cmd_audio_source_transport(engine, &args);
                 engine.response_queue.push(CommandResponseEnvelope {
                     id: pack.id,
-                    response: CommandResponse::AudioSourcePlay(result),
+                    response: CommandResponse::AudioSourceTransport(result),
                 });
             }
-            EngineCmd::CmdAudioSourcePause(args) => {
-                let result = audio::engine_cmd_audio_source_pause(engine, &args);
+            EngineCmd::CmdAudioStateGet(args) => {
+                let result = audio::engine_cmd_audio_state_get(engine, &args);
                 engine.response_queue.push(CommandResponseEnvelope {
                     id: pack.id,
-                    response: CommandResponse::AudioSourcePause(result),
-                });
-            }
-            EngineCmd::CmdAudioSourceStop(args) => {
-                let result = audio::engine_cmd_audio_source_stop(engine, &args);
-                engine.response_queue.push(CommandResponseEnvelope {
-                    id: pack.id,
-                    response: CommandResponse::AudioSourceStop(result),
+                    response: CommandResponse::AudioStateGet(result),
                 });
             }
             EngineCmd::CmdAudioSourceDispose(args) => {
