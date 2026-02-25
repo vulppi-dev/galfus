@@ -21,3 +21,13 @@ fn vs_main(@builtin(vertex_index) vertex_index: u32) -> VertexOutput {
 fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     return textureSample(t_diffuse, s_diffuse, in.uv);
 }
+
+fn cover_uv(uv: vec2<f32>, cover: vec4<f32>) -> vec2<f32> {
+    return uv * cover.xy + cover.zw;
+}
+
+@fragment
+fn fs_cover(in: VertexOutput) -> @location(0) vec4<f32> {
+    let uv = cover_uv(in.uv, _post);
+    return textureSample(t_diffuse, s_diffuse, uv);
+}

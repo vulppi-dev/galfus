@@ -617,8 +617,8 @@ struct FragmentOutput {
 
 @fragment
 fn fs_main(in: VertexOutput, @builtin(front_facing) is_front: bool) -> FragmentOutput {
-    let uv0 = select(in.uv0, vec2<f32>(1.0 - in.uv0.x, in.uv0.y), is_front);
-    let normal_geom = normalize(select(in.normal, -in.normal, is_front));
+    let uv0 = vec2<f32>(1.0 - in.uv0.x, in.uv0.y);
+    let normal_geom = normalize(select(-in.normal, in.normal, is_front));
     let base_param = input_at(material.input_indices.x);
     let base_color = base_param.rgb;
     let base_alpha = base_param.a;

@@ -25,7 +25,7 @@ pub(super) fn build_compose_bind_group(
             },
             wgpu::BindGroupEntry {
                 binding: 1,
-                resource: wgpu::BindingResource::Sampler(&library.samplers.point_clamp),
+                resource: wgpu::BindingResource::Sampler(&library.samplers.linear_clamp),
             },
             wgpu::BindGroupEntry {
                 binding: 2,
@@ -104,7 +104,7 @@ pub fn pass_compose_to_view(
             },
             fragment: Some(wgpu::FragmentState {
                 module: &library.compose_shader,
-                entry_point: Some("fs_main"),
+                entry_point: Some("fs_cover"),
                 targets: &[Some(wgpu::ColorTargetState {
                     format: target_format,
                     blend: key.blend,
@@ -182,6 +182,26 @@ pub fn pass_compose_to_view(
             .as_ref()
             .map(|vp| vp.resolve_size(target_width, target_height))
             .unwrap_or((target_width, target_height));
+
+        let viewport_width = width.max(1) as f32;
+        let viewport_height = height.max(1) as f32;
+        let source_size = target.texture.size();
+        let source_width = source_size.width.max(1) as f32;
+        let source_height = source_size.height.max(1) as f32;
+        let viewport_aspect = viewport_width / viewport_height;
+        let source_aspect = source_width / source_height;
+        let (scale_x, scale_y) = if viewport_aspect > source_aspect {
+            (1.0, (source_aspect / viewport_aspect).clamp(0.0, 1.0))
+        } else {
+            ((viewport_aspect / source_aspect).clamp(0.0, 1.0), 1.0)
+        };
+        let cover = [
+            scale_x,
+            scale_y,
+            (1.0 - scale_x) * 0.5,
+            (1.0 - scale_y) * 0.5,
+        ];
+        queue.write_buffer(uniform_buffer, 0, bytemuck::bytes_of(&cover));
 
         render_pass.set_viewport(x as f32, y as f32, width as f32, height as f32, 0.0, 1.0);
 

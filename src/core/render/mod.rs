@@ -236,12 +236,17 @@ pub fn render_frames(engine_state: &mut EngineState) {
                 continue;
             }
 
-            let target_size = engine_state
-                .universal_state
-                .surfaces
-                .entries
+            let target_size = surface_views
                 .get(&surface_id)
-                .map(|entry| entry.value.size)
+                .map(|snapshot| snapshot.size)
+                .or_else(|| {
+                    engine_state
+                        .universal_state
+                        .surfaces
+                        .entries
+                        .get(&surface_id)
+                        .map(|entry| entry.value.size)
+                })
                 .unwrap_or(window_state.inner_size);
             let target_format = engine_state
                 .universal_state
@@ -280,6 +285,7 @@ pub fn render_frames(engine_state: &mut EngineState) {
             }
             let camera_target_sizes = collect_window_camera_target_sizes(
                 &engine_state.universal_state,
+                *realm_id,
                 *window_id,
                 window_state.inner_size,
             );
@@ -455,11 +461,16 @@ pub fn render_frames(engine_state: &mut EngineState) {
             passes::pass_compose_surface(
                 render_state,
                 device,
+                queue,
                 &mut encoder,
                 &surface_view,
                 window_state.config.format,
                 glam::UVec2::new(window_state.config.width, window_state.config.height),
                 &surface_target.view,
+                glam::UVec2::new(
+                    surface_target.texture.size().width,
+                    surface_target.texture.size().height,
+                ),
                 engine_state.frame_index,
             );
 
@@ -1320,11 +1331,15 @@ fn refresh_window_target_textures(
 
 fn collect_window_camera_target_sizes(
     universal: &crate::core::realm::UniversalState,
+    realm_id: crate::core::realm::RealmId,
     window_id: u32,
     window_size: glam::UVec2,
 ) -> std::collections::HashMap<u32, glam::UVec2> {
     let mut sizes = std::collections::HashMap::new();
     for layer in universal.target_layers.entries.values() {
+        if layer.realm_id != realm_id.0 {
+            continue;
+        }
         let Some(camera_id) = layer.camera_id else {
             continue;
         };
