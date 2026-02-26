@@ -23,7 +23,7 @@ Behavior:
 
 - `msaa { enabled, sampleCount }`
 - `skybox { mode, intensity, rotation, groundColor, horizonColor, skyColor, cubemapTextureId? }`
-- `clearColor` (`Vec3`)
+- `clearColor` (`Vec4`, RGBA)
 - `post` (post-processing block: `filter_*`, outline, SSAO, bloom)
 
 ## Response

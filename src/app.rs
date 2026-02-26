@@ -14,7 +14,8 @@ pub fn run() {
     let demo_kind = select_demo();
     let window_id: u32 = 1;
 
-    let binding = create_window(window_id, demo_kind.title());
+    let title = demo_kind.title();
+    let binding = create_window(window_id, &title);
 
     let close_sent = run_demo(
         demo_kind,

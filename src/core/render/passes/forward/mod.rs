@@ -90,7 +90,7 @@ pub fn pass_forward(
     const TARGET_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba16Float;
     let default_clear_color = render_state.environment.clear_color;
     let default_skybox_mode = render_state.environment.skybox.mode;
-    let camera_clear_colors: std::collections::HashMap<u32, glam::Vec3> = render_state
+    let camera_clear_colors: std::collections::HashMap<u32, glam::Vec4> = render_state
         .camera_environment_overrides
         .iter()
         .map(|(camera_id, env)| (*camera_id, env.clear_color))
@@ -155,7 +155,7 @@ pub fn pass_forward(
             r: clear_rgb.x as f64,
             g: clear_rgb.y as f64,
             b: clear_rgb.z as f64,
-            a: 1.0,
+            a: clear_rgb.w as f64,
         };
 
         // 2. Get render target view

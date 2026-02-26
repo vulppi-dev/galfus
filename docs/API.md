@@ -143,7 +143,7 @@ The environment config now includes a post-processing block used by the `post` p
 
 - `msaa`
 - `skybox`
-- `clearColor` (RGB clear used when skybox is disabled)
+- `clearColor` (`Vec4` RGBA clear used when skybox is disabled; default/fallback is `[0,0,0,0]`)
 - `post`
 
 Environment profiles are host-addressable by `environmentId` via

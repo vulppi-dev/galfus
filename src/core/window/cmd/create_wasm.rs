@@ -213,7 +213,7 @@ pub fn engine_cmd_window_create_async(
             height: window_height,
             present_mode: wgpu::PresentMode::Fifo,
             format,
-            alpha_mode: wgpu::CompositeAlphaMode::Auto,
+            alpha_mode: wgpu::CompositeAlphaMode::Opaque,
             view_formats: vec![],
             desired_maximum_frame_latency: 2,
         };
