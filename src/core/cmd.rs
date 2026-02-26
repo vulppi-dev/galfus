@@ -89,25 +89,9 @@ pub enum EngineCmd {
     CmdSystemDiagnosticsSet(sys::CmdSystemDiagnosticsSetArgs),
     CmdWindowCreate(win::CmdWindowCreateArgs),
     CmdWindowClose(win::CmdWindowCloseArgs),
-    CmdWindowSetTitle(win::CmdWindowSetTitleArgs),
-    CmdWindowSetPosition(win::CmdWindowSetPositionArgs),
-    CmdWindowGetPosition(win::CmdWindowGetPositionArgs),
-    CmdWindowSetSize(win::CmdWindowSetSizeArgs),
-    CmdWindowGetSize(win::CmdWindowGetSizeArgs),
-    CmdWindowGetOuterSize(win::CmdWindowGetOuterSizeArgs),
-    CmdWindowGetSurfaceSize(win::CmdWindowGetSurfaceSizeArgs),
-    CmdWindowSetState(win::CmdWindowSetStateArgs),
-    CmdWindowGetState(win::CmdWindowGetStateArgs),
-    CmdWindowSetIcon(win::CmdWindowSetIconArgs),
-    CmdWindowSetDecorations(win::CmdWindowSetDecorationsArgs),
-    CmdWindowHasDecorations(win::CmdWindowHasDecorationsArgs),
-    CmdWindowSetResizable(win::CmdWindowSetResizableArgs),
-    CmdWindowIsResizable(win::CmdWindowIsResizableArgs),
-    CmdWindowRequestAttention(win::CmdWindowRequestAttentionArgs),
-    CmdWindowFocus(win::CmdWindowFocusArgs),
-    CmdWindowSetCursorVisible(win::CmdWindowSetCursorVisibleArgs),
-    CmdWindowSetCursorGrab(win::CmdWindowSetCursorGrabArgs),
-    CmdWindowSetCursorIcon(win::CmdWindowSetCursorIconArgs),
+    CmdWindowMeasurement(win::CmdWindowMeasurementArgs),
+    CmdWindowCursor(win::CmdWindowCursorArgs),
+    CmdWindowState(win::CmdWindowStateArgs),
     CmdUploadBufferDiscardAll(buf::CmdUploadBufferDiscardAllArgs),
     CmdCameraUpsert(CmdCameraUpsertArgs),
     CmdCameraDispose(res::CmdCameraDisposeArgs),
@@ -124,12 +108,10 @@ pub enum EngineCmd {
     CmdTextureBindTarget(res::CmdTextureBindTargetArgs),
     CmdAudioListenerUpsert(CmdAudioListenerUpsertArgs),
     CmdAudioListenerDispose(audio::CmdAudioListenerDisposeArgs),
-    CmdAudioResourceCreate(audio::CmdAudioResourceCreateArgs),
-    CmdAudioResourcePush(audio::CmdAudioResourcePushArgs),
+    CmdAudioResourceUpsert(audio::CmdAudioResourceUpsertArgs),
     CmdAudioSourceUpsert(CmdAudioSourceUpsertArgs),
-    CmdAudioSourcePlay(audio::CmdAudioSourcePlayArgs),
-    CmdAudioSourcePause(audio::CmdAudioSourcePauseArgs),
-    CmdAudioSourceStop(audio::CmdAudioSourceStopArgs),
+    CmdAudioSourceTransport(audio::CmdAudioSourceTransportArgs),
+    CmdAudioStateGet(audio::CmdAudioStateGetArgs),
     CmdAudioSourceDispose(audio::CmdAudioSourceDisposeArgs),
     CmdAudioResourceDispose(audio::CmdAudioResourceDisposeArgs),
     CmdGeometryUpsert(CmdGeometryUpsertArgs),
@@ -192,25 +174,9 @@ pub enum CommandResponse {
     SystemDiagnosticsSet(sys::CmdResultSystemDiagnosticsSet),
     WindowCreate(win::CmdResultWindowCreate),
     WindowClose(win::CmdResultWindowClose),
-    WindowSetTitle(win::CmdResultWindowSetTitle),
-    WindowSetPosition(win::CmdResultWindowSetPosition),
-    WindowGetPosition(win::CmdResultWindowGetPosition),
-    WindowSetSize(win::CmdResultWindowSetSize),
-    WindowGetSize(win::CmdResultWindowGetSize),
-    WindowGetOuterSize(win::CmdResultWindowGetOuterSize),
-    WindowGetSurfaceSize(win::CmdResultWindowGetSurfaceSize),
-    WindowSetState(win::CmdResultWindowSetState),
-    WindowGetState(win::CmdResultWindowGetState),
-    WindowSetIcon(win::CmdResultWindowSetIcon),
-    WindowSetDecorations(win::CmdResultWindowSetDecorations),
-    WindowHasDecorations(win::CmdResultWindowHasDecorations),
-    WindowSetResizable(win::CmdResultWindowSetResizable),
-    WindowIsResizable(win::CmdResultWindowIsResizable),
-    WindowRequestAttention(win::CmdResultWindowRequestAttention),
-    WindowFocus(win::CmdResultWindowFocus),
-    WindowSetCursorVisible(win::CmdResultWindowSetCursorVisible),
-    WindowSetCursorGrab(win::CmdResultWindowSetCursorGrab),
-    WindowSetCursorIcon(win::CmdResultWindowSetCursorIcon),
+    WindowMeasurement(win::CmdResultWindowMeasurement),
+    WindowCursor(win::CmdResultWindowCursor),
+    WindowState(win::CmdResultWindowState),
     UploadBufferDiscardAll(buf::CmdResultUploadBufferDiscardAll),
     CameraUpsert(CmdResultSimple),
     CameraDispose(res::CmdResultCameraDispose),
@@ -227,12 +193,10 @@ pub enum CommandResponse {
     TextureBindTarget(res::CmdResultTextureBindTarget),
     AudioListenerUpsert(CmdResultSimple),
     AudioListenerDispose(audio::CmdResultAudioListenerDispose),
-    AudioResourceCreate(audio::CmdResultAudioResourceCreate),
-    AudioResourcePush(audio::CmdResultAudioResourcePush),
+    AudioResourceUpsert(audio::CmdResultAudioResourceUpsert),
     AudioSourceUpsert(CmdResultSimple),
-    AudioSourcePlay(audio::CmdResultAudioSourcePlay),
-    AudioSourcePause(audio::CmdResultAudioSourcePause),
-    AudioSourceStop(audio::CmdResultAudioSourceStop),
+    AudioSourceTransport(audio::CmdResultAudioSourceTransport),
+    AudioStateGet(audio::CmdResultAudioStateGet),
     AudioSourceDispose(audio::CmdResultAudioSourceDispose),
     AudioResourceDispose(audio::CmdResultAudioResourceDispose),
     GeometryUpsert(CmdResultSimple),
@@ -322,6 +286,9 @@ fn maybe_emit_response_error_event(
         }
         CommandResponse::CameraUpsert(result) => failure_case!(result, "camera-upsert"),
         CommandResponse::WindowCreate(result) => failure_case!(result, "window-create"),
+        CommandResponse::WindowMeasurement(result) => failure_case!(result, "window-measurement"),
+        CommandResponse::WindowCursor(result) => failure_case!(result, "window-cursor"),
+        CommandResponse::WindowState(result) => failure_case!(result, "window-state"),
         CommandResponse::CameraDispose(result) => failure_case!(result, "camera-dispose"),
         CommandResponse::ModelUpsert(result) => failure_case!(result, "model-upsert"),
         CommandResponse::PoseUpdate(result) => failure_case!(result, "pose-update"),
@@ -344,14 +311,14 @@ fn maybe_emit_response_error_event(
         CommandResponse::AudioListenerDispose(result) => {
             failure_case!(result, "audio-listener-dispose")
         }
-        CommandResponse::AudioResourceCreate(result) => {
-            failure_case!(result, "audio-resource-create")
+        CommandResponse::AudioResourceUpsert(result) => {
+            failure_case!(result, "audio-resource-upsert")
         }
-        CommandResponse::AudioResourcePush(result) => failure_case!(result, "audio-resource-push"),
         CommandResponse::AudioSourceUpsert(result) => failure_case!(result, "audio-source-upsert"),
-        CommandResponse::AudioSourcePlay(result) => failure_case!(result, "audio-source-play"),
-        CommandResponse::AudioSourcePause(result) => failure_case!(result, "audio-source-pause"),
-        CommandResponse::AudioSourceStop(result) => failure_case!(result, "audio-source-stop"),
+        CommandResponse::AudioSourceTransport(result) => {
+            failure_case!(result, "audio-source-transport")
+        }
+        CommandResponse::AudioStateGet(result) => failure_case!(result, "audio-state-get"),
         CommandResponse::AudioSourceDispose(result) => {
             failure_case!(result, "audio-source-dispose")
         }
@@ -477,137 +444,25 @@ pub fn engine_process_batch(
                     response: CommandResponse::WindowClose(result),
                 });
             }
-            EngineCmd::CmdWindowSetTitle(args) => {
-                let result = win::engine_cmd_window_set_title(engine, &args);
+            EngineCmd::CmdWindowMeasurement(args) => {
+                let result = win::engine_cmd_window_measurement(engine, &args);
                 engine.response_queue.push(CommandResponseEnvelope {
                     id: pack.id,
-                    response: CommandResponse::WindowSetTitle(result),
+                    response: CommandResponse::WindowMeasurement(result),
                 });
             }
-            EngineCmd::CmdWindowSetPosition(args) => {
-                let result = win::engine_cmd_window_set_position(engine, &args);
+            EngineCmd::CmdWindowCursor(args) => {
+                let result = win::engine_cmd_window_cursor(engine, &args);
                 engine.response_queue.push(CommandResponseEnvelope {
                     id: pack.id,
-                    response: CommandResponse::WindowSetPosition(result),
+                    response: CommandResponse::WindowCursor(result),
                 });
             }
-            EngineCmd::CmdWindowGetPosition(args) => {
-                let result = win::engine_cmd_window_get_position(engine, &args);
+            EngineCmd::CmdWindowState(args) => {
+                let result = win::engine_cmd_window_state(engine, &args);
                 engine.response_queue.push(CommandResponseEnvelope {
                     id: pack.id,
-                    response: CommandResponse::WindowGetPosition(result),
-                });
-            }
-            EngineCmd::CmdWindowSetSize(args) => {
-                let result = win::engine_cmd_window_set_size(engine, &args);
-                engine.response_queue.push(CommandResponseEnvelope {
-                    id: pack.id,
-                    response: CommandResponse::WindowSetSize(result),
-                });
-            }
-            EngineCmd::CmdWindowGetSize(args) => {
-                let result = win::engine_cmd_window_get_size(engine, &args);
-                engine.response_queue.push(CommandResponseEnvelope {
-                    id: pack.id,
-                    response: CommandResponse::WindowGetSize(result),
-                });
-            }
-            EngineCmd::CmdWindowGetOuterSize(args) => {
-                let result = win::engine_cmd_window_get_outer_size(engine, &args);
-                engine.response_queue.push(CommandResponseEnvelope {
-                    id: pack.id,
-                    response: CommandResponse::WindowGetOuterSize(result),
-                });
-            }
-            EngineCmd::CmdWindowGetSurfaceSize(args) => {
-                let result = win::engine_cmd_window_get_surface_size(engine, &args);
-                engine.response_queue.push(CommandResponseEnvelope {
-                    id: pack.id,
-                    response: CommandResponse::WindowGetSurfaceSize(result),
-                });
-            }
-            EngineCmd::CmdWindowSetState(args) => {
-                let result = win::engine_cmd_window_set_state(engine, &args);
-                engine.response_queue.push(CommandResponseEnvelope {
-                    id: pack.id,
-                    response: CommandResponse::WindowSetState(result),
-                });
-            }
-            EngineCmd::CmdWindowGetState(args) => {
-                let result = win::engine_cmd_window_get_state(engine, &args);
-                engine.response_queue.push(CommandResponseEnvelope {
-                    id: pack.id,
-                    response: CommandResponse::WindowGetState(result),
-                });
-            }
-            EngineCmd::CmdWindowSetIcon(args) => {
-                let result = win::engine_cmd_window_set_icon(engine, &args);
-                engine.response_queue.push(CommandResponseEnvelope {
-                    id: pack.id,
-                    response: CommandResponse::WindowSetIcon(result),
-                });
-            }
-            EngineCmd::CmdWindowSetDecorations(args) => {
-                let result = win::engine_cmd_window_set_decorations(engine, &args);
-                engine.response_queue.push(CommandResponseEnvelope {
-                    id: pack.id,
-                    response: CommandResponse::WindowSetDecorations(result),
-                });
-            }
-            EngineCmd::CmdWindowHasDecorations(args) => {
-                let result = win::engine_cmd_window_has_decorations(engine, &args);
-                engine.response_queue.push(CommandResponseEnvelope {
-                    id: pack.id,
-                    response: CommandResponse::WindowHasDecorations(result),
-                });
-            }
-            EngineCmd::CmdWindowSetResizable(args) => {
-                let result = win::engine_cmd_window_set_resizable(engine, &args);
-                engine.response_queue.push(CommandResponseEnvelope {
-                    id: pack.id,
-                    response: CommandResponse::WindowSetResizable(result),
-                });
-            }
-            EngineCmd::CmdWindowIsResizable(args) => {
-                let result = win::engine_cmd_window_is_resizable(engine, &args);
-                engine.response_queue.push(CommandResponseEnvelope {
-                    id: pack.id,
-                    response: CommandResponse::WindowIsResizable(result),
-                });
-            }
-            EngineCmd::CmdWindowRequestAttention(args) => {
-                let result = win::engine_cmd_window_request_attention(engine, &args);
-                engine.response_queue.push(CommandResponseEnvelope {
-                    id: pack.id,
-                    response: CommandResponse::WindowRequestAttention(result),
-                });
-            }
-            EngineCmd::CmdWindowFocus(args) => {
-                let result = win::engine_cmd_window_focus(engine, &args);
-                engine.response_queue.push(CommandResponseEnvelope {
-                    id: pack.id,
-                    response: CommandResponse::WindowFocus(result),
-                });
-            }
-            EngineCmd::CmdWindowSetCursorVisible(args) => {
-                let result = win::engine_cmd_window_set_cursor_visible(engine, &args);
-                engine.response_queue.push(CommandResponseEnvelope {
-                    id: pack.id,
-                    response: CommandResponse::WindowSetCursorVisible(result),
-                });
-            }
-            EngineCmd::CmdWindowSetCursorGrab(args) => {
-                let result = win::engine_cmd_window_set_cursor_grab(engine, &args);
-                engine.response_queue.push(CommandResponseEnvelope {
-                    id: pack.id,
-                    response: CommandResponse::WindowSetCursorGrab(result),
-                });
-            }
-            EngineCmd::CmdWindowSetCursorIcon(args) => {
-                let result = win::engine_cmd_window_set_cursor_icon(engine, &args);
-                engine.response_queue.push(CommandResponseEnvelope {
-                    id: pack.id,
-                    response: CommandResponse::WindowSetCursorIcon(result),
+                    response: CommandResponse::WindowState(result),
                 });
             }
             EngineCmd::CmdUploadBufferDiscardAll(args) => {
@@ -799,18 +654,11 @@ pub fn engine_process_batch(
                     response: CommandResponse::AudioListenerDispose(result),
                 });
             }
-            EngineCmd::CmdAudioResourceCreate(args) => {
-                let result = audio::engine_cmd_audio_buffer_create_from_buffer(engine, &args);
+            EngineCmd::CmdAudioResourceUpsert(args) => {
+                let result = audio::engine_cmd_audio_resource_upsert(engine, &args);
                 engine.response_queue.push(CommandResponseEnvelope {
                     id: pack.id,
-                    response: CommandResponse::AudioResourceCreate(result),
-                });
-            }
-            EngineCmd::CmdAudioResourcePush(args) => {
-                let result = audio::engine_cmd_audio_resource_push(engine, &args);
-                engine.response_queue.push(CommandResponseEnvelope {
-                    id: pack.id,
-                    response: CommandResponse::AudioResourcePush(result),
+                    response: CommandResponse::AudioResourceUpsert(result),
                 });
             }
             EngineCmd::CmdAudioSourceUpsert(args) => {
@@ -837,25 +685,18 @@ pub fn engine_process_batch(
                     response: CommandResponse::AudioSourceUpsert(result),
                 });
             }
-            EngineCmd::CmdAudioSourcePlay(args) => {
-                let result = audio::engine_cmd_audio_source_play(engine, &args);
+            EngineCmd::CmdAudioSourceTransport(args) => {
+                let result = audio::engine_cmd_audio_source_transport(engine, &args);
                 engine.response_queue.push(CommandResponseEnvelope {
                     id: pack.id,
-                    response: CommandResponse::AudioSourcePlay(result),
+                    response: CommandResponse::AudioSourceTransport(result),
                 });
             }
-            EngineCmd::CmdAudioSourcePause(args) => {
-                let result = audio::engine_cmd_audio_source_pause(engine, &args);
+            EngineCmd::CmdAudioStateGet(args) => {
+                let result = audio::engine_cmd_audio_state_get(engine, &args);
                 engine.response_queue.push(CommandResponseEnvelope {
                     id: pack.id,
-                    response: CommandResponse::AudioSourcePause(result),
-                });
-            }
-            EngineCmd::CmdAudioSourceStop(args) => {
-                let result = audio::engine_cmd_audio_source_stop(engine, &args);
-                engine.response_queue.push(CommandResponseEnvelope {
-                    id: pack.id,
-                    response: CommandResponse::AudioSourceStop(result),
+                    response: CommandResponse::AudioStateGet(result),
                 });
             }
             EngineCmd::CmdAudioSourceDispose(args) => {

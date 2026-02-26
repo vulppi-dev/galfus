@@ -310,7 +310,12 @@ pub fn render_frames(engine_state: &mut EngineState) {
                         view: &target_view,
                         resolve_target: None,
                         ops: wgpu::Operations {
-                            load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
+                            load: wgpu::LoadOp::Clear(wgpu::Color {
+                                r: 0.0,
+                                g: 0.0,
+                                b: 0.0,
+                                a: 0.0,
+                            }),
                             store: wgpu::StoreOp::Store,
                         },
                         depth_slice: None,
@@ -965,9 +970,13 @@ fn apply_ui_platform_actions(engine_state: &mut EngineState, actions: Vec<UiPlat
     for action in actions {
         match action {
             UiPlatformAction::SetCursorIcon { window_id, icon } => {
-                let _ = crate::core::window::engine_cmd_window_set_cursor_icon(
+                let _ = crate::core::window::engine_cmd_window_cursor(
                     engine_state,
-                    &crate::core::window::CmdWindowSetCursorIconArgs { window_id, icon },
+                    &crate::core::window::CmdWindowCursorArgs {
+                        window_id,
+                        icon: Some(icon),
+                        ..Default::default()
+                    },
                 );
             }
             UiPlatformAction::OpenUrl {
@@ -1042,20 +1051,26 @@ fn apply_ui_platform_actions(engine_state: &mut EngineState, actions: Vec<UiPlat
                     ));
             }
             UiPlatformAction::RequestFocus { window_id } => {
-                let _ = crate::core::window::engine_cmd_window_focus(
+                let _ = crate::core::window::engine_cmd_window_state(
                     engine_state,
-                    &crate::core::window::CmdWindowFocusArgs { window_id },
+                    &crate::core::window::CmdWindowStateArgs {
+                        window_id,
+                        action: Some(crate::core::window::WindowStateAction::Focus),
+                        ..Default::default()
+                    },
                 );
             }
             UiPlatformAction::RequestAttention {
                 window_id,
                 attention,
             } => {
-                let _ = crate::core::window::engine_cmd_window_request_attention(
+                let _ = crate::core::window::engine_cmd_window_state(
                     engine_state,
-                    &crate::core::window::CmdWindowRequestAttentionArgs {
+                    &crate::core::window::CmdWindowStateArgs {
                         window_id,
+                        action: Some(crate::core::window::WindowStateAction::RequestAttention),
                         attention_type: attention,
+                        ..Default::default()
                     },
                 );
             }
@@ -1073,9 +1088,13 @@ fn apply_ui_platform_actions(engine_state: &mut EngineState, actions: Vec<UiPlat
                     ));
             }
             UiPlatformAction::SetWindowTitle { window_id, title } => {
-                let _ = crate::core::window::engine_cmd_window_set_title(
+                let _ = crate::core::window::engine_cmd_window_state(
                     engine_state,
-                    &crate::core::window::CmdWindowSetTitleArgs { window_id, title },
+                    &crate::core::window::CmdWindowStateArgs {
+                        window_id,
+                        title: Some(title),
+                        ..Default::default()
+                    },
                 );
             }
             UiPlatformAction::SetWindowSize {
@@ -1083,45 +1102,53 @@ fn apply_ui_platform_actions(engine_state: &mut EngineState, actions: Vec<UiPlat
                 width,
                 height,
             } => {
-                let _ = crate::core::window::engine_cmd_window_set_size(
+                let _ = crate::core::window::engine_cmd_window_measurement(
                     engine_state,
-                    &crate::core::window::CmdWindowSetSizeArgs {
+                    &crate::core::window::CmdWindowMeasurementArgs {
                         window_id,
-                        size: glam::UVec2::new(width.max(1), height.max(1)),
+                        size: Some(glam::UVec2::new(width.max(1), height.max(1))),
+                        ..Default::default()
                     },
                 );
             }
             UiPlatformAction::SetWindowPosition { window_id, x, y } => {
-                let _ = crate::core::window::engine_cmd_window_set_position(
+                let _ = crate::core::window::engine_cmd_window_measurement(
                     engine_state,
-                    &crate::core::window::CmdWindowSetPositionArgs {
+                    &crate::core::window::CmdWindowMeasurementArgs {
                         window_id,
-                        position: glam::IVec2::new(x, y),
+                        position: Some(glam::IVec2::new(x, y)),
+                        ..Default::default()
                     },
                 );
             }
             UiPlatformAction::SetWindowResizable { window_id, value } => {
-                let _ = crate::core::window::engine_cmd_window_set_resizable(
+                let _ = crate::core::window::engine_cmd_window_state(
                     engine_state,
-                    &crate::core::window::CmdWindowSetResizableArgs {
+                    &crate::core::window::CmdWindowStateArgs {
                         window_id,
-                        resizable: value,
+                        resizable: Some(value),
+                        ..Default::default()
                     },
                 );
             }
             UiPlatformAction::SetWindowDecorations { window_id, value } => {
-                let _ = crate::core::window::engine_cmd_window_set_decorations(
+                let _ = crate::core::window::engine_cmd_window_state(
                     engine_state,
-                    &crate::core::window::CmdWindowSetDecorationsArgs {
+                    &crate::core::window::CmdWindowStateArgs {
                         window_id,
-                        decorations: value,
+                        decorations: Some(value),
+                        ..Default::default()
                     },
                 );
             }
             UiPlatformAction::SetWindowState { window_id, state } => {
-                let _ = crate::core::window::engine_cmd_window_set_state(
+                let _ = crate::core::window::engine_cmd_window_state(
                     engine_state,
-                    &crate::core::window::CmdWindowSetStateArgs { window_id, state },
+                    &crate::core::window::CmdWindowStateArgs {
+                        window_id,
+                        state: Some(state),
+                        ..Default::default()
+                    },
                 );
             }
             UiPlatformAction::EmitViewportSync {

@@ -11,9 +11,8 @@ Accepts one of:
 
 Key fields:
 
-- `listenerId` (required)
-- optional transform/model binding
-- listener gain/spatial parameters (backend-dependent)
+- Create: `realmId`, `modelId`
+- Update: `position`, `velocity`, `forward`, `up`
 
 ## Notes
 

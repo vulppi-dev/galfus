@@ -143,7 +143,7 @@ The environment config now includes a post-processing block used by the `post` p
 
 - `msaa`
 - `skybox`
-- `clearColor` (RGB clear used when skybox is disabled)
+- `clearColor` (`Vec4` RGBA clear used when skybox is disabled; default/fallback is `[0,0,0,0]`)
 - `post`
 
 Environment profiles are host-addressable by `environmentId` via
@@ -235,7 +235,7 @@ Events:
 
 - `SystemEvent::AudioReady { resourceId, success, message }` (async decode)
   - Emitted when the audio buffer finishes decoding (desktop and web).
-  - Use this to decide when `CmdAudioSourcePlay` is safe to call.
+  - Use this to decide when `CmdAudioSourceTransport` with `action = "play"` is safe to call.
 - `SystemEvent::AudioStreamProgress { resourceId, receivedBytes, totalBytes, complete }` (streaming)
   - Emitted as stream chunks are received.
 
@@ -383,7 +383,7 @@ CmdTargetLayerUpsert(realmId=11, targetId=9002, layout=left/top/width/height/zIn
 ```
 
 Rules:
-- `windowId` is mandatory for `window`, `widget-realm-viewport`, and `realm-plane`.
+- `windowId` is mandatory only for `window`.
   `widget-realm-viewport` is intended to be consumed by `UiNodeProps::WidgetRealmViewport`.
   Its internal auto-link is used for dependency/routing and UI sampling, not for visible connector composition.
 - `size` is accepted only for `texture`.

@@ -15,11 +15,6 @@ pub fn upload_binary_bytes(bytes: &[u8], buffer_id: u64) {
     upload_buffer(buffer_id, UploadType::BinaryAsset, bytes);
 }
 
-pub fn upload_texture(path: &str, buffer_id: u64) {
-    let bytes = load_texture_bytes(path);
-    upload_texture_bytes(&bytes, buffer_id);
-}
-
 pub fn upload_buffer<T: bytemuck::Pod>(buffer_id: u64, upload_type: UploadType, data: &[T]) {
     let bytes = cast_slice(data);
     let upload_type_id = upload_type_to_u32(upload_type);

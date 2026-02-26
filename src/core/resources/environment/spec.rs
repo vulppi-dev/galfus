@@ -1,4 +1,4 @@
-use glam::Vec3;
+use glam::{Vec3, Vec4};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
@@ -57,7 +57,7 @@ impl Default for SkyboxConfig {
 pub struct EnvironmentConfig {
     pub msaa: MsaaConfig,
     pub skybox: SkyboxConfig,
-    pub clear_color: Vec3,
+    pub clear_color: Vec4,
     pub post: PostProcessConfig,
 }
 
@@ -66,7 +66,7 @@ impl Default for EnvironmentConfig {
         Self {
             msaa: MsaaConfig::default(),
             skybox: SkyboxConfig::default(),
-            clear_color: Vec3::new(0.0, 0.0, 0.0),
+            clear_color: Vec4::new(0.0, 0.0, 0.0, 0.0),
             post: PostProcessConfig::default(),
         }
     }
