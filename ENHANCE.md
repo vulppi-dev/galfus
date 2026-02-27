@@ -616,7 +616,9 @@ Mesmo simplificando validações, manter emissão consistente de `SystemEvent::E
 - [x] Reduzir estruturas temporárias no forward setup.
 - [x] Adicionar scratch buffers de lights.
 - [x] Tornar `realm_graph` incremental em hash/cache.
-- [ ] Planejar refactor de `ui/render.rs` para remover clones amplos.
+- [x] Planejar refactor de `ui/render.rs` para remover clones amplos.
+- [x] Reduzir alocação de entries em `prepare_materials`.
+- [x] Otimizar fronteira WASM para evitar cópia no acesso ao buffer.
 - [ ] Revisar validações redundantes no áudio conforme contrato host/core.
 
 ## Checklist de Validação

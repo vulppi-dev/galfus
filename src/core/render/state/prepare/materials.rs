@@ -92,7 +92,7 @@ impl RenderState {
 
             // Update Bind Group
             if record.bind_group.is_none() {
-                let mut entries = Vec::new();
+                let mut entries = Vec::with_capacity(12);
                 entries.push(wgpu::BindGroupEntry {
                     binding: 0,
                     resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
@@ -239,7 +239,7 @@ impl RenderState {
 
             // Update Bind Group
             if record.bind_group.is_none() {
-                let mut entries = Vec::new();
+                let mut entries = Vec::with_capacity(12);
                 entries.push(wgpu::BindGroupEntry {
                     binding: 0,
                     resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
