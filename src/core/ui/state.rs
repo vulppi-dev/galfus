@@ -1,9 +1,11 @@
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
+use std::sync::Arc;
 
 use crate::core::image::ImageBuffer;
 use crate::core::realm::RealmId;
 use crate::core::ui::image_async::UiImageAsyncManager;
+use crate::core::ui::renderer::ExternalTextureInput;
 use crate::core::ui::types::{
     UiDocumentId, UiImageId, UiNode, UiNodeId, UiNodeProps, UiThemeId, UiThemeValue,
 };
@@ -88,6 +90,8 @@ pub struct UiState {
     pub focus_document_by_window: HashMap<u32, UiDocumentId>,
     pub focus_node_by_window: HashMap<u32, UiNodeId>,
     pub capture_by_window: HashMap<u32, (RealmId, UiDocumentId, UiNodeId)>,
+    pub input_scratch: UiInputScratch,
+    pub external_input_cache: HashMap<RealmId, UiExternalInputCache>,
 }
 
 impl UiState {
@@ -139,6 +143,7 @@ impl UiState {
 
     pub fn remove_realm(&mut self, realm_id: RealmId) {
         self.realms.remove(&realm_id);
+        self.external_input_cache.remove(&realm_id);
         self.focus_by_window
             .retain(|_, focus_realm_id| *focus_realm_id != realm_id);
         self.capture_by_window
@@ -199,6 +204,8 @@ impl Default for UiState {
             focus_document_by_window: HashMap::new(),
             focus_node_by_window: HashMap::new(),
             capture_by_window: HashMap::new(),
+            input_scratch: UiInputScratch::default(),
+            external_input_cache: HashMap::new(),
         }
     }
 }
@@ -261,7 +268,30 @@ pub struct UiSceneState {
 pub struct UiTessellationCache {
     pub shapes_hash: u64,
     pub pixels_per_point: f32,
-    pub clipped: Vec<egui::ClippedPrimitive>,
+    pub clipped: Arc<[egui::ClippedPrimitive]>,
+}
+
+#[derive(Debug, Default)]
+pub struct UiInputScratch {
+    pub pointer_updates: Vec<(RealmId, egui::Event)>,
+    pub modifier_updates: Vec<(RealmId, egui::Modifiers)>,
+    pub focus_updates: Vec<(u32, RealmId, u32)>,
+    pub pointer_pos_updates: Vec<(RealmId, Option<egui::Pos2>)>,
+}
+
+#[derive(Clone, Default)]
+pub struct UiExternalInputCache {
+    pub signature: u64,
+    pub inputs: Vec<ExternalTextureInput>,
+}
+
+impl std::fmt::Debug for UiExternalInputCache {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("UiExternalInputCache")
+            .field("signature", &self.signature)
+            .field("inputs_len", &self.inputs.len())
+            .finish()
+    }
 }
 
 #[allow(dead_code)]

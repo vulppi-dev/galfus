@@ -70,6 +70,9 @@ impl RenderState {
             textures_sync_hash: 0,
             atlas_sync_hash: 0,
             target_binds_sync_hash: 0,
+            light_prepare_sorted_ids: Vec::new(),
+            light_prepare_lights: Vec::new(),
+            light_prepare_frustums: Vec::new(),
             rgba16f_msaa_supported_mask: RenderState::MSAA_MASK_DEFAULT_SAFE,
         }
     }
@@ -117,6 +120,9 @@ impl RenderState {
         self.textures_sync_hash = 0;
         self.atlas_sync_hash = 0;
         self.target_binds_sync_hash = 0;
+        self.light_prepare_sorted_ids.clear();
+        self.light_prepare_lights.clear();
+        self.light_prepare_frustums.clear();
     }
 
     pub fn begin_frame(&mut self, frame_index: u64) {

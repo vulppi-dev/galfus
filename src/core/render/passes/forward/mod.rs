@@ -88,33 +88,18 @@ pub fn pass_forward(
     clear_color: bool,
 ) {
     const TARGET_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba16Float;
-    let default_clear_color = render_state.environment.clear_color;
-    let default_skybox_mode = render_state.environment.skybox.mode;
-    let camera_clear_colors: std::collections::HashMap<u32, glam::Vec4> = render_state
-        .camera_environment_overrides
-        .iter()
-        .map(|(camera_id, env)| (*camera_id, env.clear_color))
-        .collect();
-    let camera_skybox_modes: std::collections::HashMap<u32, SkyboxMode> = render_state
-        .camera_environment_overrides
-        .iter()
-        .map(|(camera_id, env)| (*camera_id, env.skybox.mode))
-        .collect();
-
     let camera_ids: Vec<u32> = render_state.camera_order.iter().copied().collect();
-    let mut camera_sample_counts: std::collections::HashMap<u32, u32> =
-        std::collections::HashMap::with_capacity(camera_ids.len());
+    let mut camera_sample_counts: Vec<u32> = Vec::with_capacity(camera_ids.len());
+    let mut camera_clear_colors: Vec<glam::Vec4> = Vec::with_capacity(camera_ids.len());
+    let mut camera_skybox_modes: Vec<SkyboxMode> = Vec::with_capacity(camera_ids.len());
     for camera_id in camera_ids.iter().copied() {
-        let sample_count = render_state.msaa_sample_count_for_environment(
-            render_state.environment_for_camera(camera_id),
-            device,
-            TARGET_FORMAT,
-        );
-        camera_sample_counts.insert(camera_id, sample_count);
-    }
-    for camera_id in camera_ids.iter().copied() {
+        let environment = render_state.environment_for_camera(camera_id);
+        let sample_count =
+            render_state.msaa_sample_count_for_environment(environment, device, TARGET_FORMAT);
+        camera_sample_counts.push(sample_count);
+        camera_clear_colors.push(environment.clear_color);
+        camera_skybox_modes.push(environment.skybox.mode);
         if let Some(camera_record) = render_state.scene.cameras.get_mut(&camera_id) {
-            let sample_count = camera_sample_counts.get(&camera_id).copied().unwrap_or(1);
             ensure_camera_forward_targets(camera_record, device, sample_count);
         }
     }
@@ -133,22 +118,22 @@ pub fn pass_forward(
     gizmos.prepare(device, queue);
 
     // 1. Sort cameras by order
-    for (camera_index, camera_id) in render_state.camera_order.iter().copied().enumerate() {
+    for (camera_index, camera_id) in camera_ids.iter().copied().enumerate() {
         let Some(camera_record) = scene.cameras.get(&camera_id) else {
             continue;
         };
-        let sample_count = camera_sample_counts.get(&camera_id).copied().unwrap_or(1);
+        let sample_count = camera_sample_counts.get(camera_index).copied().unwrap_or(1);
         light_system.write_draw_params(camera_index as u32, light_system.max_lights_per_camera);
 
         let clear_rgb = camera_clear_colors
-            .get(&camera_id)
+            .get(camera_index)
             .copied()
-            .unwrap_or(default_clear_color);
+            .unwrap_or(glam::Vec4::ZERO);
         let has_skybox_for_camera = !matches!(
             camera_skybox_modes
-                .get(&camera_id)
+                .get(camera_index)
                 .copied()
-                .unwrap_or(default_skybox_mode),
+                .unwrap_or(SkyboxMode::None),
             SkyboxMode::None
         );
         let clear_wgpu = wgpu::Color {

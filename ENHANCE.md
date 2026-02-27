@@ -610,17 +610,17 @@ Mesmo simplificando validações, manter emissão consistente de `SystemEvent::E
 - [x] Cachear bind groups de post.
 - [x] Reduzir clones de config em compose/post.
 - [x] Criar cache incremental de input routing.
-- [ ] Cachear mapeamento de external textures na pass UI.
-- [ ] Evitar clones de tesselação na pass UI.
-- [ ] Adicionar scratch buffers no `process_ui_input`.
-- [ ] Reduzir estruturas temporárias no forward setup.
-- [ ] Adicionar scratch buffers de lights.
-- [ ] Tornar `realm_graph` incremental em hash/cache.
+- [x] Cachear mapeamento de external textures na pass UI.
+- [x] Evitar clones de tesselação na pass UI.
+- [x] Adicionar scratch buffers no `process_ui_input`.
+- [x] Reduzir estruturas temporárias no forward setup.
+- [x] Adicionar scratch buffers de lights.
+- [x] Tornar `realm_graph` incremental em hash/cache.
 - [ ] Planejar refactor de `ui/render.rs` para remover clones amplos.
 - [ ] Revisar validações redundantes no áudio conforme contrato host/core.
 
 ## Checklist de Validação
-- [ ] `scripts/check.sh`.
+- [x] `scripts/check.sh`.
 - [ ] Testes de regressão visual dos demos.
 - [ ] Medição de profiling antes/depois por fase.
 - [ ] Verificação de estabilidade de input routing.

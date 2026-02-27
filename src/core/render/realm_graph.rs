@@ -1,5 +1,5 @@
 use std::collections::{HashMap, HashSet};
-use std::hash::{Hash, Hasher};
+use std::hash::Hasher;
 
 use crate::core::realm::{ConnectorId, RealmGraphPlan, RealmId, SurfaceId, UniversalState};
 use crate::core::render::{RenderState, passes};
@@ -60,33 +60,47 @@ pub(crate) fn collect_present_sizes(
     cache: &mut HashMap<SurfaceId, glam::UVec2>,
     cache_hash: &mut u64,
 ) {
-    let mut hasher = std::collections::hash_map::DefaultHasher::new();
-    let mut present_entries: Vec<_> = universal.presents.entries.values().collect();
-    present_entries.sort_by_key(|entry| (entry.value.surface.0, entry.value.window_id));
+    let mut chosen_windows: HashMap<SurfaceId, u32> = HashMap::new();
+    for entry in universal.presents.entries.values() {
+        chosen_windows
+            .entry(entry.value.surface)
+            .and_modify(|window_id| {
+                if entry.value.window_id < *window_id {
+                    *window_id = entry.value.window_id;
+                }
+            })
+            .or_insert(entry.value.window_id);
+    }
 
-    for entry in present_entries {
-        entry.value.surface.0.hash(&mut hasher);
-        entry.value.window_id.hash(&mut hasher);
+    let mut aggregate_hash = 0_u64;
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    let mut changed = false;
+    for (surface_id, window_id) in &chosen_windows {
         let size = windows
-            .get(&entry.value.window_id)
+            .get(window_id)
             .map(|window| window.inner_size)
             .unwrap_or_else(|| glam::UVec2::new(0, 0));
-        size.x.hash(&mut hasher);
-        size.y.hash(&mut hasher);
+        if cache.get(surface_id).copied() != Some(size) {
+            cache.insert(*surface_id, size);
+            changed = true;
+        }
+        hasher.write_u32(surface_id.0);
+        hasher.write_u32(*window_id);
+        hasher.write_u32(size.x);
+        hasher.write_u32(size.y);
+        aggregate_hash ^= hasher.finish();
+        hasher = std::collections::hash_map::DefaultHasher::new();
+    }
+    let previous_len = cache.len();
+    cache.retain(|surface_id, _| chosen_windows.contains_key(surface_id));
+    if cache.len() != previous_len {
+        changed = true;
     }
 
-    let current_hash = hasher.finish();
-    if current_hash == *cache_hash {
+    if !changed && aggregate_hash == *cache_hash {
         return;
     }
-
-    cache.clear();
-    for present in universal.presents.entries.values() {
-        if let Some(window_state) = windows.get(&present.value.window_id) {
-            cache.insert(present.value.surface, window_state.inner_size);
-        }
-    }
-    *cache_hash = current_hash;
+    *cache_hash = aggregate_hash;
 }
 
 pub(crate) fn collect_connectors_by_realm(

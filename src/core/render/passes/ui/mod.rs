@@ -10,6 +10,7 @@ use crate::core::ui::renderer::ExternalTextureInput;
 use crate::core::window::{CursorIcon, EngineWindowState, UserAttentionType};
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
+use std::sync::Arc;
 use std::time::Instant;
 
 #[derive(Debug, Clone)]
@@ -189,8 +190,8 @@ pub fn pass_ui(
                 && output.textures_delta.set.is_empty()
         })
         .map(|cache| cache.clipped.clone());
-    let clipped_primitives =
-        cached.unwrap_or_else(|| context.tessellate(output.shapes, output.pixels_per_point));
+    let clipped_primitives: Arc<[egui::ClippedPrimitive]> = cached
+        .unwrap_or_else(|| Arc::from(context.tessellate(output.shapes, output.pixels_per_point)));
     let tess_ms = tess_start.elapsed().as_secs_f32() * 1000.0;
     if let Some(realm) = ui_state.realm_mut(realm_id) {
         realm.profile.layout_ms = layout_ms;
@@ -216,7 +217,7 @@ pub fn pass_ui(
         target_format,
         target_size,
         output.pixels_per_point,
-        &clipped_primitives,
+        clipped_primitives.as_ref(),
     );
     if let Some(realm) = ui_state.realm_mut(realm_id) {
         realm.profile.upload_ms = render_stats.upload_ms;
@@ -536,7 +537,21 @@ fn collect_external_textures(
     surface_targets: &HashMap<SurfaceId, RenderTarget>,
     realm_id: RealmId,
 ) -> Vec<ExternalTextureInput> {
-    ui_state.external_textures.clear();
+    let signature = hash_external_texture_signature(
+        render_state,
+        targets,
+        target_layers,
+        auto_links,
+        surface_targets,
+        realm_id,
+    );
+    if let Some(cached) = ui_state.external_input_cache.get(&realm_id)
+        && cached.signature == signature
+    {
+        return cached.inputs.clone();
+    }
+
+    let mut alive_target_ids = std::collections::HashSet::new();
     let mut target_surfaces: HashMap<TargetId, (SurfaceId, u32)> = HashMap::new();
 
     for ((link_realm, target_id), link) in auto_links.iter() {
@@ -571,6 +586,7 @@ fn collect_external_textures(
                     source_realm_id,
                 );
                 if let Some(input) = camera_texture_input(render_state, target_id.0, camera_id) {
+                    alive_target_ids.insert(target_id.0);
                     ui_state.external_textures.insert(target_id.0, input.size);
                     inputs.push(input);
                     continue;
@@ -586,6 +602,7 @@ fn collect_external_textures(
         };
         let size = surface_state.value.size;
         let size = [size.x.max(1), size.y.max(1)];
+        alive_target_ids.insert(target_id.0);
         ui_state.external_textures.insert(target_id.0, size);
 
         inputs.push(ExternalTextureInput {
@@ -595,8 +612,66 @@ fn collect_external_textures(
             source_ptr: surface_target as *const RenderTarget as usize,
         });
     }
+    ui_state
+        .external_textures
+        .retain(|target_id, _| alive_target_ids.contains(target_id));
+    ui_state.external_input_cache.insert(
+        realm_id,
+        crate::core::ui::state::UiExternalInputCache {
+            signature,
+            inputs: inputs.clone(),
+        },
+    );
 
     inputs
+}
+
+fn hash_external_texture_signature(
+    render_state: &RenderState,
+    targets: &TargetTable,
+    target_layers: &TargetLayerTable,
+    auto_links: &HashMap<(u32, TargetId), AutoLink>,
+    surface_targets: &HashMap<SurfaceId, RenderTarget>,
+    realm_id: RealmId,
+) -> u64 {
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    realm_id.hash(&mut hasher);
+    for ((link_realm, target_id), link) in auto_links {
+        let Some(target) = targets.entries.get(target_id) else {
+            continue;
+        };
+        if target.kind != TargetKind::Texture && target.kind != TargetKind::WidgetRealmViewport {
+            continue;
+        }
+        link_realm.hash(&mut hasher);
+        target_id.hash(&mut hasher);
+        link.surface_id.hash(&mut hasher);
+        target.kind.hash(&mut hasher);
+        if let Some(surface_target) = surface_targets.get(&link.surface_id) {
+            (surface_target as *const RenderTarget as usize).hash(&mut hasher);
+            let size = surface_target.texture.size();
+            size.width.hash(&mut hasher);
+            size.height.hash(&mut hasher);
+        }
+    }
+    for ((layer_realm, layer_target), layer) in &target_layers.entries {
+        layer_realm.hash(&mut hasher);
+        layer_target.hash(&mut hasher);
+        layer.camera_id.hash(&mut hasher);
+    }
+    for camera_id in &render_state.camera_order {
+        camera_id.hash(&mut hasher);
+        if let Some(camera) = render_state.camera_record(*camera_id) {
+            let ptr = camera
+                .render_target
+                .as_ref()
+                .or(camera.post_target.as_ref())
+                .map(|target| target as *const RenderTarget as usize)
+                .unwrap_or_default();
+            ptr.hash(&mut hasher);
+        }
+    }
+    hasher.finish()
 }
 
 fn camera_texture_input(

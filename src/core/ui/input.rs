@@ -12,10 +12,16 @@ use std::time::Instant;
 pub fn process_ui_input(engine: &mut EngineState) {
     let input_start = Instant::now();
     let realms_by_window = collect_ui_realms_by_window(engine);
-    let mut pointer_updates: Vec<(RealmId, egui::Event)> = Vec::new();
-    let mut modifier_updates: Vec<(RealmId, egui::Modifiers)> = Vec::new();
-    let mut focus_updates: Vec<(u32, RealmId, u32)> = Vec::new();
-    let mut pointer_pos_updates: Vec<(RealmId, Option<egui::Pos2>)> = Vec::new();
+    let mut scratch = std::mem::take(&mut engine.universal_state.ui.input_scratch);
+    scratch.pointer_updates.clear();
+    scratch.modifier_updates.clear();
+    scratch.focus_updates.clear();
+    scratch.pointer_pos_updates.clear();
+
+    let pointer_updates = &mut scratch.pointer_updates;
+    let modifier_updates = &mut scratch.modifier_updates;
+    let focus_updates = &mut scratch.focus_updates;
+    let pointer_pos_updates = &mut scratch.pointer_pos_updates;
 
     for event in engine.event_queue.iter() {
         match event {
@@ -132,7 +138,7 @@ pub fn process_ui_input(engine: &mut EngineState) {
         }
     }
 
-    for (window_id, realm_id, document_id) in focus_updates {
+    for (window_id, realm_id, document_id) in focus_updates.drain(..) {
         engine
             .universal_state
             .ui
@@ -150,18 +156,18 @@ pub fn process_ui_input(engine: &mut EngineState) {
             .insert(window_id, 0);
     }
 
-    for (realm_id, modifiers) in modifier_updates {
+    for (realm_id, modifiers) in modifier_updates.drain(..) {
         if let Some(realm) = ensure_realm(&mut engine.universal_state.ui, realm_id) {
             realm.modifiers = modifiers;
         }
     }
 
-    for (realm_id, event) in pointer_updates {
+    for (realm_id, event) in pointer_updates.drain(..) {
         if let Some(realm) = ensure_realm(&mut engine.universal_state.ui, realm_id) {
             realm.push_event(event);
         }
     }
-    for (realm_id, pos) in pointer_pos_updates {
+    for (realm_id, pos) in pointer_pos_updates.drain(..) {
         if let Some(realm) = ensure_realm(&mut engine.universal_state.ui, realm_id) {
             realm.last_pointer_pos = pos;
         }
@@ -171,6 +177,8 @@ pub fn process_ui_input(engine: &mut EngineState) {
     for realm in engine.universal_state.ui.realms.values_mut() {
         realm.profile.input_routing_ms = input_ms;
     }
+
+    engine.universal_state.ui.input_scratch = scratch;
 }
 
 fn ensure_realm(
