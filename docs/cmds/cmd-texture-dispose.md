@@ -9,7 +9,6 @@ texture with the same ID is created again.
 
 | Field     | Type | Description                 |
 | --------- | ---- | --------------------------- |
-| windowId  | u32  | ID of the window            |
 | textureId | u32  | ID of the texture to remove |
 
 ## Response

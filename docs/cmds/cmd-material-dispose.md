@@ -6,7 +6,6 @@ Removes a material resource.
 
 | Field      | Type | Description                  |
 | ---------- | ---- | ---------------------------- |
-| windowId   | u32  | ID of the window             |
 | materialId | u32  | ID of the material to remove |
 
 ## Response

@@ -13,7 +13,6 @@ Notes:
 
 | Field        | Type                        | Description                                                        |
 | ------------ | --------------------------- | ------------------------------------------------------------------ |
-| windowId     | u32                         | ID of the window                                                   |
 | textureId    | u32                         | Unique ID for the texture                                          |
 | label        | Option<String>              | (Optional) Semantic name                                           |
 | bufferId     | u64                         | ID of the uploaded buffer containing image data                    |

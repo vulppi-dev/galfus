@@ -6,7 +6,7 @@ Removes a model instance.
 
 | Field    | Type | Description               |
 | -------- | ---- | ------------------------- |
-| windowId | u32  | ID of the window          |
+| realmId  | u32  | ID of the realm           |
 | modelId  | u32  | ID of the model to remove |
 
 ## Response

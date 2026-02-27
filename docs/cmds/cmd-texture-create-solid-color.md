@@ -6,7 +6,6 @@ Creates a 1x1 texture with a solid color.
 
 | Field        | Type                        | Description                                                        |
 | ------------ | --------------------------- | ------------------------------------------------------------------ |
-| windowId     | u32                         | ID of the window                                                   |
 | textureId    | u32                         | Unique ID for the texture                                          |
 | label        | Option<String>              | (Optional) Semantic name                                           |
 | color        | Vec4                        | Color in RGBA                                                      |

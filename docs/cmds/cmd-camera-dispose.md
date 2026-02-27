@@ -6,6 +6,7 @@ Disposes of a camera resource.
 
 | Field    | Type | Description                |
 | -------- | ---- | -------------------------- |
+| realmId  | u32  | ID of the realm owning the camera |
 | cameraId | u32  | ID of the camera to remove |
 
 ## Response
