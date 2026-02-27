@@ -93,8 +93,6 @@ pub fn render_realm_documents(
                 ui.set_min_size(rect.size());
                 ui.set_max_size(rect.size());
                 ui.set_clip_rect(rect);
-                let bg = ui.style().visuals.window_fill;
-                ui.painter().rect_filled(ui.max_rect(), 0.0, bg);
                 render_children(
                     ui,
                     &document,
@@ -119,22 +117,22 @@ fn render_children(
     ui_events: &mut Vec<UiEvent>,
     time_seconds: f64,
 ) {
-    let ordered: Vec<UiNodeId> = match parent {
+    let ordered: &[UiNodeId] = match parent {
         Some(parent_id) => document
             .ordered_children
             .get(&parent_id)
-            .cloned()
-            .unwrap_or_else(|| children.to_vec()),
+            .map(Vec::as_slice)
+            .unwrap_or(children),
         None => {
             if document.ordered_root.is_empty() {
-                children.to_vec()
+                children
             } else {
-                document.ordered_root.clone()
+                document.ordered_root.as_slice()
             }
         }
     };
 
-    for node_id in ordered {
+    for node_id in ordered.iter().copied() {
         if let Some(entry) = document.nodes.get(&node_id) {
             render_node(
                 ui,
@@ -2087,16 +2085,16 @@ fn render_scene_node(
     );
 }
 
-fn child_ids_ordered(
-    document: &UiDocument,
+fn child_ids_ordered<'a>(
+    document: &'a UiDocument,
     parent_id: UiNodeId,
-    fallback: &[UiNodeId],
-) -> Vec<UiNodeId> {
+    fallback: &'a [UiNodeId],
+) -> &'a [UiNodeId] {
     document
         .ordered_children
         .get(&parent_id)
-        .cloned()
-        .unwrap_or_else(|| fallback.to_vec())
+        .map(Vec::as_slice)
+        .unwrap_or(fallback)
 }
 
 fn resolve_size(size: Option<UiSize>, fallback: [u32; 2]) -> egui::Vec2 {
@@ -2165,9 +2163,8 @@ fn emit_interaction_events(
         response.clone().on_hover_text(tooltip.to_string());
     }
     if let Some(items) = context_menu {
-        let context_items: Vec<String> = items.to_vec();
         let _ = response.clone().context_menu(|ui| {
-            for item in context_items {
+            for item in items {
                 if ui.button(item.clone()).clicked() {
                     push_ui_event(
                         ui_events,

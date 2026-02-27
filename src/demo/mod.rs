@@ -1,78 +1,61 @@
 mod assets;
 mod commands;
-mod demo_001;
-mod demo_002;
-mod demo_003;
-mod demo_004;
-mod demo_005;
-mod demo_006;
-mod demo_007;
-mod demo_008;
-mod demo_009;
-mod demo_010;
-mod demo_011;
-mod demo_012;
-mod demo_013;
 mod geometry;
+mod hud;
 mod io;
 mod loop_utils;
+mod scenarios;
 mod session;
 
 use std::env;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DemoKind {
-    Demo001,
-    Demo002,
-    Demo003,
-    Demo004,
-    Demo005,
-    Demo006,
-    Demo007,
-    Demo008,
-    Demo009,
-    Demo010,
-    Demo011,
-    Demo012,
-    Demo013,
+    Demo1,
+    Demo2,
+    Demo3,
+    Demo4,
+    Demo5,
+    Demo6,
 }
 
 impl DemoKind {
     pub fn from_str(value: &str) -> Option<Self> {
         match value.trim().to_ascii_lowercase().as_str() {
-            "demo_001" | "demo001" | "1" => Some(Self::Demo001),
-            "demo_002" | "demo002" | "2" => Some(Self::Demo002),
-            "demo_003" | "demo003" | "3" => Some(Self::Demo003),
-            "demo_004" | "demo004" | "4" => Some(Self::Demo004),
-            "demo_005" | "demo005" | "5" => Some(Self::Demo005),
-            "demo_006" | "demo006" | "6" => Some(Self::Demo006),
-            "demo_007" | "demo007" | "7" => Some(Self::Demo007),
-            "demo_008" | "demo008" | "8" => Some(Self::Demo008),
-            "demo_009" | "demo009" | "9" => Some(Self::Demo009),
-            "demo_010" | "demo010" | "10" => Some(Self::Demo010),
-            "demo_011" | "demo011" | "11" => Some(Self::Demo011),
-            "demo_012" | "demo012" | "12" => Some(Self::Demo012),
-            "demo_013" | "demo013" | "13" => Some(Self::Demo013),
+            "suite_a" | "suitea" | "a" | "1" | "demo_001" | "demo001" | "demo_002" | "demo002"
+            | "demo_003" | "demo003" | "demo_004" | "demo004" | "demo_005" | "demo005" => {
+                Some(Self::Demo1)
+            }
+            "suite_b" | "suiteb" | "b" | "2" | "demo_006" | "demo006" | "demo_007" | "demo007"
+            | "demo_008" | "demo008" | "demo_009" | "demo009" => Some(Self::Demo2),
+            "suite_c" | "suitec" | "c" | "3" | "demo_010" | "demo010" | "demo_011" | "demo011"
+            | "demo_012" | "demo012" | "demo_013" | "demo013" | "demo_014" | "demo014"
+            | "demo_015" | "demo015" | "demo_016" | "demo016" => Some(Self::Demo3),
+            "suite_d" | "suited" | "d" | "4" | "demo_017" | "demo017" | "demo_018" | "demo018"
+            | "demo_019" | "demo019" | "demo_020" | "demo020" | "demo_021" | "demo021" => {
+                Some(Self::Demo4)
+            }
+            "suite_e" | "suitee" | "e" | "5" | "demo_022" | "demo022" | "demo_023" | "demo023"
+            | "demo_024" | "demo024" | "demo_025" | "demo025" => Some(Self::Demo5),
+            "suite_f" | "suitef" | "f" | "6" | "demo_026" | "demo026" | "demo_027" | "demo027"
+            | "demo_028" | "demo028" => Some(Self::Demo6),
             _ => None,
         }
     }
 
-    pub fn title(self) -> &'static str {
+    pub fn number(self) -> u32 {
         match self {
-            Self::Demo001 => "Vulfram Demo 001",
-            Self::Demo002 => "Vulfram Demo 002",
-            Self::Demo003 => "Vulfram Demo 003",
-            Self::Demo004 => "Vulfram Demo 004",
-            Self::Demo005 => "Vulfram Demo 005",
-            Self::Demo006 => "Vulfram Demo 006",
-            Self::Demo007 => "Vulfram Demo 007",
-            Self::Demo008 => "Vulfram Demo 008",
-            Self::Demo009 => "Vulfram Demo 009",
-            Self::Demo010 => "Vulfram Demo 010",
-            Self::Demo011 => "Vulfram Demo 011",
-            Self::Demo012 => "Vulfram Demo 012",
-            Self::Demo013 => "Vulfram Demo 013",
+            Self::Demo1 => 1,
+            Self::Demo2 => 2,
+            Self::Demo3 => 3,
+            Self::Demo4 => 4,
+            Self::Demo5 => 5,
+            Self::Demo6 => 6,
         }
+    }
+
+    pub fn title(self) -> String {
+        format!("Vulfram Demo {}", self.number())
     }
 }
 
@@ -83,50 +66,26 @@ pub struct DemoContext {
 }
 
 pub fn select_demo() -> DemoKind {
-    if let Some(arg) = env::args().nth(1) {
-        if let Some(demo) = DemoKind::from_str(&arg) {
-            println!("Selected demo from args: {:?}", demo);
-            return demo;
-        }
+    if let Some(arg) = env::args().nth(1)
+        && let Some(demo) = DemoKind::from_str(&arg)
+    {
+        println!("Selected demo from args: {:?}", demo);
+        return demo;
     }
 
-    if let Ok(value) = env::var("VULFRAM_DEMO") {
-        if let Some(demo) = DemoKind::from_str(&value) {
-            println!("Selected demo from env: {:?}", demo);
-            return demo;
-        }
+    if let Ok(value) = env::var("VULFRAM_DEMO")
+        && let Some(demo) = DemoKind::from_str(&value)
+    {
+        println!("Selected demo from env: {:?}", demo);
+        return demo;
     }
 
-    DemoKind::Demo001
+    DemoKind::Demo1
 }
 
 pub fn run_demo(demo: DemoKind, ctx: DemoContext) -> bool {
-    match demo {
-        DemoKind::Demo001 => demo_001::run(ctx),
-        DemoKind::Demo002 => demo_002::run(ctx),
-        DemoKind::Demo003 => demo_003::run(ctx),
-        DemoKind::Demo004 => demo_004::run(ctx),
-        DemoKind::Demo005 => demo_005::run(ctx),
-        DemoKind::Demo006 => demo_006::run(ctx),
-        DemoKind::Demo007 => demo_007::run(ctx),
-        DemoKind::Demo008 => demo_008::run(ctx),
-        DemoKind::Demo009 => demo_009::run(ctx),
-        DemoKind::Demo010 => demo_010::run(ctx),
-        DemoKind::Demo011 => demo_011::run(ctx),
-        DemoKind::Demo012 => demo_012::run(ctx),
-        DemoKind::Demo013 => demo_013::run(ctx),
-    }
+    scenarios::run(demo, ctx)
 }
 
-pub use assets::{
-    load_texture_bytes, upload_binary_bytes, upload_buffer, upload_texture, upload_texture_bytes,
-};
-pub use commands::{
-    create_ambient_light_cmd, create_camera_cmd, create_floor_cmd, create_instanced_cubes,
-    create_point_light_cmd, create_shadow_config_cmd, create_standard_material_cmd,
-    create_texture_cmd, default_camera_transform, draw_axes_gizmos,
-};
-pub use geometry::build_skinned_plane;
 pub use io::send_commands;
-pub use loop_utils::{run_loop, run_loop_with_events};
 pub use session::create_window;

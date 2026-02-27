@@ -8,7 +8,7 @@ Upserts a logical target used by the auto-graph system.
 | ------------- | --------------------- | --------------------------------------------- |
 | targetId      | u64                   | Logical target ID                             |
 | kind          | TargetKind            | "window", "widget-realm-viewport", "realm-plane", "texture" |
-| windowId | Option<u32>           | Required for `window`, `widget-realm-viewport`, `realm-plane` |
+| windowId | Option<u32>           | Required only for `window` |
 | size  | Option<UVec2>         | Valid only for `texture` targets |
 | formatPolicy  | Option<SurfaceFormat> | Optional color/depth format policy            |
 | alphaPolicy   | Option<AlphaMode>     | Optional alpha policy                         |
@@ -25,8 +25,8 @@ Returns `CmdResultTargetUpsert`:
 
 ## Validation Rules
 
-- `windowId` is required for `kind = "window"`, `"widget-realm-viewport"`, and `"realm-plane"`.
-- `windowId` must reference an existing window.
+- `windowId` is required for `kind = "window"`.
+- When present, `windowId` must reference an existing window.
 - `windowId` is not accepted for `kind = "texture"`.
 - `widget-realm-viewport` is intended for `UiNodeProps::WidgetRealmViewport` sampling.
   It participates in auto-graph routing/input, but is not composed as a visible connector overlay on the host UI realm.

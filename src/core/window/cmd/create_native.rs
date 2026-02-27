@@ -212,7 +212,7 @@ pub fn engine_cmd_window_create(
 
     // Use Opaque alpha mode to prevent window transparency
     // This ensures the clear color is rendered correctly
-    let alpha_mode = wgpu::CompositeAlphaMode::Auto;
+    let alpha_mode = wgpu::CompositeAlphaMode::Opaque;
 
     let config = wgpu::SurfaceConfiguration {
         usage: wgpu::TextureUsages::RENDER_ATTACHMENT,

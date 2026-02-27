@@ -1,5 +1,6 @@
 use crate::core::render::RenderState;
 use crate::core::render::cache::{PipelineKey, ShaderId};
+use crate::core::render::state::SampledTargetBindKey;
 use crate::core::resources::PostProcessConfig;
 use bytemuck::{Pod, Zeroable};
 
@@ -135,8 +136,8 @@ pub fn pass_post(
     encoder: &mut wgpu::CommandEncoder,
     frame_index: u64,
 ) {
-    let default_post = render_state.environment.post.clone();
-    let camera_posts = render_state.camera_environment_overrides.clone();
+    let default_post = &render_state.environment.post;
+    let camera_posts = &render_state.camera_environment_overrides;
     let library = match render_state.library.as_ref() {
         Some(l) => l,
         None => return,
@@ -149,12 +150,13 @@ pub fn pass_post(
         None => return,
     };
 
+    let mut used_bind_keys = std::collections::HashSet::new();
     for camera_id in render_state.camera_order.iter().copied() {
         let post_config = camera_posts
             .get(&camera_id)
-            .map(|env| env.post.clone())
-            .unwrap_or_else(|| default_post.clone());
-        update_post_uniform_buffer(&post_config, uniform_buffer, queue, frame_index);
+            .map(|env| &env.post)
+            .unwrap_or(default_post);
+        update_post_uniform_buffer(post_config, uniform_buffer, queue, frame_index);
         let Some(record) = render_state.scene.cameras.get(&camera_id) else {
             continue;
         };
@@ -234,15 +236,28 @@ pub fn pass_post(
             .as_ref()
             .map(|target| &target.view)
             .unwrap_or(&library.fallback_view);
-        let bind_group = build_post_bind_group(
-            device,
-            library,
-            &input_target.view,
-            outline_view,
-            ssao_view,
-            bloom_view,
-            uniform_buffer,
-        );
+        let bind_key = SampledTargetBindKey {
+            target_view_ptr: &input_target.view as *const wgpu::TextureView as usize,
+            outline_view_ptr: outline_view as *const wgpu::TextureView as usize,
+            ssao_view_ptr: ssao_view as *const wgpu::TextureView as usize,
+            bloom_view_ptr: bloom_view as *const wgpu::TextureView as usize,
+            uniform_buffer_ptr: uniform_buffer as *const wgpu::Buffer as usize,
+        };
+        used_bind_keys.insert(bind_key);
+        let bind_group = render_state
+            .post_bind_cache
+            .entry(bind_key)
+            .or_insert_with(|| {
+                build_post_bind_group(
+                    device,
+                    library,
+                    &input_target.view,
+                    outline_view,
+                    ssao_view,
+                    bloom_view,
+                    uniform_buffer,
+                )
+            });
 
         let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("Post Pass"),
@@ -250,7 +265,7 @@ pub fn pass_post(
                 view: &output_target.view,
                 resolve_target: None,
                 ops: wgpu::Operations {
-                    load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
+                    load: wgpu::LoadOp::Load,
                     store: wgpu::StoreOp::Store,
                 },
                 depth_slice: None,
@@ -264,7 +279,10 @@ pub fn pass_post(
         render_pass.set_pipeline(pipeline);
 
         render_pass.set_viewport(0.0, 0.0, width as f32, height as f32, 0.0, 1.0);
-        render_pass.set_bind_group(0, &bind_group, &[]);
+        render_pass.set_bind_group(0, &*bind_group, &[]);
         render_pass.draw(0..3, 0..1);
     }
+    render_state
+        .post_bind_cache
+        .retain(|key, _| used_bind_keys.contains(key));
 }

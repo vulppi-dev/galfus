@@ -21,6 +21,7 @@ use realm_graph::{
 pub use runtime::RenderManager;
 pub use state::RenderState;
 use std::collections::HashSet;
+use std::hash::{Hash, Hasher};
 
 pub fn bloom_chain_size(base: u32, level: usize) -> u32 {
     passes::bloom_chain_size(base, level)
@@ -303,6 +304,20 @@ pub fn render_frames(engine_state: &mut EngineState) {
             let mut encoder =
                 device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
 
+            let already_rendered_surface = updated_surfaces.contains(&surface_id);
+            let clear_alpha = engine_state
+                .universal_state
+                .realms
+                .entries
+                .get(realm_id)
+                .map(|entry| {
+                    if entry.value.kind == crate::core::realm::RealmKind::TwoD {
+                        0.0
+                    } else {
+                        1.0
+                    }
+                })
+                .unwrap_or(1.0);
             {
                 let _clear_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                     label: Some("Realm Target Clear"),
@@ -310,7 +325,16 @@ pub fn render_frames(engine_state: &mut EngineState) {
                         view: &target_view,
                         resolve_target: None,
                         ops: wgpu::Operations {
-                            load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
+                            load: if already_rendered_surface {
+                                wgpu::LoadOp::Load
+                            } else {
+                                wgpu::LoadOp::Clear(wgpu::Color {
+                                    r: 0.0,
+                                    g: 0.0,
+                                    b: 0.0,
+                                    a: clear_alpha,
+                                })
+                            },
                             store: wgpu::StoreOp::Store,
                         },
                         depth_slice: None,
@@ -930,10 +954,132 @@ fn sync_scene_from_realm_and_globals(
                 .insert(*material_id, node.clone());
         }
     }
-    render_state.scene.textures = universal.global_resources.textures.clone();
-    render_state.scene.forward_atlas_entries =
-        universal.global_resources.forward_atlas_entries.clone();
-    render_state.target_texture_binds = universal.global_resources.target_texture_binds.clone();
+    let textures_hash = hash_texture_records(&universal.global_resources.textures);
+    if render_state.textures_sync_hash != textures_hash {
+        sync_texture_records(
+            &mut render_state.scene.textures,
+            &universal.global_resources.textures,
+        );
+        render_state.textures_sync_hash = textures_hash;
+    }
+    let atlas_hash = hash_forward_atlas_entries(&universal.global_resources.forward_atlas_entries);
+    if render_state.atlas_sync_hash != atlas_hash {
+        sync_forward_atlas_entries(
+            &mut render_state.scene.forward_atlas_entries,
+            &universal.global_resources.forward_atlas_entries,
+        );
+        render_state.atlas_sync_hash = atlas_hash;
+    }
+    let binds_hash = hash_target_texture_binds(&universal.global_resources.target_texture_binds);
+    if render_state.target_binds_sync_hash != binds_hash {
+        sync_target_texture_binds(
+            &mut render_state.target_texture_binds,
+            &universal.global_resources.target_texture_binds,
+        );
+        render_state.target_binds_sync_hash = binds_hash;
+    }
+}
+
+fn hash_texture_records(
+    textures: &std::collections::HashMap<u32, crate::core::resources::TextureRecord>,
+) -> u64 {
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    textures.len().hash(&mut hasher);
+    for (id, record) in textures {
+        id.hash(&mut hasher);
+        record.label.hash(&mut hasher);
+        let size = record._texture.size();
+        size.width.hash(&mut hasher);
+        size.height.hash(&mut hasher);
+        size.depth_or_array_layers.hash(&mut hasher);
+        record._texture.format().hash(&mut hasher);
+        // Pointer identity guards same-ID recreation with same shape in a frame.
+        (record as *const crate::core::resources::TextureRecord as usize).hash(&mut hasher);
+    }
+    hasher.finish()
+}
+
+fn hash_forward_atlas_entries(
+    entries: &std::collections::HashMap<u32, crate::core::resources::ForwardAtlasEntry>,
+) -> u64 {
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    entries.len().hash(&mut hasher);
+    for (id, entry) in entries {
+        id.hash(&mut hasher);
+        entry.label.hash(&mut hasher);
+        entry.layer.hash(&mut hasher);
+        bytemuck::bytes_of(&entry.uv_scale_bias.to_array()).hash(&mut hasher);
+    }
+    hasher.finish()
+}
+
+fn hash_target_texture_binds(
+    binds: &std::collections::HashMap<u32, crate::core::resources::TargetTextureBinding>,
+) -> u64 {
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    binds.len().hash(&mut hasher);
+    for (texture_id, bind) in binds {
+        texture_id.hash(&mut hasher);
+        bind.target_id.hash(&mut hasher);
+        bind.label.hash(&mut hasher);
+    }
+    hasher.finish()
+}
+
+fn sync_texture_records(
+    current: &mut std::collections::HashMap<u32, crate::core::resources::TextureRecord>,
+    next: &std::collections::HashMap<u32, crate::core::resources::TextureRecord>,
+) {
+    current.retain(|id, _| next.contains_key(id));
+    for (id, record) in next {
+        let needs_replace = match current.get(id) {
+            Some(existing) => {
+                existing.label != record.label
+                    || existing._texture.size() != record._texture.size()
+                    || existing._texture.format() != record._texture.format()
+            }
+            None => true,
+        };
+        if needs_replace {
+            current.insert(*id, record.clone());
+        }
+    }
+}
+
+fn sync_forward_atlas_entries(
+    current: &mut std::collections::HashMap<u32, crate::core::resources::ForwardAtlasEntry>,
+    next: &std::collections::HashMap<u32, crate::core::resources::ForwardAtlasEntry>,
+) {
+    current.retain(|id, _| next.contains_key(id));
+    for (id, entry) in next {
+        let needs_replace = match current.get(id) {
+            Some(existing) => {
+                existing.label != entry.label
+                    || existing.layer != entry.layer
+                    || existing.uv_scale_bias != entry.uv_scale_bias
+            }
+            None => true,
+        };
+        if needs_replace {
+            current.insert(*id, entry.clone());
+        }
+    }
+}
+
+fn sync_target_texture_binds(
+    current: &mut std::collections::HashMap<u32, crate::core::resources::TargetTextureBinding>,
+    next: &std::collections::HashMap<u32, crate::core::resources::TargetTextureBinding>,
+) {
+    current.retain(|id, _| next.contains_key(id));
+    for (id, bind) in next {
+        let needs_replace = match current.get(id) {
+            Some(existing) => existing.target_id != bind.target_id || existing.label != bind.label,
+            None => true,
+        };
+        if needs_replace {
+            current.insert(*id, bind.clone());
+        }
+    }
 }
 
 fn sync_window_geometry_registry(
@@ -965,9 +1111,13 @@ fn apply_ui_platform_actions(engine_state: &mut EngineState, actions: Vec<UiPlat
     for action in actions {
         match action {
             UiPlatformAction::SetCursorIcon { window_id, icon } => {
-                let _ = crate::core::window::engine_cmd_window_set_cursor_icon(
+                let _ = crate::core::window::engine_cmd_window_cursor_from_ui(
                     engine_state,
-                    &crate::core::window::CmdWindowSetCursorIconArgs { window_id, icon },
+                    &crate::core::window::CmdWindowCursorArgs {
+                        window_id,
+                        icon: Some(icon),
+                        ..Default::default()
+                    },
                 );
             }
             UiPlatformAction::OpenUrl {
@@ -1042,20 +1192,26 @@ fn apply_ui_platform_actions(engine_state: &mut EngineState, actions: Vec<UiPlat
                     ));
             }
             UiPlatformAction::RequestFocus { window_id } => {
-                let _ = crate::core::window::engine_cmd_window_focus(
+                let _ = crate::core::window::engine_cmd_window_state(
                     engine_state,
-                    &crate::core::window::CmdWindowFocusArgs { window_id },
+                    &crate::core::window::CmdWindowStateArgs {
+                        window_id,
+                        action: Some(crate::core::window::WindowStateAction::Focus),
+                        ..Default::default()
+                    },
                 );
             }
             UiPlatformAction::RequestAttention {
                 window_id,
                 attention,
             } => {
-                let _ = crate::core::window::engine_cmd_window_request_attention(
+                let _ = crate::core::window::engine_cmd_window_state(
                     engine_state,
-                    &crate::core::window::CmdWindowRequestAttentionArgs {
+                    &crate::core::window::CmdWindowStateArgs {
                         window_id,
+                        action: Some(crate::core::window::WindowStateAction::RequestAttention),
                         attention_type: attention,
+                        ..Default::default()
                     },
                 );
             }
@@ -1073,9 +1229,13 @@ fn apply_ui_platform_actions(engine_state: &mut EngineState, actions: Vec<UiPlat
                     ));
             }
             UiPlatformAction::SetWindowTitle { window_id, title } => {
-                let _ = crate::core::window::engine_cmd_window_set_title(
+                let _ = crate::core::window::engine_cmd_window_state(
                     engine_state,
-                    &crate::core::window::CmdWindowSetTitleArgs { window_id, title },
+                    &crate::core::window::CmdWindowStateArgs {
+                        window_id,
+                        title: Some(title),
+                        ..Default::default()
+                    },
                 );
             }
             UiPlatformAction::SetWindowSize {
@@ -1083,45 +1243,53 @@ fn apply_ui_platform_actions(engine_state: &mut EngineState, actions: Vec<UiPlat
                 width,
                 height,
             } => {
-                let _ = crate::core::window::engine_cmd_window_set_size(
+                let _ = crate::core::window::engine_cmd_window_measurement(
                     engine_state,
-                    &crate::core::window::CmdWindowSetSizeArgs {
+                    &crate::core::window::CmdWindowMeasurementArgs {
                         window_id,
-                        size: glam::UVec2::new(width.max(1), height.max(1)),
+                        size: Some(glam::UVec2::new(width.max(1), height.max(1))),
+                        ..Default::default()
                     },
                 );
             }
             UiPlatformAction::SetWindowPosition { window_id, x, y } => {
-                let _ = crate::core::window::engine_cmd_window_set_position(
+                let _ = crate::core::window::engine_cmd_window_measurement(
                     engine_state,
-                    &crate::core::window::CmdWindowSetPositionArgs {
+                    &crate::core::window::CmdWindowMeasurementArgs {
                         window_id,
-                        position: glam::IVec2::new(x, y),
+                        position: Some(glam::IVec2::new(x, y)),
+                        ..Default::default()
                     },
                 );
             }
             UiPlatformAction::SetWindowResizable { window_id, value } => {
-                let _ = crate::core::window::engine_cmd_window_set_resizable(
+                let _ = crate::core::window::engine_cmd_window_state(
                     engine_state,
-                    &crate::core::window::CmdWindowSetResizableArgs {
+                    &crate::core::window::CmdWindowStateArgs {
                         window_id,
-                        resizable: value,
+                        resizable: Some(value),
+                        ..Default::default()
                     },
                 );
             }
             UiPlatformAction::SetWindowDecorations { window_id, value } => {
-                let _ = crate::core::window::engine_cmd_window_set_decorations(
+                let _ = crate::core::window::engine_cmd_window_state(
                     engine_state,
-                    &crate::core::window::CmdWindowSetDecorationsArgs {
+                    &crate::core::window::CmdWindowStateArgs {
                         window_id,
-                        decorations: value,
+                        decorations: Some(value),
+                        ..Default::default()
                     },
                 );
             }
             UiPlatformAction::SetWindowState { window_id, state } => {
-                let _ = crate::core::window::engine_cmd_window_set_state(
+                let _ = crate::core::window::engine_cmd_window_state(
                     engine_state,
-                    &crate::core::window::CmdWindowSetStateArgs { window_id, state },
+                    &crate::core::window::CmdWindowStateArgs {
+                        window_id,
+                        state: Some(state),
+                        ..Default::default()
+                    },
                 );
             }
             UiPlatformAction::EmitViewportSync {
@@ -1314,7 +1482,7 @@ fn refresh_window_target_textures(
     >,
 ) {
     for render_state in render_states.values_mut() {
-        render_state.external_textures.clear();
+        let mut alive_ids = std::collections::HashSet::with_capacity(target_texture_binds.len());
         for (texture_id, binding) in target_texture_binds {
             let Some(surface_id) = target_surfaces.get(&binding.target_id) else {
                 continue;
@@ -1322,10 +1490,28 @@ fn refresh_window_target_textures(
             let Some(surface_target) = surface_targets.get(surface_id) else {
                 continue;
             };
-            render_state
-                .external_textures
-                .insert(*texture_id, surface_target.view.clone());
+            let source_ptr = surface_target as *const crate::core::resources::RenderTarget as usize;
+            alive_ids.insert(*texture_id);
+            let needs_replace = render_state
+                .external_texture_sources
+                .get(texture_id)
+                .copied()
+                != Some(source_ptr);
+            if needs_replace {
+                render_state
+                    .external_textures
+                    .insert(*texture_id, surface_target.view.clone());
+                render_state
+                    .external_texture_sources
+                    .insert(*texture_id, source_ptr);
+            }
         }
+        render_state
+            .external_textures
+            .retain(|texture_id, _| alive_ids.contains(texture_id));
+        render_state
+            .external_texture_sources
+            .retain(|texture_id, _| alive_ids.contains(texture_id));
     }
 }
 

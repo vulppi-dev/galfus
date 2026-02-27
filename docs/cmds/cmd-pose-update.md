@@ -10,10 +10,11 @@ successful update.
 
 | Field            | Type | Description |
 | ---------------- | ---- | ----------- |
-| windowId         | u32  | ID of the window |
+| realmId          | u32  | ID of the realm owning the model |
 | modelId          | u32  | ID of the model to update |
 | boneCount        | u32  | Number of bones in the palette (must be > 0 and within engine limits) |
 | matricesBufferId | u64  | Upload buffer ID containing `boneCount` Mat4 values |
+| windowId         | Option<u32> | (Optional) Window hint for pose upload path |
 
 ## Response
 

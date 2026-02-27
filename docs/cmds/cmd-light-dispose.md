@@ -6,7 +6,7 @@ Removes a light source.
 
 | Field    | Type | Description               |
 | -------- | ---- | ------------------------- |
-| windowId | u32  | ID of the window          |
+| realmId  | u32  | ID of the realm           |
 | lightId  | u32  | ID of the light to remove |
 
 ## Response

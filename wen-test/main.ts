@@ -29,7 +29,7 @@ function consumeBufferResult(bufferResult) {
     return { result: 1, buffer: new Uint8Array() };
   }
   try {
-    return { result: bufferResult.result, buffer: bufferResult.buffer };
+    return { result: bufferResult.result, buffer: bufferResult.takeBuffer() };
   } finally {
     bufferResult.free();
   }

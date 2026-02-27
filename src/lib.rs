@@ -16,9 +16,9 @@ mod wasm_exports {
 
     #[wasm_bindgen]
     impl BufferResult {
-        #[wasm_bindgen(getter)]
-        pub fn buffer(&self) -> Vec<u8> {
-            self.buffer.clone()
+        #[wasm_bindgen(js_name = takeBuffer)]
+        pub fn take_buffer(&mut self) -> Vec<u8> {
+            std::mem::take(&mut self.buffer)
         }
 
         #[wasm_bindgen(getter)]

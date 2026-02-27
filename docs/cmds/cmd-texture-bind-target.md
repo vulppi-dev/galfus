@@ -6,7 +6,6 @@ Binds a `textureId` to a `TargetId` of kind `texture`, allowing materials to sam
 
 | Field     | Type     | Description                     |
 | --------- | -------- | ------------------------------- |
-| windowId  | u32      | ID of the window                |
 | textureId | u32      | Logical texture ID              |
 | targetId  | u64      | Target ID (must be `texture`)   |
 | label     | Option<String> | Optional label for listing |

@@ -14,9 +14,9 @@ use super::singleton::with_engine;
 
 /// Send a batch of commands to the engine
 pub fn vulfram_send_queue(ptr: *const u8, length: usize) -> VulframResult {
-    let data = unsafe { std::slice::from_raw_parts(ptr, length).to_vec() };
+    let data = unsafe { std::slice::from_raw_parts(ptr, length) };
 
-    let batch = match rmp_serde::from_slice::<EngineBatchCmds>(&data) {
+    let batch = match rmp_serde::from_slice::<EngineBatchCmds>(data) {
         Err(_) => {
             return VulframResult::CmdInvalidMessagePackError;
         }

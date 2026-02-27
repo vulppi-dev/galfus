@@ -8,13 +8,6 @@ use crate::core;
 use crate::core::cmd::EngineCmd;
 use crate::demo::io::{receive_events, receive_responses, send_commands};
 
-pub fn run_loop<F>(window_id: u32, max_duration: Option<Duration>, on_frame: F) -> bool
-where
-    F: FnMut(u64, u32) -> Vec<EngineCmd>,
-{
-    run_loop_with_events(window_id, max_duration, on_frame, |_| false)
-}
-
 pub fn run_loop_with_events<F, G>(
     window_id: u32,
     max_duration: Option<Duration>,
@@ -83,8 +76,12 @@ fn is_close_event(window_id: u32, event: &EngineEvent) -> bool {
             window_id: id,
             key_code,
             state: ElementState::Pressed,
+            modifiers,
             ..
-        }) if *id == window_id && (*key_code == 106 || *key_code == 94) => true,
+        }) if *id == window_id => {
+            // Escape always closes demo windows; Ctrl+W is the explicit close shortcut.
+            *key_code == 106 || (*key_code == 41 && modifiers.ctrl) || *key_code == 94
+        }
         _ => false,
     }
 }

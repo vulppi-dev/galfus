@@ -1,4 +1,5 @@
 use crate::core::platform::{Window, WindowId};
+use crate::core::window::CursorIcon;
 #[cfg(not(feature = "wasm"))]
 use glam::IVec2;
 use glam::{UVec2, Vec2};
@@ -59,6 +60,7 @@ pub struct WindowManager {
     pub states: HashMap<u32, WindowState>,
     pub window_id_map: HashMap<WindowId, u32>,
     pub cursor_positions: HashMap<u32, Vec2>,
+    pub cursor_icon_override: HashMap<u32, CursorIcon>,
     #[cfg(not(feature = "wasm"))]
     pub cache: WindowCacheManager,
 }
@@ -69,6 +71,7 @@ impl WindowManager {
             states: HashMap::new(),
             window_id_map: HashMap::new(),
             cursor_positions: HashMap::new(),
+            cursor_icon_override: HashMap::new(),
             #[cfg(not(feature = "wasm"))]
             cache: WindowCacheManager::new(),
         }
@@ -92,6 +95,7 @@ impl WindowManager {
         if let Some(mut window_state) = self.states.remove(&window_id) {
             self.window_id_map.remove(&window_state.window.id());
             self.cursor_positions.remove(&window_id);
+            self.cursor_icon_override.remove(&window_id);
             for registration in window_state.web_listener_registrations.drain(..) {
                 let _ = registration.target.remove_event_listener_with_callback(
                     registration.event_type,
@@ -112,6 +116,7 @@ impl WindowManager {
             self.cache.remove(window_id);
             input_cache.remove_pointer(window_id);
             self.cursor_positions.remove(&window_id);
+            self.cursor_icon_override.remove(&window_id);
             true
         } else {
             false

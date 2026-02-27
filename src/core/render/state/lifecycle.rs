@@ -45,6 +45,7 @@ impl RenderState {
             camera_order: Vec::new(),
             target_texture_binds: HashMap::new(),
             external_textures: HashMap::new(),
+            external_texture_sources: HashMap::new(),
             bindings: None,
             library: None,
             vertex: None,
@@ -64,6 +65,14 @@ impl RenderState {
             environment: crate::core::resources::EnvironmentConfig::default(),
             environment_is_configured: false,
             camera_environment_overrides: HashMap::new(),
+            compose_bind_cache: HashMap::new(),
+            post_bind_cache: HashMap::new(),
+            textures_sync_hash: 0,
+            atlas_sync_hash: 0,
+            target_binds_sync_hash: 0,
+            light_prepare_sorted_ids: Vec::new(),
+            light_prepare_lights: Vec::new(),
+            light_prepare_frustums: Vec::new(),
             rgba16f_msaa_supported_mask: RenderState::MSAA_MASK_DEFAULT_SAFE,
         }
     }
@@ -88,6 +97,7 @@ impl RenderState {
         self.scene.forward_atlas_entries.clear();
         self.target_texture_binds.clear();
         self.external_textures.clear();
+        self.external_texture_sources.clear();
         self.bindings = None;
         self.library = None;
         self.vertex = None;
@@ -105,6 +115,14 @@ impl RenderState {
         self.environment = crate::core::resources::EnvironmentConfig::default();
         self.environment_is_configured = false;
         self.camera_environment_overrides.clear();
+        self.compose_bind_cache.clear();
+        self.post_bind_cache.clear();
+        self.textures_sync_hash = 0;
+        self.atlas_sync_hash = 0;
+        self.target_binds_sync_hash = 0;
+        self.light_prepare_sorted_ids.clear();
+        self.light_prepare_lights.clear();
+        self.light_prepare_frustums.clear();
     }
 
     pub fn begin_frame(&mut self, frame_index: u64) {

@@ -2,6 +2,7 @@ use crate::core::render::RenderState;
 use crate::core::render::cache::{PipelineKey, ShaderId};
 use crate::core::render::passes::update_post_uniform_buffer;
 use crate::core::render::state::ResourceLibrary;
+use crate::core::render::state::SampledTargetBindKey;
 
 mod overlay;
 pub use overlay::{ComposeOverlay, pass_compose_overlays, pass_compose_surface};
@@ -127,7 +128,7 @@ pub fn pass_compose_to_view(
             view: target_view,
             resolve_target: None,
             ops: wgpu::Operations {
-                load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
+                load: wgpu::LoadOp::Load,
                 store: wgpu::StoreOp::Store,
             },
             depth_slice: None,
@@ -140,9 +141,10 @@ pub fn pass_compose_to_view(
 
     render_pass.set_pipeline(pipeline);
 
+    let mut used_bind_keys = std::collections::HashSet::new();
     for camera_id in render_state.camera_order.iter().copied() {
-        let post_config = render_state.environment_for_camera(camera_id).post.clone();
-        update_post_uniform_buffer(&post_config, uniform_buffer, queue, frame_index);
+        let post_config = &render_state.environment_for_camera(camera_id).post;
+        update_post_uniform_buffer(post_config, uniform_buffer, queue, frame_index);
         let Some(record) = render_state.scene.cameras.get(&camera_id) else {
             continue;
         };
@@ -205,18 +207,33 @@ pub fn pass_compose_to_view(
 
         render_pass.set_viewport(x as f32, y as f32, width as f32, height as f32, 0.0, 1.0);
 
-        // 5. Create Bind Group for this camera's target
-        let bind_group = build_compose_bind_group(
-            device,
-            library,
-            &target.view,
-            outline_view,
-            ssao_view,
-            bloom_view,
-            uniform_buffer,
-        );
+        let bind_key = SampledTargetBindKey {
+            target_view_ptr: &target.view as *const wgpu::TextureView as usize,
+            outline_view_ptr: outline_view as *const wgpu::TextureView as usize,
+            ssao_view_ptr: ssao_view as *const wgpu::TextureView as usize,
+            bloom_view_ptr: bloom_view as *const wgpu::TextureView as usize,
+            uniform_buffer_ptr: uniform_buffer as *const wgpu::Buffer as usize,
+        };
+        used_bind_keys.insert(bind_key);
+        let bind_group = render_state
+            .compose_bind_cache
+            .entry(bind_key)
+            .or_insert_with(|| {
+                build_compose_bind_group(
+                    device,
+                    library,
+                    &target.view,
+                    outline_view,
+                    ssao_view,
+                    bloom_view,
+                    uniform_buffer,
+                )
+            });
 
-        render_pass.set_bind_group(0, &bind_group, &[]);
+        render_pass.set_bind_group(0, &*bind_group, &[]);
         render_pass.draw(0..3, 0..1);
     }
+    render_state
+        .compose_bind_cache
+        .retain(|key, _| used_bind_keys.contains(key));
 }

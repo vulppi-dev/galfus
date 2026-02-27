@@ -1,20 +1,10 @@
 use crate::core::cmd::EngineCmd;
-use crate::core::render::gizmos::CmdGizmoDrawLineArgs;
 use crate::core::resources::shadow::{CmdShadowConfigureArgs, ShadowConfig};
 use crate::core::resources::{
-    CameraKind, CmdCameraCreateArgs, CmdLightCreateArgs, CmdMaterialCreateArgs, CmdModelCreateArgs,
-    CmdTextureCreateFromBufferArgs, MaterialKind, MaterialOptions, MaterialSampler,
-    StandardOptions, TextureCreateMode,
+    CameraKind, CmdCameraCreateArgs, CmdLightCreateArgs, CmdMaterialCreateArgs, MaterialKind,
+    MaterialOptions, MaterialSampler, StandardOptions,
 };
-use glam::{Mat4, Vec2, Vec3, Vec4};
-use rand::Rng;
-
-#[derive(Debug, Clone)]
-pub struct CubeData {
-    pub id: u32,
-    pub initial_pos: Vec3,
-    pub phase: f32,
-}
+use glam::{Mat4, Vec2, Vec4};
 
 pub fn create_camera_cmd(realm_id: u32, camera_id: u32, label: &str, transform: Mat4) -> EngineCmd {
     EngineCmd::CmdCameraUpsert(crate::core::cmd::CmdCameraUpsertArgs::Create(
@@ -102,110 +92,9 @@ pub fn create_standard_material_cmd(
     ))
 }
 
-pub fn create_texture_cmd(texture_id: u32, label: &str, buffer_id: u64) -> EngineCmd {
-    EngineCmd::CmdTextureCreateFromBuffer(CmdTextureCreateFromBufferArgs {
-        texture_id,
-        label: Some(label.to_string()),
-        buffer_id,
-        srgb: Some(true),
-        mode: TextureCreateMode::Standalone,
-        atlas_options: None,
-    })
-}
-
-pub fn create_floor_cmd(realm_id: u32, geometry_id: u32, material_id: u32) -> EngineCmd {
-    EngineCmd::CmdModelUpsert(crate::core::cmd::CmdModelUpsertArgs::Create(
-        CmdModelCreateArgs {
-            realm_id,
-            model_id: 2000,
-            label: Some("Floor".to_string()),
-            geometry_id,
-            material_id: Some(material_id),
-            transform: Mat4::from_translation(Vec3::new(0.0, -6.0, 0.0))
-                * Mat4::from_scale(Vec3::new(20.0, 0.1, 20.0)),
-            layer_mask: 0xFFFFFFFF,
-            cast_shadow: false,
-            receive_shadow: true,
-            cast_outline: false,
-            outline_color: Vec4::ZERO,
-        },
-    ))
-}
-
-pub fn create_instanced_cubes(
-    realm_id: u32,
-    geometry_id: u32,
-    material_id: u32,
-) -> (Vec<CubeData>, Vec<EngineCmd>) {
-    let mut rng = rand::rng();
-    let mut cmds = Vec::new();
-    let mut cubes = Vec::new();
-
-    for i in 0..100 {
-        let x: f32 = rng.random_range(-5.0..5.0);
-        let y: f32 = rng.random_range(-5.0..5.0);
-        let z: f32 = rng.random_range(-5.0..5.0);
-
-        let rot_x: f32 = rng.random_range(0.0..std::f32::consts::TAU);
-        let rot_y: f32 = rng.random_range(0.0..std::f32::consts::TAU);
-
-        let model_id = 100 + i;
-
-        cubes.push(CubeData {
-            id: model_id,
-            initial_pos: Vec3::new(x, y, z),
-            phase: rng.random_range(0.0..std::f32::consts::TAU),
-        });
-
-        cmds.push(EngineCmd::CmdModelUpsert(
-            crate::core::cmd::CmdModelUpsertArgs::Create(CmdModelCreateArgs {
-                realm_id,
-                model_id,
-                label: Some(format!("Cube {}", i)),
-                geometry_id,
-                material_id: Some(material_id),
-                transform: Mat4::from_translation(Vec3::new(x, y, z))
-                    * Mat4::from_euler(glam::EulerRot::XYZ, rot_x, rot_y, 0.0)
-                    * Mat4::from_scale(Vec3::splat(0.4)),
-                layer_mask: 0xFFFFFFFF,
-                cast_shadow: true,
-                receive_shadow: true,
-                cast_outline: false,
-                outline_color: Vec4::ZERO,
-            }),
-        ));
-    }
-
-    (cubes, cmds)
-}
-
 pub fn create_shadow_config_cmd(window_id: u32) -> EngineCmd {
     EngineCmd::CmdShadowConfigure(CmdShadowConfigureArgs {
         window_id,
         config: ShadowConfig::default(),
     })
-}
-
-pub fn draw_axes_gizmos() -> Vec<EngineCmd> {
-    vec![
-        EngineCmd::CmdGizmoDrawLine(CmdGizmoDrawLineArgs {
-            start: Vec3::ZERO,
-            end: Vec3::X * 5.0,
-            color: Vec4::new(1.0, 0.0, 0.0, 1.0),
-        }),
-        EngineCmd::CmdGizmoDrawLine(CmdGizmoDrawLineArgs {
-            start: Vec3::ZERO,
-            end: Vec3::Y * 5.0,
-            color: Vec4::new(0.0, 1.0, 0.0, 1.0),
-        }),
-        EngineCmd::CmdGizmoDrawLine(CmdGizmoDrawLineArgs {
-            start: Vec3::ZERO,
-            end: Vec3::Z * 5.0,
-            color: Vec4::new(0.0, 0.0, 1.0, 1.0),
-        }),
-    ]
-}
-
-pub fn default_camera_transform() -> Mat4 {
-    Mat4::look_at_rh(Vec3::new(0.0, 10.0, 15.0), Vec3::ZERO, Vec3::Y).inverse()
 }

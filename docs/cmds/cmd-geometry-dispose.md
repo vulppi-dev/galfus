@@ -6,7 +6,6 @@ Removes a geometry resource.
 
 | Field      | Type | Description                  |
 | ---------- | ---- | ---------------------------- |
-| windowId   | u32  | ID of the window             |
 | geometryId | u32  | ID of the geometry to remove |
 
 ## Response
