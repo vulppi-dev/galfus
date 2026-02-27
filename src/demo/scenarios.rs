@@ -424,7 +424,8 @@ fn run_demo_2_window_ui(ctx: DemoContext) -> bool {
         last_frame_time = now;
         total_ms = total_ms.saturating_add(delta_ms as u64);
 
-        let frame_cmds = hud.frame_commands(total_ms, delta_ms);
+        let mut frame_cmds = hud.frame_commands(total_ms, delta_ms);
+        frame_cmds.push(window_measurement_cmd(ctx.window_id));
         if !frame_cmds.is_empty() {
             let _ = send_commands(frame_cmds);
         }

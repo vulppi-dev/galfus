@@ -69,3 +69,4 @@ Retorna `CmdResultWindowCursor`:
 ## Notes
 
 - Todos os campos são opcionais: envie apenas o subset a atualizar.
+- Quando `icon` é enviado via comando do host, o ícone vira override persistente para a janela e tem prioridade sobre atualizações de cursor vindas do pipeline de UI.

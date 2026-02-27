@@ -70,9 +70,50 @@ pub struct CmdResultWindowCursor {
 }
 
 #[cfg(not(feature = "wasm"))]
-pub fn engine_cmd_window_cursor(
+fn map_cursor_icon(icon: CursorIcon) -> winit::window::CursorIcon {
+    match icon {
+        CursorIcon::Default => winit::window::CursorIcon::Default,
+        CursorIcon::ContextMenu => winit::window::CursorIcon::ContextMenu,
+        CursorIcon::Help => winit::window::CursorIcon::Help,
+        CursorIcon::Pointer => winit::window::CursorIcon::Pointer,
+        CursorIcon::Progress => winit::window::CursorIcon::Progress,
+        CursorIcon::Wait => winit::window::CursorIcon::Wait,
+        CursorIcon::Cell => winit::window::CursorIcon::Cell,
+        CursorIcon::Crosshair => winit::window::CursorIcon::Crosshair,
+        CursorIcon::Text => winit::window::CursorIcon::Text,
+        CursorIcon::VerticalText => winit::window::CursorIcon::VerticalText,
+        CursorIcon::Alias => winit::window::CursorIcon::Alias,
+        CursorIcon::Copy => winit::window::CursorIcon::Copy,
+        CursorIcon::Move => winit::window::CursorIcon::Move,
+        CursorIcon::NoDrop => winit::window::CursorIcon::NoDrop,
+        CursorIcon::NotAllowed => winit::window::CursorIcon::NotAllowed,
+        CursorIcon::Grab => winit::window::CursorIcon::Grab,
+        CursorIcon::Grabbing => winit::window::CursorIcon::Grabbing,
+        CursorIcon::EResize => winit::window::CursorIcon::EResize,
+        CursorIcon::NResize => winit::window::CursorIcon::NResize,
+        CursorIcon::NeResize => winit::window::CursorIcon::NeResize,
+        CursorIcon::NwResize => winit::window::CursorIcon::NwResize,
+        CursorIcon::SResize => winit::window::CursorIcon::SResize,
+        CursorIcon::SeResize => winit::window::CursorIcon::SeResize,
+        CursorIcon::SwResize => winit::window::CursorIcon::SwResize,
+        CursorIcon::WResize => winit::window::CursorIcon::WResize,
+        CursorIcon::EwResize => winit::window::CursorIcon::EwResize,
+        CursorIcon::NsResize => winit::window::CursorIcon::NsResize,
+        CursorIcon::NeswResize => winit::window::CursorIcon::NeswResize,
+        CursorIcon::NwseResize => winit::window::CursorIcon::NwseResize,
+        CursorIcon::ColResize => winit::window::CursorIcon::ColResize,
+        CursorIcon::RowResize => winit::window::CursorIcon::RowResize,
+        CursorIcon::AllScroll => winit::window::CursorIcon::AllScroll,
+        CursorIcon::ZoomIn => winit::window::CursorIcon::ZoomIn,
+        CursorIcon::ZoomOut => winit::window::CursorIcon::ZoomOut,
+    }
+}
+
+#[cfg(not(feature = "wasm"))]
+fn apply_window_cursor(
     engine: &mut EngineState,
     args: &CmdWindowCursorArgs,
+    persist_icon_override: bool,
 ) -> CmdResultWindowCursor {
     let Some(window_state) = engine.window.states.get(&args.window_id) else {
         return CmdResultWindowCursor {
@@ -101,43 +142,13 @@ pub fn engine_cmd_window_cursor(
     }
 
     if let Some(icon) = args.icon {
-        let raw_icon = match icon {
-            CursorIcon::Default => winit::window::CursorIcon::Default,
-            CursorIcon::ContextMenu => winit::window::CursorIcon::ContextMenu,
-            CursorIcon::Help => winit::window::CursorIcon::Help,
-            CursorIcon::Pointer => winit::window::CursorIcon::Pointer,
-            CursorIcon::Progress => winit::window::CursorIcon::Progress,
-            CursorIcon::Wait => winit::window::CursorIcon::Wait,
-            CursorIcon::Cell => winit::window::CursorIcon::Cell,
-            CursorIcon::Crosshair => winit::window::CursorIcon::Crosshair,
-            CursorIcon::Text => winit::window::CursorIcon::Text,
-            CursorIcon::VerticalText => winit::window::CursorIcon::VerticalText,
-            CursorIcon::Alias => winit::window::CursorIcon::Alias,
-            CursorIcon::Copy => winit::window::CursorIcon::Copy,
-            CursorIcon::Move => winit::window::CursorIcon::Move,
-            CursorIcon::NoDrop => winit::window::CursorIcon::NoDrop,
-            CursorIcon::NotAllowed => winit::window::CursorIcon::NotAllowed,
-            CursorIcon::Grab => winit::window::CursorIcon::Grab,
-            CursorIcon::Grabbing => winit::window::CursorIcon::Grabbing,
-            CursorIcon::EResize => winit::window::CursorIcon::EResize,
-            CursorIcon::NResize => winit::window::CursorIcon::NResize,
-            CursorIcon::NeResize => winit::window::CursorIcon::NeResize,
-            CursorIcon::NwResize => winit::window::CursorIcon::NwResize,
-            CursorIcon::SResize => winit::window::CursorIcon::SResize,
-            CursorIcon::SeResize => winit::window::CursorIcon::SeResize,
-            CursorIcon::SwResize => winit::window::CursorIcon::SwResize,
-            CursorIcon::WResize => winit::window::CursorIcon::WResize,
-            CursorIcon::EwResize => winit::window::CursorIcon::EwResize,
-            CursorIcon::NsResize => winit::window::CursorIcon::NsResize,
-            CursorIcon::NeswResize => winit::window::CursorIcon::NeswResize,
-            CursorIcon::NwseResize => winit::window::CursorIcon::NwseResize,
-            CursorIcon::ColResize => winit::window::CursorIcon::ColResize,
-            CursorIcon::RowResize => winit::window::CursorIcon::RowResize,
-            CursorIcon::AllScroll => winit::window::CursorIcon::AllScroll,
-            CursorIcon::ZoomIn => winit::window::CursorIcon::ZoomIn,
-            CursorIcon::ZoomOut => winit::window::CursorIcon::ZoomOut,
-        };
-        window_state.window.set_cursor(raw_icon);
+        window_state.window.set_cursor(map_cursor_icon(icon));
+        if persist_icon_override {
+            engine
+                .window
+                .cursor_icon_override
+                .insert(args.window_id, icon);
+        }
     }
 
     CmdResultWindowCursor {
@@ -146,8 +157,49 @@ pub fn engine_cmd_window_cursor(
     }
 }
 
+#[cfg(not(feature = "wasm"))]
+pub fn engine_cmd_window_cursor(
+    engine: &mut EngineState,
+    args: &CmdWindowCursorArgs,
+) -> CmdResultWindowCursor {
+    apply_window_cursor(engine, args, true)
+}
+
+#[cfg(not(feature = "wasm"))]
+pub fn engine_cmd_window_cursor_from_ui(
+    engine: &mut EngineState,
+    args: &CmdWindowCursorArgs,
+) -> CmdResultWindowCursor {
+    if let Some(override_icon) = engine.window.cursor_icon_override.get(&args.window_id) {
+        if let Some(window_state) = engine.window.states.get(&args.window_id) {
+            window_state
+                .window
+                .set_cursor(map_cursor_icon(*override_icon));
+            return CmdResultWindowCursor {
+                success: true,
+                message: "Window cursor UI update ignored due to host override".into(),
+            };
+        }
+    }
+    apply_window_cursor(engine, args, false)
+}
+
 #[cfg(feature = "wasm")]
 pub fn engine_cmd_window_cursor(
+    _engine: &mut EngineState,
+    args: &CmdWindowCursorArgs,
+) -> CmdResultWindowCursor {
+    CmdResultWindowCursor {
+        success: false,
+        message: format!(
+            "Window cursor commands are not supported in wasm (window_id={})",
+            args.window_id
+        ),
+    }
+}
+
+#[cfg(feature = "wasm")]
+pub fn engine_cmd_window_cursor_from_ui(
     _engine: &mut EngineState,
     args: &CmdWindowCursorArgs,
 ) -> CmdResultWindowCursor {

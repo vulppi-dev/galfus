@@ -46,3 +46,4 @@ Retorna `CmdResultWindowState`:
 
 - Campos de patch são opcionais: envie apenas o que deseja alterar.
 - `iconBufferId` consome o upload (one-shot) e exige `uploadType = \"image-data\"`.
+- `fullscreen` exige modo exclusivo; se indisponível, o comando retorna `success=false` e o core emite `SystemEvent::Error`.

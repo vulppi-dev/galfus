@@ -1111,7 +1111,7 @@ fn apply_ui_platform_actions(engine_state: &mut EngineState, actions: Vec<UiPlat
     for action in actions {
         match action {
             UiPlatformAction::SetCursorIcon { window_id, icon } => {
-                let _ = crate::core::window::engine_cmd_window_cursor(
+                let _ = crate::core::window::engine_cmd_window_cursor_from_ui(
                     engine_state,
                     &crate::core::window::CmdWindowCursorArgs {
                         window_id,

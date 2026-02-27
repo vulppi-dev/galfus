@@ -7,6 +7,7 @@ use crate::core::platform::winit;
 use serde::{Deserialize, Serialize};
 
 use crate::core::state::EngineState;
+use crate::core::system::push_error_event;
 
 use super::EngineWindowState;
 
@@ -112,7 +113,10 @@ fn read_window_state(window_state: &crate::core::window::WindowState) -> EngineW
 }
 
 #[cfg(not(feature = "wasm"))]
-fn apply_window_state(window_state: &crate::core::window::WindowState, state: EngineWindowState) {
+fn apply_window_state(
+    window_state: &crate::core::window::WindowState,
+    state: EngineWindowState,
+) -> Result<(), String> {
     match state {
         EngineWindowState::Minimized => {
             window_state.window.set_minimized(true);
@@ -126,11 +130,15 @@ fn apply_window_state(window_state: &crate::core::window::WindowState, state: En
             window_state.window.set_fullscreen(None);
         }
         EngineWindowState::Fullscreen => {
-            if let Some(monitor) = window_state.window.current_monitor() {
-                if let Some(video_mode) = monitor.video_modes().next() {
-                    let fullscreen = Some(winit::window::Fullscreen::Exclusive(video_mode));
-                    window_state.window.set_fullscreen(fullscreen);
-                }
+            let monitor = window_state.window.current_monitor();
+            let exclusive = monitor
+                .as_ref()
+                .and_then(|current_monitor| current_monitor.video_modes().next())
+                .map(winit::window::Fullscreen::Exclusive);
+            if let Some(fullscreen) = exclusive {
+                window_state.window.set_fullscreen(Some(fullscreen));
+            } else {
+                return Err("Failed to set fullscreen: no exclusive video mode available".into());
             }
         }
         EngineWindowState::WindowedFullscreen => {
@@ -139,6 +147,7 @@ fn apply_window_state(window_state: &crate::core::window::WindowState, state: En
             window_state.window.set_fullscreen(fullscreen);
         }
     }
+    Ok(())
 }
 
 #[cfg(not(feature = "wasm"))]
@@ -159,7 +168,20 @@ pub fn engine_cmd_window_state(
     }
 
     if let Some(state) = args.state {
-        apply_window_state(window_state, state);
+        if let Err(message) = apply_window_state(window_state, state) {
+            push_error_event(
+                engine,
+                "window-state",
+                message.clone(),
+                None,
+                Some("window-state".into()),
+            );
+            return CmdResultWindowState {
+                success: false,
+                message,
+                ..Default::default()
+            };
+        }
     }
 
     if let Some(decorations) = args.decorations {
