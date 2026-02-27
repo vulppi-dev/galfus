@@ -12,7 +12,8 @@ pub use report::{FrameCutEdge, FrameReport, SurfaceCacheEntry, TargetAutoLinkFai
 #[allow(unused_imports)]
 pub use state::{
     AudioState, AutoLink, ConnectorId, ConnectorState, ConnectorTable, GlobalGeometryRecord,
-    GlobalResources, InputCapture, InputRoutingState, PresentId, PresentState, PresentTable,
-    RealmEntities, RealmId, RealmKind, RealmState, RealmTable, SurfaceCache, SurfaceId,
-    SurfaceKind, SurfaceState, SurfaceTable, TableEntry, UniversalState,
+    GlobalResources, InputCapture, InputRoutingCache, InputRoutingConnectorHit, InputRoutingState,
+    PresentId, PresentState, PresentTable, RealmEntities, RealmId, RealmKind, RealmState,
+    RealmTable, SurfaceCache, SurfaceId, SurfaceKind, SurfaceState, SurfaceTable, TableEntry,
+    UniversalState,
 };

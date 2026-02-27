@@ -603,13 +603,13 @@ Mesmo simplificando validações, manter emissão consistente de `SystemEvent::E
 - Isolar otimizações de API externa com contrato claro para host.
 
 ## Checklist de Implementação
-- [ ] Remover cópia intermediária de queue decode.
-- [ ] Introduzir versão/hash de recursos globais para sync incremental.
-- [ ] Trocar rebuild de `external_textures` por diff incremental.
-- [ ] Cachear bind groups de compose.
-- [ ] Cachear bind groups de post.
-- [ ] Reduzir clones de config em compose/post.
-- [ ] Criar cache incremental de input routing.
+- [x] Remover cópia intermediária de queue decode.
+- [x] Introduzir versão/hash de recursos globais para sync incremental.
+- [x] Trocar rebuild de `external_textures` por diff incremental.
+- [x] Cachear bind groups de compose.
+- [x] Cachear bind groups de post.
+- [x] Reduzir clones de config em compose/post.
+- [x] Criar cache incremental de input routing.
 - [ ] Cachear mapeamento de external textures na pass UI.
 - [ ] Evitar clones de tesselação na pass UI.
 - [ ] Adicionar scratch buffers no `process_ui_input`.

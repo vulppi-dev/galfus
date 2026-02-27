@@ -26,6 +26,15 @@ pub use self::scene::RenderScene;
 pub use self::skinning::SkinningSystem;
 pub use crate::core::render::graph::RenderGraphState;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct SampledTargetBindKey {
+    pub target_view_ptr: usize,
+    pub outline_view_ptr: usize,
+    pub ssao_view_ptr: usize,
+    pub bloom_view_ptr: usize,
+    pub uniform_buffer_ptr: usize,
+}
+
 pub struct RenderState {
     pub scene: RenderScene,
     pub detached_cameras: std::collections::HashMap<u32, crate::core::resources::CameraRecord>,
@@ -33,6 +42,7 @@ pub struct RenderState {
     pub target_texture_binds:
         std::collections::HashMap<u32, crate::core::resources::TargetTextureBinding>,
     pub external_textures: std::collections::HashMap<u32, wgpu::TextureView>,
+    pub external_texture_sources: std::collections::HashMap<u32, usize>,
     pub bindings: Option<BindingSystem>,
     pub library: Option<ResourceLibrary>,
     pub vertex: Option<VertexAllocatorSystem>,
@@ -48,6 +58,11 @@ pub struct RenderState {
     pub environment: EnvironmentConfig,
     pub environment_is_configured: bool,
     pub camera_environment_overrides: std::collections::HashMap<u32, EnvironmentConfig>,
+    pub compose_bind_cache: std::collections::HashMap<SampledTargetBindKey, wgpu::BindGroup>,
+    pub post_bind_cache: std::collections::HashMap<SampledTargetBindKey, wgpu::BindGroup>,
+    pub textures_sync_hash: u64,
+    pub atlas_sync_hash: u64,
+    pub target_binds_sync_hash: u64,
     pub rgba16f_msaa_supported_mask: u8,
     pub skinning: SkinningSystem,
     pub render_graph: RenderGraphState,
