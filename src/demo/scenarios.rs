@@ -21,14 +21,13 @@ use crate::core::resources::shadow::CmdShadowConfigureArgs;
 use crate::core::resources::shadow::ShadowConfig;
 use crate::core::resources::{
     CameraKind, CmdCameraCreateArgs, CmdCameraDisposeArgs, CmdCameraListArgs,
-    CmdEnvironmentDisposeArgs, CmdEnvironmentUpdateArgs, CmdGeometryDisposeArgs,
-    CmdGeometryListArgs, CmdLightCreateArgs, CmdLightDisposeArgs, CmdLightListArgs,
-    CmdMaterialCreateArgs, CmdMaterialDisposeArgs, CmdMaterialListArgs, CmdModelCreateArgs,
-    CmdModelListArgs, CmdModelUpdateArgs, CmdPoseUpdateArgs, CmdPrimitiveGeometryCreateArgs,
-    CmdTextureBindTargetArgs, CmdTextureCreateFromBufferArgs, CmdTextureCreateSolidColorArgs,
-    CmdTextureDisposeArgs, CmdTextureListArgs, EnvironmentConfig, LightKind, MaterialKind,
-    MaterialOptions, MsaaConfig, PbrOptions, PostProcessConfig, PrimitiveShape, SkyboxConfig,
-    SkyboxMode, TextureCreateMode,
+    CmdEnvironmentUpdateArgs, CmdGeometryDisposeArgs, CmdGeometryListArgs, CmdLightCreateArgs,
+    CmdLightDisposeArgs, CmdLightListArgs, CmdMaterialCreateArgs, CmdMaterialDisposeArgs,
+    CmdMaterialListArgs, CmdModelCreateArgs, CmdModelListArgs, CmdModelUpdateArgs,
+    CmdPoseUpdateArgs, CmdPrimitiveGeometryCreateArgs, CmdTextureBindTargetArgs,
+    CmdTextureCreateFromBufferArgs, CmdTextureCreateSolidColorArgs, CmdTextureDisposeArgs,
+    CmdTextureListArgs, EnvironmentConfig, LightKind, MaterialKind, MaterialOptions, MsaaConfig,
+    PbrOptions, PostProcessConfig, PrimitiveShape, SkyboxConfig, SkyboxMode, TextureCreateMode,
 };
 use crate::core::system::{
     diagnostics::CmdSystemDiagnosticsSetArgs,
@@ -101,10 +100,109 @@ impl DemoIds {
 }
 
 pub fn run(demo: DemoKind, ctx: DemoContext) -> bool {
-    let demo_number = demo.number();
+    match demo {
+        DemoKind::Demo1 => run_demo_1(ctx),
+        DemoKind::Demo2 => run_demo_2_window_ui(ctx),
+        DemoKind::Demo3 => run_demo_3(ctx),
+        DemoKind::Demo4 => run_demo_4(ctx),
+        DemoKind::Demo5 => run_demo_5(ctx),
+        DemoKind::Demo6 => run_demo_6(ctx),
+    }
+}
+
+#[derive(Clone, Copy)]
+struct BundleOptions {
+    create_temp_realm: bool,
+    enable_aux_window: bool,
+    draw_gizmos: bool,
+    poll_lists: bool,
+    log_input_wait: bool,
+}
+
+fn run_demo_1(ctx: DemoContext) -> bool {
+    run_demo_bundle(
+        ctx,
+        1,
+        &[1, 2, 3, 4, 5],
+        BundleOptions {
+            create_temp_realm: true,
+            enable_aux_window: false,
+            draw_gizmos: false,
+            poll_lists: false,
+            log_input_wait: false,
+        },
+    )
+}
+
+fn run_demo_3(ctx: DemoContext) -> bool {
+    run_demo_bundle(
+        ctx,
+        3,
+        &[10, 11, 12, 13, 14, 15, 16],
+        BundleOptions {
+            create_temp_realm: false,
+            enable_aux_window: false,
+            draw_gizmos: false,
+            poll_lists: false,
+            log_input_wait: false,
+        },
+    )
+}
+
+fn run_demo_4(ctx: DemoContext) -> bool {
+    run_demo_bundle(
+        ctx,
+        4,
+        &[17, 18, 19, 20, 21],
+        BundleOptions {
+            create_temp_realm: false,
+            enable_aux_window: false,
+            draw_gizmos: true,
+            poll_lists: false,
+            log_input_wait: false,
+        },
+    )
+}
+
+fn run_demo_5(ctx: DemoContext) -> bool {
+    run_demo_bundle(
+        ctx,
+        5,
+        &[22, 23, 24, 25],
+        BundleOptions {
+            create_temp_realm: false,
+            enable_aux_window: true,
+            draw_gizmos: false,
+            poll_lists: false,
+            log_input_wait: true,
+        },
+    )
+}
+
+fn run_demo_6(ctx: DemoContext) -> bool {
+    run_demo_bundle(
+        ctx,
+        6,
+        &[26, 27, 28],
+        BundleOptions {
+            create_temp_realm: false,
+            enable_aux_window: true,
+            draw_gizmos: false,
+            poll_lists: true,
+            log_input_wait: false,
+        },
+    )
+}
+
+fn run_demo_bundle(
+    ctx: DemoContext,
+    demo_number: u32,
+    scenarios: &[u32],
+    options: BundleOptions,
+) -> bool {
     let ids = DemoIds::from_number(demo_number);
-    let ui_realm_id = create_ui_realm(ctx.window_id).unwrap_or(ctx.realm_id);
-    if demo == DemoKind::Demo003 {
+    let ui_realm_id = ctx.realm_id;
+    if options.create_temp_realm {
         _ = create_and_dispose_temp_realm(ctx.window_id);
     }
 
@@ -113,18 +211,25 @@ pub fn run(demo: DemoKind, ctx: DemoContext) -> bool {
     setup_cmds.extend(hud.setup_commands(ui_realm_id));
 
     let mut aux_windows: Vec<u32> = Vec::new();
-    if matches!(demo, DemoKind::Demo022 | DemoKind::Demo028) {
+    let mut aux_huds: Vec<(u32, FpsHud)> = Vec::new();
+    if options.enable_aux_window {
         let aux_window_id = ctx.window_id + 1;
-        let aux_binding = create_window(aux_window_id, &format!("{} Aux", demo.title()));
+        let aux_binding =
+            create_window(aux_window_id, &format!("Vulfram Demo {} Aux", demo_number));
         setup_cmds.extend(aux_window_commands(
             aux_window_id,
             aux_binding.realm_id,
             ids,
         ));
+        let aux_hud = FpsHud::new(1_000 + demo_number);
+        setup_cmds.extend(aux_hud.setup_commands(aux_binding.realm_id));
+        aux_huds.push((aux_window_id, aux_hud));
         aux_windows.push(aux_window_id);
     }
 
-    setup_cmds.extend(extra_setup_commands(demo, ctx, ui_realm_id, ids));
+    for scenario in scenarios {
+        setup_cmds.extend(extra_setup_commands(*scenario, ctx, ui_realm_id, ids));
+    }
     let _ = send_commands(setup_cmds);
     let _ = receive_responses();
 
@@ -134,6 +239,9 @@ pub fn run(demo: DemoKind, ctx: DemoContext) -> bool {
         None,
         move |total_ms, delta_ms| {
             let mut cmds = hud.frame_commands(total_ms, delta_ms);
+            for (_, aux_hud) in &mut aux_huds {
+                cmds.extend(aux_hud.frame_commands(total_ms, delta_ms));
+            }
             cmds.push(EngineCmd::CmdModelUpsert(CmdModelUpsertArgs::Update(
                 CmdModelUpdateArgs {
                     realm_id: ctx.realm_id,
@@ -153,7 +261,7 @@ pub fn run(demo: DemoKind, ctx: DemoContext) -> bool {
                 },
             )));
 
-            if demo == DemoKind::Demo020 {
+            if options.draw_gizmos {
                 cmds.push(EngineCmd::CmdGizmoDrawLine(CmdGizmoDrawLineArgs {
                     start: Vec3::new(-2.0, 0.0, 0.0),
                     end: Vec3::new(2.0, 0.0, 0.0),
@@ -166,12 +274,12 @@ pub fn run(demo: DemoKind, ctx: DemoContext) -> bool {
                 }));
             }
 
-            if demo == DemoKind::Demo027 && total_ms.saturating_sub(last_list_ms) >= 1000 {
+            if options.poll_lists && total_ms.saturating_sub(last_list_ms) >= 1000 {
                 last_list_ms = total_ms;
                 cmds.extend(list_commands(ctx.window_id));
             }
 
-            if demo == DemoKind::Demo024 && total_ms.saturating_sub(last_list_ms) >= 1500 {
+            if options.log_input_wait && total_ms.saturating_sub(last_list_ms) >= 1500 {
                 last_list_ms = total_ms;
                 println!("Demo 024 aguardando eventos de keyboard/mouse/touch/gamepad...");
             }
@@ -193,8 +301,328 @@ pub fn run(demo: DemoKind, ctx: DemoContext) -> bool {
     )
 }
 
+fn run_demo_2_window_ui(ctx: DemoContext) -> bool {
+    let demo_number = 2;
+    let ids = DemoIds::from_number(demo_number);
+    let Some(ui_realm_id) = create_ui_realm(ctx.window_id) else {
+        return false;
+    };
+
+    let target_id = ids.target_id + 2_000;
+    let control_doc_id = ids.ui_doc_extra + 200;
+    let control_root_id = ids.ui_node_extra + 200;
+    let measurement_text_id = control_root_id + 1;
+    let btn_measure = control_root_id + 10;
+    let btn_windowed = control_root_id + 11;
+    let btn_maximized = control_root_id + 12;
+    let btn_minimized = control_root_id + 13;
+    let btn_fullscreen = control_root_id + 14;
+    let btn_borderless = control_root_id + 15;
+    let btn_cursor_default = control_root_id + 16;
+    let btn_cursor_crosshair = control_root_id + 17;
+
+    let mut hud = FpsHud::new(demo_number);
+    let mut setup_cmds = vec![
+        EngineCmd::CmdTargetUpsert(CmdTargetUpsertArgs {
+            target_id,
+            kind: TargetKind::Window,
+            window_id: Some(ctx.window_id),
+            size: None,
+            format_policy: None,
+            alpha_policy: None,
+            msaa_samples: None,
+        }),
+        EngineCmd::CmdTargetLayerUpsert(CmdTargetLayerUpsertArgs {
+            realm_id: ui_realm_id,
+            target_id,
+            layout: TargetLayerLayout::default(),
+            camera_id: None,
+            environment_id: None,
+        }),
+        EngineCmd::CmdUiDocumentCreate(CmdUiDocumentCreateArgs {
+            document_id: control_doc_id,
+            realm_id: ui_realm_id,
+            rect: glam::vec4(0.0, 0.0, 0.0, 0.0),
+            theme_id: None,
+        }),
+    ];
+    setup_cmds.extend(hud.setup_commands(ui_realm_id));
+    setup_cmds.push(EngineCmd::CmdUiApplyOps(
+        crate::core::ui::cmd::CmdUiApplyOpsArgs {
+            document_id: control_doc_id,
+            version: 1,
+            ops: vec![
+                UiOp::Add {
+                    parent: None,
+                    node: UiNode {
+                        id: control_root_id,
+                        kind: UiNodeKind::Container,
+                        props: UiNodeProps::Container {
+                            layout: Default::default(),
+                            padding: None,
+                            size: None,
+                            scroll_x: false,
+                            scroll_y: false,
+                        },
+                        tooltip: None,
+                        context_menu: None,
+                        anim: None,
+                        display: None,
+                        visible: None,
+                        opacity: None,
+                        z_index: Some(100),
+                    },
+                    index: None,
+                },
+                UiOp::Add {
+                    parent: Some(control_root_id),
+                    node: UiNode {
+                        id: measurement_text_id,
+                        kind: UiNodeKind::Text,
+                        props: UiNodeProps::Text {
+                            text: "Measurement: aguardando...".into(),
+                            size: Some(18.0),
+                            color: None,
+                        },
+                        tooltip: None,
+                        context_menu: None,
+                        anim: None,
+                        display: None,
+                        visible: None,
+                        opacity: None,
+                        z_index: Some(101),
+                    },
+                    index: None,
+                },
+                ui_button_op(control_root_id, btn_measure, "Measure"),
+                ui_button_op(control_root_id, btn_windowed, "State: Windowed"),
+                ui_button_op(control_root_id, btn_maximized, "State: Maximized"),
+                ui_button_op(control_root_id, btn_minimized, "State: Minimized"),
+                ui_button_op(control_root_id, btn_fullscreen, "State: Fullscreen"),
+                ui_button_op(
+                    control_root_id,
+                    btn_borderless,
+                    "State: Windowed Fullscreen",
+                ),
+                ui_button_op(control_root_id, btn_cursor_default, "Cursor: Default"),
+                ui_button_op(control_root_id, btn_cursor_crosshair, "Cursor: Crosshair"),
+            ],
+        },
+    ));
+    setup_cmds.push(window_measurement_cmd(ctx.window_id));
+    let _ = send_commands(setup_cmds);
+    let _ = receive_responses();
+
+    let mut control_version: u64 = 1;
+    let mut last_frame_time = std::time::Instant::now();
+    let mut total_ms: u64 = 0;
+    let target_frame_time = Duration::from_millis(16);
+
+    loop {
+        let now = std::time::Instant::now();
+        let delta_ms = now.duration_since(last_frame_time).as_millis() as u32;
+        last_frame_time = now;
+        total_ms = total_ms.saturating_add(delta_ms as u64);
+
+        let frame_cmds = hud.frame_commands(total_ms, delta_ms);
+        if !frame_cmds.is_empty() {
+            let _ = send_commands(frame_cmds);
+        }
+
+        if core::vulfram_tick(total_ms, delta_ms) != crate::core::VulframResult::Success {
+            return false;
+        }
+
+        for envelope in receive_responses() {
+            if let CommandResponse::WindowMeasurement(result) = envelope.response
+                && result.success
+            {
+                let position = result
+                    .position
+                    .map(|p| format!("({}, {})", p.x, p.y))
+                    .unwrap_or_else(|| "-".into());
+                let size = result
+                    .size
+                    .map(|s| format!("{}x{}", s.x, s.y))
+                    .unwrap_or_else(|| "-".into());
+                let outer_size = result
+                    .outer_size
+                    .map(|s| format!("{}x{}", s.x, s.y))
+                    .unwrap_or_else(|| "-".into());
+                let surface_size = result
+                    .surface_size
+                    .map(|s| format!("{}x{}", s.x, s.y))
+                    .unwrap_or_else(|| "-".into());
+                let text = format!(
+                    "Measurement: pos={} | size={} | outer={} | surface={}",
+                    position, size, outer_size, surface_size
+                );
+                control_version = control_version.saturating_add(1);
+                let _ = send_commands(vec![EngineCmd::CmdUiApplyOps(
+                    crate::core::ui::cmd::CmdUiApplyOpsArgs {
+                        document_id: control_doc_id,
+                        version: control_version,
+                        ops: vec![UiOp::Set {
+                            node_id: measurement_text_id,
+                            props: UiNodeProps::Text {
+                                text,
+                                size: Some(18.0),
+                                color: None,
+                            },
+                        }],
+                    },
+                )]);
+            }
+        }
+
+        let events = receive_events();
+        for event in events {
+            if should_close_window(ctx.window_id, &event) {
+                let _ = send_commands(vec![EngineCmd::CmdWindowClose(
+                    crate::core::window::CmdWindowCloseArgs {
+                        window_id: ctx.window_id,
+                    },
+                )]);
+                return true;
+            }
+
+            let EngineEvent::Ui(ui_event) = event else {
+                continue;
+            };
+            if ui_event.document_id != control_doc_id
+                || ui_event.kind != crate::core::ui::events::UiEventKind::Click
+            {
+                continue;
+            }
+
+            let mut cmds: Vec<EngineCmd> = Vec::new();
+            match ui_event.node_id {
+                id if id == btn_measure => {
+                    cmds.push(window_measurement_cmd(ctx.window_id));
+                }
+                id if id == btn_windowed => {
+                    cmds.push(window_state_cmd(ctx.window_id, EngineWindowState::Windowed));
+                    cmds.push(window_measurement_cmd(ctx.window_id));
+                }
+                id if id == btn_maximized => {
+                    cmds.push(window_state_cmd(
+                        ctx.window_id,
+                        EngineWindowState::Maximized,
+                    ));
+                    cmds.push(window_measurement_cmd(ctx.window_id));
+                }
+                id if id == btn_minimized => {
+                    cmds.push(window_state_cmd(
+                        ctx.window_id,
+                        EngineWindowState::Minimized,
+                    ));
+                    cmds.push(window_measurement_cmd(ctx.window_id));
+                }
+                id if id == btn_fullscreen => {
+                    cmds.push(window_state_cmd(
+                        ctx.window_id,
+                        EngineWindowState::Fullscreen,
+                    ));
+                    cmds.push(window_measurement_cmd(ctx.window_id));
+                }
+                id if id == btn_borderless => {
+                    cmds.push(window_state_cmd(
+                        ctx.window_id,
+                        EngineWindowState::WindowedFullscreen,
+                    ));
+                    cmds.push(window_measurement_cmd(ctx.window_id));
+                }
+                id if id == btn_cursor_default => {
+                    cmds.push(window_cursor_cmd(ctx.window_id, CursorIcon::Default));
+                }
+                id if id == btn_cursor_crosshair => {
+                    cmds.push(window_cursor_cmd(ctx.window_id, CursorIcon::Crosshair));
+                }
+                _ => {}
+            }
+            if !cmds.is_empty() {
+                let _ = send_commands(cmds);
+            }
+        }
+
+        if let Some(remaining) = target_frame_time.checked_sub(now.elapsed()) {
+            std::thread::sleep(remaining);
+        }
+    }
+}
+
+fn ui_button_op(parent: u32, node_id: u32, label: &str) -> UiOp {
+    UiOp::Add {
+        parent: Some(parent),
+        node: UiNode {
+            id: node_id,
+            kind: UiNodeKind::Button,
+            props: UiNodeProps::Button {
+                label: label.into(),
+                enabled: Some(true),
+            },
+            tooltip: None,
+            context_menu: None,
+            anim: None,
+            display: None,
+            visible: None,
+            opacity: None,
+            z_index: Some(101),
+        },
+        index: None,
+    }
+}
+
+fn window_measurement_cmd(window_id: u32) -> EngineCmd {
+    EngineCmd::CmdWindowMeasurement(CmdWindowMeasurementArgs {
+        window_id,
+        get_position: true,
+        get_size: true,
+        get_outer_size: true,
+        get_surface_size: true,
+        ..Default::default()
+    })
+}
+
+fn window_state_cmd(window_id: u32, state: EngineWindowState) -> EngineCmd {
+    EngineCmd::CmdWindowState(CmdWindowStateArgs {
+        window_id,
+        state: Some(state),
+        get_state: true,
+        get_decorations: true,
+        get_resizable: true,
+        ..Default::default()
+    })
+}
+
+fn window_cursor_cmd(window_id: u32, icon: CursorIcon) -> EngineCmd {
+    EngineCmd::CmdWindowCursor(CmdWindowCursorArgs {
+        window_id,
+        visible: Some(true),
+        mode: None,
+        icon: Some(icon),
+    })
+}
+
 fn base_scene_commands(ctx: DemoContext, ids: DemoIds) -> Vec<EngineCmd> {
     vec![
+        EngineCmd::CmdEnvironmentUpsert(CmdEnvironmentUpsertArgs::Update(
+            CmdEnvironmentUpdateArgs {
+                environment_id: ids.env_id,
+                config: EnvironmentConfig {
+                    clear_color: Vec4::new(0.0, 0.0, 0.0, 1.0),
+                    skybox: SkyboxConfig {
+                        mode: SkyboxMode::None,
+                        ..Default::default()
+                    },
+                    post: PostProcessConfig {
+                        filter_enabled: false,
+                        ..Default::default()
+                    },
+                    ..Default::default()
+                },
+            },
+        )),
         EngineCmd::CmdTargetUpsert(CmdTargetUpsertArgs {
             target_id: ids.target_id,
             kind: TargetKind::Window,
@@ -248,7 +676,7 @@ fn base_scene_commands(ctx: DemoContext, ids: DemoIds) -> Vec<EngineCmd> {
             target_id: ids.target_id,
             layout: TargetLayerLayout::default(),
             camera_id: Some(ids.camera_id),
-            environment_id: None,
+            environment_id: Some(ids.env_id),
         }),
         create_shadow_config_cmd(ctx.window_id),
     ]
@@ -290,33 +718,16 @@ fn aux_window_commands(window_id: u32, realm_id: u32, ids: DemoIds) -> Vec<Engin
 }
 
 fn extra_setup_commands(
-    demo: DemoKind,
+    scenario: u32,
     ctx: DemoContext,
     ui_realm_id: u32,
     ids: DemoIds,
 ) -> Vec<EngineCmd> {
     let mut cmds = Vec::new();
 
-    match demo {
-        DemoKind::Demo001 => {
-            cmds.push(EngineCmd::CmdEnvironmentUpsert(
-                CmdEnvironmentUpsertArgs::Update(CmdEnvironmentUpdateArgs {
-                    environment_id: ids.env_id,
-                    config: EnvironmentConfig {
-                        clear_color: Vec4::new(0.0, 0.0, 0.0, 0.0),
-                        ..Default::default()
-                    },
-                }),
-            ));
-            cmds.push(EngineCmd::CmdTargetLayerUpsert(CmdTargetLayerUpsertArgs {
-                realm_id: ctx.realm_id,
-                target_id: ids.target_id,
-                layout: TargetLayerLayout::default(),
-                camera_id: Some(ids.camera_id),
-                environment_id: Some(ids.env_id),
-            }));
-        }
-        DemoKind::Demo002 => {
+    match scenario {
+        1 => {}
+        2 => {
             cmds.push(EngineCmd::CmdWindowMeasurement(CmdWindowMeasurementArgs {
                 window_id: ctx.window_id,
                 get_position: true,
@@ -341,7 +752,7 @@ fn extra_setup_commands(
                 icon: Some(CursorIcon::Crosshair),
             }));
         }
-        DemoKind::Demo003 => {
+        3 => {
             cmds.push(EngineCmd::CmdRealmCreate(CmdRealmCreateArgs {
                 kind: RealmKindDto::TwoD,
                 output_surface_id: None,
@@ -351,7 +762,7 @@ fn extra_setup_commands(
                 flags: None,
             }));
         }
-        DemoKind::Demo004 => {
+        4 => {
             let texture_target = ids.target_id + 1;
             cmds.push(EngineCmd::CmdTargetUpsert(CmdTargetUpsertArgs {
                 target_id: texture_target,
@@ -379,7 +790,7 @@ fn extra_setup_commands(
                 target_id: texture_target,
             }));
         }
-        DemoKind::Demo005 => {
+        5 => {
             cmds.push(EngineCmd::CmdCameraList(CmdCameraListArgs {
                 window_id: ctx.window_id,
             }));
@@ -388,7 +799,7 @@ fn extra_setup_commands(
                 camera_id: ids.camera_id + 99,
             }));
         }
-        DemoKind::Demo006 => {
+        6 => {
             let mut bones = vec![Mat4::IDENTITY; 16];
             for (idx, bone) in bones.iter_mut().enumerate() {
                 *bone = Mat4::from_translation(Vec3::new(0.0, idx as f32 * 0.01, 0.0));
@@ -409,7 +820,7 @@ fn extra_setup_commands(
                 window_id: ctx.window_id,
             }));
         }
-        DemoKind::Demo007 => {
+        7 => {
             let _ = build_skinned_plane(4, 4, 1.0, 4);
             let positions: [Vec3; 3] = [
                 Vec3::new(-1.0, -1.0, 0.0),
@@ -477,7 +888,7 @@ fn extra_setup_commands(
                 geometry_id: ids.geometry_id + 200,
             }));
         }
-        DemoKind::Demo008 => {
+        8 => {
             cmds.push(EngineCmd::CmdMaterialUpsert(CmdMaterialUpsertArgs::Create(
                 CmdMaterialCreateArgs {
                     material_id: ids.material_id + 100,
@@ -498,7 +909,7 @@ fn extra_setup_commands(
                 material_id: ids.material_id + 100,
             }));
         }
-        DemoKind::Demo009 => {
+        9 => {
             cmds.push(EngineCmd::CmdLightUpsert(CmdLightUpsertArgs::Create(
                 CmdLightCreateArgs {
                     realm_id: ctx.realm_id,
@@ -524,7 +935,7 @@ fn extra_setup_commands(
                 light_id: ids.light_id + 100,
             }));
         }
-        DemoKind::Demo010 => {
+        10 => {
             cmds.push(EngineCmd::CmdTextureCreateSolidColor(
                 CmdTextureCreateSolidColorArgs {
                     texture_id: ids.texture_id,
@@ -547,7 +958,7 @@ fn extra_setup_commands(
                 texture_id: ids.texture_id,
             }));
         }
-        DemoKind::Demo011 => {
+        11 => {
             let image_bytes = load_texture_bytes("assets/colo_test_texture.png");
             upload_texture_bytes(&image_bytes, 81_000 + ids.texture_id as u64);
             cmds.push(EngineCmd::CmdTextureCreateFromBuffer(
@@ -564,7 +975,7 @@ fn extra_setup_commands(
                 CmdUploadBufferDiscardAllArgs {},
             ));
         }
-        DemoKind::Demo012 => {
+        12 => {
             cmds.push(EngineCmd::CmdEnvironmentUpsert(
                 CmdEnvironmentUpsertArgs::Update(CmdEnvironmentUpdateArgs {
                     environment_id: ids.env_id,
@@ -588,19 +999,14 @@ fn extra_setup_commands(
                 camera_id: Some(ids.camera_id),
                 environment_id: Some(ids.env_id),
             }));
-            cmds.push(EngineCmd::CmdEnvironmentDispose(
-                CmdEnvironmentDisposeArgs {
-                    environment_id: ids.env_id,
-                },
-            ));
         }
-        DemoKind::Demo013 => {
+        13 => {
             cmds.push(EngineCmd::CmdShadowConfigure(CmdShadowConfigureArgs {
                 window_id: ctx.window_id,
                 config: ShadowConfig::default(),
             }));
         }
-        DemoKind::Demo014 => {
+        14 => {
             let mut post = PostProcessConfig {
                 filter_enabled: true,
                 filter_exposure: 1.1,
@@ -644,7 +1050,7 @@ fn extra_setup_commands(
                 }),
             ));
         }
-        DemoKind::Demo015 => {
+        15 => {
             let post = PostProcessConfig {
                 ssao_enabled: true,
                 ssao_strength: 1.3,
@@ -664,7 +1070,7 @@ fn extra_setup_commands(
                 }),
             ));
         }
-        DemoKind::Demo016 => {
+        16 => {
             let post = PostProcessConfig {
                 bloom_enabled: true,
                 bloom_threshold: 0.9,
@@ -683,7 +1089,7 @@ fn extra_setup_commands(
                 }),
             ));
         }
-        DemoKind::Demo017 => {
+        17 => {
             cmds.push(EngineCmd::CmdUiDocumentCreate(CmdUiDocumentCreateArgs {
                 document_id: ids.ui_doc_extra,
                 realm_id: ui_realm_id,
@@ -694,42 +1100,66 @@ fn extra_setup_commands(
                 crate::core::ui::cmd::CmdUiApplyOpsArgs {
                     document_id: ids.ui_doc_extra,
                     version: 1,
-                    ops: vec![UiOp::Add {
-                        parent: None,
-                        node: UiNode {
-                            id: ids.ui_node_extra,
-                            kind: UiNodeKind::Text,
-                            props: UiNodeProps::Text {
-                                text: "Demo 017 UI Runtime".into(),
-                                size: Some(20.0),
-                                color: None,
+                    ops: vec![
+                        UiOp::Add {
+                            parent: None,
+                            node: UiNode {
+                                id: ids.ui_node_extra,
+                                kind: UiNodeKind::Area,
+                                props: UiNodeProps::Area {
+                                    label: Some("suite-d-runtime-anchor".into()),
+                                    x: Some(8.0),
+                                    y: Some(660.0),
+                                    draggable: Some(false),
+                                    size: None,
+                                },
+                                tooltip: None,
+                                context_menu: None,
+                                anim: None,
+                                display: None,
+                                visible: None,
+                                opacity: None,
+                                z_index: Some(1000),
                             },
-                            tooltip: None,
-                            context_menu: None,
-                            anim: None,
-                            display: None,
-                            visible: None,
-                            opacity: None,
-                            z_index: Some(1000),
+                            index: None,
                         },
-                        index: None,
-                    }],
+                        UiOp::Add {
+                            parent: Some(ids.ui_node_extra),
+                            node: UiNode {
+                                id: ids.ui_node_extra + 1,
+                                kind: UiNodeKind::Text,
+                                props: UiNodeProps::Text {
+                                    text: "Demo 017 UI Runtime".into(),
+                                    size: Some(20.0),
+                                    color: None,
+                                },
+                                tooltip: None,
+                                context_menu: None,
+                                anim: None,
+                                display: None,
+                                visible: None,
+                                opacity: None,
+                                z_index: Some(1001),
+                            },
+                            index: None,
+                        },
+                    ],
                 },
             ));
         }
-        DemoKind::Demo018 => {
+        18 => {
             cmds.push(EngineCmd::CmdUiDocumentGetTree(CmdUiDocumentGetTreeArgs {
-                document_id: 90_000 + demo.number() * 16,
+                document_id: 90_000 + scenario * 16,
             }));
             cmds.push(EngineCmd::CmdUiDocumentGetLayoutRects(
                 CmdUiDocumentGetLayoutRectsArgs {
-                    document_id: 90_000 + demo.number() * 16,
+                    document_id: 90_000 + scenario * 16,
                 },
             ));
             cmds.push(EngineCmd::CmdUiFocusSet(CmdUiFocusSetArgs {
                 window_id: ctx.window_id,
                 realm_id: ui_realm_id,
-                document_id: 90_000 + demo.number() * 16,
+                document_id: 90_000 + scenario * 16,
                 node_id: None,
             }));
             cmds.push(EngineCmd::CmdUiFocusGet(CmdUiFocusGetArgs {
@@ -746,7 +1176,7 @@ fn extra_setup_commands(
                 show_profile: true,
             }));
         }
-        DemoKind::Demo019 => {
+        19 => {
             let image_bytes = load_texture_bytes("assets/alpha_test_texture.png");
             upload_texture_bytes(&image_bytes, 82_000 + ids.texture_id as u64);
             cmds.push(EngineCmd::CmdUiImageCreateFromBuffer(
@@ -778,8 +1208,8 @@ fn extra_setup_commands(
                 image_id: ids.aux_id,
             }));
         }
-        DemoKind::Demo020 => {}
-        DemoKind::Demo021 => {
+        20 => {}
+        21 => {
             let realm_plane_target = ids.target_id + 700;
             cmds.push(EngineCmd::CmdTargetUpsert(CmdTargetUpsertArgs {
                 target_id: realm_plane_target,
@@ -837,8 +1267,8 @@ fn extra_setup_commands(
                 },
             ));
         }
-        DemoKind::Demo022 => {}
-        DemoKind::Demo023 => {
+        22 => {}
+        23 => {
             let audio_bytes = std::fs::read("assets/audio.wav").unwrap_or_default();
             upload_binary_bytes(&audio_bytes, 83_000 + ids.aux_id as u64);
             cmds.push(EngineCmd::CmdAudioResourceUpsert(
@@ -885,8 +1315,8 @@ fn extra_setup_commands(
                 crate::core::audio::cmd::CmdAudioStateGetArgs::default(),
             ));
         }
-        DemoKind::Demo024 => {}
-        DemoKind::Demo025 => {
+        24 => {}
+        25 => {
             cmds.push(EngineCmd::CmdSystemDiagnosticsSet(
                 CmdSystemDiagnosticsSetArgs {
                     profiling_enabled: Some(true),
@@ -905,7 +1335,7 @@ fn extra_setup_commands(
                 timeout: Some(1500),
             }));
         }
-        DemoKind::Demo026 => {
+        26 => {
             let post = PostProcessConfig {
                 filter_enabled: true,
                 outline_enabled: true,
@@ -941,10 +1371,10 @@ fn extra_setup_commands(
                 environment_id: Some(ids.env_id),
             }));
         }
-        DemoKind::Demo027 => {
+        27 => {
             cmds.extend(list_commands(ctx.window_id));
         }
-        DemoKind::Demo028 => {
+        28 => {
             cmds.extend(list_commands(ctx.window_id));
             cmds.push(EngineCmd::CmdNotificationSend(CmdNotificationSendArgs {
                 id: Some("demo028-start".into()),
@@ -954,6 +1384,7 @@ fn extra_setup_commands(
                 timeout: Some(1200),
             }));
         }
+        _ => {}
     }
 
     cmds

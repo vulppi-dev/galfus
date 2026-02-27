@@ -93,8 +93,6 @@ pub fn render_realm_documents(
                 ui.set_min_size(rect.size());
                 ui.set_max_size(rect.size());
                 ui.set_clip_rect(rect);
-                let bg = ui.style().visuals.window_fill;
-                ui.painter().rect_filled(ui.max_rect(), 0.0, bg);
                 render_children(
                     ui,
                     &document,

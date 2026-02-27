@@ -1,5 +1,6 @@
 # AGENTS.md — Vulfram instructions
 
+- Nunca confirme de forma positiva diretamente sobre uma proposta, você deve ponderar logicamente se é realmente valido ou não; Caso não seja, sugira uma proposta mais alinhada a resolução do problema de forma eficaz e eficiente.
 - Projeto experimental: nao precisamos manter retrocompatibilidade por enquanto; apos lancamento, sim.
 - Planejamento deve ocorrer sem alterar arquivos (sem gerar codigo) quando o usuario pedir apenas analise.
 - Variaveis que seguram ownership e não são mais usadas depois ganham sempre o prefixo `_`.

@@ -1,9 +1,12 @@
 use crate::core::cmd::EngineCmd;
 use crate::core::ui::cmd::{CmdUiApplyOpsArgs, CmdUiDocumentCreateArgs};
-use crate::core::ui::types::{UiNode, UiNodeKind, UiNodeProps, UiOp};
+use crate::core::ui::types::{
+    UiAlign, UiLayout, UiLayoutDirection, UiLength, UiNode, UiNodeKind, UiNodeProps, UiOp, UiSize,
+};
 
 pub struct FpsHud {
     pub document_id: u32,
+    container_id: u32,
     node_id: u32,
     version: u64,
     last_update_ms: u64,
@@ -15,7 +18,8 @@ impl FpsHud {
         let base = 90_000 + demo_number * 16;
         Self {
             document_id: base,
-            node_id: base + 1,
+            container_id: base + 1,
+            node_id: base + 2,
             version: 1,
             last_update_ms: 0,
             last_fps: 0.0,
@@ -33,26 +37,61 @@ impl FpsHud {
             EngineCmd::CmdUiApplyOps(CmdUiApplyOpsArgs {
                 document_id: self.document_id,
                 version: self.version,
-                ops: vec![UiOp::Add {
-                    parent: None,
-                    node: UiNode {
-                        id: self.node_id,
-                        kind: UiNodeKind::Text,
-                        props: UiNodeProps::Text {
-                            text: "FPS: --".into(),
-                            size: Some(18.0),
-                            color: None,
+                ops: vec![
+                    UiOp::Add {
+                        parent: None,
+                        node: UiNode {
+                            id: self.container_id,
+                            kind: UiNodeKind::Container,
+                            props: UiNodeProps::Container {
+                                layout: UiLayout {
+                                    direction: UiLayoutDirection::RowReverse,
+                                    align: UiAlign::Start,
+                                    justify: UiAlign::Start,
+                                    gap: 0.0,
+                                    columns: None,
+                                    wrap: false,
+                                    wrap_limit: None,
+                                },
+                                padding: None,
+                                size: Some(UiSize {
+                                    width: UiLength::Fill,
+                                    height: UiLength::Auto,
+                                }),
+                                scroll_x: false,
+                                scroll_y: false,
+                            },
+                            tooltip: None,
+                            context_menu: None,
+                            anim: None,
+                            display: None,
+                            visible: None,
+                            opacity: None,
+                            z_index: Some(999),
                         },
-                        tooltip: None,
-                        context_menu: None,
-                        anim: None,
-                        display: None,
-                        visible: None,
-                        opacity: None,
-                        z_index: Some(999),
+                        index: None,
                     },
-                    index: None,
-                }],
+                    UiOp::Add {
+                        parent: Some(self.container_id),
+                        node: UiNode {
+                            id: self.node_id,
+                            kind: UiNodeKind::Text,
+                            props: UiNodeProps::Text {
+                                text: "FPS: --".into(),
+                                size: Some(18.0),
+                                color: None,
+                            },
+                            tooltip: None,
+                            context_menu: None,
+                            anim: None,
+                            display: None,
+                            visible: None,
+                            opacity: None,
+                            z_index: Some(1000),
+                        },
+                        index: None,
+                    },
+                ],
             }),
         ]
     }

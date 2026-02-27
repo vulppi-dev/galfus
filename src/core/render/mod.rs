@@ -303,6 +303,20 @@ pub fn render_frames(engine_state: &mut EngineState) {
             let mut encoder =
                 device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
 
+            let already_rendered_surface = updated_surfaces.contains(&surface_id);
+            let clear_alpha = engine_state
+                .universal_state
+                .realms
+                .entries
+                .get(realm_id)
+                .map(|entry| {
+                    if entry.value.kind == crate::core::realm::RealmKind::TwoD {
+                        0.0
+                    } else {
+                        1.0
+                    }
+                })
+                .unwrap_or(1.0);
             {
                 let _clear_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                     label: Some("Realm Target Clear"),
@@ -310,12 +324,16 @@ pub fn render_frames(engine_state: &mut EngineState) {
                         view: &target_view,
                         resolve_target: None,
                         ops: wgpu::Operations {
-                            load: wgpu::LoadOp::Clear(wgpu::Color {
-                                r: 0.0,
-                                g: 0.0,
-                                b: 0.0,
-                                a: 0.0,
-                            }),
+                            load: if already_rendered_surface {
+                                wgpu::LoadOp::Load
+                            } else {
+                                wgpu::LoadOp::Clear(wgpu::Color {
+                                    r: 0.0,
+                                    g: 0.0,
+                                    b: 0.0,
+                                    a: clear_alpha,
+                                })
+                            },
                             store: wgpu::StoreOp::Store,
                         },
                         depth_slice: None,
