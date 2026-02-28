@@ -258,6 +258,9 @@ then decoded into internal Rust enums.
   1. Copies the buffer into a `Vec<u8>`.
   2. Deserializes with `rmp-serde` into `EngineBatchCmds` (`Vec<EngineCmdEnvelope>`).
   3. Pushes the commands into `EngineState::cmd_queue`.
+  4. On deserialize/type mismatch error, returns `CmdInvalidMessagePackError` and emits
+     `SystemEvent::Error` with scope `serialization`, command type `send-queue`, and
+     the decode path of the invalid field when available.
 
 ### 5.2 Command Representation
 

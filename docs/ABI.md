@@ -121,6 +121,14 @@ Core behavior:
 2. Decodes it into one or more internal command structures.
 3. Enqueues these commands to be processed on the next `vulfram_tick()`.
 
+Decode failures:
+
+- If MessagePack payload shape/type is invalid, the function returns
+  `CmdInvalidMessagePackError`.
+- The core also emits `SystemEvent::Error` with `scope="serialization"`,
+  `commandType="send-queue"` and a message containing the decode path of the
+  failing field (when available).
+
 Typical commands include:
 
 - Create/update/destroy **resources** (textures, geometries, materials…)

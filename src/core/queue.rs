@@ -5,6 +5,7 @@ use std::time::Instant;
 
 use super::VulframResult;
 use super::cmd::EngineBatchCmds;
+use super::system::push_error_event;
 
 #[cfg(feature = "wasm")]
 fn now_ns() -> u64 {
@@ -12,15 +13,42 @@ fn now_ns() -> u64 {
 }
 use super::singleton::with_engine;
 
+fn decode_engine_batch_cmds(data: &[u8]) -> Result<EngineBatchCmds, String> {
+    let mut deserializer = rmp_serde::Deserializer::new(data);
+    match serde_path_to_error::deserialize::<_, EngineBatchCmds>(&mut deserializer) {
+        Ok(batch) => Ok(batch),
+        Err(error) => {
+            let path = error.path().to_string();
+            let inner = error.into_inner();
+            if path.is_empty() {
+                Err(format!("Invalid MessagePack in command batch: {inner}"))
+            } else {
+                Err(format!(
+                    "Invalid MessagePack in command batch at '{path}': {inner}"
+                ))
+            }
+        }
+    }
+}
+
 /// Send a batch of commands to the engine
 pub fn vulfram_send_queue(ptr: *const u8, length: usize) -> VulframResult {
     let data = unsafe { std::slice::from_raw_parts(ptr, length) };
 
-    let batch = match rmp_serde::from_slice::<EngineBatchCmds>(data) {
-        Err(_) => {
+    let batch = match decode_engine_batch_cmds(data) {
+        Ok(batch) => batch,
+        Err(message) => {
+            let _ = with_engine(|engine| {
+                push_error_event(
+                    engine,
+                    "serialization",
+                    message,
+                    None,
+                    Some("send-queue".into()),
+                );
+            });
             return VulframResult::CmdInvalidMessagePackError;
         }
-        Ok(batch) => batch,
     };
 
     match with_engine(|engine| {
@@ -131,5 +159,46 @@ pub fn vulfram_receive_events(out_ptr: *mut *const u8, out_length: *mut usize) -
     }) {
         Err(e) => e,
         Ok(result) => result,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde::Serialize;
+
+    #[derive(Serialize)]
+    #[serde(rename_all = "camelCase")]
+    struct HostCmdWindowCloseArgs {
+        window_id: u32,
+    }
+
+    #[derive(Serialize)]
+    struct HostInvalidEnvelope<'a> {
+        id: &'a str,
+        #[serde(rename = "type")]
+        command_type: &'a str,
+        content: HostCmdWindowCloseArgs,
+    }
+
+    #[test]
+    fn send_queue_invalid_type_emits_serialization_error_with_path() {
+        let payload = rmp_serde::to_vec_named(&vec![HostInvalidEnvelope {
+            id: "invalid-id-type",
+            command_type: "cmd-window-close",
+            content: HostCmdWindowCloseArgs { window_id: 1 },
+        }])
+        .expect("host payload serialization must succeed");
+
+        let error = decode_engine_batch_cmds(&payload)
+            .expect_err("invalid payload should produce decode error");
+        assert!(
+            error.contains("at '"),
+            "serialization message should include decode path: {error}"
+        );
+        assert!(
+            error.contains("id"),
+            "serialization message should mention failing field: {error}"
+        );
     }
 }
