@@ -21,7 +21,7 @@ struct ResolvedLayerLayout {
 }
 
 pub fn sync_auto_graph(engine_state: &mut EngineState) {
-    rebuild_target_indexes(&mut engine_state.universal_state);
+    refresh_target_indexes(&mut engine_state.universal_state);
 
     let mut desired_layers: Vec<TargetLayerState> = engine_state
         .universal_state
@@ -283,6 +283,10 @@ pub fn sync_auto_graph(engine_state: &mut EngineState) {
     engine_state.universal_state.target_autolink_failures = auto_link_failures;
 }
 
+pub fn refresh_target_indexes(universal: &mut UniversalState) {
+    rebuild_target_indexes(universal);
+}
+
 pub(crate) fn remove_auto_link_for_layer(
     universal: &mut UniversalState,
     realm_id: u32,
@@ -376,18 +380,28 @@ fn remove_auto_link(universal: &mut UniversalState, key: (u32, TargetId)) {
 
 fn rebuild_target_indexes(universal: &mut UniversalState) {
     universal.host_realm_index.clear();
-    for (realm_id, entry) in &universal.realms.entries {
-        let Some(window_id) = entry.value.host_window_id else {
+    for layer in universal.target_layers.entries.values() {
+        let realm_id = RealmId(layer.realm_id);
+        if !universal.realms.entries.contains_key(&realm_id) {
+            continue;
+        }
+        let Some(target) = universal.targets.entries.get(&layer.target_id) else {
+            continue;
+        };
+        if target.kind != TargetKind::Window {
+            continue;
+        }
+        let Some(window_id) = target.window_id else {
             continue;
         };
         match universal.host_realm_index.get_mut(&window_id) {
             Some(existing) => {
                 if realm_id.0 < existing.0 {
-                    *existing = *realm_id;
+                    *existing = realm_id;
                 }
             }
             None => {
-                universal.host_realm_index.insert(window_id, *realm_id);
+                universal.host_realm_index.insert(window_id, realm_id);
             }
         }
     }

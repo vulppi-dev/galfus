@@ -20,7 +20,7 @@ pub struct ConnectorId(pub u32);
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct PresentId(pub u32);
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum RealmKind {
     ThreeD,
     TwoD,
@@ -35,7 +35,6 @@ pub enum SurfaceKind {
 #[derive(Debug, Clone)]
 pub struct RealmState {
     pub kind: RealmKind,
-    pub host_window_id: Option<u32>,
     pub output_surface: Option<SurfaceId>,
     pub render_graph: Option<crate::core::render::graph::RenderGraphState>,
     pub importance: u8,

@@ -85,25 +85,6 @@ pub fn engine_cmd_light_create(
     args: &CmdLightCreateArgs,
 ) -> CmdResultLightCreate {
     let realm_id = crate::core::realm::RealmId(args.realm_id);
-    if !engine
-        .universal_state
-        .realms
-        .entries
-        .contains_key(&realm_id)
-    {
-        let message = format!("Realm {} not found", args.realm_id);
-        push_error_event(
-            engine,
-            "light",
-            message.clone(),
-            None,
-            Some("light-upsert".into()),
-        );
-        return CmdResultLightCreate {
-            success: false,
-            message,
-        };
-    }
     let entities = engine
         .universal_state
         .realm_entities

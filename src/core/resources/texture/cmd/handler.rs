@@ -5,7 +5,7 @@ use crate::core::image::{ImageBuffer, ImagePixels};
 use crate::core::resources::texture::{TextureAsyncEvent, TextureDecodeJob, TextureRecord};
 use crate::core::state::EngineState;
 use crate::core::system::SystemEvent;
-use crate::core::target::{TargetId, TargetKind};
+use crate::core::target::TargetId;
 
 pub fn engine_cmd_texture_create_from_buffer(
     engine: &mut EngineState,
@@ -423,18 +423,6 @@ pub fn engine_cmd_texture_bind_target(
         };
     }
     let target_id = TargetId(args.target_id);
-    let Some(target) = engine.universal_state.targets.entries.get(&target_id) else {
-        return CmdResultTextureBindTarget {
-            success: false,
-            message: format!("Target {} not found", args.target_id),
-        };
-    };
-    if target.kind != TargetKind::Texture {
-        return CmdResultTextureBindTarget {
-            success: false,
-            message: "Target is not a texture".into(),
-        };
-    }
     resources.target_texture_binds.insert(
         args.texture_id,
         crate::core::resources::TargetTextureBinding {

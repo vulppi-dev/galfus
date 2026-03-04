@@ -29,6 +29,7 @@ impl TargetGraphPlanner {
     ) -> TargetGraphPlan {
         let window_targets = collect_window_targets(targets);
         let layers_by_target = collect_layers_by_target(layers);
+        let realm_windows = collect_realm_windows(targets, layers, realms);
         let mut edges = Vec::with_capacity(targets.len());
 
         for (target_id, target) in targets {
@@ -37,7 +38,7 @@ impl TargetGraphPlanner {
                 TargetKind::WidgetRealmViewport | TargetKind::RealmPlane => {
                     if let Some(parent) = infer_parent_from_layers(
                         &layers_by_target,
-                        realms,
+                        &realm_windows,
                         *target_id,
                         &window_targets,
                     ) {
@@ -259,7 +260,7 @@ fn collect_window_targets(targets: &HashMap<TargetId, TargetState>) -> HashMap<u
 
 fn infer_parent_from_layers(
     layers_by_target: &HashMap<TargetId, Vec<u32>>,
-    realms: &RealmTable,
+    realm_windows: &HashMap<u32, u32>,
     target_id: TargetId,
     window_targets: &HashMap<u32, TargetId>,
 ) -> Option<TargetId> {
@@ -270,24 +271,20 @@ fn infer_parent_from_layers(
         return None;
     };
     for layer_realm_id in realm_ids {
-        let realm_id = RealmId(*layer_realm_id);
-        let Some(realm) = realms.entries.get(&realm_id) else {
-            continue;
-        };
-        let Some(host_window_id) = realm.value.host_window_id else {
+        let Some(realm_window_id) = realm_windows.get(layer_realm_id).copied() else {
             continue;
         };
 
         match chosen_window {
             None => {
-                chosen_window = Some(host_window_id);
+                chosen_window = Some(realm_window_id);
                 chosen_realm = Some(*layer_realm_id);
             }
             Some(current_window) => {
-                if host_window_id < current_window {
-                    chosen_window = Some(host_window_id);
+                if realm_window_id < current_window {
+                    chosen_window = Some(realm_window_id);
                     chosen_realm = Some(*layer_realm_id);
-                } else if host_window_id == current_window {
+                } else if realm_window_id == current_window {
                     let current_realm = chosen_realm.unwrap_or(u32::MAX);
                     if *layer_realm_id < current_realm {
                         chosen_realm = Some(*layer_realm_id);
@@ -299,6 +296,39 @@ fn infer_parent_from_layers(
 
     let window_id = chosen_window?;
     window_targets.get(&window_id).copied()
+}
+
+fn collect_realm_windows(
+    targets: &HashMap<TargetId, TargetState>,
+    layers: &HashMap<(u32, TargetId), TargetLayerState>,
+    realms: &RealmTable,
+) -> HashMap<u32, u32> {
+    let mut map: HashMap<u32, u32> = HashMap::new();
+    for ((realm_id, target_id), _layer) in layers {
+        if !realms.entries.contains_key(&RealmId(*realm_id)) {
+            continue;
+        }
+        let Some(target) = targets.get(target_id) else {
+            continue;
+        };
+        if target.kind != TargetKind::Window {
+            continue;
+        }
+        let Some(window_id) = target.window_id else {
+            continue;
+        };
+        match map.get_mut(realm_id) {
+            Some(existing_window_id) => {
+                if window_id < *existing_window_id {
+                    *existing_window_id = window_id;
+                }
+            }
+            None => {
+                map.insert(*realm_id, window_id);
+            }
+        }
+    }
+    map
 }
 
 fn collect_layers_by_target(

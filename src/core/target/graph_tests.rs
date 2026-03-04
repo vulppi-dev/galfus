@@ -38,10 +38,9 @@ fn layer_state(realm_id: u32, target_id: TargetId) -> TargetLayerState {
     }
 }
 
-fn realm_state(host_window_id: Option<u32>) -> RealmState {
+fn realm_state() -> RealmState {
     RealmState {
         kind: RealmKind::TwoD,
-        host_window_id,
         output_surface: None,
         render_graph: None,
         importance: 1,
@@ -58,10 +57,12 @@ fn planner_links_realm_target_to_smallest_window_fallback() {
     targets.insert(TargetId(100), realm_target(TargetKind::RealmPlane));
 
     let mut realms = RealmTable::default();
-    let _r2 = realms.alloc(realm_state(Some(10)));
-    let _r1 = realms.alloc(realm_state(Some(5)));
+    let _r2 = realms.alloc(realm_state());
+    let _r1 = realms.alloc(realm_state());
 
     let mut layers = HashMap::new();
+    layers.insert((0, TargetId(10)), layer_state(0, TargetId(10)));
+    layers.insert((1, TargetId(5)), layer_state(1, TargetId(5)));
     layers.insert((0, TargetId(100)), layer_state(0, TargetId(100)));
     layers.insert((1, TargetId(100)), layer_state(1, TargetId(100)));
 
@@ -82,7 +83,7 @@ fn cache_update_reports_changes_and_skips_when_unchanged() {
     targets.insert(TargetId(1), window_target(1));
 
     let mut realms = RealmTable::default();
-    let _realm = realms.alloc(realm_state(Some(1)));
+    let _realm = realms.alloc(realm_state());
 
     let layers = HashMap::new();
     let mut cache = TargetGraphCache::default();

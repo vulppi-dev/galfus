@@ -756,8 +756,6 @@ fn extra_setup_commands(
         3 => {
             cmds.push(EngineCmd::CmdRealmCreate(CmdRealmCreateArgs {
                 kind: RealmKindDto::TwoD,
-                output_surface_id: None,
-                host_window_id: Some(ctx.window_id),
                 importance: None,
                 cache_policy: None,
                 flags: None,
@@ -1407,11 +1405,9 @@ fn should_close_window(window_id: u32, event: &EngineEvent) -> bool {
     }
 }
 
-fn create_ui_realm(window_id: u32) -> Option<u32> {
+fn create_ui_realm(_window_id: u32) -> Option<u32> {
     let _ = send_commands(vec![EngineCmd::CmdRealmCreate(CmdRealmCreateArgs {
         kind: RealmKindDto::TwoD,
-        output_surface_id: None,
-        host_window_id: Some(window_id),
         importance: None,
         cache_policy: None,
         flags: None,
@@ -1434,11 +1430,9 @@ fn create_ui_realm(window_id: u32) -> Option<u32> {
     None
 }
 
-fn create_and_dispose_temp_realm(window_id: u32) -> bool {
+fn create_and_dispose_temp_realm(_window_id: u32) -> bool {
     let _ = send_commands(vec![EngineCmd::CmdRealmCreate(CmdRealmCreateArgs {
         kind: RealmKindDto::TwoD,
-        output_surface_id: None,
-        host_window_id: Some(window_id),
         importance: None,
         cache_policy: None,
         flags: None,

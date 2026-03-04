@@ -68,8 +68,10 @@ Returns `CmdResultTargetLayerUpsert`:
 
 ## Validation Rules
 
-- `realmId` must reference an existing realm.
-- `targetId` must reference an existing target.
+- `layout.width` and `layout.height` must resolve to values `> 0`.
+- `realmId`, `targetId`, `cameraId`, and `environmentId` are late-bound references:
+  command upsert is accepted even when referenced IDs do not exist yet.
+  Resolution occurs automatically when those IDs become available.
 
 When validation fails:
 - command response returns `success = false`

@@ -116,25 +116,6 @@ pub fn engine_cmd_model_create(
     args: &CmdModelCreateArgs,
 ) -> CmdResultModelCreate {
     let realm_id = crate::core::realm::RealmId(args.realm_id);
-    if !engine
-        .universal_state
-        .realms
-        .entries
-        .contains_key(&realm_id)
-    {
-        let message = format!("Realm {} not found", args.realm_id);
-        push_error_event(
-            engine,
-            "model",
-            message.clone(),
-            None,
-            Some("model-upsert".into()),
-        );
-        return CmdResultModelCreate {
-            success: false,
-            message,
-        };
-    }
     let entities = engine
         .universal_state
         .realm_entities

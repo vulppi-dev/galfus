@@ -16,20 +16,7 @@ pub fn default_vec4_zero() -> glam::Vec4 {
 }
 
 pub fn mark_realm_windows_dirty(engine: &mut EngineState, realm_id: u32) {
-    let host_window_id = engine
-        .universal_state
-        .realms
-        .entries
-        .get(&crate::core::realm::RealmId(realm_id))
-        .and_then(|realm| realm.value.host_window_id);
-
-    if let Some(window_id) = host_window_id
-        && let Some(window_state) = engine.window.states.get_mut(&window_id)
-    {
-        window_state.is_dirty = true;
-    }
-
-    // Fast path: no target layers means there is nothing else to resolve.
+    // Fast path: no target layers means there is nothing to resolve.
     if engine.universal_state.target_layers.entries.is_empty() {
         return;
     }
@@ -53,9 +40,7 @@ pub fn mark_realm_windows_dirty(engine: &mut EngineState, realm_id: u32) {
         return;
     }
     for window_id in dirty_windows {
-        if Some(window_id) != host_window_id
-            && let Some(window_state) = engine.window.states.get_mut(&window_id)
-        {
+        if let Some(window_state) = engine.window.states.get_mut(&window_id) {
             window_state.is_dirty = true;
         }
     }

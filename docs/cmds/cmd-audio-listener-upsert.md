@@ -18,6 +18,7 @@ Key fields:
 
 - Listener and source bindings are resolved every tick by the core audio proxy.
 - If listener and source are bound to the same model, spatialization is bypassed.
+- `realmId`/`modelId` references are late-bound and can be resolved after upsert.
 
 ## Response
 
