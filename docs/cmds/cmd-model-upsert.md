@@ -22,6 +22,8 @@ Key fields:
 - Model ownership is realm-scoped (`realmId`).
 - `geometryId` and `materialId` are global logical IDs.
 - Missing referenced resources use fallback behavior until available.
+- `realmId` is late-bound for create operations:
+  creating a model can happen before the referenced realm exists.
 
 ## Response
 

@@ -33,6 +33,11 @@ Returns `CmdResultTargetUpsert`:
   Pointer raycast accepts front-face hits only.
 - `size` is accepted only for `kind = "texture"`.
 
+## Notes
+
+- `windowId` is treated as a late-bound reference.
+  Target upsert is accepted even if the window does not exist yet.
+
 When validation fails:
 - command response returns `success = false`
 - host also receives `SystemEvent::Error` (`scope = "command"`).

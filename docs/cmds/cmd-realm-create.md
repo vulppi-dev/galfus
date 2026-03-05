@@ -29,6 +29,11 @@ Returns `CmdResultRealmCreate`:
 - `kind` must be a valid realm kind.
 - Realm/target/window binding is resolved later by target commands (`CmdTargetUpsert` + `CmdTargetLayerUpsert`).
 
+## Notes
+
+- Render routing is non-blocking and ID-driven: command order does not define final binding topology.
+- Once matching logical IDs exist, the core converges to the same resolved graph state.
+
 When validation fails:
 - command response returns `success = false`
 - host also receives `SystemEvent::Error` (`scope = "command"`).
