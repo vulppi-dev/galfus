@@ -20,6 +20,7 @@ Key fields include:
 - If the runtime audio backend is unavailable, commands fail deterministically.
 - `resourceId` playback binding is configured by `CmdAudioSourceTransport` (`action = "play"`).
 - Decode/stream readiness is asynchronous and reported via `SystemEvent::AudioReady` and `SystemEvent::AudioStreamProgress`.
+- `realmId`/`modelId` references are late-bound and can be resolved after upsert.
 
 ## Response
 

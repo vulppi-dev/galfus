@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::core::realm::{RealmId, RealmKind, RealmState, SurfaceId};
+use crate::core::realm::{RealmId, RealmKind, RealmState};
 use crate::core::render::graph::RenderGraphState;
 use crate::core::state::EngineState;
 use crate::core::target::resolve::remove_auto_link_for_layer;
@@ -11,9 +11,6 @@ use super::RealmKindDto;
 #[serde(rename_all = "camelCase")]
 pub struct CmdRealmCreateArgs {
     pub kind: RealmKindDto,
-    pub output_surface_id: Option<u32>,
-    #[serde(default)]
-    pub host_window_id: Option<u32>,
     #[serde(default)]
     pub importance: Option<u8>,
     #[serde(default)]
@@ -47,27 +44,6 @@ pub fn engine_cmd_realm_create(
     engine: &mut EngineState,
     args: &CmdRealmCreateArgs,
 ) -> CmdResultRealmCreate {
-    if let Some(host_window_id) = args.host_window_id {
-        if !engine.window.states.contains_key(&host_window_id) {
-            return CmdResultRealmCreate {
-                success: false,
-                message: format!("Host window {} not found", host_window_id),
-                realm_id: None,
-            };
-        }
-    }
-
-    let output_surface = args.output_surface_id.map(SurfaceId);
-    if let Some(surface_id) = output_surface {
-        if engine.universal_state.surfaces.get(surface_id).is_none() {
-            return CmdResultRealmCreate {
-                success: false,
-                message: format!("Surface {} not found", surface_id.0),
-                realm_id: None,
-            };
-        }
-    }
-
     let kind = match args.kind {
         RealmKindDto::ThreeD => RealmKind::ThreeD,
         RealmKindDto::TwoD => RealmKind::TwoD,
@@ -79,8 +55,7 @@ pub fn engine_cmd_realm_create(
 
     let realm_id = engine.universal_state.realms.alloc(RealmState {
         kind,
-        host_window_id: args.host_window_id,
-        output_surface,
+        output_surface: None,
         render_graph: Some(render_graph),
         importance: args.importance.unwrap_or(1),
         cache_policy: args.cache_policy.unwrap_or(0),

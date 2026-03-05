@@ -384,13 +384,6 @@ pub fn engine_cmd_audio_listener_create(
             message: audio_disabled_message(),
         };
     }
-    let realm_id = crate::core::realm::RealmId(args.realm_id);
-    if engine.universal_state.realms.get(realm_id).is_none() {
-        return CmdResultAudioListenerCreate {
-            success: false,
-            message: format!("Realm {} not found", args.realm_id),
-        };
-    }
     engine.audio_state.listener_binding = Some(crate::core::audio::AudioListenerBinding {
         realm_id: args.realm_id,
         model_id: args.model_id,
@@ -629,13 +622,6 @@ pub fn engine_cmd_audio_source_create(
             message: audio_disabled_message(),
         };
     }
-    let realm_id = crate::core::realm::RealmId(args.realm_id);
-    if engine.universal_state.realms.get(realm_id).is_none() {
-        return CmdResultAudioSourceCreate {
-            success: false,
-            message: format!("Realm {} not found", args.realm_id),
-        };
-    }
     let params = AudioSourceParams {
         position: args.position,
         velocity: args.velocity,
@@ -709,15 +695,6 @@ pub fn engine_cmd_audio_source_update(
     }
     if let Some(spatial) = args.spatial.clone() {
         params.spatial = spatial.into();
-    }
-    if let Some(realm_id) = args.realm_id {
-        let realm_id = crate::core::realm::RealmId(realm_id);
-        if engine.universal_state.realms.get(realm_id).is_none() {
-            return CmdResultAudioSourceUpdate {
-                success: false,
-                message: format!("Realm {} not found", realm_id.0),
-            };
-        }
     }
     engine
         .audio_state

@@ -1,7 +1,6 @@
 use glam::UVec2;
 use serde::{Deserialize, Serialize};
 
-use crate::core::realm::RealmKind;
 use crate::core::state::EngineState;
 use crate::core::target::resolve::remove_auto_link_for_layer;
 use crate::core::target::{
@@ -101,15 +100,6 @@ pub fn engine_cmd_target_upsert(
             message: "Target size is only valid for kind=texture".into(),
         };
     }
-    if let Some(window_id) = args.window_id {
-        if !engine.window.states.contains_key(&window_id) {
-            return CmdResultTargetUpsert {
-                success: false,
-                message: format!("Window {} not found", window_id),
-            };
-        }
-    }
-
     let size = args
         .size
         .map(|size| UVec2::new(size.x.max(1), size.y.max(1)));
@@ -209,63 +199,7 @@ pub fn engine_cmd_target_layer_upsert(
     engine: &mut EngineState,
     args: &CmdTargetLayerUpsertArgs,
 ) -> CmdResultTargetLayerUpsert {
-    let Some(realm_entry) = engine
-        .universal_state
-        .realms
-        .get(crate::core::realm::RealmId(args.realm_id))
-    else {
-        return CmdResultTargetLayerUpsert {
-            success: false,
-            message: format!("Realm {} not found", args.realm_id),
-        };
-    };
     let target_id = TargetId(args.target_id);
-    if !engine
-        .universal_state
-        .targets
-        .entries
-        .contains_key(&target_id)
-    {
-        return CmdResultTargetLayerUpsert {
-            success: false,
-            message: format!("Target {} not found", args.target_id),
-        };
-    }
-    if let Some(environment_id) = args.environment_id {
-        if !engine
-            .universal_state
-            .environment_profiles
-            .contains_key(&environment_id)
-        {
-            return CmdResultTargetLayerUpsert {
-                success: false,
-                message: format!("Environment {} not found", environment_id),
-            };
-        }
-    }
-    if let Some(camera_id) = args.camera_id {
-        let camera_exists = engine
-            .universal_state
-            .realm_entities
-            .get(&crate::core::realm::RealmId(args.realm_id))
-            .map(|entities| entities.cameras.contains_key(&camera_id))
-            .unwrap_or(false);
-        if !camera_exists {
-            return CmdResultTargetLayerUpsert {
-                success: false,
-                message: format!("Camera {} not found", camera_id),
-            };
-        }
-        if realm_entry.value.kind != RealmKind::ThreeD {
-            return CmdResultTargetLayerUpsert {
-                success: false,
-                message: format!(
-                    "cameraId is only valid for realm kind 3d (realm={})",
-                    args.realm_id
-                ),
-            };
-        }
-    }
     if args.layout.width.resolve(1.0, 8.0) <= 0.0 || args.layout.height.resolve(1.0, 8.0) <= 0.0 {
         return CmdResultTargetLayerUpsert {
             success: false,

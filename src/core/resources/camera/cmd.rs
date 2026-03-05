@@ -6,6 +6,7 @@ use crate::core::resources::common::{default_layer_mask, mark_realm_windows_dirt
 use crate::core::resources::{CameraComponent, CameraKind, CameraNode, ViewPosition};
 use crate::core::state::EngineState;
 use crate::core::system::push_error_event;
+use crate::core::target::TargetKind;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -84,7 +85,26 @@ fn projection_size_for_realm(engine: &EngineState, realm_id: RealmId) -> (u32, u
     {
         return (surface.value.size.x.max(1), surface.value.size.y.max(1));
     }
-    if let Some(window_id) = realm.value.host_window_id
+    let mut chosen_window_id: Option<u32> = None;
+    for layer in engine.universal_state.target_layers.entries.values() {
+        if layer.realm_id != realm_id.0 {
+            continue;
+        }
+        let Some(target) = engine.universal_state.targets.entries.get(&layer.target_id) else {
+            continue;
+        };
+        if target.kind != TargetKind::Window {
+            continue;
+        }
+        let Some(window_id) = target.window_id else {
+            continue;
+        };
+        match chosen_window_id {
+            Some(current_window_id) if current_window_id <= window_id => {}
+            _ => chosen_window_id = Some(window_id),
+        }
+    }
+    if let Some(window_id) = chosen_window_id
         && let Some(window) = engine.window.states.get(&window_id)
     {
         return (window.inner_size.x.max(1), window.inner_size.y.max(1));
@@ -115,18 +135,6 @@ pub fn engine_cmd_camera_create(
     args: &CmdCameraCreateArgs,
 ) -> CmdResultCameraCreate {
     let realm_id = RealmId(args.realm_id);
-    if !engine
-        .universal_state
-        .realms
-        .entries
-        .contains_key(&realm_id)
-    {
-        return camera_create_error(
-            engine,
-            format!("Realm {} not found", args.realm_id),
-            "camera-upsert",
-        );
-    }
     let projection_size = projection_size_for_realm(engine, realm_id);
     let entities = engine
         .universal_state

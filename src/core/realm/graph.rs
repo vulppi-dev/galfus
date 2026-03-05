@@ -155,7 +155,6 @@ mod tests {
     fn realm_state(output_surface: Option<crate::core::realm::SurfaceId>) -> RealmState {
         RealmState {
             kind: RealmKind::TwoD,
-            host_window_id: Some(1),
             output_surface,
             render_graph: None,
             importance: 1,

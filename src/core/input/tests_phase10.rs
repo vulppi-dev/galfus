@@ -31,7 +31,6 @@ fn routing_prefers_highest_z_index_layer_in_overlap() {
     });
     let root_realm = engine.universal_state.realms.alloc(RealmState {
         kind: RealmKind::ThreeD,
-        host_window_id: Some(1),
         output_surface: Some(root_surface),
         render_graph: None,
         importance: 1,
@@ -40,7 +39,6 @@ fn routing_prefers_highest_z_index_layer_in_overlap() {
     });
     let _target_realm = engine.universal_state.realms.alloc(RealmState {
         kind: RealmKind::TwoD,
-        host_window_id: None,
         output_surface: Some(source_surface),
         render_graph: None,
         importance: 1,
@@ -154,7 +152,6 @@ fn routing_trace_errors_mode_only_keeps_error_paths() {
     });
     let _ = engine.universal_state.realms.alloc(RealmState {
         kind: RealmKind::TwoD,
-        host_window_id: Some(1),
         output_surface: Some(root_surface),
         render_graph: None,
         importance: 1,
@@ -209,7 +206,6 @@ fn routing_multiple_targets_no_cross_layer_bleed() {
     });
     let root_realm = engine.universal_state.realms.alloc(RealmState {
         kind: RealmKind::ThreeD,
-        host_window_id: Some(1),
         output_surface: Some(root_surface),
         render_graph: None,
         importance: 1,
@@ -218,7 +214,6 @@ fn routing_multiple_targets_no_cross_layer_bleed() {
     });
     let _ = engine.universal_state.realms.alloc(RealmState {
         kind: RealmKind::TwoD,
-        host_window_id: None,
         output_surface: Some(source_surface),
         render_graph: None,
         importance: 1,

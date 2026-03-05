@@ -37,7 +37,7 @@ pub(super) fn hash_targets_layers_and_realms(
     let mut realm_hashes: Vec<_> = realms
         .entries
         .iter()
-        .map(|(realm_id, entry)| (*realm_id, hash_realm_host(entry.value.host_window_id)))
+        .map(|(realm_id, entry)| (*realm_id, hash_realm_state(entry.value.kind)))
         .collect();
     realm_hashes.sort_by_key(|(realm_id, _)| realm_id.0);
     for (realm_id, entry_hash) in realm_hashes {
@@ -69,7 +69,7 @@ pub(super) fn hash_entries(
 
     let mut realm_hashes = HashMap::new();
     for (realm_id, entry) in &realms.entries {
-        realm_hashes.insert(*realm_id, hash_realm_host(entry.value.host_window_id));
+        realm_hashes.insert(*realm_id, hash_realm_state(entry.value.kind));
     }
 
     (target_hashes, layer_hashes, realm_hashes)
@@ -97,9 +97,9 @@ fn hash_layer_state(layer: &TargetLayerState) -> u64 {
     hasher.finish()
 }
 
-fn hash_realm_host(window_id: Option<u32>) -> u64 {
+fn hash_realm_state(kind: crate::core::realm::RealmKind) -> u64 {
     let mut hasher = std::collections::hash_map::DefaultHasher::new();
-    window_id.hash(&mut hasher);
+    kind.hash(&mut hasher);
     hasher.finish()
 }
 
@@ -190,7 +190,6 @@ mod tests {
         let mut realms_a = RealmTable::default();
         let _r0 = realms_a.alloc(RealmState {
             kind: RealmKind::TwoD,
-            host_window_id: Some(1),
             output_surface: None,
             render_graph: None,
             importance: 1,
@@ -211,7 +210,6 @@ mod tests {
         let mut realms_b = RealmTable::default();
         let _r0b = realms_b.alloc(RealmState {
             kind: RealmKind::TwoD,
-            host_window_id: Some(1),
             output_surface: None,
             render_graph: None,
             importance: 1,

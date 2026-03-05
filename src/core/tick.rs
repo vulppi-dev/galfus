@@ -46,6 +46,8 @@ pub fn vulfram_tick(time: u64, delta_time: u32) -> VulframResult {
             }
         }
 
+        crate::core::target::refresh_target_indexes(&mut engine.state.universal_state);
+
         if engine.state.audio_available {
             process_audio_listener_binding(&mut engine.state);
             process_audio_source_bindings(&mut engine.state);

@@ -38,8 +38,6 @@ fn ui_apply_ops_validates_version_and_applies_add_move_set_remove_clear() {
         &mut engine,
         &CmdRealmCreateArgs {
             kind: RealmKindDto::TwoD,
-            output_surface_id: None,
-            host_window_id: None,
             importance: None,
             cache_policy: None,
             flags: None,
@@ -187,8 +185,6 @@ fn ui_input_converts_pointer_button_into_egui_pointer_event() {
         &mut engine,
         &CmdRealmCreateArgs {
             kind: RealmKindDto::TwoD,
-            output_surface_id: None,
-            host_window_id: None,
             importance: None,
             cache_policy: None,
             flags: None,
@@ -416,8 +412,6 @@ fn ui_create_dispose_loop_does_not_leave_orphan_state() {
         &mut engine,
         &CmdRealmCreateArgs {
             kind: RealmKindDto::TwoD,
-            output_surface_id: None,
-            host_window_id: None,
             importance: None,
             cache_policy: None,
             flags: None,

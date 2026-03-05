@@ -41,9 +41,26 @@ pub(crate) fn update_surface_cache(
 
 pub(crate) fn map_realms_to_windows(universal: &UniversalState) -> HashMap<RealmId, u32> {
     let mut map = HashMap::new();
-    for (realm_id, entry) in universal.realms.entries.iter() {
-        if let Some(window_id) = entry.value.host_window_id {
-            map.insert(*realm_id, window_id);
+    for layer in universal.target_layers.entries.values() {
+        let realm_id = RealmId(layer.realm_id);
+        if !universal.realms.entries.contains_key(&realm_id) {
+            continue;
+        }
+        let Some(target) = universal.targets.entries.get(&layer.target_id) else {
+            continue;
+        };
+        let Some(window_id) = target.window_id else {
+            continue;
+        };
+        match map.get_mut(&realm_id) {
+            Some(existing_window_id) => {
+                if window_id < *existing_window_id {
+                    *existing_window_id = window_id;
+                }
+            }
+            None => {
+                map.insert(realm_id, window_id);
+            }
         }
     }
     for present in universal.presents.entries.values() {

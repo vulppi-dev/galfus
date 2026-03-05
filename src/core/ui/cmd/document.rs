@@ -85,14 +85,8 @@ pub fn engine_cmd_ui_document_create(
     args: &CmdUiDocumentCreateArgs,
 ) -> CmdResultUiDocumentCreate {
     let realm_id = crate::core::realm::RealmId(args.realm_id);
-    if engine.universal_state.realms.get(realm_id).is_none() {
-        return CmdResultUiDocumentCreate {
-            success: false,
-            message: format!("Realm {} not found", args.realm_id),
-            document_id: None,
-        };
-    }
     let ui_state = &mut engine.universal_state.ui;
+    ui_state.ensure_realm(realm_id);
     if ui_state.documents.contains_key(&args.document_id) {
         return CmdResultUiDocumentCreate {
             success: false,

@@ -21,6 +21,8 @@ Key fields:
 
 - Light ownership is realm-scoped (`realmId`).
 - Light culling and shadow allocation are resolved by the core each frame.
+- `realmId` is late-bound for create operations:
+  creating a light can happen before the referenced realm exists.
 
 ## Response
 

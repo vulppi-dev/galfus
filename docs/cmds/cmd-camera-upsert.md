@@ -22,6 +22,8 @@ Key fields:
 - Camera ownership is realm-scoped (`realmId`).
 - Projection is resolved by the core from the effective target/surface size.
 - In `TargetLayer`, `cameraId` can override which camera samples a realm.
+- `realmId` is late-bound for create operations:
+  creating a camera can happen before the referenced realm exists.
 
 ## Response
 

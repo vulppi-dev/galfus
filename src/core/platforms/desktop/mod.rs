@@ -158,18 +158,48 @@ fn windows_with_pending_ui_images(state: &EngineState) -> std::collections::Hash
         return std::collections::HashSet::new();
     }
 
-    let realm_windows: std::collections::HashMap<RealmId, u32> = state
+    let mut realm_windows: std::collections::HashMap<RealmId, u32> = state
         .universal_state
-        .realms
+        .presents
         .entries
-        .iter()
-        .filter_map(|(realm_id, entry)| {
-            entry
-                .value
-                .host_window_id
-                .map(|window_id| (*realm_id, window_id))
+        .values()
+        .filter_map(|present| {
+            state
+                .universal_state
+                .realms
+                .entries
+                .iter()
+                .find_map(|(realm_id, entry)| {
+                    if entry.value.output_surface == Some(present.value.surface) {
+                        Some((*realm_id, present.value.window_id))
+                    } else {
+                        None
+                    }
+                })
         })
         .collect();
+    for layer in state.universal_state.target_layers.entries.values() {
+        let Some(target) = state.universal_state.targets.entries.get(&layer.target_id) else {
+            continue;
+        };
+        let Some(window_id) = target.window_id else {
+            continue;
+        };
+        let realm_id = RealmId(layer.realm_id);
+        if !state.universal_state.realms.entries.contains_key(&realm_id) {
+            continue;
+        }
+        match realm_windows.get_mut(&realm_id) {
+            Some(existing_window_id) => {
+                if window_id < *existing_window_id {
+                    *existing_window_id = window_id;
+                }
+            }
+            None => {
+                realm_windows.insert(realm_id, window_id);
+            }
+        }
+    }
 
     let mut windows = std::collections::HashSet::new();
     for document in state.universal_state.ui.documents.values() {
