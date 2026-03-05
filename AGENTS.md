@@ -6,7 +6,7 @@
 - Variaveis que seguram ownership e não são mais usadas depois ganham sempre o prefixo `_`.
 - Se variaveis não forem usadas, devem ser removidas.
 - Funções não usadas também são removidas.
-- Sempre executar `scripts/check.sh` ao final de qualquer implementação (checagem padrão).
+- Sempre executar `scripts/check.sh` ao final de qualquer implementação nos códigos relativos ao rust ou shader (checagem padrão).
 - Configurações de filtros do pós-processamento devem usar o prefixo `filter_` e a flag `filter_enabled`.
 - Demos devem fechar por padrão ao pressionar a tecla Escape.
 - Valores de `outline_threshold` devem ficar no intervalo [0, 1) (clamp).
