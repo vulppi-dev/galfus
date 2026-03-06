@@ -7,6 +7,7 @@ use crate::core::platform::winit;
 use serde::{Deserialize, Serialize};
 
 use crate::core::state::EngineState;
+#[cfg(not(feature = "wasm"))]
 use crate::core::system::push_error_event;
 
 use super::EngineWindowState;

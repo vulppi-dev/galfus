@@ -1257,6 +1257,7 @@ fn apply_ui_platform_actions(engine_state: &mut EngineState, actions: Vec<UiPlat
             } => {
                 let target_width = width.max(1);
                 let target_height = height.max(1);
+                #[cfg(not(feature = "wasm"))]
                 let already_applied = engine_state
                     .window
                     .states
@@ -1267,6 +1268,8 @@ fn apply_ui_platform_actions(engine_state: &mut EngineState, actions: Vec<UiPlat
                             && inner_size.height.abs_diff(target_height) <= 1
                     })
                     .unwrap_or(false);
+                #[cfg(feature = "wasm")]
+                let already_applied = false;
                 if already_applied {
                     continue;
                 }
