@@ -176,6 +176,12 @@ Async texture decode:
 - `CmdTextureCreateFromBuffer` returns `{ pending: true }` when decode is queued.
 - The engine later emits `SystemEvent::TextureReady { windowId, textureId, success, message }`.
 - Diagnostic failures also emit `SystemEvent::Error { scope, message, commandId?, commandType? }`.
+- Order-independent command reconciliation emits:
+  - `SystemEvent::CommandDeferred { commandId, commandType, attempts, reason }`
+  - `SystemEvent::CommandApplied { commandId, commandType, attempts }`
+  - `SystemEvent::CommandDropped { commandId, commandType, attempts, reason }`
+- Deferred retries use exponential backoff (up to 64 frames between attempts) and
+  are dropped after retry/age limits to avoid infinite loops.
 
 `PostProcessConfig` highlights:
 

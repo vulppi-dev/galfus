@@ -2,7 +2,9 @@ use super::types::*;
 use super::utils::mark_global_materials_dirty;
 use crate::core::buffers::state::UploadType;
 use crate::core::image::{ImageBuffer, ImagePixels};
-use crate::core::resources::texture::{TextureAsyncEvent, TextureDecodeJob, TextureRecord};
+use crate::core::resources::texture::{
+    TextureAsyncEvent, TextureDecodeJob, TextureDecodeResult, TextureRecord,
+};
 use crate::core::state::EngineState;
 use crate::core::system::SystemEvent;
 use crate::core::target::TargetId;
@@ -186,7 +188,62 @@ fn create_texture_from_image(
     }
 }
 
+fn apply_decoded_texture_result(engine: &mut EngineState, result: TextureDecodeResult) -> bool {
+    if engine.texture_async.was_canceled(result.texture_id) {
+        engine
+            .event_queue
+            .push(crate::core::cmd::EngineEvent::System(
+                SystemEvent::TextureReady {
+                    window_id: 0,
+                    texture_id: result.texture_id,
+                    success: false,
+                    message: "Texture decode canceled".into(),
+                },
+            ));
+        return true;
+    }
+
+    let args = CmdTextureCreateFromBufferArgs {
+        texture_id: result.texture_id,
+        label: result.label.clone(),
+        buffer_id: 0,
+        srgb: result.srgb,
+        mode: result.mode,
+        atlas_options: result.atlas_options.clone(),
+    };
+    let response = match result.image {
+        Some(image) => create_texture_from_image(engine, &args, image),
+        None => CmdResultTextureCreateFromBuffer {
+            success: false,
+            message: result.message,
+            pending: false,
+        },
+    };
+
+    engine
+        .event_queue
+        .push(crate::core::cmd::EngineEvent::System(
+            SystemEvent::TextureReady {
+                window_id: 0,
+                texture_id: args.texture_id,
+                success: response.success,
+                message: response.message,
+            },
+        ));
+    true
+}
+
 pub fn process_async_texture_results(engine: &mut EngineState) {
+    if !engine.pending_texture_decode_results.is_empty()
+        && engine.device.is_some()
+        && engine.queue.is_some()
+    {
+        let pending = std::mem::take(&mut engine.pending_texture_decode_results);
+        for pending_result in pending {
+            let _ = apply_decoded_texture_result(engine, pending_result);
+        }
+    }
+
     let results = engine.texture_async.drain_results();
     for result in results {
         match result {
@@ -239,45 +296,11 @@ pub fn process_async_texture_results(engine: &mut EngineState) {
                     ));
             }
             TextureAsyncEvent::Result(result) => {
-                if engine.texture_async.was_canceled(result.texture_id) {
-                    engine
-                        .event_queue
-                        .push(crate::core::cmd::EngineEvent::System(
-                            SystemEvent::TextureReady {
-                                window_id: 0,
-                                texture_id: result.texture_id,
-                                success: false,
-                                message: "Texture decode canceled".into(),
-                            },
-                        ));
+                if engine.device.is_none() || engine.queue.is_none() {
+                    engine.pending_texture_decode_results.push(result);
                     continue;
                 }
-                let args = CmdTextureCreateFromBufferArgs {
-                    texture_id: result.texture_id,
-                    label: result.label.clone(),
-                    buffer_id: 0,
-                    srgb: result.srgb,
-                    mode: result.mode,
-                    atlas_options: result.atlas_options.clone(),
-                };
-                let response = match result.image {
-                    Some(image) => create_texture_from_image(engine, &args, image),
-                    None => CmdResultTextureCreateFromBuffer {
-                        success: false,
-                        message: result.message.clone(),
-                        pending: false,
-                    },
-                };
-                engine
-                    .event_queue
-                    .push(crate::core::cmd::EngineEvent::System(
-                        SystemEvent::TextureReady {
-                            window_id: 0,
-                            texture_id: result.texture_id,
-                            success: response.success,
-                            message: response.message,
-                        },
-                    ));
+                let _ = apply_decoded_texture_result(engine, result);
             }
         }
     }
@@ -378,6 +401,9 @@ pub fn engine_cmd_texture_dispose(
     args: &CmdTextureDisposeArgs,
 ) -> CmdResultTextureDispose {
     engine.texture_async.cancel(args.texture_id);
+    engine
+        .pending_texture_decode_results
+        .retain(|pending| pending.texture_id != args.texture_id);
     let resources = &mut engine.universal_state.global_resources;
     let mut removed = false;
     removed |= resources.textures.remove(&args.texture_id).is_some();

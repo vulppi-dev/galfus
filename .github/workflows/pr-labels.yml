@@ -4,6 +4,7 @@ on:
   pull_request_target:
     branches:
       - main
+      - dev/**
       - stable/**
       - alpha/**
       - beta/**
@@ -33,15 +34,15 @@ jobs:
         uses: codelytv/pr-size-labeler@v1
         with:
           xs_label: size/xs
-          xs_max_size: "30"
+          xs_max_size: '30'
           s_label: size/sm
-          s_max_size: "100"
+          s_max_size: '100'
           m_label: size/md
-          m_max_size: "300"
+          m_max_size: '300'
           l_label: size/lg
-          l_max_size: "800"
+          l_max_size: '800'
           xl_label: size/xl
-          fail_if_xl: "false"
+          fail_if_xl: 'false'
           github_api_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Sync changelog labels from checked checklist

@@ -416,6 +416,11 @@ fn run_demo_2_window_ui(ctx: DemoContext) -> bool {
     let mut control_version: u64 = 1;
     let mut last_frame_time = std::time::Instant::now();
     let mut total_ms: u64 = 0;
+    let mut last_measurement_text = String::new();
+    let mut measured_position = String::from("-");
+    let mut measured_size = String::from("-");
+    let mut measured_outer_size = String::from("-");
+    let mut measured_surface_size = String::from("-");
     let target_frame_time = Duration::from_millis(16);
 
     loop {
@@ -434,46 +439,57 @@ fn run_demo_2_window_ui(ctx: DemoContext) -> bool {
             return false;
         }
 
+        let mut latest_measurement_text: Option<String> = None;
         for envelope in receive_responses() {
             if let CommandResponse::WindowMeasurement(result) = envelope.response
                 && result.success
             {
-                let position = result
-                    .position
-                    .map(|p| format!("({}, {})", p.x, p.y))
-                    .unwrap_or_else(|| "-".into());
-                let size = result
-                    .size
-                    .map(|s| format!("{}x{}", s.x, s.y))
-                    .unwrap_or_else(|| "-".into());
-                let outer_size = result
-                    .outer_size
-                    .map(|s| format!("{}x{}", s.x, s.y))
-                    .unwrap_or_else(|| "-".into());
-                let surface_size = result
-                    .surface_size
-                    .map(|s| format!("{}x{}", s.x, s.y))
-                    .unwrap_or_else(|| "-".into());
+                if result.position.is_none()
+                    && result.size.is_none()
+                    && result.outer_size.is_none()
+                    && result.surface_size.is_none()
+                {
+                    continue;
+                }
+
+                if let Some(position) = result.position {
+                    measured_position = format!("({}, {})", position.x, position.y);
+                }
+                if let Some(size) = result.size {
+                    measured_size = format!("{}x{}", size.x, size.y);
+                }
+                if let Some(outer_size) = result.outer_size {
+                    measured_outer_size = format!("{}x{}", outer_size.x, outer_size.y);
+                }
+                if let Some(surface_size) = result.surface_size {
+                    measured_surface_size = format!("{}x{}", surface_size.x, surface_size.y);
+                }
                 let text = format!(
                     "Measurement: pos={} | size={} | outer={} | surface={}",
-                    position, size, outer_size, surface_size
+                    measured_position, measured_size, measured_outer_size, measured_surface_size
                 );
-                control_version = control_version.saturating_add(1);
-                let _ = send_commands(vec![EngineCmd::CmdUiApplyOps(
-                    crate::core::ui::cmd::CmdUiApplyOpsArgs {
-                        document_id: control_doc_id,
-                        version: control_version,
-                        ops: vec![UiOp::Set {
-                            node_id: measurement_text_id,
-                            props: UiNodeProps::Text {
-                                text,
-                                size: Some(18.0),
-                                color: None,
-                            },
-                        }],
-                    },
-                )]);
+                latest_measurement_text = Some(text);
             }
+        }
+        if let Some(text) = latest_measurement_text
+            && text != last_measurement_text
+        {
+            last_measurement_text = text.clone();
+            control_version = control_version.saturating_add(1);
+            let _ = send_commands(vec![EngineCmd::CmdUiApplyOps(
+                crate::core::ui::cmd::CmdUiApplyOpsArgs {
+                    document_id: control_doc_id,
+                    version: control_version,
+                    ops: vec![UiOp::Set {
+                        node_id: measurement_text_id,
+                        props: UiNodeProps::Text {
+                            text,
+                            size: Some(18.0),
+                            color: None,
+                        },
+                    }],
+                },
+            )]);
         }
 
         let events = receive_events();

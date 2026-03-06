@@ -33,3 +33,9 @@ Returns `CmdResultTextureCreateFromBuffer`:
 | ------- | ------ | ------------------------------- |
 | success | bool   | Whether the texture was created |
 | message | String | Status or error message         |
+
+## Runtime Behavior
+
+- Decode is async and non-blocking.
+- If decode completes before GPU readiness, decoded payload is retained and GPU upload is applied later.
+- `texture-dispose` cancels/discards pending decode/upload state for the same `textureId`.

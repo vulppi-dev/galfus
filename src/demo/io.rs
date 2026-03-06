@@ -1,15 +1,17 @@
 use crate::core::VulframResult;
 use crate::core::cmd::{CommandResponseEnvelope, EngineCmd, EngineCmdEnvelope, EngineEvent};
 use rmp_serde::{from_slice, to_vec_named};
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use crate::core;
+
+static NEXT_COMMAND_ID: AtomicU64 = AtomicU64::new(1);
 
 pub fn send_commands(cmds: Vec<EngineCmd>) -> VulframResult {
     let envelopes: Vec<EngineCmdEnvelope> = cmds
         .into_iter()
-        .enumerate()
-        .map(|(idx, cmd)| EngineCmdEnvelope {
-            id: idx as u64,
+        .map(|cmd| EngineCmdEnvelope {
+            id: NEXT_COMMAND_ID.fetch_add(1, Ordering::Relaxed),
             cmd,
         })
         .collect();

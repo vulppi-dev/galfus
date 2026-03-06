@@ -24,3 +24,8 @@ Returns `CmdResultPoseUpdate`:
 | ------- | ------ | ----------------------------- |
 | success | bool   | Whether the pose was updated  |
 | message | String | Status or error message       |
+
+## Runtime Behavior
+
+- In non-blocking mode, if realm/model/window render path is not ready yet, pose update can be deferred and retried.
+- Command ordering is not required for eventual application when dependencies are created.

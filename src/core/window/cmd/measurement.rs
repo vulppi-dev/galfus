@@ -39,8 +39,11 @@ pub fn engine_cmd_window_measurement(
 ) -> CmdResultWindowMeasurement {
     let Some(window_state) = engine.window.states.get_mut(&args.window_id) else {
         return CmdResultWindowMeasurement {
-            success: false,
-            message: format!("Window with id {} not found", args.window_id),
+            success: true,
+            message: format!(
+                "Window {} not ready yet; returning empty measurement",
+                args.window_id
+            ),
             ..Default::default()
         };
     };
@@ -51,19 +54,13 @@ pub fn engine_cmd_window_measurement(
     }
 
     if let Some(size) = args.size {
-        let Some(device) = engine.device.as_ref() else {
-            return CmdResultWindowMeasurement {
-                success: false,
-                message: "Graphics device not initialized".into(),
-                ..Default::default()
-            };
-        };
-
         let next_size = PhysicalSize::new(size.x, size.y);
         let _ = window_state.window.request_inner_size(next_size);
         window_state.config.width = size.x;
         window_state.config.height = size.y;
-        window_state.surface.configure(device, &window_state.config);
+        if let Some(device) = engine.device.as_ref() {
+            window_state.surface.configure(device, &window_state.config);
+        }
         window_state.is_dirty = true;
     }
 
@@ -119,9 +116,9 @@ pub fn engine_cmd_window_measurement(
     args: &CmdWindowMeasurementArgs,
 ) -> CmdResultWindowMeasurement {
     CmdResultWindowMeasurement {
-        success: false,
+        success: true,
         message: format!(
-            "Window measurement commands are not supported in wasm (window_id={})",
+            "Window measurement is deferred/empty in wasm mode (window_id={})",
             args.window_id
         ),
         ..Default::default()

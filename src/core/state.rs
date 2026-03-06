@@ -14,10 +14,24 @@ use crate::core::realm::{AudioState, UniversalState};
 use crate::core::render::RenderManager;
 use crate::core::resources::{
     MATERIAL_FALLBACK_ID, MaterialStandardParams, MaterialStandardRecord, RenderTarget,
-    TextureAsyncManager,
+    TextureAsyncManager, TextureDecodeResult,
 };
 use crate::core::window::WindowManager;
 use std::collections::HashMap;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct DeferredCommandKey {
+    pub command_id: u64,
+    pub command_signature: u64,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct DeferredCommandMeta {
+    pub first_frame: u64,
+    pub attempts: u32,
+    pub next_retry_frame: u64,
+    pub last_reason: String,
+}
 
 /// Main engine state holding all runtime data
 pub struct EngineState {
@@ -43,8 +57,11 @@ pub struct EngineState {
     pub present_sizes_hash: u64,
 
     pub cmd_queue: EngineBatchCmds,
+    pub deferred_cmd_queue: EngineBatchCmds,
+    pub deferred_cmd_meta: HashMap<DeferredCommandKey, DeferredCommandMeta>,
     pub event_queue: EngineBatchEvents,
     pub response_queue: EngineBatchResponses,
+    pub pending_texture_decode_results: Vec<TextureDecodeResult>,
 
     pub(crate) time: u64,
     pub(crate) delta_time: u32,
@@ -113,8 +130,11 @@ impl EngineState {
             present_sizes_cache: HashMap::new(),
             present_sizes_hash: 0,
             cmd_queue: Vec::new(),
+            deferred_cmd_queue: Vec::new(),
+            deferred_cmd_meta: HashMap::new(),
             event_queue: Vec::new(),
             response_queue: Vec::new(),
+            pending_texture_decode_results: Vec::new(),
             time: 0,
             delta_time: 0,
             frame_index: 0,

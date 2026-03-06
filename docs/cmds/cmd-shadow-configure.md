@@ -31,3 +31,8 @@ Returns `CmdResultShadowConfigure`:
 | ------- | ------ | ------------------------------------- |
 | success | bool   | Whether the configuration was updated |
 | message | String | Status or error message               |
+
+## Runtime Behavior
+
+- In non-blocking flows, if `windowId`/GPU is not ready yet, this command is deferred and replayed automatically.
+- Command ordering is not required for eventual application once dependencies exist.

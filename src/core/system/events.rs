@@ -70,6 +70,32 @@ pub enum SystemEvent {
         command_type: Option<String>,
     },
 
+    /// Command accepted but waiting for dependencies (eventual consistency queue).
+    #[serde(rename_all = "camelCase")]
+    CommandDeferred {
+        command_id: u64,
+        command_type: String,
+        attempts: u32,
+        reason: String,
+    },
+
+    /// Deferred command was eventually applied.
+    #[serde(rename_all = "camelCase")]
+    CommandApplied {
+        command_id: u64,
+        command_type: String,
+        attempts: u32,
+    },
+
+    /// Deferred command expired and was dropped from retry queue.
+    #[serde(rename_all = "camelCase")]
+    CommandDropped {
+        command_id: u64,
+        command_type: String,
+        attempts: u32,
+        reason: String,
+    },
+
     /// Application was resumed (from suspended state)
     OnResume,
 

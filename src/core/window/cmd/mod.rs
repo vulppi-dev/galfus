@@ -13,7 +13,7 @@ pub use measurement::*;
 pub use state::*;
 
 // Shared types
-#[derive(Debug, Deserialize, Serialize, Clone, Copy)]
+#[derive(Debug, Deserialize, Serialize, Clone, Copy, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
 pub enum EngineWindowState {
     Minimized = 0,

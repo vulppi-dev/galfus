@@ -134,6 +134,30 @@ pub fn process_ui_input(engine: &mut EngineState) {
                     pointer_updates.push((realm_id, egui::Event::WindowFocused(*focused)));
                 }
             }
+            EngineEvent::Window(WindowEvent::OnScaleFactorChange {
+                window_id,
+                scale_factor,
+                ..
+            }) => {
+                let next_ppp = (*scale_factor as f32).max(0.001);
+                if let Some(realms) = realms_by_window.get(window_id) {
+                    for realm_id in realms {
+                        if let Some(realm) = ensure_realm(&mut engine.universal_state.ui, *realm_id)
+                        {
+                            realm.pixels_per_point = next_ppp;
+                        }
+                    }
+                } else if let Some(realm_id) = engine
+                    .universal_state
+                    .ui
+                    .focus_by_window
+                    .get(window_id)
+                    .copied()
+                    && let Some(realm) = ensure_realm(&mut engine.universal_state.ui, realm_id)
+                {
+                    realm.pixels_per_point = next_ppp;
+                }
+            }
             _ => {}
         }
     }
