@@ -30,7 +30,8 @@ pub fn vulfram_tick(time: u64, delta_time: u32) -> VulframResult {
             #[cfg(feature = "wasm")]
             let cmd_start = (Date::now() * 1_000_000.0) as u64;
             let deferred = std::mem::take(&mut engine.state.deferred_cmd_queue);
-            let mut batch = Vec::new();
+            // Prefer newest host commands first; deferred retries are eventual and can be stale.
+            let mut batch = std::mem::take(&mut engine.state.cmd_queue);
             let mut still_deferred = Vec::new();
             for envelope in deferred {
                 let key = deferred_command_key(envelope.id, &envelope.cmd);
@@ -47,7 +48,6 @@ pub fn vulfram_tick(time: u64, delta_time: u32) -> VulframResult {
                 }
             }
             engine.state.deferred_cmd_queue = still_deferred;
-            batch.extend(std::mem::take(&mut engine.state.cmd_queue));
             let result = engine_process_batch(&mut engine.state, &mut engine.platform, batch);
             #[cfg(not(feature = "wasm"))]
             {

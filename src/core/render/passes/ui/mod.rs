@@ -122,6 +122,14 @@ pub fn pass_ui(
     frame_index: u64,
     time_seconds: f64,
 ) -> Vec<UiPlatformAction> {
+    let has_documents_for_realm = ui_state
+        .documents
+        .values()
+        .any(|document| document.realm_id == realm_id);
+    if !has_documents_for_realm {
+        return Vec::new();
+    }
+
     ui_state.ensure_realm(realm_id);
     let external_inputs = collect_external_textures(
         render_state,
@@ -146,7 +154,11 @@ pub fn pass_ui(
         )
     };
 
-    let screen_size = egui::vec2(target_size.x as f32, target_size.y as f32);
+    let safe_pixels_per_point = pixels_per_point.max(0.001);
+    let screen_size = egui::vec2(
+        target_size.x as f32 / safe_pixels_per_point,
+        target_size.y as f32 / safe_pixels_per_point,
+    );
     let mut input = egui::RawInput::default();
     let screen_rect = egui::Rect::from_min_size(egui::Pos2::ZERO, screen_size);
     input.screen_rect = Some(screen_rect);
@@ -311,10 +323,11 @@ fn collect_platform_actions(
                     });
                 }
                 egui::ViewportCommand::InnerSize(size) => {
+                    let ppp = output.pixels_per_point.max(0.001);
                     actions.push(UiPlatformAction::SetWindowSize {
                         window_id,
-                        width: size.x.max(1.0).round() as u32,
-                        height: size.y.max(1.0).round() as u32,
+                        width: (size.x * ppp).max(1.0).round() as u32,
+                        height: (size.y * ppp).max(1.0).round() as u32,
                     });
                 }
                 egui::ViewportCommand::OuterPosition(pos) => {
@@ -337,34 +350,28 @@ fn collect_platform_actions(
                     });
                 }
                 egui::ViewportCommand::Fullscreen(value) => {
-                    actions.push(UiPlatformAction::SetWindowState {
-                        window_id,
-                        state: if *value {
-                            EngineWindowState::Fullscreen
-                        } else {
-                            EngineWindowState::Windowed
-                        },
-                    });
+                    if *value {
+                        actions.push(UiPlatformAction::SetWindowState {
+                            window_id,
+                            state: EngineWindowState::Fullscreen,
+                        });
+                    }
                 }
                 egui::ViewportCommand::Minimized(value) => {
-                    actions.push(UiPlatformAction::SetWindowState {
-                        window_id,
-                        state: if *value {
-                            EngineWindowState::Minimized
-                        } else {
-                            EngineWindowState::Windowed
-                        },
-                    });
+                    if *value {
+                        actions.push(UiPlatformAction::SetWindowState {
+                            window_id,
+                            state: EngineWindowState::Minimized,
+                        });
+                    }
                 }
                 egui::ViewportCommand::Maximized(value) => {
-                    actions.push(UiPlatformAction::SetWindowState {
-                        window_id,
-                        state: if *value {
-                            EngineWindowState::Maximized
-                        } else {
-                            EngineWindowState::Windowed
-                        },
-                    });
+                    if *value {
+                        actions.push(UiPlatformAction::SetWindowState {
+                            window_id,
+                            state: EngineWindowState::Maximized,
+                        });
+                    }
                 }
                 egui::ViewportCommand::RequestCopy => {
                     actions.push(UiPlatformAction::ClipboardRequestCopy {

@@ -1192,6 +1192,18 @@ fn apply_ui_platform_actions(engine_state: &mut EngineState, actions: Vec<UiPlat
                     ));
             }
             UiPlatformAction::RequestFocus { window_id } => {
+                #[cfg(not(feature = "wasm"))]
+                let already_focused = engine_state
+                    .window
+                    .states
+                    .get(&window_id)
+                    .map(|window_state| window_state.window.has_focus())
+                    .unwrap_or(false);
+                #[cfg(feature = "wasm")]
+                let already_focused = false;
+                if already_focused {
+                    continue;
+                }
                 let _ = crate::core::window::engine_cmd_window_state(
                     engine_state,
                     &crate::core::window::CmdWindowStateArgs {
@@ -1243,16 +1255,45 @@ fn apply_ui_platform_actions(engine_state: &mut EngineState, actions: Vec<UiPlat
                 width,
                 height,
             } => {
+                let target_width = width.max(1);
+                let target_height = height.max(1);
+                let already_applied = engine_state
+                    .window
+                    .states
+                    .get(&window_id)
+                    .map(|window_state| {
+                        let inner_size = window_state.window.inner_size();
+                        inner_size.width.abs_diff(target_width) <= 1
+                            && inner_size.height.abs_diff(target_height) <= 1
+                    })
+                    .unwrap_or(false);
+                if already_applied {
+                    continue;
+                }
                 let _ = crate::core::window::engine_cmd_window_measurement(
                     engine_state,
                     &crate::core::window::CmdWindowMeasurementArgs {
                         window_id,
-                        size: Some(glam::UVec2::new(width.max(1), height.max(1))),
+                        size: Some(glam::UVec2::new(target_width, target_height)),
                         ..Default::default()
                     },
                 );
             }
             UiPlatformAction::SetWindowPosition { window_id, x, y } => {
+                #[cfg(not(feature = "wasm"))]
+                let already_applied = engine_state
+                    .window
+                    .states
+                    .get(&window_id)
+                    .map(|window_state| {
+                        window_state.outer_position.x == x && window_state.outer_position.y == y
+                    })
+                    .unwrap_or(false);
+                #[cfg(feature = "wasm")]
+                let already_applied = false;
+                if already_applied {
+                    continue;
+                }
                 let _ = crate::core::window::engine_cmd_window_measurement(
                     engine_state,
                     &crate::core::window::CmdWindowMeasurementArgs {
@@ -1263,6 +1304,18 @@ fn apply_ui_platform_actions(engine_state: &mut EngineState, actions: Vec<UiPlat
                 );
             }
             UiPlatformAction::SetWindowResizable { window_id, value } => {
+                #[cfg(not(feature = "wasm"))]
+                let already_applied = engine_state
+                    .window
+                    .states
+                    .get(&window_id)
+                    .map(|window_state| window_state.window.is_resizable() == value)
+                    .unwrap_or(false);
+                #[cfg(feature = "wasm")]
+                let already_applied = false;
+                if already_applied {
+                    continue;
+                }
                 let _ = crate::core::window::engine_cmd_window_state(
                     engine_state,
                     &crate::core::window::CmdWindowStateArgs {
@@ -1273,6 +1326,18 @@ fn apply_ui_platform_actions(engine_state: &mut EngineState, actions: Vec<UiPlat
                 );
             }
             UiPlatformAction::SetWindowDecorations { window_id, value } => {
+                #[cfg(not(feature = "wasm"))]
+                let already_applied = engine_state
+                    .window
+                    .states
+                    .get(&window_id)
+                    .map(|window_state| window_state.window.is_decorated() == value)
+                    .unwrap_or(false);
+                #[cfg(feature = "wasm")]
+                let already_applied = false;
+                if already_applied {
+                    continue;
+                }
                 let _ = crate::core::window::engine_cmd_window_state(
                     engine_state,
                     &crate::core::window::CmdWindowStateArgs {
@@ -1283,6 +1348,18 @@ fn apply_ui_platform_actions(engine_state: &mut EngineState, actions: Vec<UiPlat
                 );
             }
             UiPlatformAction::SetWindowState { window_id, state } => {
+                #[cfg(not(feature = "wasm"))]
+                let already_applied = engine_state
+                    .window
+                    .states
+                    .get(&window_id)
+                    .map(|window_state| current_window_state_for_ui(window_state) == state)
+                    .unwrap_or(false);
+                #[cfg(feature = "wasm")]
+                let already_applied = false;
+                if already_applied {
+                    continue;
+                }
                 let _ = crate::core::window::engine_cmd_window_state(
                     engine_state,
                     &crate::core::window::CmdWindowStateArgs {
@@ -1348,6 +1425,29 @@ fn apply_ui_platform_actions(engine_state: &mut EngineState, actions: Vec<UiPlat
                     ));
             }
         }
+    }
+}
+
+#[cfg(not(feature = "wasm"))]
+fn current_window_state_for_ui(
+    window_state: &crate::core::window::WindowState,
+) -> crate::core::window::EngineWindowState {
+    if window_state.window.is_minimized().unwrap_or(false) {
+        crate::core::window::EngineWindowState::Minimized
+    } else if window_state.window.is_maximized() {
+        crate::core::window::EngineWindowState::Maximized
+    } else if window_state.window.fullscreen().is_some() {
+        match window_state.window.fullscreen() {
+            Some(crate::core::platform::winit::window::Fullscreen::Exclusive(_)) => {
+                crate::core::window::EngineWindowState::Fullscreen
+            }
+            Some(crate::core::platform::winit::window::Fullscreen::Borderless(_)) => {
+                crate::core::window::EngineWindowState::WindowedFullscreen
+            }
+            None => crate::core::window::EngineWindowState::Windowed,
+        }
+    } else {
+        crate::core::window::EngineWindowState::Windowed
     }
 }
 

@@ -380,6 +380,36 @@ fn remove_auto_link(universal: &mut UniversalState, key: (u32, TargetId)) {
 
 fn rebuild_target_indexes(universal: &mut UniversalState) {
     universal.host_realm_index.clear();
+    for present in universal.presents.entries.values() {
+        let present_surface = present.value.surface;
+        let Some(present_realm) = universal
+            .realms
+            .entries
+            .iter()
+            .find_map(|(realm_id, entry)| {
+                if entry.value.output_surface == Some(present_surface) {
+                    Some(*realm_id)
+                } else {
+                    None
+                }
+            })
+        else {
+            continue;
+        };
+        match universal.host_realm_index.get_mut(&present.value.window_id) {
+            Some(existing) => {
+                if present_realm.0 < existing.0 {
+                    *existing = present_realm;
+                }
+            }
+            None => {
+                universal
+                    .host_realm_index
+                    .insert(present.value.window_id, present_realm);
+            }
+        }
+    }
+
     for layer in universal.target_layers.entries.values() {
         let realm_id = RealmId(layer.realm_id);
         if !universal.realms.entries.contains_key(&realm_id) {
@@ -394,6 +424,9 @@ fn rebuild_target_indexes(universal: &mut UniversalState) {
         let Some(window_id) = target.window_id else {
             continue;
         };
+        if universal.host_realm_index.contains_key(&window_id) {
+            continue;
+        }
         match universal.host_realm_index.get_mut(&window_id) {
             Some(existing) => {
                 if realm_id.0 < existing.0 {

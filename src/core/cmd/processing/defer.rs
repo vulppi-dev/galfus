@@ -160,12 +160,8 @@ pub(super) fn emit_dropped_event(
 
 fn command_has_pending_dependencies(engine: &EngineState, cmd: &EngineCmd) -> bool {
     match cmd {
-        EngineCmd::CmdWindowMeasurement(args) => {
-            if !engine.window.states.contains_key(&args.window_id) {
-                return true;
-            }
-            args.size.is_some() && engine.device.is_none()
-        }
+        // Query/measurement commands must be non-blocking and should not be deferred.
+        EngineCmd::CmdWindowMeasurement(_) => false,
         EngineCmd::CmdShadowConfigure(args) => {
             engine.device.is_none()
                 || engine
@@ -296,11 +292,9 @@ fn command_has_pending_dependencies(engine: &EngineState, cmd: &EngineCmd) -> bo
             .ui
             .documents
             .contains_key(&args.document_id),
-        EngineCmd::CmdUiApplyOps(args) => !engine
-            .universal_state
-            .ui
-            .documents
-            .contains_key(&args.document_id),
+        // Versioned UI ops are order-sensitive; replaying deferred stale ops can cause visual
+        // oscillation. Keep them immediate (success/fail) instead of deferred.
+        EngineCmd::CmdUiApplyOps(_) => false,
         EngineCmd::CmdUiFocusSet(args) => {
             let realm_id = crate::core::realm::RealmId(args.realm_id);
             !engine
@@ -314,9 +308,7 @@ fn command_has_pending_dependencies(engine: &EngineState, cmd: &EngineCmd) -> bo
                     .documents
                     .contains_key(&args.document_id)
         }
-        EngineCmd::CmdUiFocusGet(args) => args
-            .window_id
-            .is_some_and(|window_id| !engine.window.states.contains_key(&window_id)),
+        EngineCmd::CmdUiFocusGet(_) => false,
         EngineCmd::CmdUiClipboardPaste(args) => !engine
             .universal_state
             .ui
