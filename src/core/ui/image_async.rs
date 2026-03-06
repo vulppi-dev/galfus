@@ -62,10 +62,12 @@ impl UiImageAsyncManager {
         self.pending.contains(&image_id)
     }
 
+    #[cfg(not(feature = "wasm"))]
     pub fn has_pending(&self) -> bool {
         !self.pending.is_empty()
     }
 
+    #[cfg(not(feature = "wasm"))]
     pub fn pending_image_ids(&self) -> HashSet<UiImageId> {
         self.pending.iter().copied().collect()
     }

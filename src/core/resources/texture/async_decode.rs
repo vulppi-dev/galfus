@@ -67,6 +67,7 @@ impl TextureAsyncManager {
         self.pending.contains(&texture_id)
     }
 
+    #[cfg(not(feature = "wasm"))]
     pub fn has_pending(&self) -> bool {
         !self.pending.is_empty()
     }
