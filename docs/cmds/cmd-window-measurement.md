@@ -10,7 +10,7 @@ Agrupa:
 
 ## Platform Notes
 
-- **WASM:** Não suportado (retorna `success=false` com mensagem).
+- **WASM:** comando não bloqueia; respostas de consulta podem vir vazias/zeradas enquanto a janela/surface ainda não estiver pronta.
 
 ## Arguments
 
@@ -31,7 +31,7 @@ Retorna `CmdResultWindowMeasurement`:
 | Field       | Type          | Description |
 | ----------- | ------------- | ----------- |
 | success     | bool          | Se o comando foi aplicado com sucesso |
-| message     | String        | Status ou erro |
+| message     | String        | Status (inclui estado transitório/deferred) |
 | position    | Option<IVec2> | Posição atual/atualizada quando solicitada |
 | size        | Option<UVec2> | Tamanho interno atual/atualizado quando solicitado |
 | outerSize   | Option<UVec2> | Tamanho externo atual quando solicitado |
@@ -41,3 +41,4 @@ Retorna `CmdResultWindowMeasurement`:
 
 - Campos de patch são opcionais: envie apenas o que deseja alterar.
 - `position` e `size`, quando enviados, também são retornados no payload de resposta.
+- Se `windowId`/GPU ainda não estiverem prontos, o comando retorna `success=true` com campos de leitura vazios (eventual consistency).

@@ -26,3 +26,8 @@ Returns `CmdResultTextureCreateSolidColor`:
 | ------- | ------ | ------------------------------- |
 | success | bool   | Whether the texture was created |
 | message | String | Status or error message         |
+
+## Runtime Behavior
+
+- If GPU device/queue is not ready yet, creation is deferred and replayed automatically.
+- Command order is not required; texture creation converges when dependencies become available.

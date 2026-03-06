@@ -171,6 +171,11 @@ u32 vulfram_receive_events(uint8_t** out_ptr, size_t* out_length);
   - Window system events (resize, close, focus, etc.) via the platform proxy
   - System diagnostic events (`SystemEvent::Error`) for command failures and
     routing/auto-graph diagnostics
+  - Deferred command lifecycle events for eventual consistency:
+    `SystemEvent::CommandDeferred`, `SystemEvent::CommandApplied`,
+    `SystemEvent::CommandDropped`
+  - Deferred retries are throttled with backoff and may be dropped after limits;
+    hosts should listen to `CommandDropped` for unrecoverable eventual-consistency cases.
 
 Semantics are identical to `vulfram_receive_queue`, but the content is
 strictly _event_ data, not responses.

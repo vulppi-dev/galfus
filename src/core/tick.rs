@@ -1,5 +1,5 @@
 use crate::core::audio::{process_audio_listener_binding, process_audio_source_bindings};
-use crate::core::cmd::engine_process_batch;
+use crate::core::cmd::{deferred_command_key, engine_process_batch};
 use crate::core::platforms::PlatformProxy;
 
 #[cfg(feature = "wasm")]
@@ -23,13 +23,31 @@ pub fn vulfram_tick(time: u64, delta_time: u32) -> VulframResult {
             .profiling
             .begin_frame(delta_time, engine.state.frame_index);
 
-        if !engine.state.cmd_queue.is_empty() {
+        if !engine.state.deferred_cmd_queue.is_empty() || !engine.state.cmd_queue.is_empty() {
             // MARK: Command Processing
             #[cfg(not(feature = "wasm"))]
             let cmd_start = Instant::now();
             #[cfg(feature = "wasm")]
             let cmd_start = (Date::now() * 1_000_000.0) as u64;
-            let batch = std::mem::take(&mut engine.state.cmd_queue);
+            let deferred = std::mem::take(&mut engine.state.deferred_cmd_queue);
+            let mut batch = Vec::new();
+            let mut still_deferred = Vec::new();
+            for envelope in deferred {
+                let key = deferred_command_key(envelope.id, &envelope.cmd);
+                let ready = engine
+                    .state
+                    .deferred_cmd_meta
+                    .get(&key)
+                    .map(|meta| meta.next_retry_frame <= engine.state.frame_index)
+                    .unwrap_or(true);
+                if ready {
+                    batch.push(envelope);
+                } else {
+                    still_deferred.push(envelope);
+                }
+            }
+            engine.state.deferred_cmd_queue = still_deferred;
+            batch.extend(std::mem::take(&mut engine.state.cmd_queue));
             let result = engine_process_batch(&mut engine.state, &mut engine.platform, batch);
             #[cfg(not(feature = "wasm"))]
             {
