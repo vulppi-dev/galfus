@@ -1,0 +1,268 @@
+use super::*;
+
+pub(super) fn run_demo_2_window_ui(ctx: DemoContext) -> bool {
+    let demo_number = 2;
+    let ids = DemoIds::from_number(demo_number);
+    let Some(ui_realm_id) = create_ui_realm(ctx.window_id) else {
+        return false;
+    };
+
+    let target_id = ids.target_id + 2_000;
+    let control_doc_id = ids.ui_doc_extra + 200;
+    let control_root_id = ids.ui_node_extra + 200;
+    let measurement_text_id = control_root_id + 1;
+    let btn_measure = control_root_id + 10;
+    let btn_windowed = control_root_id + 11;
+    let btn_maximized = control_root_id + 12;
+    let btn_minimized = control_root_id + 13;
+    let btn_fullscreen = control_root_id + 14;
+    let btn_borderless = control_root_id + 15;
+    let btn_cursor_default = control_root_id + 16;
+    let btn_cursor_crosshair = control_root_id + 17;
+
+    let mut hud = FpsHud::new(demo_number);
+    let mut setup_cmds = vec![
+        EngineCmd::CmdTargetUpsert(CmdTargetUpsertArgs {
+            target_id,
+            kind: TargetKind::Window,
+            window_id: Some(ctx.window_id),
+            size: None,
+            format_policy: None,
+            alpha_policy: None,
+            msaa_samples: None,
+        }),
+        EngineCmd::CmdTargetLayerUpsert(CmdTargetLayerUpsertArgs {
+            realm_id: ui_realm_id,
+            target_id,
+            layout: TargetLayerLayout::default(),
+            camera_id: None,
+            environment_id: None,
+        }),
+        EngineCmd::CmdUiDocumentCreate(CmdUiDocumentCreateArgs {
+            document_id: control_doc_id,
+            realm_id: ui_realm_id,
+            rect: glam::vec4(0.0, 0.0, 0.0, 0.0),
+            theme_id: None,
+        }),
+    ];
+    setup_cmds.extend(hud.setup_commands(ui_realm_id));
+    setup_cmds.push(EngineCmd::CmdUiApplyOps(
+        crate::core::ui::cmd::CmdUiApplyOpsArgs {
+            document_id: control_doc_id,
+            version: 1,
+            ops: vec![
+                UiOp::Add {
+                    parent: None,
+                    node: UiNode {
+                        id: control_root_id,
+                        kind: UiNodeKind::Container,
+                        props: UiNodeProps::Container {
+                            layout: Default::default(),
+                            padding: None,
+                            size: None,
+                            scroll_x: false,
+                            scroll_y: false,
+                        },
+                        tooltip: None,
+                        context_menu: None,
+                        anim: None,
+                        display: None,
+                        visible: None,
+                        opacity: None,
+                        z_index: Some(100),
+                    },
+                    index: None,
+                },
+                UiOp::Add {
+                    parent: Some(control_root_id),
+                    node: UiNode {
+                        id: measurement_text_id,
+                        kind: UiNodeKind::Text,
+                        props: UiNodeProps::Text {
+                            text: "Measurement: aguardando...".into(),
+                            size: Some(18.0),
+                            color: None,
+                        },
+                        tooltip: None,
+                        context_menu: None,
+                        anim: None,
+                        display: None,
+                        visible: None,
+                        opacity: None,
+                        z_index: Some(101),
+                    },
+                    index: None,
+                },
+                ui_button_op(control_root_id, btn_measure, "Measure"),
+                ui_button_op(control_root_id, btn_windowed, "State: Windowed"),
+                ui_button_op(control_root_id, btn_maximized, "State: Maximized"),
+                ui_button_op(control_root_id, btn_minimized, "State: Minimized"),
+                ui_button_op(control_root_id, btn_fullscreen, "State: Fullscreen"),
+                ui_button_op(
+                    control_root_id,
+                    btn_borderless,
+                    "State: Windowed Fullscreen",
+                ),
+                ui_button_op(control_root_id, btn_cursor_default, "Cursor: Default"),
+                ui_button_op(control_root_id, btn_cursor_crosshair, "Cursor: Crosshair"),
+            ],
+        },
+    ));
+    setup_cmds.push(window_measurement_cmd(ctx.window_id));
+    let _ = send_commands(setup_cmds);
+    let _ = receive_responses();
+
+    let mut control_version: u64 = 1;
+    let mut last_frame_time = std::time::Instant::now();
+    let mut total_ms: u64 = 0;
+    let mut last_measurement_text = String::new();
+    let mut measured_position = String::from("-");
+    let mut measured_size = String::from("-");
+    let mut measured_outer_size = String::from("-");
+    let mut measured_surface_size = String::from("-");
+    let target_frame_time = Duration::from_millis(16);
+
+    loop {
+        let now = std::time::Instant::now();
+        let delta_ms = now.duration_since(last_frame_time).as_millis() as u32;
+        last_frame_time = now;
+        total_ms = total_ms.saturating_add(delta_ms as u64);
+
+        let mut frame_cmds = hud.frame_commands(total_ms, delta_ms);
+        frame_cmds.push(window_measurement_cmd(ctx.window_id));
+        if !frame_cmds.is_empty() {
+            let _ = send_commands(frame_cmds);
+        }
+
+        if core::vulfram_tick(total_ms, delta_ms) != crate::core::VulframResult::Success {
+            return false;
+        }
+
+        let mut latest_measurement_text: Option<String> = None;
+        for envelope in receive_responses() {
+            if let CommandResponse::WindowMeasurement(result) = envelope.response
+                && result.success
+            {
+                if result.position.is_none()
+                    && result.size.is_none()
+                    && result.outer_size.is_none()
+                    && result.surface_size.is_none()
+                {
+                    continue;
+                }
+
+                if let Some(position) = result.position {
+                    measured_position = format!("({}, {})", position.x, position.y);
+                }
+                if let Some(size) = result.size {
+                    measured_size = format!("{}x{}", size.x, size.y);
+                }
+                if let Some(outer_size) = result.outer_size {
+                    measured_outer_size = format!("{}x{}", outer_size.x, outer_size.y);
+                }
+                if let Some(surface_size) = result.surface_size {
+                    measured_surface_size = format!("{}x{}", surface_size.x, surface_size.y);
+                }
+                let text = format!(
+                    "Measurement: pos={} | size={} | outer={} | surface={}",
+                    measured_position, measured_size, measured_outer_size, measured_surface_size
+                );
+                latest_measurement_text = Some(text);
+            }
+        }
+        if let Some(text) = latest_measurement_text
+            && text != last_measurement_text
+        {
+            last_measurement_text = text.clone();
+            control_version = control_version.saturating_add(1);
+            let _ = send_commands(vec![EngineCmd::CmdUiApplyOps(
+                crate::core::ui::cmd::CmdUiApplyOpsArgs {
+                    document_id: control_doc_id,
+                    version: control_version,
+                    ops: vec![UiOp::Set {
+                        node_id: measurement_text_id,
+                        props: UiNodeProps::Text {
+                            text,
+                            size: Some(18.0),
+                            color: None,
+                        },
+                    }],
+                },
+            )]);
+        }
+
+        let events = receive_events();
+        for event in events {
+            if should_close_window(ctx.window_id, &event) {
+                let _ = send_commands(vec![EngineCmd::CmdWindowClose(
+                    crate::core::window::CmdWindowCloseArgs {
+                        window_id: ctx.window_id,
+                    },
+                )]);
+                return true;
+            }
+
+            let EngineEvent::Ui(ui_event) = event else {
+                continue;
+            };
+            if ui_event.document_id != control_doc_id
+                || ui_event.kind != crate::core::ui::events::UiEventKind::Click
+            {
+                continue;
+            }
+
+            let mut cmds: Vec<EngineCmd> = Vec::new();
+            match ui_event.node_id {
+                id if id == btn_measure => {
+                    cmds.push(window_measurement_cmd(ctx.window_id));
+                }
+                id if id == btn_windowed => {
+                    cmds.push(window_state_cmd(ctx.window_id, EngineWindowState::Windowed));
+                    cmds.push(window_measurement_cmd(ctx.window_id));
+                }
+                id if id == btn_maximized => {
+                    cmds.push(window_state_cmd(
+                        ctx.window_id,
+                        EngineWindowState::Maximized,
+                    ));
+                    cmds.push(window_measurement_cmd(ctx.window_id));
+                }
+                id if id == btn_minimized => {
+                    cmds.push(window_state_cmd(
+                        ctx.window_id,
+                        EngineWindowState::Minimized,
+                    ));
+                    cmds.push(window_measurement_cmd(ctx.window_id));
+                }
+                id if id == btn_fullscreen => {
+                    cmds.push(window_state_cmd(
+                        ctx.window_id,
+                        EngineWindowState::Fullscreen,
+                    ));
+                    cmds.push(window_measurement_cmd(ctx.window_id));
+                }
+                id if id == btn_borderless => {
+                    cmds.push(window_state_cmd(
+                        ctx.window_id,
+                        EngineWindowState::WindowedFullscreen,
+                    ));
+                    cmds.push(window_measurement_cmd(ctx.window_id));
+                }
+                id if id == btn_cursor_default => {
+                    cmds.push(window_cursor_cmd(ctx.window_id, CursorIcon::Default));
+                }
+                id if id == btn_cursor_crosshair => {
+                    cmds.push(window_cursor_cmd(ctx.window_id, CursorIcon::Crosshair));
+                }
+                _ => {}
+            }
+            if !cmds.is_empty() {
+                let _ = send_commands(cmds);
+            }
+        }
+
+        if let Some(remaining) = target_frame_time.checked_sub(now.elapsed()) {
+            std::thread::sleep(remaining);
+        }
+    }
+}
