@@ -1,6 +1,5 @@
 use super::*;
-mod setup_cases_tail;
-pub(super) fn extra_setup_commands(
+pub(crate) fn extra_setup_commands(
     scenario: u32,
     ctx: DemoContext,
     ui_realm_id: u32,
@@ -352,7 +351,7 @@ pub(super) fn extra_setup_commands(
             ));
         }
         _ => {
-            setup_cases_tail::append_setup_commands_tail(
+            super::setup_cases_tail::append_setup_commands_tail(
                 scenario,
                 ctx,
                 ui_realm_id,

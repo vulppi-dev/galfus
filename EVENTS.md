@@ -233,6 +233,27 @@ Cada fase deve ser mergeável de forma independente.
 - Benchmark curto de throughput de eventos por frame.
 - Comparar serialização antes/depois em cenários de carga.
 
+Plano mínimo executável (fase atual):
+- Cenário P1 (pointer): movimento contínuo de ponteiro por 10s com trace em `Errors`.
+- Cenário P2 (keyboard): sequência de keydown/keyup com modifiers por 10s.
+- Cenário P3 (gamepad): variação contínua de eixo por 10s com dead-zone padrão.
+- Cenário P4 (listeners): 1k listeners distribuídos por target com sampling 100/50/10.
+
+Métricas obrigatórias:
+- `events/frame` (média e p95).
+- `ms/frame` no tick (média e p95).
+- bytes serializados por frame para fila de eventos.
+- custo incremental de `InputTargetListenerEvent` vs baseline sem listeners.
+
+Critérios de aceite da fase:
+- Nenhum cenário pode elevar p95 de frame acima de +15% contra baseline local.
+- Serialização incremental dos novos campos de pointer deve ficar em modo aditivo (sem quebra de parsing host legado).
+- Com sampling < 100, volume de eventos deve reduzir de forma monotônica.
+
+Status da fase:
+- Implementação preparada para benchmark (eventos/listeners/relatividade entregues).
+- Execução formal de benchmark comparativo: pendente de rodada dedicada de medição.
+
 ## 8. Checklist de execução
 - [x] Criar tabela canônica de keycodes.
 - [x] Unificar mapeamento desktop/browser.
@@ -245,10 +266,34 @@ Cada fase deve ser mergeável de forma independente.
 - [x] Implementar dispose em cascata no `target dispose`.
 - [x] Atualizar docs de API/comandos/eventos após cada fase.
 
-## 9. Decisões pendentes
-- Nome final do evento de retorno dos listeners (`SystemEvent` vs `EngineEvent` dedicado).
-- Granularidade final de `events` no listener (lista fechada vs enum expansível).
-- Estratégia de compatibilidade para hosts que consumirem payload antigo de pointer.
+## 9. Decisões fechadas
+
+### 9.1 Evento de retorno dos listeners
+- Decisão: manter em `SystemEvent`, com nome final `SystemEvent::InputTargetListenerEvent`.
+- Motivo: mantém a natureza de telemetria/observabilidade sem inflar o domínio de `EngineEvent` com variante dedicada redundante.
+- Status: implementado.
+
+### 9.2 Granularidade do campo `events` no listener
+- Decisão: manter `events` como lista de strings (modelo extensível), com nomenclatura canônica por categoria (`pointer-*`, `keyboard-*`, `gamepad-*`).
+- Motivo: reduz churn de protocolo e evita breaking change em hosts a cada novo tipo de evento.
+- Regra operacional:
+  - Valores desconhecidos não quebram fluxo; apenas não casam listener.
+  - Novos tipos entram por documentação e testes, sem alterar contrato base do comando.
+- Status: implementado.
+
+### 9.3 Compatibilidade com payload antigo de pointer
+- Decisão: estratégia aditiva, sem quebra:
+  - `position` atual permanece como posição global (janela).
+  - `position_target` permanece opcional.
+  - Hosts legados continuam funcionais sem alteração.
+- Motivo: preservar integração existente enquanto habilita coordenada relativa por target de forma explícita.
+- Status: implementado.
+
+### 9.4 Critério de estabilidade para esta fase
+- Consideramos a fase fechada quando:
+  - checklist da seção 8 permanece 100% verde;
+  - decisões acima permanecem refletidas na documentação e no código;
+  - qualquer evolução futura entra como nova task (não como pendência desta fase).
 
 ## 10. Backlog executável (arquivos e ordem)
 
