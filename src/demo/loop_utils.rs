@@ -1,6 +1,7 @@
 use crate::core::VulframResult;
 use crate::core::cmd::EngineEvent;
 use crate::core::input::events::{ElementState, KeyboardEvent};
+use crate::core::input::keycodes::{KEY_ESCAPE, KEY_W};
 use crate::core::window::{CmdWindowCloseArgs, WindowEvent};
 use std::time::{Duration, Instant};
 
@@ -80,7 +81,7 @@ fn is_close_event(window_id: u32, event: &EngineEvent) -> bool {
             ..
         }) if *id == window_id => {
             // Escape always closes demo windows; Ctrl+W is the explicit close shortcut.
-            *key_code == 106 || (*key_code == 41 && modifiers.ctrl) || *key_code == 94
+            *key_code == KEY_ESCAPE || (*key_code == KEY_W && modifiers.ctrl)
         }
         _ => false,
     }

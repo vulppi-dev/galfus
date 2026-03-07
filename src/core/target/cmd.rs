@@ -175,6 +175,10 @@ pub fn engine_cmd_target_dispose(
         .universal_state
         .target_ui_realm_index
         .remove(&target_id);
+    let _ = engine
+        .universal_state
+        .target_listeners
+        .dispose_target(target_id);
     engine
         .universal_state
         .global_resources

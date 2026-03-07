@@ -68,6 +68,32 @@ pub(super) fn dispatch_command(
                 response: CommandResponse::WindowState(result),
             });
         }
+        EngineCmd::CmdInputTargetListenerUpsert(args) => {
+            let result = crate::core::input::listeners::engine_cmd_input_target_listener_upsert(
+                engine, &args,
+            );
+            engine.response_queue.push(CommandResponseEnvelope {
+                id: pack.id,
+                response: CommandResponse::InputTargetListenerUpsert(result),
+            });
+        }
+        EngineCmd::CmdInputTargetListenerDispose(args) => {
+            let result = crate::core::input::listeners::engine_cmd_input_target_listener_dispose(
+                engine, &args,
+            );
+            engine.response_queue.push(CommandResponseEnvelope {
+                id: pack.id,
+                response: CommandResponse::InputTargetListenerDispose(result),
+            });
+        }
+        EngineCmd::CmdInputTargetListenerList(args) => {
+            let result =
+                crate::core::input::listeners::engine_cmd_input_target_listener_list(engine, &args);
+            engine.response_queue.push(CommandResponseEnvelope {
+                id: pack.id,
+                response: CommandResponse::InputTargetListenerList(result),
+            });
+        }
         EngineCmd::CmdUploadBufferDiscardAll(args) => {
             let result = buf::engine_cmd_upload_buffer_discard_all(engine, &args);
             engine.response_queue.push(CommandResponseEnvelope {

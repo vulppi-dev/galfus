@@ -13,6 +13,7 @@ use crate::core::cmd::{
     CmdMaterialUpsertArgs, CmdModelUpsertArgs, CommandResponse, EngineCmd, EngineEvent,
 };
 use crate::core::input::events::{ElementState, KeyboardEvent};
+use crate::core::input::keycodes::{KEY_ESCAPE, KEY_W};
 use crate::core::profiling::state::ProfilingDetailLevel;
 use crate::core::realm::cmd::{CmdRealmCreateArgs, CmdRealmDisposeArgs, RealmKindDto};
 use crate::core::render::gizmos::{CmdGizmoDrawAabbArgs, CmdGizmoDrawLineArgs};
@@ -1416,7 +1417,7 @@ fn should_close_window(window_id: u32, event: &EngineEvent) -> bool {
             state: ElementState::Pressed,
             modifiers,
             ..
-        }) if *id == window_id => *key_code == 106 || (*key_code == 41 && modifiers.ctrl),
+        }) if *id == window_id => *key_code == KEY_ESCAPE || (*key_code == KEY_W && modifiers.ctrl),
         _ => false,
     }
 }

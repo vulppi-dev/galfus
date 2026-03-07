@@ -408,6 +408,13 @@ pub fn route_pointer_events(engine_state: &mut EngineState) {
                 pointer_id_value,
                 full_trace,
             );
+            let position_target = resolve_target_relative_position(
+                &engine_state.universal_state,
+                source_realm_id,
+                connector_id,
+                uv,
+            );
+            apply_target_position(pointer_event, position_target);
             apply_trace(pointer_event, trace);
         }
     }
@@ -625,6 +632,59 @@ fn apply_trace(event: &mut PointerEvent, trace: Option<PointerEventTrace>) {
             *slot = trace;
         }
     }
+}
+
+fn apply_target_position(event: &mut PointerEvent, position_target: Option<Vec2>) {
+    match event {
+        PointerEvent::OnMove {
+            position_target: slot,
+            ..
+        }
+        | PointerEvent::OnButton {
+            position_target: slot,
+            ..
+        }
+        | PointerEvent::OnTouch {
+            position_target: slot,
+            ..
+        } => {
+            *slot = position_target;
+        }
+        PointerEvent::OnEnter { .. }
+        | PointerEvent::OnLeave { .. }
+        | PointerEvent::OnScroll { .. }
+        | PointerEvent::OnPinchGesture { .. }
+        | PointerEvent::OnPanGesture { .. }
+        | PointerEvent::OnRotationGesture { .. }
+        | PointerEvent::OnDoubleTapGesture { .. } => {}
+    }
+}
+
+fn resolve_target_relative_position(
+    universal: &UniversalState,
+    source_realm_id: Option<RealmId>,
+    connector_id: Option<ConnectorId>,
+    uv: Option<Vec2>,
+) -> Option<Vec2> {
+    let uv = uv?;
+    let size = source_realm_id
+        .and_then(|realm_id| realm_surface_size(universal, realm_id))
+        .or_else(|| {
+            connector_id.and_then(|connector_id| connector_source_size(universal, connector_id))
+        })?;
+    Some(Vec2::new(
+        uv.x.clamp(0.0, 1.0) * size.x.max(1) as f32,
+        uv.y.clamp(0.0, 1.0) * size.y.max(1) as f32,
+    ))
+}
+
+fn connector_source_size(universal: &UniversalState, connector_id: ConnectorId) -> Option<UVec2> {
+    let connector = universal.connectors.entries.get(&connector_id)?;
+    universal
+        .surfaces
+        .entries
+        .get(&connector.value.source_surface)
+        .map(|entry| entry.value.size)
 }
 
 fn select_trace_payload(

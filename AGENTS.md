@@ -10,7 +10,7 @@
 - Configurações de filtros do pós-processamento devem usar o prefixo `filter_` e a flag `filter_enabled`.
 - Demos devem fechar por padrão ao pressionar a tecla Escape.
 - Valores de `outline_threshold` devem ficar no intervalo [0, 1) (clamp).
-- Arquivos devem ter como alvo no 300 linhas e no máximo 500 linhas. Se passar disso e for possível, dividir em arquivos menores.
+- Arquivos devem ter como alvo no 300 linhas e no máximo 600 linhas. Se passar disso e for possível, dividir em arquivos menores.
 - Texturas de cor devem usar formato float (ex.: `rgba16f`) por padrão; depth também pode ser float quando aplicável.
 - A árvore do render graph não deve declarar formatos de textura; o core define padrões.
 - Sempre atualizar a documentação relacionada ao terminar uma fase.

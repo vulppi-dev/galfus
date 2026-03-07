@@ -122,6 +122,7 @@ fn routing_prefers_highest_z_index_layer_in_overlap() {
             pointer_type: 0,
             pointer_id: 1,
             position: glam::vec2(120.0, 80.0),
+            position_target: None,
             trace: None,
         }));
 
@@ -170,6 +171,7 @@ fn routing_trace_errors_mode_only_keeps_error_paths() {
             pointer_type: 0,
             pointer_id: 9,
             position: glam::vec2(12.0, 10.0),
+            position_target: None,
             trace: None,
         }));
 
@@ -288,6 +290,7 @@ fn routing_multiple_targets_no_cross_layer_bleed() {
             pointer_type: 0,
             pointer_id: 1,
             position: glam::vec2(80.0, 80.0),
+            position_target: None,
             trace: None,
         }));
     engine
@@ -297,6 +300,7 @@ fn routing_multiple_targets_no_cross_layer_bleed() {
             pointer_type: 0,
             pointer_id: 2,
             position: glam::vec2(520.0, 80.0),
+            position_target: None,
             trace: None,
         }));
 

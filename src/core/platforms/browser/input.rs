@@ -1,12 +1,19 @@
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use wasm_bindgen::JsCast;
 use wasm_bindgen::closure::Closure;
-use web_sys::{Event, EventTarget, HtmlCanvasElement, KeyboardEvent, PointerEvent, WheelEvent};
+use web_sys::{
+    CompositionEvent, Event, EventTarget, HtmlCanvasElement, KeyboardEvent, PointerEvent,
+    WheelEvent,
+};
 
 use crate::core::cmd::EngineEvent;
 use crate::core::input::events::{ElementState, ModifiersState, TouchPhase};
 use crate::core::input::events::{
     KeyboardEvent as CoreKeyboardEvent, PointerEvent as CorePointerEvent, ScrollDelta,
 };
+use crate::core::input::keycodes::map_web_key_code;
 use crate::core::singleton::with_engine;
 use crate::core::state::EngineState;
 use crate::core::window::{WebListenerRegistration, WindowEvent};
@@ -23,6 +30,7 @@ pub fn attach_canvas_listeners(
     };
     let window_target: EventTarget = window.clone().unchecked_into();
     let canvas_target: EventTarget = canvas.clone().unchecked_into();
+    let modifiers_state = Rc::new(RefCell::new(ModifiersState::default()));
 
     let canvas_for_resize = canvas.clone();
     let resize_closure = Closure::wrap(Box::new(move |_event: Event| {
@@ -88,8 +96,20 @@ pub fn attach_canvas_listeners(
     }) as Box<dyn FnMut(Event)>);
     register_listener(&window_target, "focus", focus_closure, &mut listeners);
 
+    let modifiers_state_for_blur = modifiers_state.clone();
     let blur_closure = Closure::wrap(Box::new(move |_event: Event| {
         with_live_window(window_id, |engine| {
+            let next_modifiers = ModifiersState::default();
+            let mut current_modifiers = modifiers_state_for_blur.borrow_mut();
+            if *current_modifiers != next_modifiers {
+                *current_modifiers = next_modifiers;
+                engine.event_queue.push(EngineEvent::Keyboard(
+                    CoreKeyboardEvent::OnModifiersChange {
+                        window_id,
+                        modifiers: next_modifiers,
+                    },
+                ));
+            }
             engine
                 .event_queue
                 .push(EngineEvent::Window(WindowEvent::OnFocus {
@@ -100,6 +120,7 @@ pub fn attach_canvas_listeners(
     }) as Box<dyn FnMut(Event)>);
     register_listener(&window_target, "blur", blur_closure, &mut listeners);
 
+    let modifiers_state_for_keydown = modifiers_state.clone();
     let keydown_closure = Closure::wrap(Box::new(move |event: Event| {
         let event: KeyboardEvent = match event.dyn_into() {
             Ok(ev) => ev,
@@ -111,15 +132,30 @@ pub fn attach_canvas_listeners(
             alt: event.alt_key(),
             meta: event.meta_key(),
         };
-        let key_code = map_key_code(&event.code());
-        let text = event
-            .key()
-            .chars()
-            .next()
-            .filter(|_| event.key().len() == 1)
-            .map(|_| event.key());
+        let key_code = map_web_key_code(&event.code());
+        let is_composing = event.is_composing();
+        let text = if is_composing {
+            None
+        } else {
+            event
+                .key()
+                .chars()
+                .next()
+                .filter(|_| event.key().len() == 1)
+                .map(|_| event.key())
+        };
 
         with_live_window(window_id, |engine| {
+            let mut current_modifiers = modifiers_state_for_keydown.borrow_mut();
+            if *current_modifiers != modifiers {
+                *current_modifiers = modifiers;
+                engine.event_queue.push(EngineEvent::Keyboard(
+                    CoreKeyboardEvent::OnModifiersChange {
+                        window_id,
+                        modifiers,
+                    },
+                ));
+            }
             engine
                 .event_queue
                 .push(EngineEvent::Keyboard(CoreKeyboardEvent::OnInput {
@@ -135,6 +171,7 @@ pub fn attach_canvas_listeners(
     }) as Box<dyn FnMut(Event)>);
     register_listener(&window_target, "keydown", keydown_closure, &mut listeners);
 
+    let modifiers_state_for_keyup = modifiers_state.clone();
     let keyup_closure = Closure::wrap(Box::new(move |event: Event| {
         let event: KeyboardEvent = match event.dyn_into() {
             Ok(ev) => ev,
@@ -146,15 +183,30 @@ pub fn attach_canvas_listeners(
             alt: event.alt_key(),
             meta: event.meta_key(),
         };
-        let key_code = map_key_code(&event.code());
-        let text = event
-            .key()
-            .chars()
-            .next()
-            .filter(|_| event.key().len() == 1)
-            .map(|_| event.key());
+        let key_code = map_web_key_code(&event.code());
+        let is_composing = event.is_composing();
+        let text = if is_composing {
+            None
+        } else {
+            event
+                .key()
+                .chars()
+                .next()
+                .filter(|_| event.key().len() == 1)
+                .map(|_| event.key())
+        };
 
         with_live_window(window_id, |engine| {
+            let mut current_modifiers = modifiers_state_for_keyup.borrow_mut();
+            if *current_modifiers != modifiers {
+                *current_modifiers = modifiers;
+                engine.event_queue.push(EngineEvent::Keyboard(
+                    CoreKeyboardEvent::OnModifiersChange {
+                        window_id,
+                        modifiers,
+                    },
+                ));
+            }
             engine
                 .event_queue
                 .push(EngineEvent::Keyboard(CoreKeyboardEvent::OnInput {
@@ -169,6 +221,71 @@ pub fn attach_canvas_listeners(
         });
     }) as Box<dyn FnMut(Event)>);
     register_listener(&window_target, "keyup", keyup_closure, &mut listeners);
+
+    let ime_start = Closure::wrap(Box::new(move |event: Event| {
+        let _event: CompositionEvent = match event.dyn_into() {
+            Ok(ev) => ev,
+            Err(_) => return,
+        };
+        with_live_window(window_id, |engine| {
+            engine
+                .event_queue
+                .push(EngineEvent::Keyboard(CoreKeyboardEvent::OnImeEnable {
+                    window_id,
+                }));
+        });
+    }) as Box<dyn FnMut(Event)>);
+    register_listener(
+        &window_target,
+        "compositionstart",
+        ime_start,
+        &mut listeners,
+    );
+
+    let ime_update = Closure::wrap(Box::new(move |event: Event| {
+        let event: CompositionEvent = match event.dyn_into() {
+            Ok(ev) => ev,
+            Err(_) => return,
+        };
+        let text = event.data();
+        with_live_window(window_id, |engine| {
+            engine
+                .event_queue
+                .push(EngineEvent::Keyboard(CoreKeyboardEvent::OnImePreedit {
+                    window_id,
+                    text,
+                    cursor_range: None,
+                }));
+        });
+    }) as Box<dyn FnMut(Event)>);
+    register_listener(
+        &window_target,
+        "compositionupdate",
+        ime_update,
+        &mut listeners,
+    );
+
+    let ime_end = Closure::wrap(Box::new(move |event: Event| {
+        let event: CompositionEvent = match event.dyn_into() {
+            Ok(ev) => ev,
+            Err(_) => return,
+        };
+        let text = event.data();
+        with_live_window(window_id, |engine| {
+            engine
+                .event_queue
+                .push(EngineEvent::Keyboard(CoreKeyboardEvent::OnImeCommit {
+                    window_id,
+                    text,
+                }));
+            engine
+                .event_queue
+                .push(EngineEvent::Keyboard(CoreKeyboardEvent::OnImeDisable {
+                    window_id,
+                }));
+        });
+    }) as Box<dyn FnMut(Event)>);
+    register_listener(&window_target, "compositionend", ime_end, &mut listeners);
 
     let canvas_for_pointer = canvas.clone();
     let pointer_move = Closure::wrap(Box::new(move |event: Event| {
@@ -189,6 +306,7 @@ pub fn attach_canvas_listeners(
                     pointer_type,
                     pointer_id,
                     position,
+                    position_target: None,
                     trace: None,
                 }));
         });
@@ -216,6 +334,7 @@ pub fn attach_canvas_listeners(
                     button,
                     state: ElementState::Pressed,
                     position,
+                    position_target: None,
                     trace: None,
                 }));
         });
@@ -243,6 +362,7 @@ pub fn attach_canvas_listeners(
                     button,
                     state: ElementState::Released,
                     position,
+                    position_target: None,
                     trace: None,
                 }));
         });
@@ -365,134 +485,6 @@ fn map_pointer_type(pointer_type: &str) -> u32 {
         "mouse" => 0,
         "touch" => 1,
         "pen" => 2,
-        _ => 0,
-    }
-}
-
-fn map_key_code(code: &str) -> u32 {
-    match code {
-        "Backquote" => 0,
-        "Backslash" => 1,
-        "BracketLeft" => 2,
-        "BracketRight" => 3,
-        "Comma" => 4,
-        "Digit0" => 5,
-        "Digit1" => 6,
-        "Digit2" => 7,
-        "Digit3" => 8,
-        "Digit4" => 9,
-        "Digit5" => 10,
-        "Digit6" => 11,
-        "Digit7" => 12,
-        "Digit8" => 13,
-        "Digit9" => 14,
-        "Equal" => 15,
-        "IntlBackslash" => 16,
-        "IntlRo" => 17,
-        "IntlYen" => 18,
-        "KeyA" => 19,
-        "KeyB" => 20,
-        "KeyC" => 21,
-        "KeyD" => 22,
-        "KeyE" => 23,
-        "KeyF" => 24,
-        "KeyG" => 25,
-        "KeyH" => 26,
-        "KeyI" => 27,
-        "KeyJ" => 28,
-        "KeyK" => 29,
-        "KeyL" => 30,
-        "KeyM" => 31,
-        "KeyN" => 32,
-        "KeyO" => 33,
-        "KeyP" => 34,
-        "KeyQ" => 35,
-        "KeyR" => 36,
-        "KeyS" => 37,
-        "KeyT" => 38,
-        "KeyU" => 39,
-        "KeyV" => 40,
-        "KeyW" => 41,
-        "KeyX" => 42,
-        "KeyY" => 43,
-        "KeyZ" => 44,
-        "Minus" => 45,
-        "Period" => 46,
-        "Quote" => 47,
-        "Semicolon" => 48,
-        "Slash" => 49,
-        "AltLeft" => 50,
-        "AltRight" => 51,
-        "Backspace" => 52,
-        "CapsLock" => 53,
-        "ContextMenu" => 54,
-        "ControlLeft" => 55,
-        "ControlRight" => 56,
-        "Enter" => 57,
-        "MetaLeft" => 58,
-        "MetaRight" => 59,
-        "ShiftLeft" => 60,
-        "ShiftRight" => 61,
-        "Space" => 62,
-        "Tab" => 63,
-        "Delete" => 64,
-        "End" => 65,
-        "Help" => 66,
-        "Home" => 67,
-        "Insert" => 68,
-        "PageDown" => 69,
-        "PageUp" => 70,
-        "ArrowDown" => 71,
-        "ArrowLeft" => 72,
-        "ArrowRight" => 73,
-        "ArrowUp" => 74,
-        "NumLock" => 75,
-        "Numpad0" => 76,
-        "Numpad1" => 77,
-        "Numpad2" => 78,
-        "Numpad3" => 79,
-        "Numpad4" => 80,
-        "Numpad5" => 81,
-        "Numpad6" => 82,
-        "Numpad7" => 83,
-        "Numpad8" => 84,
-        "Numpad9" => 85,
-        "NumpadAdd" => 86,
-        "NumpadComma" => 87,
-        "NumpadDecimal" => 88,
-        "NumpadDivide" => 89,
-        "NumpadEnter" => 90,
-        "NumpadEqual" => 91,
-        "NumpadMultiply" => 92,
-        "NumpadSubtract" => 93,
-        "Escape" => 94,
-        "F1" => 95,
-        "F2" => 96,
-        "F3" => 97,
-        "F4" => 98,
-        "F5" => 99,
-        "F6" => 100,
-        "F7" => 101,
-        "F8" => 102,
-        "F9" => 103,
-        "F10" => 104,
-        "F11" => 105,
-        "F12" => 106,
-        "F13" => 107,
-        "F14" => 108,
-        "F15" => 109,
-        "F16" => 110,
-        "F17" => 111,
-        "F18" => 112,
-        "F19" => 113,
-        "F20" => 114,
-        "F21" => 115,
-        "F22" => 116,
-        "F23" => 117,
-        "F24" => 118,
-        "PrintScreen" => 119,
-        "ScrollLock" => 120,
-        "Pause" => 121,
         _ => 0,
     }
 }

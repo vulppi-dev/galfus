@@ -228,6 +228,7 @@ fn ui_input_converts_pointer_button_into_egui_pointer_event() {
                 button: 1,
                 state: crate::core::input::events::ElementState::Pressed,
                 position: glam::vec2(100.0, 80.0),
+                position_target: None,
                 trace: Some(crate::core::input::events::PointerEventTrace {
                     window_id: 1,
                     realm_id,

@@ -23,7 +23,11 @@ pub enum PointerEvent {
         window_id: u32,
         pointer_type: u32,
         pointer_id: u64,
+        /// Position relative to the window (global pointer space).
         position: Vec2,
+        /// Optional position relative to the resolved target.
+        #[serde(default)]
+        position_target: Option<Vec2>,
         trace: Option<PointerEventTrace>,
     },
 
@@ -53,7 +57,11 @@ pub enum PointerEvent {
         pointer_id: u64,
         button: u32,
         state: ElementState,
+        /// Position relative to the window (global pointer space).
         position: Vec2,
+        /// Optional position relative to the resolved target.
+        #[serde(default)]
+        position_target: Option<Vec2>,
         trace: Option<PointerEventTrace>,
     },
 
@@ -72,7 +80,11 @@ pub enum PointerEvent {
         window_id: u32,
         pointer_id: u64,
         phase: TouchPhase,
+        /// Position relative to the window (global pointer space).
         position: Vec2,
+        /// Optional position relative to the resolved target.
+        #[serde(default)]
+        position_target: Option<Vec2>,
         pressure: Option<f32>,
         trace: Option<PointerEventTrace>,
     },

@@ -103,6 +103,7 @@ pub fn vulfram_tick(time: u64, delta_time: u32) -> VulframResult {
         #[cfg(feature = "wasm")]
         let ui_input_start = (Date::now() * 1_000_000.0) as u64;
         crate::core::ui::input::process_ui_input(&mut engine.state);
+        crate::core::input::listeners::emit_target_listener_events(&mut engine.state);
         #[cfg(not(feature = "wasm"))]
         {
             engine.state.profiling.ui.input_ns = ui_input_start.elapsed().as_nanos() as u64;
