@@ -65,12 +65,15 @@ use crate::demo::io::{receive_events, receive_responses, send_commands};
 use crate::demo::loop_utils::run_loop_with_events;
 use crate::demo::session::create_window;
 use crate::demo::{DemoContext, DemoKind};
+use pointer_listener_lab::run_demo_7_pointer_listener_lab;
 use setup::{
     aux_window_commands, base_scene_commands, extra_setup_commands, list_commands, ui_button_op,
     window_cursor_cmd, window_measurement_cmd, window_state_cmd,
 };
 use window_ui::run_demo_2_window_ui;
 
+mod pointer_listener_lab;
+mod pointer_listener_lab_ui;
 mod setup;
 mod window_ui;
 
@@ -116,6 +119,7 @@ pub fn run(demo: DemoKind, ctx: DemoContext) -> bool {
         DemoKind::Demo4 => run_demo_4(ctx),
         DemoKind::Demo5 => run_demo_5(ctx),
         DemoKind::Demo6 => run_demo_6(ctx),
+        DemoKind::Demo7 => run_demo_7_pointer_listener_lab(ctx),
     }
 }
 
