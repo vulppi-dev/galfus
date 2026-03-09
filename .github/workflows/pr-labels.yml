@@ -10,6 +10,8 @@ on:
       - beta/**
       - release/**
     types:
+      - opened
+      - synchronize
       - edited
       - ready_for_review
       - labeled
