@@ -247,7 +247,7 @@ pub fn attach_canvas_listeners(
             Ok(ev) => ev,
             Err(_) => return,
         };
-        let text = event.data();
+        let text = event.data().unwrap_or_default();
         with_live_window(window_id, |engine| {
             engine
                 .event_queue
@@ -270,7 +270,7 @@ pub fn attach_canvas_listeners(
             Ok(ev) => ev,
             Err(_) => return,
         };
-        let text = event.data();
+        let text = event.data().unwrap_or_default();
         with_live_window(window_id, |engine| {
             engine
                 .event_queue
