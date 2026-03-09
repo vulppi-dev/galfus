@@ -41,6 +41,7 @@ pub(super) fn command_type_for_cmd(cmd: &EngineCmd) -> &'static str {
     match cmd {
         EngineCmd::CmdNotificationSend(_) => "notification-send",
         EngineCmd::CmdSystemDiagnosticsSet(_) => "system-diagnostics-set",
+        EngineCmd::CmdSystemBuildVersionGet(_) => "system-build-version-get",
         EngineCmd::CmdWindowCreate(_) => "window-create",
         EngineCmd::CmdWindowClose(_) => "window-close",
         EngineCmd::CmdWindowMeasurement(_) => "window-measurement",

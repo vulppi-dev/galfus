@@ -88,6 +88,7 @@ pub struct CmdResultSimple {
 pub enum EngineCmd {
     CmdNotificationSend(sys::CmdNotificationSendArgs),
     CmdSystemDiagnosticsSet(sys::CmdSystemDiagnosticsSetArgs),
+    CmdSystemBuildVersionGet(sys::CmdSystemBuildVersionGetArgs),
     CmdWindowCreate(win::CmdWindowCreateArgs),
     CmdWindowClose(win::CmdWindowCloseArgs),
     CmdWindowMeasurement(win::CmdWindowMeasurementArgs),
@@ -176,6 +177,7 @@ pub enum EngineEvent {
 pub enum CommandResponse {
     NotificationSend(sys::CmdResultNotificationSend),
     SystemDiagnosticsSet(sys::CmdResultSystemDiagnosticsSet),
+    SystemBuildVersionGet(sys::CmdResultSystemBuildVersionGet),
     WindowCreate(win::CmdResultWindowCreate),
     WindowClose(win::CmdResultWindowClose),
     WindowMeasurement(win::CmdResultWindowMeasurement),

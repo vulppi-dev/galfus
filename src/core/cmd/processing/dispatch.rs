@@ -29,6 +29,13 @@ pub(super) fn dispatch_command(
                 response: CommandResponse::SystemDiagnosticsSet(result),
             });
         }
+        EngineCmd::CmdSystemBuildVersionGet(args) => {
+            let result = sys::engine_cmd_system_build_version_get(engine, &args);
+            engine.response_queue.push(CommandResponseEnvelope {
+                id: pack.id,
+                response: CommandResponse::SystemBuildVersionGet(result),
+            });
+        }
         EngineCmd::CmdWindowCreate(args) => {
             match platform.handle_window_create(engine, pack.id, &args) {
                 Ok(()) => {}

@@ -15,11 +15,23 @@ pub struct CmdSystemDiagnosticsSetArgs {
     pub trace_sampling_percent: Option<u8>,
 }
 
+#[derive(Debug, Deserialize, Serialize, Clone, Default)]
+#[serde(default, rename_all = "camelCase")]
+pub struct CmdSystemBuildVersionGetArgs {}
+
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CmdResultSystemDiagnosticsSet {
     pub success: bool,
     pub message: String,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct CmdResultSystemBuildVersionGet {
+    pub success: bool,
+    pub message: String,
+    pub build_version: String,
 }
 
 pub fn engine_cmd_system_diagnostics_set(
@@ -47,5 +59,30 @@ pub fn engine_cmd_system_diagnostics_set(
     CmdResultSystemDiagnosticsSet {
         success: true,
         message: "System diagnostics updated".into(),
+    }
+}
+
+pub fn engine_cmd_system_build_version_get(
+    _engine: &mut EngineState,
+    _args: &CmdSystemBuildVersionGetArgs,
+) -> CmdResultSystemBuildVersionGet {
+    CmdResultSystemBuildVersionGet {
+        success: true,
+        message: "Build version retrieved".into(),
+        build_version: env!("CARGO_PKG_VERSION").into(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn system_build_version_get_returns_pkg_version() {
+        let mut engine = EngineState::new();
+        let result =
+            engine_cmd_system_build_version_get(&mut engine, &CmdSystemBuildVersionGetArgs {});
+        assert!(result.success);
+        assert_eq!(result.build_version, env!("CARGO_PKG_VERSION"));
     }
 }
