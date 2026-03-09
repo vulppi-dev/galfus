@@ -122,8 +122,7 @@ pub fn process_gilrs_event(engine_state: &mut EngineState, event: GilrsEvent) {
                     return;
                 }
 
-                let adjusted_value = cache.get_axis_value(axis_mapped);
-                cache.update_axis(axis_mapped, value);
+                let adjusted_value = cache.update_axis_and_get(axis_mapped, value);
 
                 engine_state
                     .event_queue
@@ -211,8 +210,7 @@ pub fn process_web_gamepads(engine_state: &mut EngineState) {
                 if !cache.axis_changed(axis_id, value) {
                     continue;
                 }
-                let adjusted_value = cache.get_axis_value(axis_id);
-                cache.update_axis(axis_id, value);
+                let adjusted_value = cache.update_axis_and_get(axis_id, value);
                 engine_state
                     .event_queue
                     .push(EngineEvent::Gamepad(GamepadEvent::OnAxis {

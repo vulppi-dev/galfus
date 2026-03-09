@@ -69,6 +69,12 @@ impl GamepadStateCache {
         self.axes.insert(axis, adjusted_value);
     }
 
+    /// Update axis cache and return the current adjusted value stored for this axis.
+    pub fn update_axis_and_get(&mut self, axis: u32, value: f32) -> f32 {
+        self.update_axis(axis, value);
+        self.get_axis_value(axis)
+    }
+
     /// Update button cache
     pub fn update_button(&mut self, button: u32, state: ElementState, value: f32) {
         self.buttons.insert(button, (state, value));
@@ -101,5 +107,24 @@ impl GamepadCacheManager {
     /// Get mutable cache for a gamepad
     pub fn get_mut(&mut self, gamepad_id: u32) -> Option<&mut GamepadStateCache> {
         self.gamepads.get_mut(&gamepad_id)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::GamepadStateCache;
+
+    #[test]
+    fn update_axis_and_get_returns_current_adjusted_value() {
+        let mut cache = GamepadStateCache::new();
+        let value = cache.update_axis_and_get(0, 0.5);
+        assert_eq!(value, cache.get_axis_value(0));
+    }
+
+    #[test]
+    fn update_axis_and_get_applies_dead_zone() {
+        let mut cache = GamepadStateCache::new();
+        let value = cache.update_axis_and_get(0, 0.01);
+        assert_eq!(value, 0.0);
     }
 }

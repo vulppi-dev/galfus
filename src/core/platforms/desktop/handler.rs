@@ -310,6 +310,7 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
                         pointer_type: 0, // Mouse
                         pointer_id: 0,
                         position: cursor_pos,
+                        position_target: None,
                         trace: None,
                     }));
             }
@@ -378,6 +379,7 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
                         button: btn,
                         state: elem_state,
                         position,
+                        position_target: None,
                         trace: None,
                     }));
             }
@@ -430,6 +432,7 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
                         pointer_id: touch.id,
                         phase,
                         position: Vec2::new(touch.location.x as f32, touch.location.y as f32),
+                        position_target: None,
                         pressure,
                         trace: None,
                     }));

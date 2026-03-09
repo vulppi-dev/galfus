@@ -68,6 +68,32 @@ pub(super) fn dispatch_command(
                 response: CommandResponse::WindowState(result),
             });
         }
+        EngineCmd::CmdInputTargetListenerUpsert(args) => {
+            let result = crate::core::input::listeners::engine_cmd_input_target_listener_upsert(
+                engine, &args,
+            );
+            engine.response_queue.push(CommandResponseEnvelope {
+                id: pack.id,
+                response: CommandResponse::InputTargetListenerUpsert(result),
+            });
+        }
+        EngineCmd::CmdInputTargetListenerDispose(args) => {
+            let result = crate::core::input::listeners::engine_cmd_input_target_listener_dispose(
+                engine, &args,
+            );
+            engine.response_queue.push(CommandResponseEnvelope {
+                id: pack.id,
+                response: CommandResponse::InputTargetListenerDispose(result),
+            });
+        }
+        EngineCmd::CmdInputTargetListenerList(args) => {
+            let result =
+                crate::core::input::listeners::engine_cmd_input_target_listener_list(engine, &args);
+            engine.response_queue.push(CommandResponseEnvelope {
+                id: pack.id,
+                response: CommandResponse::InputTargetListenerList(result),
+            });
+        }
         EngineCmd::CmdUploadBufferDiscardAll(args) => {
             let result = buf::engine_cmd_upload_buffer_discard_all(engine, &args);
             engine.response_queue.push(CommandResponseEnvelope {
@@ -446,127 +472,33 @@ pub(super) fn dispatch_command(
                 response: CommandResponse::TargetLayerDispose(result),
             });
         }
-        EngineCmd::CmdUiThemeDefine(args) => {
-            super::dispatch_ui::cmd_ui_theme_define(engine, pack.id, args);
-        }
-        EngineCmd::CmdUiThemeDispose(args) => {
-            super::dispatch_ui::cmd_ui_theme_dispose(engine, pack.id, args);
-        }
-        EngineCmd::CmdUiDocumentCreate(args) => {
-            super::dispatch_ui::cmd_ui_document_create(engine, pack.id, args);
-        }
-        EngineCmd::CmdUiDocumentDispose(args) => {
-            super::dispatch_ui::cmd_ui_document_dispose(engine, pack.id, args);
-        }
-        EngineCmd::CmdUiDocumentSetRect(args) => {
-            super::dispatch_ui::cmd_ui_document_set_rect(engine, pack.id, args);
-        }
-        EngineCmd::CmdUiDocumentSetTheme(args) => {
-            super::dispatch_ui::cmd_ui_document_set_theme(engine, pack.id, args);
-        }
-        EngineCmd::CmdUiDocumentGetTree(args) => {
-            super::dispatch_ui::cmd_ui_document_get_tree(engine, pack.id, args);
-        }
-        EngineCmd::CmdUiDocumentGetLayoutRects(args) => {
-            super::dispatch_ui::cmd_ui_document_get_layout_rects(engine, pack.id, args);
-        }
-        EngineCmd::CmdUiApplyOps(args) => {
-            super::dispatch_ui::cmd_ui_apply_ops(engine, pack.id, args);
-        }
-        EngineCmd::CmdUiDebugSet(args) => {
-            super::dispatch_ui::cmd_ui_debug_set(engine, pack.id, args);
-        }
-        EngineCmd::CmdUiFocusSet(args) => {
-            super::dispatch_ui::cmd_ui_focus_set(engine, pack.id, args);
-        }
-        EngineCmd::CmdUiFocusGet(args) => {
-            super::dispatch_ui::cmd_ui_focus_get(engine, pack.id, args);
-        }
-        EngineCmd::CmdUiEventTraceSet(args) => {
-            super::dispatch_ui::cmd_ui_event_trace_set(engine, pack.id, args);
-        }
-        EngineCmd::CmdUiImageCreateFromBuffer(args) => {
-            super::dispatch_ui::cmd_ui_image_create_from_buffer(engine, pack.id, args);
-        }
-        EngineCmd::CmdUiImageDispose(args) => {
-            super::dispatch_ui::cmd_ui_image_dispose(engine, pack.id, args);
-        }
-        EngineCmd::CmdUiClipboardPaste(args) => {
-            super::dispatch_ui::cmd_ui_clipboard_paste(engine, pack.id, args);
-        }
-        EngineCmd::CmdUiScreenshotReply(args) => {
-            super::dispatch_ui::cmd_ui_screenshot_reply(engine, pack.id, args);
-        }
-        EngineCmd::CmdUiAccessKitActionRequest(args) => {
-            super::dispatch_ui::cmd_ui_accesskit_action_request(engine, pack.id, args);
-        }
-        EngineCmd::CmdModelList(args) => {
-            let result = res::engine_cmd_model_list(engine, &args);
-            engine.response_queue.push(CommandResponseEnvelope {
-                id: pack.id,
-                response: CommandResponse::ModelList(result),
-            });
-        }
-        EngineCmd::CmdMaterialList(args) => {
-            let result = res::engine_cmd_material_list(engine, &args);
-            engine.response_queue.push(CommandResponseEnvelope {
-                id: pack.id,
-                response: CommandResponse::MaterialList(result),
-            });
-        }
-        EngineCmd::CmdTextureList(args) => {
-            let result = res::engine_cmd_texture_list(engine, &args);
-            engine.response_queue.push(CommandResponseEnvelope {
-                id: pack.id,
-                response: CommandResponse::TextureList(result),
-            });
-        }
-        EngineCmd::CmdGeometryList(args) => {
-            let result = res::engine_cmd_geometry_list(engine, &args);
-            engine.response_queue.push(CommandResponseEnvelope {
-                id: pack.id,
-                response: CommandResponse::GeometryList(result),
-            });
-        }
-        EngineCmd::CmdLightList(args) => {
-            let result = res::engine_cmd_light_list(engine, &args);
-            engine.response_queue.push(CommandResponseEnvelope {
-                id: pack.id,
-                response: CommandResponse::LightList(result),
-            });
-        }
-        EngineCmd::CmdCameraList(args) => {
-            let result = res::engine_cmd_camera_list(engine, &args);
-            engine.response_queue.push(CommandResponseEnvelope {
-                id: pack.id,
-                response: CommandResponse::CameraList(result),
-            });
-        }
-        EngineCmd::CmdGizmoDrawLine(args) => {
-            for (window_id, render_state) in engine.render.states.iter_mut() {
-                render_state
-                    .gizmos
-                    .add_line(args.start, args.end, args.color);
-                if let Some(window_state) = engine.window.states.get_mut(window_id) {
-                    window_state.is_dirty = true;
-                }
-            }
-            engine.response_queue.push(CommandResponseEnvelope {
-                id: pack.id,
-                response: CommandResponse::GizmoDrawLine(gizmo::CmdResultGizmoDraw { status: 0 }),
-            });
-        }
-        EngineCmd::CmdGizmoDrawAabb(args) => {
-            for (window_id, render_state) in engine.render.states.iter_mut() {
-                render_state.gizmos.add_aabb(args.min, args.max, args.color);
-                if let Some(window_state) = engine.window.states.get_mut(window_id) {
-                    window_state.is_dirty = true;
-                }
-            }
-            engine.response_queue.push(CommandResponseEnvelope {
-                id: pack.id,
-                response: CommandResponse::GizmoDrawAabb(gizmo::CmdResultGizmoDraw { status: 0 }),
-            });
+        cmd @ (EngineCmd::CmdUiThemeDefine(_)
+        | EngineCmd::CmdUiThemeDispose(_)
+        | EngineCmd::CmdUiDocumentCreate(_)
+        | EngineCmd::CmdUiDocumentDispose(_)
+        | EngineCmd::CmdUiDocumentSetRect(_)
+        | EngineCmd::CmdUiDocumentSetTheme(_)
+        | EngineCmd::CmdUiDocumentGetTree(_)
+        | EngineCmd::CmdUiDocumentGetLayoutRects(_)
+        | EngineCmd::CmdUiApplyOps(_)
+        | EngineCmd::CmdUiDebugSet(_)
+        | EngineCmd::CmdUiFocusSet(_)
+        | EngineCmd::CmdUiFocusGet(_)
+        | EngineCmd::CmdUiEventTraceSet(_)
+        | EngineCmd::CmdUiImageCreateFromBuffer(_)
+        | EngineCmd::CmdUiImageDispose(_)
+        | EngineCmd::CmdUiClipboardPaste(_)
+        | EngineCmd::CmdUiScreenshotReply(_)
+        | EngineCmd::CmdUiAccessKitActionRequest(_)
+        | EngineCmd::CmdModelList(_)
+        | EngineCmd::CmdMaterialList(_)
+        | EngineCmd::CmdTextureList(_)
+        | EngineCmd::CmdGeometryList(_)
+        | EngineCmd::CmdLightList(_)
+        | EngineCmd::CmdCameraList(_)
+        | EngineCmd::CmdGizmoDrawLine(_)
+        | EngineCmd::CmdGizmoDrawAabb(_)) => {
+            super::dispatch_tail::dispatch_ui_and_misc(engine, pack.id, cmd);
         }
     }
 }

@@ -42,3 +42,5 @@ Demos no Vulfram validam, de forma incremental, os principais aspectos da engine
    - integração multi-sistema de runtime (multi-janela, áudio, input e diagnósticos).
 6. `Demo 6`
    - contrato global (render graph, ABI/filas e cenário integrado de regressão manual).
+7. `Demo 7`
+   - validação funcional de listeners de ponteiro com split de tela: realm 3D à esquerda, UI à direita e `WidgetRealmViewport` interno para target aninhado.

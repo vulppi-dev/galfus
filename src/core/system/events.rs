@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use crate::core::input::events::ElementState;
+
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
 pub enum UiViewportClass {
@@ -240,5 +242,19 @@ pub enum SystemEvent {
         realm_id: u32,
         viewport_id: u64,
         parent_viewport_id: Option<u64>,
+    },
+
+    /// Input event matched by an input-target-listener.
+    #[serde(rename_all = "camelCase")]
+    InputTargetListenerEvent {
+        listener_id: u64,
+        target_id: u64,
+        event_type: String,
+        window_id: Option<u32>,
+        pointer_id: Option<u64>,
+        position_global: Option<glam::Vec2>,
+        position_target: Option<glam::Vec2>,
+        key_code: Option<u32>,
+        key_state: Option<ElementState>,
     },
 }

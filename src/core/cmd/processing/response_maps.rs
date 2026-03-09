@@ -9,6 +9,9 @@ pub(super) fn response_is_success(response: &CommandResponse) -> bool {
         CommandResponse::WindowMeasurement(result) => result.success,
         CommandResponse::WindowCursor(result) => result.success,
         CommandResponse::WindowState(result) => result.success,
+        CommandResponse::InputTargetListenerUpsert(result) => result.success,
+        CommandResponse::InputTargetListenerDispose(result) => result.success,
+        CommandResponse::InputTargetListenerList(result) => result.success,
         CommandResponse::UploadBufferDiscardAll(result) => result.success,
         CommandResponse::CameraUpsert(result) => result.success,
         CommandResponse::CameraDispose(result) => result.success,
@@ -81,6 +84,9 @@ pub(super) fn response_message(response: &CommandResponse) -> Option<String> {
         CommandResponse::WindowMeasurement(result) => Some(result.message.clone()),
         CommandResponse::WindowCursor(result) => Some(result.message.clone()),
         CommandResponse::WindowState(result) => Some(result.message.clone()),
+        CommandResponse::InputTargetListenerUpsert(result) => Some(result.message.clone()),
+        CommandResponse::InputTargetListenerDispose(result) => Some(result.message.clone()),
+        CommandResponse::InputTargetListenerList(result) => Some(result.message.clone()),
         CommandResponse::UploadBufferDiscardAll(result) => Some(result.message.clone()),
         CommandResponse::CameraUpsert(result) => Some(result.message.clone()),
         CommandResponse::CameraDispose(result) => Some(result.message.clone()),
@@ -165,6 +171,18 @@ pub(super) fn response_with_message(response: CommandResponse, message: String) 
         CommandResponse::WindowState(mut result) => {
             result.message = message;
             CommandResponse::WindowState(result)
+        }
+        CommandResponse::InputTargetListenerUpsert(mut result) => {
+            result.message = message;
+            CommandResponse::InputTargetListenerUpsert(result)
+        }
+        CommandResponse::InputTargetListenerDispose(mut result) => {
+            result.message = message;
+            CommandResponse::InputTargetListenerDispose(result)
+        }
+        CommandResponse::InputTargetListenerList(mut result) => {
+            result.message = message;
+            CommandResponse::InputTargetListenerList(result)
         }
         CommandResponse::UploadBufferDiscardAll(mut result) => {
             result.message = message;

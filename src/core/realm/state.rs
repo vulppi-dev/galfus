@@ -220,6 +220,7 @@ pub struct UniversalState {
     pub environment_profiles: HashMap<u32, EnvironmentConfig>,
     pub default_environment_id: Option<u32>,
     pub input_routing: InputRoutingState,
+    pub target_listeners: crate::core::input::listeners::InputTargetListenerStore,
     pub surface_cache: SurfaceCache,
     pub frame_report: super::FrameReport,
     pub realm_entities: HashMap<RealmId, RealmEntities>,

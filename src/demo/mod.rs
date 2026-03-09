@@ -17,6 +17,7 @@ pub enum DemoKind {
     Demo4,
     Demo5,
     Demo6,
+    Demo7,
 }
 
 impl DemoKind {
@@ -39,6 +40,7 @@ impl DemoKind {
             | "demo_024" | "demo024" | "demo_025" | "demo025" => Some(Self::Demo5),
             "suite_f" | "suitef" | "f" | "6" | "demo_026" | "demo026" | "demo_027" | "demo027"
             | "demo_028" | "demo028" => Some(Self::Demo6),
+            "suite_g" | "suiteg" | "g" | "7" | "demo_029" | "demo029" => Some(Self::Demo7),
             _ => None,
         }
     }
@@ -51,6 +53,7 @@ impl DemoKind {
             Self::Demo4 => 4,
             Self::Demo5 => 5,
             Self::Demo6 => 6,
+            Self::Demo7 => 7,
         }
     }
 

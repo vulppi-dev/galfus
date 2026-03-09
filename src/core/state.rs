@@ -213,6 +213,10 @@ impl EngineState {
                 self.universal_state
                     .target_ui_realm_index
                     .retain(|target_id, _| !targets_to_remove.contains(target_id));
+                let _ = self
+                    .universal_state
+                    .target_listeners
+                    .dispose_targets(targets_to_remove.iter().copied());
                 self.universal_state
                     .input_routing
                     .focus_targets
