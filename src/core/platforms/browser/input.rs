@@ -34,55 +34,32 @@ pub fn attach_canvas_listeners(
 
     let canvas_for_resize = canvas.clone();
     let resize_closure = Closure::wrap(Box::new(move |_event: Event| {
-        let width = canvas_for_resize.client_width().max(1) as u32;
-        let height = canvas_for_resize.client_height().max(1) as u32;
-
-        with_live_window(window_id, |engine| {
-            if let Some(window_state) = engine.window.states.get_mut(&window_id) {
-                window_state.config.width = width;
-                window_state.config.height = height;
-                if let Some(device) = engine.device.as_ref() {
-                    window_state.surface.configure(device, &window_state.config);
-                    #[cfg(any(not(feature = "wasm"), target_arch = "wasm32"))]
-                    if let Some(render_state) = engine.render.get_mut(&window_id) {
-                        render_state.on_resize(device, width, height);
-                    }
-                    crate::core::resources::ensure_render_target(
-                        device,
-                        &mut window_state.surface_target,
-                        width.max(1),
-                        height.max(1),
-                        wgpu::TextureFormat::Rgba16Float,
-                    );
-                }
-                window_state.inner_size = glam::UVec2::new(width, height);
-                window_state.outer_size = glam::UVec2::new(width, height);
-                window_state.is_dirty = true;
-            }
-            if let Some(surface_id) = engine
-                .universal_state
-                .presents
-                .entries
-                .values()
-                .find(|present| present.value.window_id == window_id)
-                .map(|present| present.value.surface)
-            {
-                if let Some(surface_entry) =
-                    engine.universal_state.surfaces.entries.get_mut(&surface_id)
-                {
-                    surface_entry.value.size = glam::UVec2::new(width, height);
-                }
-            }
-            engine
-                .event_queue
-                .push(EngineEvent::Window(WindowEvent::OnResize {
-                    window_id,
-                    width,
-                    height,
-                }));
-        });
+        let width = canvas_for_resize.width().max(1);
+        let height = canvas_for_resize.height().max(1);
+        let _ = sync_canvas_surface_size(window_id, width, height);
     }) as Box<dyn FnMut(Event)>);
     register_listener(&window_target, "resize", resize_closure, &mut listeners);
+
+    // Polling via RAF captures real canvas surface changes even without `window.resize`.
+    let raf_slot: Rc<RefCell<Option<Closure<dyn FnMut(f64)>>>> = Rc::new(RefCell::new(None));
+    let raf_slot_loop = raf_slot.clone();
+    let canvas_for_raf = canvas.clone();
+    let window_for_raf = window.clone();
+    *raf_slot.borrow_mut() = Some(Closure::wrap(Box::new(move |_ts: f64| {
+        if !with_live_window(window_id, |_| {}) {
+            let _ = raf_slot_loop.borrow_mut().take();
+            return;
+        }
+        let width = canvas_for_raf.width().max(1);
+        let height = canvas_for_raf.height().max(1);
+        let _ = sync_canvas_surface_size(window_id, width, height);
+        if let Some(callback) = raf_slot_loop.borrow().as_ref() {
+            let _ = window_for_raf.request_animation_frame(callback.as_ref().unchecked_ref());
+        }
+    }) as Box<dyn FnMut(f64)>));
+    if let Some(callback) = raf_slot.borrow().as_ref() {
+        let _ = window.request_animation_frame(callback.as_ref().unchecked_ref());
+    }
 
     let focus_closure = Closure::wrap(Box::new(move |_event: Event| {
         with_live_window(window_id, |engine| {
@@ -303,10 +280,14 @@ pub fn attach_canvas_listeners(
                 .event_queue
                 .push(EngineEvent::Pointer(CorePointerEvent::OnMove {
                     window_id,
+                    window_width: None,
+                    window_height: None,
                     pointer_type,
                     pointer_id,
                     position,
                     position_target: None,
+                    target_width: None,
+                    target_height: None,
                     trace: None,
                 }));
         });
@@ -329,12 +310,16 @@ pub fn attach_canvas_listeners(
                 .event_queue
                 .push(EngineEvent::Pointer(CorePointerEvent::OnButton {
                     window_id,
+                    window_width: None,
+                    window_height: None,
                     pointer_type,
                     pointer_id,
                     button,
                     state: ElementState::Pressed,
                     position,
                     position_target: None,
+                    target_width: None,
+                    target_height: None,
                     trace: None,
                 }));
         });
@@ -357,12 +342,16 @@ pub fn attach_canvas_listeners(
                 .event_queue
                 .push(EngineEvent::Pointer(CorePointerEvent::OnButton {
                     window_id,
+                    window_width: None,
+                    window_height: None,
                     pointer_type,
                     pointer_id,
                     button,
                     state: ElementState::Released,
                     position,
                     position_target: None,
+                    target_width: None,
+                    target_height: None,
                     trace: None,
                 }));
         });
@@ -381,8 +370,12 @@ pub fn attach_canvas_listeners(
                 .event_queue
                 .push(EngineEvent::Pointer(CorePointerEvent::OnEnter {
                     window_id,
+                    window_width: None,
+                    window_height: None,
                     pointer_type,
                     pointer_id,
+                    target_width: None,
+                    target_height: None,
                     trace: None,
                 }));
         });
@@ -406,8 +399,12 @@ pub fn attach_canvas_listeners(
                 .event_queue
                 .push(EngineEvent::Pointer(CorePointerEvent::OnLeave {
                     window_id,
+                    window_width: None,
+                    window_height: None,
                     pointer_type,
                     pointer_id,
+                    target_width: None,
+                    target_height: None,
                     trace: None,
                 }));
         });
@@ -439,8 +436,12 @@ pub fn attach_canvas_listeners(
                 .event_queue
                 .push(EngineEvent::Pointer(CorePointerEvent::OnScroll {
                     window_id,
+                    window_width: None,
+                    window_height: None,
                     delta,
                     phase,
+                    target_width: None,
+                    target_height: None,
                     trace: None,
                 }));
         });
@@ -458,12 +459,74 @@ fn canvas_relative_pos(canvas: &HtmlCanvasElement, x: i32, y: i32) -> glam::Vec2
     )
 }
 
-fn with_live_window(window_id: u32, apply: impl FnOnce(&mut EngineState)) {
+fn with_live_window(window_id: u32, apply: impl FnOnce(&mut EngineState)) -> bool {
+    let mut is_live = false;
     let _ = with_engine(|engine| {
         if engine.window.states.contains_key(&window_id) {
+            is_live = true;
             apply(engine);
         }
     });
+    is_live
+}
+
+fn sync_canvas_surface_size(window_id: u32, width: u32, height: u32) -> bool {
+    let mut changed = false;
+    let _ = with_live_window(window_id, |engine| {
+        let mut window_changed = false;
+        if let Some(window_state) = engine.window.states.get_mut(&window_id) {
+            let current_width = window_state.config.width.max(1);
+            let current_height = window_state.config.height.max(1);
+            window_changed = current_width != width || current_height != height;
+            if window_changed {
+                window_state.config.width = width;
+                window_state.config.height = height;
+                if let Some(device) = engine.device.as_ref() {
+                    window_state.surface.configure(device, &window_state.config);
+                    #[cfg(any(not(feature = "wasm"), target_arch = "wasm32"))]
+                    if let Some(render_state) = engine.render.get_mut(&window_id) {
+                        render_state.on_resize(device, width, height);
+                    }
+                    crate::core::resources::ensure_render_target(
+                        device,
+                        &mut window_state.surface_target,
+                        width.max(1),
+                        height.max(1),
+                        wgpu::TextureFormat::Rgba16Float,
+                    );
+                }
+                window_state.inner_size = glam::UVec2::new(width, height);
+                window_state.outer_size = glam::UVec2::new(width, height);
+                window_state.is_dirty = true;
+            }
+        }
+
+        if !window_changed {
+            return;
+        }
+        changed = true;
+
+        if let Some(surface_id) = engine
+            .universal_state
+            .presents
+            .entries
+            .values()
+            .find(|present| present.value.window_id == window_id)
+            .map(|present| present.value.surface)
+            && let Some(surface_entry) =
+                engine.universal_state.surfaces.entries.get_mut(&surface_id)
+        {
+            surface_entry.value.size = glam::UVec2::new(width, height);
+        }
+        engine
+            .event_queue
+            .push(EngineEvent::Window(WindowEvent::OnResize {
+                window_id,
+                width,
+                height,
+            }));
+    });
+    changed
 }
 
 fn register_listener(

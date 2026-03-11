@@ -32,6 +32,27 @@ pub struct CmdResultTargetUpsert {
     pub message: String,
 }
 
+#[derive(Debug, Default, Deserialize, Serialize, Clone)]
+#[serde(default, rename_all = "camelCase")]
+pub struct CmdTargetMeasurementArgs {
+    pub target_id: u64,
+    pub get_size: bool,
+    pub get_window_size: bool,
+}
+
+#[derive(Debug, Default, Deserialize, Serialize, Clone)]
+#[serde(default, rename_all = "camelCase")]
+pub struct CmdResultTargetMeasurement {
+    pub success: bool,
+    pub message: String,
+    #[serde(default)]
+    pub size: Option<UVec2>,
+    #[serde(default)]
+    pub window_size: Option<UVec2>,
+    #[serde(default)]
+    pub source_kind: Option<String>,
+}
+
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CmdTargetDisposeArgs {
@@ -119,6 +140,91 @@ pub fn engine_cmd_target_upsert(
         success: true,
         message: "Target upserted".into(),
     }
+}
+
+pub fn engine_cmd_target_measurement(
+    engine: &mut EngineState,
+    args: &CmdTargetMeasurementArgs,
+) -> CmdResultTargetMeasurement {
+    let target_id = TargetId(args.target_id);
+    let Some(target) = engine.universal_state.targets.entries.get(&target_id) else {
+        return CmdResultTargetMeasurement {
+            success: true,
+            message: format!(
+                "Target {} not ready yet; returning empty measurement",
+                args.target_id
+            ),
+            ..Default::default()
+        };
+    };
+
+    let resolved = resolve_target_measurement_size(engine, target_id);
+    let window_size = if args.get_window_size {
+        target
+            .window_id
+            .and_then(|window_id| engine.window.states.get(&window_id))
+            .map(|state| state.inner_size)
+    } else {
+        None
+    };
+    let size = if args.get_size || !args.get_window_size {
+        resolved.map(|(size, _)| size)
+    } else {
+        None
+    };
+    let source_kind = if args.get_size || !args.get_window_size {
+        resolved.map(|(_, source)| source.to_string())
+    } else {
+        None
+    };
+
+    CmdResultTargetMeasurement {
+        success: true,
+        message: "Target measurement command applied successfully".into(),
+        size,
+        window_size,
+        source_kind,
+    }
+}
+
+fn resolve_target_measurement_size(
+    engine: &EngineState,
+    target_id: TargetId,
+) -> Option<(UVec2, &'static str)> {
+    let target = engine.universal_state.targets.entries.get(&target_id)?;
+
+    let surface_id = engine
+        .universal_state
+        .auto_links
+        .iter()
+        .filter_map(|((realm_id, layer_target_id), link)| {
+            if *layer_target_id == target_id {
+                Some((*realm_id, link.surface_id))
+            } else {
+                None
+            }
+        })
+        .min_by_key(|(realm_id, _)| *realm_id)
+        .map(|(_, surface_id)| surface_id);
+    if let Some(surface_id) = surface_id
+        && let Some(surface) = engine.universal_state.surfaces.entries.get(&surface_id)
+    {
+        return Some((surface.value.size, "surface"));
+    }
+
+    if let Some(window_id) = target.window_id
+        && let Some(window_state) = engine.window.states.get(&window_id)
+    {
+        return Some((
+            UVec2::new(
+                window_state.config.width.max(1),
+                window_state.config.height.max(1),
+            ),
+            "window-surface",
+        ));
+    }
+
+    target.size.map(|size| (size, "declared"))
 }
 
 pub fn engine_cmd_target_dispose(
@@ -279,9 +385,13 @@ pub fn engine_cmd_target_layer_dispose(
 
 #[cfg(test)]
 mod tests {
-    use super::{CmdTargetUpsertArgs, engine_cmd_target_upsert};
+    use super::{
+        CmdTargetMeasurementArgs, CmdTargetUpsertArgs, engine_cmd_target_measurement,
+        engine_cmd_target_upsert,
+    };
+    use crate::core::realm::{AutoLink, SurfaceKind, SurfaceState};
     use crate::core::state::EngineState;
-    use crate::core::target::TargetKind;
+    use crate::core::target::{TargetId, TargetKind};
     use glam::UVec2;
 
     #[test]
@@ -356,5 +466,80 @@ mod tests {
         );
         assert!(!result.success);
         assert!(result.message.contains("does not accept windowId"));
+    }
+
+    #[test]
+    fn target_measurement_uses_declared_size_when_no_runtime_binding_exists() {
+        let mut engine = EngineState::new();
+        let upsert = engine_cmd_target_upsert(
+            &mut engine,
+            &CmdTargetUpsertArgs {
+                target_id: 50,
+                kind: TargetKind::Texture,
+                window_id: None,
+                size: Some(UVec2::new(256, 128)),
+                format_policy: None,
+                alpha_policy: None,
+                msaa_samples: None,
+            },
+        );
+        assert!(upsert.success);
+
+        let measured = engine_cmd_target_measurement(
+            &mut engine,
+            &CmdTargetMeasurementArgs {
+                target_id: 50,
+                get_size: true,
+                get_window_size: false,
+            },
+        );
+        assert!(measured.success);
+        assert_eq!(measured.size, Some(UVec2::new(256, 128)));
+        assert_eq!(measured.source_kind.as_deref(), Some("declared"));
+    }
+
+    #[test]
+    fn target_measurement_prefers_surface_size_from_auto_link() {
+        let mut engine = EngineState::new();
+        let upsert = engine_cmd_target_upsert(
+            &mut engine,
+            &CmdTargetUpsertArgs {
+                target_id: 51,
+                kind: TargetKind::Texture,
+                window_id: None,
+                size: Some(UVec2::new(16, 16)),
+                format_policy: None,
+                alpha_policy: None,
+                msaa_samples: None,
+            },
+        );
+        assert!(upsert.success);
+        let surface_id = engine.universal_state.surfaces.alloc(SurfaceState {
+            kind: SurfaceKind::Offscreen,
+            size: UVec2::new(640, 360),
+            format_policy: None,
+            alpha_policy: None,
+            msaa_samples: None,
+        });
+        engine.universal_state.auto_links.insert(
+            (7, TargetId(51)),
+            AutoLink {
+                surface_id,
+                connector_id: None,
+                present_id: None,
+            },
+        );
+
+        let measured = engine_cmd_target_measurement(
+            &mut engine,
+            &CmdTargetMeasurementArgs {
+                target_id: 51,
+                get_size: true,
+                get_window_size: false,
+            },
+        );
+        assert!(measured.success);
+        assert_eq!(measured.size, Some(UVec2::new(640, 360)));
+        assert_eq!(measured.source_kind.as_deref(), Some("surface"));
     }
 }

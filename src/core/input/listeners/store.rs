@@ -92,11 +92,8 @@ fn to_snapshot(config: &InputTargetListenerConfig) -> InputTargetListenerSnapsho
     InputTargetListenerSnapshot {
         listener_id: config.listener_id,
         target_id: config.target_id.0,
-        window_id: config.window_id,
         enabled: config.enabled,
         events: config.events.clone(),
-        scope: config.scope,
-        throttle_ms: config.throttle_ms,
         sample_percent: config.sample_percent,
     }
 }

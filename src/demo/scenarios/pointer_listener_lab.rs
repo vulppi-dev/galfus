@@ -7,7 +7,7 @@ use super::{DemoContext, DemoIds, create_ui_realm};
 use crate::core;
 use crate::core::cmd::CmdEnvironmentUpsertArgs;
 use crate::core::cmd::{CmdModelUpsertArgs, CommandResponse, EngineCmd, EngineEvent};
-use crate::core::input::listeners::{CmdInputTargetListenerUpsertArgs, TargetListenerScope};
+use crate::core::input::listeners::CmdInputTargetListenerUpsertArgs;
 use crate::core::realm::cmd::{CmdRealmCreateArgs, RealmKindDto};
 use crate::core::resources::{
     CmdEnvironmentUpdateArgs, EnvironmentConfig, SkyboxConfig, SkyboxMode,
@@ -40,7 +40,6 @@ pub(super) fn run_demo_7_pointer_listener_lab(ctx: DemoContext) -> bool {
     };
 
     let left_target_id = ids.target_id + 7_000;
-    let right_target_id = ids.target_id + 7_001;
     let inner_target_id = ids.target_id + 7_002;
     let doc_id = ids.ui_doc_extra + 700;
     let root_split_id = ids.ui_node_extra + 700;
@@ -93,18 +92,9 @@ pub(super) fn run_demo_7_pointer_listener_lab(ctx: DemoContext) -> bool {
             camera_id: Some(left_camera_id),
             environment_id: Some(left_env_id),
         }),
-        EngineCmd::CmdTargetUpsert(CmdTargetUpsertArgs {
-            target_id: right_target_id,
-            kind: TargetKind::Window,
-            window_id: Some(ctx.window_id),
-            size: None,
-            format_policy: None,
-            alpha_policy: None,
-            msaa_samples: None,
-        }),
         EngineCmd::CmdTargetLayerUpsert(CmdTargetLayerUpsertArgs {
             realm_id: ui_realm_id,
-            target_id: right_target_id,
+            target_id: left_target_id,
             layout: TargetLayerLayout {
                 left: DimensionValue::Percent(50.0),
                 top: DimensionValue::Percent(0.0),
@@ -280,21 +270,15 @@ pub(super) fn run_demo_7_pointer_listener_lab(ctx: DemoContext) -> bool {
         EngineCmd::CmdInputTargetListenerUpsert(CmdInputTargetListenerUpsertArgs {
             listener_id: main_listener_id,
             target_id: left_target_id,
-            window_id: Some(ctx.window_id),
             enabled: true,
             events: vec!["pointer-move".into(), "pointer-button".into()],
-            scope: TargetListenerScope::Target,
-            throttle_ms: 0,
             sample_percent: 100,
         }),
         EngineCmd::CmdInputTargetListenerUpsert(CmdInputTargetListenerUpsertArgs {
             listener_id: inner_listener_id,
             target_id: inner_target_id,
-            window_id: Some(ctx.window_id),
             enabled: true,
             events: vec!["pointer-move".into(), "pointer-button".into()],
-            scope: TargetListenerScope::Target,
-            throttle_ms: 0,
             sample_percent: 100,
         }),
     ];

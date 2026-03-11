@@ -10,7 +10,7 @@ pub mod render;
 pub mod renderer;
 pub mod state;
 #[cfg(test)]
-mod tests_phase10;
+mod tests;
 pub mod types;
 
 #[allow(unused_imports)]

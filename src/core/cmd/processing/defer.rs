@@ -81,6 +81,7 @@ pub(super) fn command_type_for_cmd(cmd: &EngineCmd) -> &'static str {
         EngineCmd::CmdRealmCreate(_) => "realm-create",
         EngineCmd::CmdRealmDispose(_) => "realm-dispose",
         EngineCmd::CmdTargetUpsert(_) => "target-upsert",
+        EngineCmd::CmdTargetMeasurement(_) => "target-measurement",
         EngineCmd::CmdTargetDispose(_) => "target-dispose",
         EngineCmd::CmdTargetLayerUpsert(_) => "target-layer-upsert",
         EngineCmd::CmdTargetLayerDispose(_) => "target-layer-dispose",
@@ -166,6 +167,7 @@ fn command_has_pending_dependencies(engine: &EngineState, cmd: &EngineCmd) -> bo
     match cmd {
         // Query/measurement commands must be non-blocking and should not be deferred.
         EngineCmd::CmdWindowMeasurement(_) => false,
+        EngineCmd::CmdTargetMeasurement(_) => false,
         EngineCmd::CmdShadowConfigure(args) => {
             engine.device.is_none()
                 || engine

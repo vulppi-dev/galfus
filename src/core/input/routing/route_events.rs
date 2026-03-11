@@ -97,6 +97,130 @@ pub(super) fn apply_target_position(event: &mut PointerEvent, position_target: O
     }
 }
 
+pub(super) fn apply_target_size(
+    event: &mut PointerEvent,
+    target_width: Option<u32>,
+    target_height: Option<u32>,
+) {
+    match event {
+        PointerEvent::OnMove {
+            target_width: width,
+            target_height: height,
+            ..
+        }
+        | PointerEvent::OnEnter {
+            target_width: width,
+            target_height: height,
+            ..
+        }
+        | PointerEvent::OnLeave {
+            target_width: width,
+            target_height: height,
+            ..
+        }
+        | PointerEvent::OnButton {
+            target_width: width,
+            target_height: height,
+            ..
+        }
+        | PointerEvent::OnScroll {
+            target_width: width,
+            target_height: height,
+            ..
+        }
+        | PointerEvent::OnTouch {
+            target_width: width,
+            target_height: height,
+            ..
+        }
+        | PointerEvent::OnPinchGesture {
+            target_width: width,
+            target_height: height,
+            ..
+        }
+        | PointerEvent::OnPanGesture {
+            target_width: width,
+            target_height: height,
+            ..
+        }
+        | PointerEvent::OnRotationGesture {
+            target_width: width,
+            target_height: height,
+            ..
+        }
+        | PointerEvent::OnDoubleTapGesture {
+            target_width: width,
+            target_height: height,
+            ..
+        } => {
+            *width = target_width;
+            *height = target_height;
+        }
+    }
+}
+
+pub(super) fn apply_window_size(
+    event: &mut PointerEvent,
+    window_width: Option<u32>,
+    window_height: Option<u32>,
+) {
+    match event {
+        PointerEvent::OnMove {
+            window_width: width,
+            window_height: height,
+            ..
+        }
+        | PointerEvent::OnEnter {
+            window_width: width,
+            window_height: height,
+            ..
+        }
+        | PointerEvent::OnLeave {
+            window_width: width,
+            window_height: height,
+            ..
+        }
+        | PointerEvent::OnButton {
+            window_width: width,
+            window_height: height,
+            ..
+        }
+        | PointerEvent::OnScroll {
+            window_width: width,
+            window_height: height,
+            ..
+        }
+        | PointerEvent::OnTouch {
+            window_width: width,
+            window_height: height,
+            ..
+        }
+        | PointerEvent::OnPinchGesture {
+            window_width: width,
+            window_height: height,
+            ..
+        }
+        | PointerEvent::OnPanGesture {
+            window_width: width,
+            window_height: height,
+            ..
+        }
+        | PointerEvent::OnRotationGesture {
+            window_width: width,
+            window_height: height,
+            ..
+        }
+        | PointerEvent::OnDoubleTapGesture {
+            window_width: width,
+            window_height: height,
+            ..
+        } => {
+            *width = window_width;
+            *height = window_height;
+        }
+    }
+}
+
 pub(super) fn select_trace_payload(
     config: PointerTraceConfig,
     frame_index: u64,

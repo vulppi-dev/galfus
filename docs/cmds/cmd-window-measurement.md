@@ -10,7 +10,8 @@ Agrupa:
 
 ## Platform Notes
 
-- **WASM:** comando não bloqueia; respostas de consulta podem vir vazias/zeradas enquanto a janela/surface ainda não estiver pronta.
+- **WASM:** usa a mesma estrutura de resposta do nativo.
+  Enquanto a janela ainda não estiver pronta, retorna payload vazio com `success=true` (eventual consistency).
 
 ## Arguments
 

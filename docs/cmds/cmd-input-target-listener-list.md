@@ -19,8 +19,8 @@ Returns `CmdResultInputTargetListenerList`:
 | listeners | InputTargetListenerSnapshot[] | Matching listeners |
 
 `InputTargetListenerSnapshot` fields:
-- `listenerId`, `targetId`, `windowId`, `enabled`
-- `events`, `scope`, `throttleMs`, `samplePercent`
+- `listenerId`, `targetId`, `enabled`
+- `events`, `samplePercent`
 
 ## Notes
 

@@ -25,130 +25,230 @@ pub fn emit_target_listener_events(engine: &mut EngineState) {
 }
 
 fn emit_pointer_listener_events(engine: &mut EngineState, event: &PointerEvent) {
-    let (event_type, target_id, window_id, pointer_id, position_global, position_target) =
-        match event {
-            PointerEvent::OnMove {
-                trace,
-                window_id,
-                pointer_id,
-                position,
-                position_target,
-                ..
-            } => (
-                "pointer-move",
-                trace.as_ref().and_then(|trace| trace.target_id),
-                Some(*window_id),
-                Some(*pointer_id),
-                Some(*position),
-                *position_target,
-            ),
-            PointerEvent::OnButton {
-                trace,
-                window_id,
-                pointer_id,
-                position,
-                position_target,
-                ..
-            } => (
-                "pointer-button",
-                trace.as_ref().and_then(|trace| trace.target_id),
-                Some(*window_id),
-                Some(*pointer_id),
-                Some(*position),
-                *position_target,
-            ),
-            PointerEvent::OnTouch {
-                trace,
-                window_id,
-                pointer_id,
-                position,
-                position_target,
-                ..
-            } => (
-                "pointer-touch",
-                trace.as_ref().and_then(|trace| trace.target_id),
-                Some(*window_id),
-                Some(*pointer_id),
-                Some(*position),
-                *position_target,
-            ),
-            PointerEvent::OnScroll {
-                trace, window_id, ..
-            } => (
-                "pointer-scroll",
-                trace.as_ref().and_then(|trace| trace.target_id),
-                Some(*window_id),
-                None,
-                None,
-                None,
-            ),
-            PointerEvent::OnEnter {
-                trace,
-                window_id,
-                pointer_id,
-                ..
-            } => (
-                "pointer-enter",
-                trace.as_ref().and_then(|trace| trace.target_id),
-                Some(*window_id),
-                Some(*pointer_id),
-                None,
-                None,
-            ),
-            PointerEvent::OnLeave {
-                trace,
-                window_id,
-                pointer_id,
-                ..
-            } => (
-                "pointer-leave",
-                trace.as_ref().and_then(|trace| trace.target_id),
-                Some(*window_id),
-                Some(*pointer_id),
-                None,
-                None,
-            ),
-            PointerEvent::OnPinchGesture {
-                trace, window_id, ..
-            } => (
-                "pointer-pinch",
-                trace.as_ref().and_then(|trace| trace.target_id),
-                Some(*window_id),
-                None,
-                None,
-                None,
-            ),
-            PointerEvent::OnPanGesture {
-                trace, window_id, ..
-            } => (
-                "pointer-pan",
-                trace.as_ref().and_then(|trace| trace.target_id),
-                Some(*window_id),
-                None,
-                None,
-                None,
-            ),
-            PointerEvent::OnRotationGesture {
-                trace, window_id, ..
-            } => (
-                "pointer-rotation",
-                trace.as_ref().and_then(|trace| trace.target_id),
-                Some(*window_id),
-                None,
-                None,
-                None,
-            ),
-            PointerEvent::OnDoubleTapGesture {
-                trace, window_id, ..
-            } => (
-                "pointer-double-tap",
-                trace.as_ref().and_then(|trace| trace.target_id),
-                Some(*window_id),
-                None,
-                None,
-                None,
-            ),
-        };
+    let (
+        event_type,
+        target_id,
+        window_id,
+        window_width,
+        window_height,
+        pointer_id,
+        position_global,
+        position_target,
+        target_width,
+        target_height,
+    ) = match event {
+        PointerEvent::OnMove {
+            trace,
+            window_id,
+            window_width,
+            window_height,
+            pointer_id,
+            position,
+            position_target,
+            target_width,
+            target_height,
+            ..
+        } => (
+            "pointer-move",
+            trace.as_ref().and_then(|trace| trace.target_id),
+            Some(*window_id),
+            *window_width,
+            *window_height,
+            Some(*pointer_id),
+            Some(*position),
+            *position_target,
+            *target_width,
+            *target_height,
+        ),
+        PointerEvent::OnButton {
+            trace,
+            window_id,
+            window_width,
+            window_height,
+            pointer_id,
+            position,
+            position_target,
+            target_width,
+            target_height,
+            ..
+        } => (
+            "pointer-button",
+            trace.as_ref().and_then(|trace| trace.target_id),
+            Some(*window_id),
+            *window_width,
+            *window_height,
+            Some(*pointer_id),
+            Some(*position),
+            *position_target,
+            *target_width,
+            *target_height,
+        ),
+        PointerEvent::OnTouch {
+            trace,
+            window_id,
+            window_width,
+            window_height,
+            pointer_id,
+            position,
+            position_target,
+            target_width,
+            target_height,
+            ..
+        } => (
+            "pointer-touch",
+            trace.as_ref().and_then(|trace| trace.target_id),
+            Some(*window_id),
+            *window_width,
+            *window_height,
+            Some(*pointer_id),
+            Some(*position),
+            *position_target,
+            *target_width,
+            *target_height,
+        ),
+        PointerEvent::OnScroll {
+            trace,
+            window_id,
+            window_width,
+            window_height,
+            target_width,
+            target_height,
+            ..
+        } => (
+            "pointer-scroll",
+            trace.as_ref().and_then(|trace| trace.target_id),
+            Some(*window_id),
+            *window_width,
+            *window_height,
+            None,
+            None,
+            None,
+            *target_width,
+            *target_height,
+        ),
+        PointerEvent::OnEnter {
+            trace,
+            window_id,
+            window_width,
+            window_height,
+            pointer_id,
+            target_width,
+            target_height,
+            ..
+        } => (
+            "pointer-enter",
+            trace.as_ref().and_then(|trace| trace.target_id),
+            Some(*window_id),
+            *window_width,
+            *window_height,
+            Some(*pointer_id),
+            None,
+            None,
+            *target_width,
+            *target_height,
+        ),
+        PointerEvent::OnLeave {
+            trace,
+            window_id,
+            window_width,
+            window_height,
+            pointer_id,
+            target_width,
+            target_height,
+            ..
+        } => (
+            "pointer-leave",
+            trace.as_ref().and_then(|trace| trace.target_id),
+            Some(*window_id),
+            *window_width,
+            *window_height,
+            Some(*pointer_id),
+            None,
+            None,
+            *target_width,
+            *target_height,
+        ),
+        PointerEvent::OnPinchGesture {
+            trace,
+            window_id,
+            window_width,
+            window_height,
+            target_width,
+            target_height,
+            ..
+        } => (
+            "pointer-pinch",
+            trace.as_ref().and_then(|trace| trace.target_id),
+            Some(*window_id),
+            *window_width,
+            *window_height,
+            None,
+            None,
+            None,
+            *target_width,
+            *target_height,
+        ),
+        PointerEvent::OnPanGesture {
+            trace,
+            window_id,
+            window_width,
+            window_height,
+            target_width,
+            target_height,
+            ..
+        } => (
+            "pointer-pan",
+            trace.as_ref().and_then(|trace| trace.target_id),
+            Some(*window_id),
+            *window_width,
+            *window_height,
+            None,
+            None,
+            None,
+            *target_width,
+            *target_height,
+        ),
+        PointerEvent::OnRotationGesture {
+            trace,
+            window_id,
+            window_width,
+            window_height,
+            target_width,
+            target_height,
+            ..
+        } => (
+            "pointer-rotation",
+            trace.as_ref().and_then(|trace| trace.target_id),
+            Some(*window_id),
+            *window_width,
+            *window_height,
+            None,
+            None,
+            None,
+            *target_width,
+            *target_height,
+        ),
+        PointerEvent::OnDoubleTapGesture {
+            trace,
+            window_id,
+            window_width,
+            window_height,
+            target_width,
+            target_height,
+            ..
+        } => (
+            "pointer-double-tap",
+            trace.as_ref().and_then(|trace| trace.target_id),
+            Some(*window_id),
+            *window_width,
+            *window_height,
+            None,
+            None,
+            None,
+            *target_width,
+            *target_height,
+        ),
+    };
     let Some(target_id) = target_id else {
         return;
     };
@@ -168,9 +268,13 @@ fn emit_pointer_listener_events(engine: &mut EngineState, event: &PointerEvent) 
                 target_id,
                 event_type: event_type.to_string(),
                 window_id,
+                window_width,
+                window_height,
                 pointer_id,
                 position_global,
                 position_target,
+                target_width,
+                target_height,
                 key_code: None,
                 key_state: None,
             }));
@@ -235,9 +339,13 @@ fn emit_keyboard_listener_events(engine: &mut EngineState, event: &KeyboardEvent
                 target_id: target_id.0,
                 event_type: event_type.to_string(),
                 window_id: Some(window_id),
+                window_width: None,
+                window_height: None,
                 pointer_id: None,
                 position_global: None,
                 position_target: None,
+                target_width: None,
+                target_height: None,
                 key_code,
                 key_state,
             }));

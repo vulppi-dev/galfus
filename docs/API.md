@@ -378,7 +378,7 @@ These entries are internal-only and are not exposed as host commands.
 
 Host bindings can update these maps with:
 
-- `CmdTargetUpsert` / `CmdTargetDispose`
+- `CmdTargetUpsert` / `CmdTargetMeasurement` / `CmdTargetDispose`
 - `CmdTargetLayerUpsert` / `CmdTargetLayerDispose`
 
 Example:

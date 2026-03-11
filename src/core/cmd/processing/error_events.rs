@@ -78,6 +78,7 @@ pub(super) fn maybe_emit_response_error_event(
         CommandResponse::RealmCreate(result) => failure_case!(result, "realm-create"),
         CommandResponse::RealmDispose(result) => failure_case!(result, "realm-dispose"),
         CommandResponse::TargetUpsert(result) => failure_case!(result, "target-upsert"),
+        CommandResponse::TargetMeasurement(result) => failure_case!(result, "target-measurement"),
         CommandResponse::TargetDispose(result) => failure_case!(result, "target-dispose"),
         CommandResponse::TargetLayerUpsert(result) => {
             failure_case!(result, "target-layer-upsert")

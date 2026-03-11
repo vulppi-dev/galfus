@@ -111,12 +111,59 @@ pub(super) fn resolve_target_relative_position(
     ))
 }
 
+pub(super) fn resolve_target_size(
+    universal: &UniversalState,
+    source_realm_id: Option<RealmId>,
+    connector_id: Option<ConnectorId>,
+    target_id: Option<crate::core::target::TargetId>,
+) -> Option<UVec2> {
+    source_realm_id
+        .and_then(|realm_id| realm_surface_size(universal, realm_id))
+        .or_else(|| {
+            connector_id.and_then(|connector_id| connector_source_size(universal, connector_id))
+        })
+        .or_else(|| target_id.and_then(|target_id| target_surface_size(universal, target_id)))
+        .or_else(|| {
+            target_id.and_then(|target_id| {
+                universal
+                    .targets
+                    .entries
+                    .get(&target_id)
+                    .and_then(|target| target.size)
+            })
+        })
+}
+
 fn connector_source_size(universal: &UniversalState, connector_id: ConnectorId) -> Option<UVec2> {
     let connector = universal.connectors.entries.get(&connector_id)?;
     universal
         .surfaces
         .entries
         .get(&connector.value.source_surface)
+        .map(|entry| entry.value.size)
+}
+
+fn target_surface_size(
+    universal: &UniversalState,
+    target_id: crate::core::target::TargetId,
+) -> Option<UVec2> {
+    let surface_id = universal
+        .auto_links
+        .iter()
+        .filter_map(|((realm_id, layer_target_id), link)| {
+            if *layer_target_id == target_id {
+                Some((*realm_id, link.surface_id))
+            } else {
+                None
+            }
+        })
+        .min_by_key(|(realm_id, _)| *realm_id)
+        .map(|(_, surface_id)| surface_id)?;
+
+    universal
+        .surfaces
+        .entries
+        .get(&surface_id)
         .map(|entry| entry.value.size)
 }
 
@@ -198,4 +245,69 @@ fn intersect_rect(a: glam::Vec4, b: glam::Vec4) -> glam::Vec4 {
     let x2 = (a.x + a.z).min(b.x + b.z);
     let y2 = (a.y + a.w).min(b.y + b.w);
     glam::Vec4::new(x1, y1, (x2 - x1).max(0.0), (y2 - y1).max(0.0))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::resolve_target_size;
+    use crate::core::realm::{AutoLink, RealmId, SurfaceKind, SurfaceState};
+    use crate::core::state::EngineState;
+    use crate::core::target::{TargetId, TargetKind, TargetState};
+    use glam::UVec2;
+
+    #[test]
+    fn resolve_target_size_prefers_target_surface_over_declared_size() {
+        let mut engine = EngineState::new();
+        let target_id = TargetId(700);
+        engine.universal_state.targets.entries.insert(
+            target_id,
+            TargetState {
+                kind: TargetKind::Texture,
+                window_id: None,
+                size: Some(UVec2::new(300, 200)),
+                format_policy: None,
+                alpha_policy: None,
+                msaa_samples: None,
+            },
+        );
+
+        let surface_id = engine.universal_state.surfaces.alloc(SurfaceState {
+            kind: SurfaceKind::Offscreen,
+            size: UVec2::new(1280, 720),
+            format_policy: None,
+            alpha_policy: None,
+            msaa_samples: None,
+        });
+        engine.universal_state.auto_links.insert(
+            (RealmId(1).0, target_id),
+            AutoLink {
+                surface_id,
+                connector_id: None,
+                present_id: None,
+            },
+        );
+
+        let size = resolve_target_size(&engine.universal_state, None, None, Some(target_id));
+        assert_eq!(size, Some(UVec2::new(1280, 720)));
+    }
+
+    #[test]
+    fn resolve_target_size_falls_back_to_declared_without_runtime_surface() {
+        let mut engine = EngineState::new();
+        let target_id = TargetId(701);
+        engine.universal_state.targets.entries.insert(
+            target_id,
+            TargetState {
+                kind: TargetKind::Texture,
+                window_id: None,
+                size: Some(UVec2::new(640, 360)),
+                format_policy: None,
+                alpha_policy: None,
+                msaa_samples: None,
+            },
+        );
+
+        let size = resolve_target_size(&engine.universal_state, None, None, Some(target_id));
+        assert_eq!(size, Some(UVec2::new(640, 360)));
+    }
 }
