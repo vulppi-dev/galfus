@@ -19,6 +19,17 @@ pub fn send_commands(cmds: Vec<EngineCmd>) -> VulframResult {
     core::vulfram_send_queue(data.as_ptr(), data.len())
 }
 
+pub fn send_command(cmd: EngineCmd) -> Option<u64> {
+    let id = NEXT_COMMAND_ID.fetch_add(1, Ordering::Relaxed);
+    let envelopes = vec![EngineCmdEnvelope { id, cmd }];
+    let data = to_vec_named(&envelopes).expect("failed to serialize command");
+    if core::vulfram_send_queue(data.as_ptr(), data.len()) == VulframResult::Success {
+        Some(id)
+    } else {
+        None
+    }
+}
+
 pub fn receive_responses() -> Vec<CommandResponseEnvelope> {
     let mut ptr = std::ptr::null();
     let mut len: usize = 0;

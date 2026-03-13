@@ -449,6 +449,13 @@ pub(super) fn dispatch_command(
                 response: CommandResponse::TargetUpsert(result),
             });
         }
+        EngineCmd::CmdTargetMeasurement(args) => {
+            let result = target::engine_cmd_target_measurement(engine, &args);
+            engine.response_queue.push(CommandResponseEnvelope {
+                id: pack.id,
+                response: CommandResponse::TargetMeasurement(result),
+            });
+        }
         EngineCmd::CmdTargetDispose(args) => {
             let result = target::engine_cmd_target_dispose(engine, &args);
             if result.success {

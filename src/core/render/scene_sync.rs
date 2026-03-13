@@ -29,8 +29,25 @@ pub(super) fn sync_scene_from_realm_and_globals(
                 .detached_cameras
                 .remove(camera_id)
                 .unwrap_or_else(|| node.to_render_record());
+            let previous_data = record.data;
+            let previous_projection_size = record.last_projection_size;
+            let previous_ortho_scale = record.ortho_scale;
+            let projection_params_changed = previous_data.kind_flags != node.data.kind_flags
+                || previous_data.near_far != node.data.near_far
+                || (previous_ortho_scale - node.ortho_scale).abs() > f32::EPSILON;
             record.label = node.label.clone();
             record.data = node.data;
+            if previous_projection_size.x > 0
+                && previous_projection_size.y > 0
+                && !projection_params_changed
+            {
+                // Keep runtime projection/aspect from the resolved target size.
+                record.data.projection = previous_data.projection;
+                record.data.view_projection = record.data.projection * record.data.view;
+            } else if projection_params_changed {
+                // Force projection rebuild on this frame with the current target size.
+                record.last_projection_size = glam::UVec2::ZERO;
+            }
             record.layer_mask = node.layer_mask;
             record.order = node.order;
             record.ortho_scale = node.ortho_scale;

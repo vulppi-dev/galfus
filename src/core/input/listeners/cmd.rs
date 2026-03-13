@@ -17,11 +17,8 @@ pub fn engine_cmd_input_target_listener_upsert(
         .upsert(InputTargetListenerConfig {
             listener_id: args.listener_id,
             target_id: TargetId(args.target_id),
-            window_id: args.window_id,
             enabled: args.enabled,
             events: args.events.clone(),
-            scope: args.scope,
-            throttle_ms: args.throttle_ms,
             sample_percent: args.sample_percent.min(100),
         });
     CmdResultSimple {

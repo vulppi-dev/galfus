@@ -95,10 +95,17 @@ pub fn engine_cmd_window_create_async(
         }
     };
 
-    let window_width = canvas.client_width().max(1) as u32;
-    let window_height = canvas.client_height().max(1) as u32;
-    canvas.set_width(window_width);
-    canvas.set_height(window_height);
+    let rect = canvas.get_bounding_client_rect();
+    let dpr = window.device_pixel_ratio();
+    let window_size = crate::core::window::cmd::resolve_canvas_surface_size_pixels(
+        canvas.width(),
+        canvas.height(),
+        rect.width(),
+        rect.height(),
+        dpr,
+    );
+    let window_width = window_size.x;
+    let window_height = window_size.y;
 
     let win_id = args.window_id;
     let canvas_clone = canvas.clone();

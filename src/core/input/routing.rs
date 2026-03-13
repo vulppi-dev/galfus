@@ -17,10 +17,14 @@ use route_cache::{
     resolve_connector_for_target, resolve_focus_target,
 };
 use route_events::{
-    apply_target_position, apply_trace, pointer_id, pointer_position, pointer_window_id,
-    quantize_uv, select_trace_payload, update_capture_state, update_focus_state,
+    apply_target_position, apply_target_size, apply_trace, apply_window_size, pointer_id,
+    pointer_position, pointer_window_id, quantize_uv, select_trace_payload, update_capture_state,
+    update_focus_state,
 };
-use route_hit::{resolve_connector_uv, resolve_hit_connector, resolve_target_relative_position};
+use route_hit::{
+    resolve_connector_uv, resolve_hit_connector, resolve_target_relative_position,
+    resolve_target_size,
+};
 
 const MAX_ROUTE_STEPS: usize = 32;
 
@@ -419,7 +423,28 @@ pub fn route_pointer_events(engine_state: &mut EngineState) {
                 connector_id,
                 uv,
             );
+            let window_size = engine_state
+                .window
+                .states
+                .get(&window_id)
+                .map(|state| state.inner_size);
+            let target_size = resolve_target_size(
+                &engine_state.universal_state,
+                source_realm_id,
+                connector_id,
+                target_id,
+            );
             apply_target_position(pointer_event, position_target);
+            apply_target_size(
+                pointer_event,
+                target_size.map(|size| size.x),
+                target_size.map(|size| size.y),
+            );
+            apply_window_size(
+                pointer_event,
+                window_size.map(|size| size.x),
+                window_size.map(|size| size.y),
+            );
             apply_trace(pointer_event, trace);
         }
     }

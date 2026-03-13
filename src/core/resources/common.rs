@@ -1,7 +1,6 @@
 use std::collections::HashSet;
 
 use crate::core::state::EngineState;
-use crate::core::target::TargetKind;
 
 pub fn default_layer_mask() -> u32 {
     0xFFFFFFFF
@@ -29,9 +28,6 @@ pub fn mark_realm_windows_dirty(engine: &mut EngineState, realm_id: u32) {
         let Some(target) = engine.universal_state.targets.entries.get(target_id) else {
             continue;
         };
-        if target.kind != TargetKind::Window {
-            continue;
-        }
         if let Some(window_id) = target.window_id {
             dirty_windows.insert(window_id);
         }

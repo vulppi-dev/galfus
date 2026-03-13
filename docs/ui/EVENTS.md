@@ -47,6 +47,8 @@ Payload (`UiEvent`):
   - `UiImageReady`
 - Diagnóstico:
   - `Error`
+- Input targeting:
+  - `InputTargetListenerEvent` (inclui posições e dimensões de janela/target quando disponíveis)
 
 ## Comandos de Entrada para Eventos UI
 

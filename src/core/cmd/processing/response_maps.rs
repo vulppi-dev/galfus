@@ -44,6 +44,7 @@ pub(super) fn response_is_success(response: &CommandResponse) -> bool {
         CommandResponse::RealmCreate(result) => result.success,
         CommandResponse::RealmDispose(result) => result.success,
         CommandResponse::TargetUpsert(result) => result.success,
+        CommandResponse::TargetMeasurement(result) => result.success,
         CommandResponse::TargetDispose(result) => result.success,
         CommandResponse::TargetLayerUpsert(result) => result.success,
         CommandResponse::TargetLayerDispose(result) => result.success,
@@ -120,6 +121,7 @@ pub(super) fn response_message(response: &CommandResponse) -> Option<String> {
         CommandResponse::RealmCreate(result) => Some(result.message.clone()),
         CommandResponse::RealmDispose(result) => Some(result.message.clone()),
         CommandResponse::TargetUpsert(result) => Some(result.message.clone()),
+        CommandResponse::TargetMeasurement(result) => Some(result.message.clone()),
         CommandResponse::TargetDispose(result) => Some(result.message.clone()),
         CommandResponse::TargetLayerUpsert(result) => Some(result.message.clone()),
         CommandResponse::TargetLayerDispose(result) => Some(result.message.clone()),
@@ -313,6 +315,10 @@ pub(super) fn response_with_message(response: CommandResponse, message: String) 
         CommandResponse::TargetUpsert(mut result) => {
             result.message = message;
             CommandResponse::TargetUpsert(result)
+        }
+        CommandResponse::TargetMeasurement(mut result) => {
+            result.message = message;
+            CommandResponse::TargetMeasurement(result)
         }
         CommandResponse::TargetDispose(mut result) => {
             result.message = message;

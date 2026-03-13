@@ -307,10 +307,14 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
                 self.event_queue
                     .push(EngineEvent::Pointer(PointerEvent::OnMove {
                         window_id,
+                        window_width: None,
+                        window_height: None,
                         pointer_type: 0, // Mouse
                         pointer_id: 0,
                         position: cursor_pos,
                         position_target: None,
+                        target_width: None,
+                        target_height: None,
                         trace: None,
                     }));
             }
@@ -319,8 +323,12 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
                 self.event_queue
                     .push(EngineEvent::Pointer(PointerEvent::OnEnter {
                         window_id,
+                        window_width: None,
+                        window_height: None,
                         pointer_type: 0, // Mouse
                         pointer_id: 0,
+                        target_width: None,
+                        target_height: None,
                         trace: None,
                     }));
             }
@@ -329,8 +337,12 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
                 self.event_queue
                     .push(EngineEvent::Pointer(PointerEvent::OnLeave {
                         window_id,
+                        window_width: None,
+                        window_height: None,
                         pointer_type: 0, // Mouse
                         pointer_id: 0,
+                        target_width: None,
+                        target_height: None,
                         trace: None,
                     }));
             }
@@ -349,8 +361,12 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
                 self.event_queue
                     .push(EngineEvent::Pointer(PointerEvent::OnScroll {
                         window_id,
+                        window_width: None,
+                        window_height: None,
                         delta: scroll_delta,
                         phase: touch_phase,
+                        target_width: None,
+                        target_height: None,
                         trace: None,
                     }));
             }
@@ -374,12 +390,16 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
                 self.event_queue
                     .push(EngineEvent::Pointer(PointerEvent::OnButton {
                         window_id,
+                        window_width: None,
+                        window_height: None,
                         pointer_type: 0, // Mouse
                         pointer_id: 0,
                         button: btn,
                         state: elem_state,
                         position,
                         position_target: None,
+                        target_width: None,
+                        target_height: None,
                         trace: None,
                     }));
             }
@@ -388,8 +408,12 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
                 self.event_queue
                     .push(EngineEvent::Pointer(PointerEvent::OnPinchGesture {
                         window_id,
+                        window_width: None,
+                        window_height: None,
                         delta,
                         phase: convert_touch_phase(phase),
+                        target_width: None,
+                        target_height: None,
                         trace: None,
                     }));
             }
@@ -398,8 +422,12 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
                 self.event_queue
                     .push(EngineEvent::Pointer(PointerEvent::OnPanGesture {
                         window_id,
+                        window_width: None,
+                        window_height: None,
                         delta: Vec2::new(delta.x, delta.y),
                         phase: convert_touch_phase(phase),
+                        target_width: None,
+                        target_height: None,
                         trace: None,
                     }));
             }
@@ -408,8 +436,12 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
                 self.event_queue
                     .push(EngineEvent::Pointer(PointerEvent::OnRotationGesture {
                         window_id,
+                        window_width: None,
+                        window_height: None,
                         delta,
                         phase: convert_touch_phase(phase),
+                        target_width: None,
+                        target_height: None,
                         trace: None,
                     }));
             }
@@ -418,6 +450,10 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
                 self.event_queue
                     .push(EngineEvent::Pointer(PointerEvent::OnDoubleTapGesture {
                         window_id,
+                        window_width: None,
+                        window_height: None,
+                        target_width: None,
+                        target_height: None,
                         trace: None,
                     }));
             }
@@ -429,10 +465,14 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
                 self.event_queue
                     .push(EngineEvent::Pointer(PointerEvent::OnTouch {
                         window_id,
+                        window_width: None,
+                        window_height: None,
                         pointer_id: touch.id,
                         phase,
                         position: Vec2::new(touch.location.x as f32, touch.location.y as f32),
                         position_target: None,
+                        target_width: None,
+                        target_height: None,
                         pressure,
                         trace: None,
                     }));

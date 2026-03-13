@@ -222,6 +222,7 @@ pub(super) fn collect_window_camera_target_sizes(
     window_id: u32,
     window_size: glam::UVec2,
 ) -> std::collections::HashMap<u32, glam::UVec2> {
+    const DEFAULT_CH_WIDTH: f32 = 8.0;
     let mut sizes = std::collections::HashMap::new();
     for layer in universal.target_layers.entries.values() {
         if layer.realm_id != realm_id.0 {
@@ -237,15 +238,24 @@ pub(super) fn collect_window_camera_target_sizes(
             continue;
         }
 
-        let mut size = target
+        let ref_width = window_size.x.max(1) as f32;
+        let ref_height = window_size.y.max(1) as f32;
+        let layout_width = layer
+            .layout
+            .width
+            .resolve(ref_width, DEFAULT_CH_WIDTH)
+            .max(1.0)
+            .round() as u32;
+        let layout_height = layer
+            .layout
+            .height
+            .resolve(ref_height, DEFAULT_CH_WIDTH)
+            .max(1.0)
+            .round() as u32;
+
+        let size = target
             .size
-            .unwrap_or(glam::UVec2::new(window_size.x.max(1), window_size.y.max(1)));
-        if target.size.is_none()
-            && let Some(link) = universal.auto_links.get(&(layer.realm_id, layer.target_id))
-            && let Some(surface) = universal.surfaces.entries.get(&link.surface_id)
-        {
-            size = surface.value.size;
-        }
+            .unwrap_or(glam::UVec2::new(layout_width, layout_height));
         sizes.insert(camera_id, glam::UVec2::new(size.x.max(1), size.y.max(1)));
     }
     sizes
@@ -280,4 +290,99 @@ pub(super) fn build_soft_cut_diagnostic(
         "frame={} cut_edges={} connectors={}",
         frame_index, cut_count, connector_text
     ))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::collect_window_camera_target_sizes;
+    use crate::core::realm::RealmId;
+    use crate::core::target::{
+        DimensionValue, TargetId, TargetKind, TargetLayerLayout, TargetLayerState, TargetState,
+    };
+
+    #[test]
+    fn camera_target_size_uses_layer_layout_when_target_has_no_fixed_size() {
+        let mut universal = crate::core::realm::UniversalState::default();
+        let target_id = TargetId(100);
+        universal.targets.entries.insert(
+            target_id,
+            TargetState {
+                kind: TargetKind::Window,
+                window_id: Some(9),
+                size: None,
+                format_policy: None,
+                alpha_policy: None,
+                msaa_samples: None,
+            },
+        );
+        universal.target_layers.entries.insert(
+            (77, target_id),
+            TargetLayerState {
+                realm_id: 77,
+                target_id,
+                layout: TargetLayerLayout {
+                    left: DimensionValue::Percent(0.0),
+                    top: DimensionValue::Percent(0.0),
+                    width: DimensionValue::Percent(50.0),
+                    height: DimensionValue::Percent(25.0),
+                    z_index: 0,
+                    blend_mode: 0,
+                    clip: None,
+                },
+                camera_id: Some(501),
+                environment_id: None,
+            },
+        );
+
+        let sizes = collect_window_camera_target_sizes(
+            &universal,
+            RealmId(77),
+            9,
+            glam::UVec2::new(1920, 1080),
+        );
+        assert_eq!(sizes.get(&501), Some(&glam::UVec2::new(960, 270)));
+    }
+
+    #[test]
+    fn camera_target_size_prefers_explicit_target_size() {
+        let mut universal = crate::core::realm::UniversalState::default();
+        let target_id = TargetId(101);
+        universal.targets.entries.insert(
+            target_id,
+            TargetState {
+                kind: TargetKind::Window,
+                window_id: Some(9),
+                size: Some(glam::UVec2::new(333, 222)),
+                format_policy: None,
+                alpha_policy: None,
+                msaa_samples: None,
+            },
+        );
+        universal.target_layers.entries.insert(
+            (77, target_id),
+            TargetLayerState {
+                realm_id: 77,
+                target_id,
+                layout: TargetLayerLayout {
+                    left: DimensionValue::Percent(0.0),
+                    top: DimensionValue::Percent(0.0),
+                    width: DimensionValue::Percent(50.0),
+                    height: DimensionValue::Percent(25.0),
+                    z_index: 0,
+                    blend_mode: 0,
+                    clip: None,
+                },
+                camera_id: Some(777),
+                environment_id: None,
+            },
+        );
+
+        let sizes = collect_window_camera_target_sizes(
+            &universal,
+            RealmId(77),
+            9,
+            glam::UVec2::new(1920, 1080),
+        );
+        assert_eq!(sizes.get(&777), Some(&glam::UVec2::new(333, 222)));
+    }
 }

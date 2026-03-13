@@ -101,6 +101,7 @@ impl PlatformProxy for DesktopProxy {
         for (window_id, window_state) in state.window.states.iter_mut() {
             let has_recent_input = now_ms <= window_state.redraw_force_until_ms;
             let should_redraw = window_state.is_dirty
+                || state.had_commands_this_frame
                 || has_recent_input
                 || has_ui_animations
                 || has_ui_repaint_request

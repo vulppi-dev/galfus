@@ -110,9 +110,9 @@ pub struct PostProcessConfig {
 impl Default for PostProcessConfig {
     fn default() -> Self {
         Self {
-            filter_enabled: true,
+            filter_enabled: false,
             filter_exposure: 1.0,
-            filter_gamma: 2.2,
+            filter_gamma: 1.0,
             filter_saturation: 1.0,
             filter_contrast: 1.0,
             filter_vignette: 0.0,
@@ -120,7 +120,7 @@ impl Default for PostProcessConfig {
             filter_chromatic_aberration: 0.0,
             filter_blur: 0.0,
             filter_sharpen: 0.0,
-            filter_tonemap_mode: 1,
+            filter_tonemap_mode: 0,
             outline_enabled: false,
             outline_strength: 0.0,
             outline_threshold: 0.2,
@@ -141,5 +141,26 @@ impl Default for PostProcessConfig {
             bloom_intensity: 0.8,
             bloom_scatter: 0.7,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::PostProcessConfig;
+
+    #[test]
+    fn default_postprocess_is_neutral_and_disabled() {
+        let config = PostProcessConfig::default();
+        assert!(!config.filter_enabled);
+        assert_eq!(config.filter_exposure, 1.0);
+        assert_eq!(config.filter_gamma, 1.0);
+        assert_eq!(config.filter_saturation, 1.0);
+        assert_eq!(config.filter_contrast, 1.0);
+        assert_eq!(config.filter_tonemap_mode, 0);
+        assert_eq!(config.filter_vignette, 0.0);
+        assert_eq!(config.filter_grain, 0.0);
+        assert_eq!(config.filter_chromatic_aberration, 0.0);
+        assert_eq!(config.filter_blur, 0.0);
+        assert_eq!(config.filter_sharpen, 0.0);
     }
 }

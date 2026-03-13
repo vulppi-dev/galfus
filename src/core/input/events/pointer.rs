@@ -21,6 +21,10 @@ pub enum PointerEvent {
     #[serde(rename_all = "camelCase")]
     OnMove {
         window_id: u32,
+        #[serde(default)]
+        window_width: Option<u32>,
+        #[serde(default)]
+        window_height: Option<u32>,
         pointer_type: u32,
         pointer_id: u64,
         /// Position relative to the window (global pointer space).
@@ -28,6 +32,10 @@ pub enum PointerEvent {
         /// Optional position relative to the resolved target.
         #[serde(default)]
         position_target: Option<Vec2>,
+        #[serde(default)]
+        target_width: Option<u32>,
+        #[serde(default)]
+        target_height: Option<u32>,
         trace: Option<PointerEventTrace>,
     },
 
@@ -35,8 +43,16 @@ pub enum PointerEvent {
     #[serde(rename_all = "camelCase")]
     OnEnter {
         window_id: u32,
+        #[serde(default)]
+        window_width: Option<u32>,
+        #[serde(default)]
+        window_height: Option<u32>,
         pointer_type: u32,
         pointer_id: u64,
+        #[serde(default)]
+        target_width: Option<u32>,
+        #[serde(default)]
+        target_height: Option<u32>,
         trace: Option<PointerEventTrace>,
     },
 
@@ -44,8 +60,16 @@ pub enum PointerEvent {
     #[serde(rename_all = "camelCase")]
     OnLeave {
         window_id: u32,
+        #[serde(default)]
+        window_width: Option<u32>,
+        #[serde(default)]
+        window_height: Option<u32>,
         pointer_type: u32,
         pointer_id: u64,
+        #[serde(default)]
+        target_width: Option<u32>,
+        #[serde(default)]
+        target_height: Option<u32>,
         trace: Option<PointerEventTrace>,
     },
 
@@ -53,6 +77,10 @@ pub enum PointerEvent {
     #[serde(rename_all = "camelCase")]
     OnButton {
         window_id: u32,
+        #[serde(default)]
+        window_width: Option<u32>,
+        #[serde(default)]
+        window_height: Option<u32>,
         pointer_type: u32,
         pointer_id: u64,
         button: u32,
@@ -62,6 +90,10 @@ pub enum PointerEvent {
         /// Optional position relative to the resolved target.
         #[serde(default)]
         position_target: Option<Vec2>,
+        #[serde(default)]
+        target_width: Option<u32>,
+        #[serde(default)]
+        target_height: Option<u32>,
         trace: Option<PointerEventTrace>,
     },
 
@@ -69,8 +101,16 @@ pub enum PointerEvent {
     #[serde(rename_all = "camelCase")]
     OnScroll {
         window_id: u32,
+        #[serde(default)]
+        window_width: Option<u32>,
+        #[serde(default)]
+        window_height: Option<u32>,
         delta: ScrollDelta,
         phase: TouchPhase,
+        #[serde(default)]
+        target_width: Option<u32>,
+        #[serde(default)]
+        target_height: Option<u32>,
         trace: Option<PointerEventTrace>,
     },
 
@@ -78,6 +118,10 @@ pub enum PointerEvent {
     #[serde(rename_all = "camelCase")]
     OnTouch {
         window_id: u32,
+        #[serde(default)]
+        window_width: Option<u32>,
+        #[serde(default)]
+        window_height: Option<u32>,
         pointer_id: u64,
         phase: TouchPhase,
         /// Position relative to the window (global pointer space).
@@ -85,6 +129,10 @@ pub enum PointerEvent {
         /// Optional position relative to the resolved target.
         #[serde(default)]
         position_target: Option<Vec2>,
+        #[serde(default)]
+        target_width: Option<u32>,
+        #[serde(default)]
+        target_height: Option<u32>,
         pressure: Option<f32>,
         trace: Option<PointerEventTrace>,
     },
@@ -93,8 +141,16 @@ pub enum PointerEvent {
     #[serde(rename_all = "camelCase")]
     OnPinchGesture {
         window_id: u32,
+        #[serde(default)]
+        window_width: Option<u32>,
+        #[serde(default)]
+        window_height: Option<u32>,
         delta: f64,
         phase: TouchPhase,
+        #[serde(default)]
+        target_width: Option<u32>,
+        #[serde(default)]
+        target_height: Option<u32>,
         trace: Option<PointerEventTrace>,
     },
 
@@ -102,8 +158,16 @@ pub enum PointerEvent {
     #[serde(rename_all = "camelCase")]
     OnPanGesture {
         window_id: u32,
+        #[serde(default)]
+        window_width: Option<u32>,
+        #[serde(default)]
+        window_height: Option<u32>,
         delta: Vec2,
         phase: TouchPhase,
+        #[serde(default)]
+        target_width: Option<u32>,
+        #[serde(default)]
+        target_height: Option<u32>,
         trace: Option<PointerEventTrace>,
     },
 
@@ -111,8 +175,16 @@ pub enum PointerEvent {
     #[serde(rename_all = "camelCase")]
     OnRotationGesture {
         window_id: u32,
+        #[serde(default)]
+        window_width: Option<u32>,
+        #[serde(default)]
+        window_height: Option<u32>,
         delta: f32,
         phase: TouchPhase,
+        #[serde(default)]
+        target_width: Option<u32>,
+        #[serde(default)]
+        target_height: Option<u32>,
         trace: Option<PointerEventTrace>,
     },
 
@@ -120,6 +192,14 @@ pub enum PointerEvent {
     #[serde(rename_all = "camelCase")]
     OnDoubleTapGesture {
         window_id: u32,
+        #[serde(default)]
+        window_width: Option<u32>,
+        #[serde(default)]
+        window_height: Option<u32>,
+        #[serde(default)]
+        target_width: Option<u32>,
+        #[serde(default)]
+        target_height: Option<u32>,
         trace: Option<PointerEventTrace>,
     },
 }
