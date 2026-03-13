@@ -26,3 +26,4 @@ Retorna `CmdResultTargetMeasurement`:
 
 - Se `targetId` ainda não estiver pronto, o comando retorna `success=true` com payload vazio.
 - `size` prioriza medida real observável de `surface` (autolink/present window) antes de fallback declarado.
+- Para targets ligados a janela em browser, a medida de surface considera HiDPI quando o host usa CSS sizing.

@@ -15,6 +15,7 @@ pub fn vulfram_tick(time: u64, delta_time: u32) -> VulframResult {
     match with_engine_singleton(|engine| {
         engine.state.time = time;
         engine.state.delta_time = delta_time;
+        engine.state.had_commands_this_frame = false;
         engine.state.event_queue.clear();
 
         // Reset profiling counters
@@ -48,6 +49,7 @@ pub fn vulfram_tick(time: u64, delta_time: u32) -> VulframResult {
                 }
             }
             engine.state.deferred_cmd_queue = still_deferred;
+            engine.state.had_commands_this_frame = !batch.is_empty();
             let result = engine_process_batch(&mut engine.state, &mut engine.platform, batch);
             #[cfg(not(feature = "wasm"))]
             {

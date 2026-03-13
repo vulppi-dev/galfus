@@ -179,3 +179,43 @@ fn sync_window_surface_size(engine: &mut EngineState, window_id: u32, size: UVec
         surface_entry.value.size = size;
     }
 }
+
+#[cfg_attr(not(all(feature = "wasm", target_arch = "wasm32")), allow(dead_code))]
+pub fn resolve_canvas_surface_size_pixels(
+    attr_width: u32,
+    attr_height: u32,
+    css_width: f64,
+    css_height: f64,
+    dpr: f64,
+) -> UVec2 {
+    let safe_dpr = dpr.max(1.0);
+    let css_pixels = UVec2::new(
+        (css_width * safe_dpr).round().max(1.0) as u32,
+        (css_height * safe_dpr).round().max(1.0) as u32,
+    );
+    let attr_pixels = UVec2::new(attr_width.max(1), attr_height.max(1));
+    let using_default_attrs = attr_pixels.x == 300 && attr_pixels.y == 150;
+    if using_default_attrs {
+        css_pixels
+    } else {
+        attr_pixels
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::resolve_canvas_surface_size_pixels;
+    use glam::UVec2;
+
+    #[test]
+    fn defaults_to_css_times_dpr_when_canvas_attrs_are_default() {
+        let size = resolve_canvas_surface_size_pixels(300, 150, 640.0, 360.0, 2.0);
+        assert_eq!(size, UVec2::new(1280, 720));
+    }
+
+    #[test]
+    fn respects_explicit_canvas_drawing_buffer_size() {
+        let size = resolve_canvas_surface_size_pixels(1024, 576, 640.0, 360.0, 2.0);
+        assert_eq!(size, UVec2::new(1024, 576));
+    }
+}

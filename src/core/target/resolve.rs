@@ -325,6 +325,7 @@ fn infer_layer_input_flags(target_kind: TargetKind, source_realm_kind: RealmKind
             }
             flags
         }
+        TargetKind::RealmPlane if source_realm_kind == RealmKind::ThreeD => INPUT_FLAG_RAYCAST,
         TargetKind::Window if source_realm_kind == RealmKind::ThreeD => INPUT_FLAG_RAYCAST,
         TargetKind::RealmPlane | TargetKind::Window | TargetKind::Texture => 0,
     }
@@ -468,6 +469,21 @@ fn surface_state_for_target(
     target: &TargetState,
     layer: Option<&TargetLayerState>,
 ) -> SurfaceState {
+    let is_window_connector = layer
+        .and_then(|layer| {
+            target
+                .window_id
+                .map(|window_id| (layer.realm_id, window_id))
+        })
+        .and_then(|(layer_realm_id, window_id)| {
+            engine_state
+                .universal_state
+                .host_realm_index
+                .get(&window_id)
+                .map(|host_realm| host_realm.0 != layer_realm_id)
+        })
+        .unwrap_or(false);
+
     let layer_size = layer.and_then(|layer| {
         let resolved = resolve_layer_layout(engine_state, target, &layer.layout);
         let width = resolved.rect.z.max(1.0).round() as u32;
@@ -481,20 +497,6 @@ fn surface_state_for_target(
     let size = match target.kind {
         TargetKind::Texture => target.size.unwrap_or_else(|| glam::UVec2::new(1, 1)),
         TargetKind::Window => {
-            let is_window_connector = layer
-                .and_then(|layer| {
-                    target
-                        .window_id
-                        .map(|window_id| (layer.realm_id, window_id))
-                })
-                .and_then(|(layer_realm_id, window_id)| {
-                    engine_state
-                        .universal_state
-                        .host_realm_index
-                        .get(&window_id)
-                        .map(|host_realm| host_realm.0 != layer_realm_id)
-                })
-                .unwrap_or(false);
             if is_window_connector {
                 layer_size
                     .or_else(|| {
@@ -526,7 +528,13 @@ fn surface_state_for_target(
 
     SurfaceState {
         kind: match target.kind {
-            TargetKind::Window => SurfaceKind::Onscreen,
+            TargetKind::Window => {
+                if is_window_connector {
+                    SurfaceKind::Offscreen
+                } else {
+                    SurfaceKind::Onscreen
+                }
+            }
             TargetKind::WidgetRealmViewport | TargetKind::RealmPlane | TargetKind::Texture => {
                 SurfaceKind::Offscreen
             }

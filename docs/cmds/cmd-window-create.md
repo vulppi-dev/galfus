@@ -5,6 +5,10 @@ Creates a new window and initializes its WGPU surface.
 In web/WASM mode, the window is backed by a DOM canvas. Use `canvasId` to
 attach to an existing `<canvas>` element.
 
+WASM sizing follows real surface pixels:
+- if canvas drawing-buffer attributes are explicitly set (`canvas.width/height`), those values are used;
+- otherwise, the engine derives surface size from `getBoundingClientRect() * devicePixelRatio` (HiDPI-aware).
+
 ## Arguments
 
 | Field        | Type              | Description                                                              |

@@ -61,7 +61,7 @@ use crate::demo::commands::{
 };
 use crate::demo::geometry::build_skinned_plane;
 use crate::demo::hud::FpsHud;
-use crate::demo::io::{receive_events, receive_responses, send_commands};
+use crate::demo::io::{receive_events, receive_responses, send_command, send_commands};
 use crate::demo::loop_utils::run_loop_with_events;
 use crate::demo::session::create_window;
 use crate::demo::{DemoContext, DemoKind};
@@ -331,16 +331,21 @@ fn should_close_window(window_id: u32, event: &EngineEvent) -> bool {
 }
 
 fn create_ui_realm(_window_id: u32) -> Option<u32> {
-    let _ = send_commands(vec![EngineCmd::CmdRealmCreate(CmdRealmCreateArgs {
+    let _ = receive_responses();
+    let _ = receive_events();
+    let command_id = send_command(EngineCmd::CmdRealmCreate(CmdRealmCreateArgs {
         kind: RealmKindDto::TwoD,
         importance: None,
         cache_policy: None,
         flags: None,
-    })]);
+    }))?;
 
     for attempt in 0_u64..120 {
         let _ = core::vulfram_tick(attempt * 16, 16);
         for envelope in receive_responses() {
+            if envelope.id != command_id {
+                continue;
+            }
             if let CommandResponse::RealmCreate(result) = envelope.response
                 && result.success
                 && let Some(realm_id) = result.realm_id
@@ -356,17 +361,24 @@ fn create_ui_realm(_window_id: u32) -> Option<u32> {
 }
 
 fn create_and_dispose_temp_realm(_window_id: u32) -> bool {
-    let _ = send_commands(vec![EngineCmd::CmdRealmCreate(CmdRealmCreateArgs {
+    let _ = receive_responses();
+    let _ = receive_events();
+    let Some(command_id) = send_command(EngineCmd::CmdRealmCreate(CmdRealmCreateArgs {
         kind: RealmKindDto::TwoD,
         importance: None,
         cache_policy: None,
         flags: None,
-    })]);
+    })) else {
+        return false;
+    };
 
     let mut realm_id: Option<u32> = None;
     for attempt in 0_u64..120 {
         let _ = core::vulfram_tick(attempt * 16, 16);
         for envelope in receive_responses() {
+            if envelope.id != command_id {
+                continue;
+            }
             if let CommandResponse::RealmCreate(result) = envelope.response
                 && result.success
             {

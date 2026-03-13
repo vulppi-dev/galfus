@@ -12,6 +12,7 @@ Agrupa:
 
 - **WASM:** usa a mesma estrutura de resposta do nativo.
   Enquanto a janela ainda não estiver pronta, retorna payload vazio com `success=true` (eventual consistency).
+- Em HiDPI, o tamanho de surface reflete pixels reais do drawing buffer (não apenas pixels CSS).
 
 ## Arguments
 

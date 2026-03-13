@@ -142,21 +142,6 @@ impl RenderState {
             .or_else(|| self.detached_cameras.get(&camera_id))
     }
 
-    fn projection_aspect(record: &crate::core::resources::CameraRecord) -> Option<f32> {
-        if record.last_projection_size.y > 0 {
-            return Some(
-                record.last_projection_size.x.max(1) as f32 / record.last_projection_size.y as f32,
-            );
-        }
-        let x = record.data.projection.x_axis.x.abs();
-        let y = record.data.projection.y_axis.y.abs();
-        if x > f32::EPSILON && y > f32::EPSILON {
-            Some((y / x).max(f32::EPSILON))
-        } else {
-            None
-        }
-    }
-
     pub fn sync_camera_targets_and_projection(
         &mut self,
         device: &wgpu::Device,
@@ -168,11 +153,8 @@ impl RenderState {
             let requested_size = camera_target_sizes
                 .and_then(|sizes| sizes.get(camera_id).copied())
                 .unwrap_or_else(|| record.effective_target_size(surface_size));
-            let requested_height = requested_size.y.max(1);
-            let requested_aspect = requested_size.x.max(1) as f32 / requested_height as f32;
-            let aspect = Self::projection_aspect(record).unwrap_or(requested_aspect);
-            let projection_width = ((requested_height as f32) * aspect).round().max(1.0) as u32;
-            let projection_size = glam::UVec2::new(projection_width, requested_height);
+            let projection_size =
+                glam::UVec2::new(requested_size.x.max(1), requested_size.y.max(1));
             let target_width = projection_size.x;
             let target_height = projection_size.y;
 

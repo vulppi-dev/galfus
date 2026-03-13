@@ -34,8 +34,7 @@ pub fn attach_canvas_listeners(
 
     let canvas_for_resize = canvas.clone();
     let resize_closure = Closure::wrap(Box::new(move |_event: Event| {
-        let width = canvas_for_resize.width().max(1);
-        let height = canvas_for_resize.height().max(1);
+        let (width, height) = canvas_surface_size_from_rect(&canvas_for_resize);
         let _ = sync_canvas_surface_size(window_id, width, height);
     }) as Box<dyn FnMut(Event)>);
     register_listener(&window_target, "resize", resize_closure, &mut listeners);
@@ -50,8 +49,7 @@ pub fn attach_canvas_listeners(
             let _ = raf_slot_loop.borrow_mut().take();
             return;
         }
-        let width = canvas_for_raf.width().max(1);
-        let height = canvas_for_raf.height().max(1);
+        let (width, height) = canvas_surface_size_from_rect(&canvas_for_raf);
         let _ = sync_canvas_surface_size(window_id, width, height);
         if let Some(callback) = raf_slot_loop.borrow().as_ref() {
             let _ = window_for_raf.request_animation_frame(callback.as_ref().unchecked_ref());
@@ -457,6 +455,21 @@ fn canvas_relative_pos(canvas: &HtmlCanvasElement, x: i32, y: i32) -> glam::Vec2
         (x as f64 - rect.left()) as f32,
         (y as f64 - rect.top()) as f32,
     )
+}
+
+fn canvas_surface_size_from_rect(canvas: &HtmlCanvasElement) -> (u32, u32) {
+    let rect = canvas.get_bounding_client_rect();
+    let dpr = web_sys::window()
+        .map(|window| window.device_pixel_ratio())
+        .unwrap_or(1.0);
+    let size = crate::core::window::cmd::resolve_canvas_surface_size_pixels(
+        canvas.width(),
+        canvas.height(),
+        rect.width(),
+        rect.height(),
+        dpr,
+    );
+    (size.x, size.y)
 }
 
 fn with_live_window(window_id: u32, apply: impl FnOnce(&mut EngineState)) -> bool {
