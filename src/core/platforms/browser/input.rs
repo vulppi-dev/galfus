@@ -462,7 +462,7 @@ fn canvas_surface_size_from_rect(canvas: &HtmlCanvasElement) -> (u32, u32) {
     let dpr = web_sys::window()
         .map(|window| window.device_pixel_ratio())
         .unwrap_or(1.0);
-    let size = crate::core::window::cmd::resolve_canvas_surface_size_pixels(
+    let size = crate::core::window::resolve_canvas_surface_size_pixels(
         canvas.width(),
         canvas.height(),
         rect.width(),
