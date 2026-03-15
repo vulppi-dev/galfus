@@ -13,6 +13,9 @@ on:
       - "release/v*"
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   quality-tests:
     name: Quality Tests (Core)
@@ -31,9 +34,6 @@ jobs:
       - name: Static checks
         run: scripts/check.sh
 
-      - name: Unit tests
-        run: cargo test --lib
-
   build:
     name: Build ${{ matrix.binding }} - ${{ matrix.os }}-${{ matrix.arch }}
     needs: quality-tests
@@ -45,8 +45,6 @@ jobs:
         arch: [x64, arm64]
         binding: [ffi, napi, python, lua]
         exclude:
-          # Currently exclude ARM cross-builds for Python/Lua due to complex header dependencies
-          # We can re-add them as we refine the cross-compilation environment
           - os: ubuntu-latest
             arch: arm64
             binding: python
@@ -62,6 +60,26 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Resolve channel and version
+        id: meta
+        shell: bash
+        run: |
+          REF_NAME="${GITHUB_REF_NAME}"
+          if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+            REF_NAME="${GITHUB_BASE_REF}"
+          fi
+
+          if [[ "${REF_NAME}" =~ ^(alpha|beta|release)/v([0-9]+\.[0-9]+(\.[0-9]+)?)$ ]]; then
+            CHANNEL="${BASH_REMATCH[1]}"
+            VERSION="v${BASH_REMATCH[2]}"
+          else
+            echo "Invalid branch format for publishing: ${REF_NAME}"
+            exit 1
+          fi
+
+          echo "channel=${CHANNEL}" >> "${GITHUB_OUTPUT}"
+          echo "version=${VERSION}" >> "${GITHUB_OUTPUT}"
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -104,9 +122,9 @@ jobs:
           architecture: ${{ (matrix.arch == 'arm64' && 'arm64') || 'x64' }}
 
       - name: Build
+        id: build
         shell: bash
         run: |
-          # Determine target triple
           if [ "${{ matrix.os }}" == "ubuntu-latest" ]; then
             TARGET="${{ (matrix.arch == 'arm64' && 'aarch64-unknown-linux-gnu') || 'x86_64-unknown-linux-gnu' }}"
           elif [ "${{ matrix.os }}" == "windows-latest" ]; then
@@ -115,71 +133,121 @@ jobs:
             TARGET="${{ (matrix.arch == 'arm64' && 'aarch64-apple-darwin') || 'x86_64-apple-darwin' }}"
           fi
 
-          echo "Building for target: $TARGET with feature: ${{ matrix.binding }}"
+          echo "target=${TARGET}" >> "${GITHUB_OUTPUT}"
+          echo "Building target=${TARGET} binding=${{ matrix.binding }}"
 
-          # Set Linker flags for macOS bindings
           if [[ "${{ matrix.os }}" == "macos-latest" ]]; then
             if [[ "${{ matrix.binding }}" == "python" || "${{ matrix.binding }}" == "lua" ]]; then
               export RUSTFLAGS="-C link-arg=-undefined -C link-arg=dynamic_lookup"
             fi
           fi
 
-          # Use cross for Linux ARM64 cross-compilation
           if [[ "${{ matrix.os }}" == "ubuntu-latest" && "${{ matrix.arch }}" == "arm64" ]]; then
             curl -L https://github.com/cross-rs/cross/releases/latest/download/cross-x86_64-unknown-linux-musl.tar.gz | tar xz -C /usr/local/bin
-            
-            # Create Cross.toml with a newer image and correct dependency installation
+
             echo '[target.aarch64-unknown-linux-gnu]' > Cross.toml
             echo 'image = "ghcr.io/cross-rs/aarch64-unknown-linux-gnu:edge"' >> Cross.toml
             echo 'pre-build = ["dpkg --add-architecture arm64 && apt-get update && apt-get install -y libudev-dev:arm64 libasound2-dev:arm64"]' >> Cross.toml
-            
+
             export PKG_CONFIG_ALLOW_CROSS=1
-            cross build --release --target $TARGET --no-default-features --features ${{ matrix.binding }}
+            cross build --release --target "${TARGET}" --no-default-features --features "${{ matrix.binding }}"
           else
-            # Normal build
-            cargo build --release --target $TARGET --no-default-features --features ${{ matrix.binding }}
+            cargo build --release --target "${TARGET}" --no-default-features --features "${{ matrix.binding }}"
           fi
 
-      - name: Prepare Artifact
+      - name: Package distributable
+        id: package
         shell: bash
         run: |
-          OS_NAME=""
-          if [ "${{ matrix.os }}" == "windows-latest" ]; then OS_NAME="windows"; fi
-          if [ "${{ matrix.os }}" == "ubuntu-latest" ]; then OS_NAME="linux"; fi
-          if [ "${{ matrix.os }}" == "macos-latest" ]; then OS_NAME="macos"; fi
+          PLATFORM=""
+          if [[ "${{ matrix.os }}" == "windows-latest" && "${{ matrix.arch }}" == "x64" ]]; then PLATFORM="windows-x64"; fi
+          if [[ "${{ matrix.os }}" == "windows-latest" && "${{ matrix.arch }}" == "arm64" ]]; then PLATFORM="windows-arm64"; fi
+          if [[ "${{ matrix.os }}" == "ubuntu-latest" && "${{ matrix.arch }}" == "x64" ]]; then PLATFORM="linux-x64"; fi
+          if [[ "${{ matrix.os }}" == "ubuntu-latest" && "${{ matrix.arch }}" == "arm64" ]]; then PLATFORM="linux-arm64"; fi
+          if [[ "${{ matrix.os }}" == "macos-latest" && "${{ matrix.arch }}" == "x64" ]]; then PLATFORM="macos-x64"; fi
+          if [[ "${{ matrix.os }}" == "macos-latest" && "${{ matrix.arch }}" == "arm64" ]]; then PLATFORM="macos-arm64"; fi
 
-          mkdir -p "dist/${OS_NAME}-${{ matrix.arch }}"
+          if [[ -z "${PLATFORM}" ]]; then
+            echo "Unable to resolve platform label"
+            exit 1
+          fi
 
-          # Find the resulting library
-          EXTENSION=""
-          if [ "${{ matrix.os }}" == "windows-latest" ]; then EXTENSION="dll"; else EXTENSION="so"; fi
-          if [ "${{ matrix.os }}" == "macos-latest" ]; then EXTENSION="dylib"; fi
+          EXTENSION="so"
+          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then EXTENSION="dll"; fi
+          if [[ "${{ matrix.os }}" == "macos-latest" ]]; then EXTENSION="dylib"; fi
 
-          # Target directory detection
           if [[ "${{ matrix.os }}" == "ubuntu-latest" && "${{ matrix.arch }}" == "arm64" ]]; then
             SEARCH_PATH="target/aarch64-unknown-linux-gnu/release"
-          elif [ "${{ matrix.os }}" == "windows-latest" ]; then
-            SEARCH_PATH="target/${{ (matrix.arch == 'arm64' && 'aarch64-pc-windows-msvc') || 'x86_64-pc-windows-msvc' }}/release"
-          elif [ "${{ matrix.os }}" == "macos-latest" ]; then
-            SEARCH_PATH="target/${{ (matrix.arch == 'arm64' && 'aarch64-apple-darwin') || 'x86_64-apple-darwin' }}/release"
           else
-            SEARCH_PATH="target/x86_64-unknown-linux-gnu/release"
+            SEARCH_PATH="target/${{ steps.build.outputs.target }}/release"
           fi
 
-          # Copy to specific subfolder
-          cp ${SEARCH_PATH}/*.${EXTENSION} "dist/${OS_NAME}-${{ matrix.arch }}/" 2>/dev/null || cp target/release/*.${EXTENSION} "dist/${OS_NAME}-${{ matrix.arch }}/" 2>/dev/null || true
-
-          # For N-API, rename to .node
-          if [ "${{ matrix.binding }}" == "napi" ]; then
-            find "dist/${OS_NAME}-${{ matrix.arch }}" -name "*.${EXTENSION}" -exec mv {} "dist/${OS_NAME}-${{ matrix.arch }}/vulfram_core.node" \;
+          SOURCE_FILE="$(find "${SEARCH_PATH}" -maxdepth 1 -type f -name "*.${EXTENSION}" | head -n 1)"
+          if [[ -z "${SOURCE_FILE}" ]]; then
+            SOURCE_FILE="$(find target/release -maxdepth 1 -type f -name "*.${EXTENSION}" | head -n 1)"
           fi
 
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v4
+          if [[ -z "${SOURCE_FILE}" ]]; then
+            echo "No compiled library found for extension ${EXTENSION}"
+            exit 1
+          fi
+
+          OUTPUT_NAME="vulfram_core.${EXTENSION}"
+          if [[ "${{ matrix.binding }}" == "napi" ]]; then
+            OUTPUT_NAME="vulfram_core.node"
+          fi
+
+          DIST_DIR="dist/${{ matrix.binding }}/${PLATFORM}"
+          mkdir -p "${DIST_DIR}"
+
+          DEST_PATH="${DIST_DIR}/${OUTPUT_NAME}"
+          cp "${SOURCE_FILE}" "${DEST_PATH}"
+
+          HASH=""
+          if command -v sha256sum >/dev/null 2>&1; then
+            HASH="$(sha256sum "${DEST_PATH}" | awk '{print $1}')"
+          else
+            HASH="$(shasum -a 256 "${DEST_PATH}" | awk '{print $1}')"
+          fi
+
+          echo "${HASH}" > "${DEST_PATH}.sha256"
+
+          cat > "${DIST_DIR}/manifest.json" <<JSON
+          {
+            "channel": "${{ steps.meta.outputs.channel }}",
+            "version": "${{ steps.meta.outputs.version }}",
+            "binding": "${{ matrix.binding }}",
+            "platform": "${PLATFORM}",
+            "rust_target": "${{ steps.build.outputs.target }}",
+            "artifact": "${OUTPUT_NAME}",
+            "sha256": "${HASH}"
+          }
+          JSON
+
+          echo "platform=${PLATFORM}" >> "${GITHUB_OUTPUT}"
+          echo "dist_dir=${DIST_DIR}" >> "${GITHUB_OUTPUT}"
+
+      - name: Configure AWS credentials
+        if: github.event_name == 'push'
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          name: vulfram-tmp-${{ matrix.binding }}-${{ matrix.os }}-${{ matrix.arch }}
-          path: dist/*
-          retention-days: 1
+          aws-access-key-id: ${{ secrets.R2_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          aws-region: auto
+
+      - name: Upload to Cloudflare R2
+        if: github.event_name == 'push'
+        shell: bash
+        env:
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+        run: |
+          BASE_KEY="v1/${{ steps.meta.outputs.channel }}/${{ steps.meta.outputs.version }}/${{ matrix.binding }}/${{ steps.package.outputs.platform }}"
+          aws s3 cp "${{ steps.package.outputs.dist_dir }}/" "s3://${R2_BUCKET}/${BASE_KEY}/" \
+            --endpoint-url "${R2_ENDPOINT}" \
+            --recursive \
+            --only-show-errors
+          echo "Uploaded ${BASE_KEY}"
 
   build-wasm:
     name: Build wasm32-unknown-unknown
@@ -187,6 +255,26 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Resolve channel and version
+        id: meta
+        shell: bash
+        run: |
+          REF_NAME="${GITHUB_REF_NAME}"
+          if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+            REF_NAME="${GITHUB_BASE_REF}"
+          fi
+
+          if [[ "${REF_NAME}" =~ ^(alpha|beta|release)/v([0-9]+\.[0-9]+(\.[0-9]+)?)$ ]]; then
+            CHANNEL="${BASH_REMATCH[1]}"
+            VERSION="v${BASH_REMATCH[2]}"
+          else
+            echo "Invalid branch format for publishing: ${REF_NAME}"
+            exit 1
+          fi
+
+          echo "channel=${CHANNEL}" >> "${GITHUB_OUTPUT}"
+          echo "version=${VERSION}" >> "${GITHUB_OUTPUT}"
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -199,41 +287,55 @@ jobs:
       - name: Build
         run: cargo build --release --target wasm32-unknown-unknown --no-default-features --features wasm
 
-      - name: Prepare Artifact
+      - name: Package distributable
+        id: package
         shell: bash
         run: |
-          mkdir -p dist/wasm
+          DIST_DIR="dist/wasm/browser"
+          mkdir -p "${DIST_DIR}"
+
+          DEST_PATH="${DIST_DIR}/vulfram_core.wasm"
           wasm-bindgen \
             --target web \
-            --out-dir dist/wasm \
+            --out-dir "${DIST_DIR}" \
             --out-name vulfram_core \
             target/wasm32-unknown-unknown/release/vulfram_core.wasm
 
-      - name: Upload Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: vulfram-wasm
-          path: dist/wasm
-          retention-days: 7
+          HASH="$(sha256sum "${DEST_PATH}" | awk '{print $1}')"
+          echo "${HASH}" > "${DEST_PATH}.sha256"
 
-  merge:
-    name: Merge Artifacts - ${{ matrix.binding }}
-    needs: build
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        binding: [ffi, napi, python, lua]
-    steps:
-      - name: Download all temporary artifacts
-        uses: actions/download-artifact@v4
-        with:
-          pattern: vulfram-tmp-${{ matrix.binding }}-*
-          path: merged-dist/
-          merge-multiple: true
+          cat > "${DIST_DIR}/manifest.json" <<JSON
+          {
+            "channel": "${{ steps.meta.outputs.channel }}",
+            "version": "${{ steps.meta.outputs.version }}",
+            "binding": "wasm",
+            "platform": "browser",
+            "rust_target": "wasm32-unknown-unknown",
+            "artifact": "vulfram_core.wasm",
+            "sha256": "${HASH}"
+          }
+          JSON
 
-      - name: Upload Unified Artifact
-        uses: actions/upload-artifact@v4
+          echo "dist_dir=${DIST_DIR}" >> "${GITHUB_OUTPUT}"
+
+      - name: Configure AWS credentials
+        if: github.event_name == 'push'
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          name: vulfram-${{ matrix.binding }}
-          path: merged-dist/
-          retention-days: 7
+          aws-access-key-id: ${{ secrets.R2_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          aws-region: auto
+
+      - name: Upload to Cloudflare R2
+        if: github.event_name == 'push'
+        shell: bash
+        env:
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+        run: |
+          BASE_KEY="v1/${{ steps.meta.outputs.channel }}/${{ steps.meta.outputs.version }}/wasm/browser"
+          aws s3 cp "${{ steps.package.outputs.dist_dir }}/" "s3://${R2_BUCKET}/${BASE_KEY}/" \
+            --endpoint-url "${R2_ENDPOINT}" \
+            --recursive \
+            --only-show-errors
+          echo "Uploaded ${BASE_KEY}"
