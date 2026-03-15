@@ -227,18 +227,13 @@ jobs:
           echo "platform=${PLATFORM}" >> "${GITHUB_OUTPUT}"
           echo "dist_dir=${DIST_DIR}" >> "${GITHUB_OUTPUT}"
 
-      - name: Configure AWS credentials
-        if: github.event_name == 'push'
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.R2_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-          aws-region: auto
-
       - name: Upload to Cloudflare R2
         if: github.event_name == 'push'
         shell: bash
         env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_EC2_METADATA_DISABLED: "true"
           R2_BUCKET: ${{ secrets.R2_BUCKET }}
           R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
         run: |
@@ -294,12 +289,19 @@ jobs:
           DIST_DIR="dist/wasm/browser"
           mkdir -p "${DIST_DIR}"
 
-          DEST_PATH="${DIST_DIR}/vulfram_core.wasm"
           wasm-bindgen \
             --target web \
             --out-dir "${DIST_DIR}" \
             --out-name vulfram_core \
             target/wasm32-unknown-unknown/release/vulfram_core.wasm
+
+          # wasm-bindgen emits <out-name>_bg.wasm for web targets.
+          DEST_PATH="${DIST_DIR}/vulfram_core_bg.wasm"
+          if [[ ! -f "${DEST_PATH}" ]]; then
+            echo "Expected wasm output not found at ${DEST_PATH}"
+            ls -la "${DIST_DIR}"
+            exit 1
+          fi
 
           HASH="$(sha256sum "${DEST_PATH}" | awk '{print $1}')"
           echo "${HASH}" > "${DEST_PATH}.sha256"
@@ -311,25 +313,20 @@ jobs:
             "binding": "wasm",
             "platform": "browser",
             "rust_target": "wasm32-unknown-unknown",
-            "artifact": "vulfram_core.wasm",
+            "artifact": "vulfram_core_bg.wasm",
             "sha256": "${HASH}"
           }
           JSON
 
           echo "dist_dir=${DIST_DIR}" >> "${GITHUB_OUTPUT}"
 
-      - name: Configure AWS credentials
-        if: github.event_name == 'push'
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.R2_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-          aws-region: auto
-
       - name: Upload to Cloudflare R2
         if: github.event_name == 'push'
         shell: bash
         env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_EC2_METADATA_DISABLED: "true"
           R2_BUCKET: ${{ secrets.R2_BUCKET }}
           R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
         run: |
