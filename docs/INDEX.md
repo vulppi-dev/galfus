@@ -248,8 +248,6 @@ GLOSSARY.md (for terminology)
 ## 🔗 External Resources
 
 - **[README.md](../README.md)** - Project overview and quick start
-- **[MASCOT-DEFINITION.md](MASCOT-DEFINITION.md)** - Brand guidelines
-- **[UI.md](UI.md)** - UI technical index
 - **[PLATFORM-PROXIES.md](PLATFORM-PROXIES.md)** - Platform proxy architecture
 - **[CI-R2-PUBLISH.md](CI-R2-PUBLISH.md)** - CI publishing flow to Cloudflare R2
 - **[Copilot Instructions](../.github/copilot-instructions.md)** - Development patterns
