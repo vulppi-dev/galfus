@@ -9,6 +9,16 @@ mod wasm_exports {
     use console_error_panic_hook::set_once;
     use wasm_bindgen::prelude::*;
 
+    #[inline]
+    fn ensure_panic_hook() {
+        set_once();
+    }
+
+    #[wasm_bindgen(start)]
+    pub fn wasm_start() {
+        ensure_panic_hook();
+    }
+
     #[wasm_bindgen]
     pub struct BufferResult {
         buffer: Vec<u8>,
@@ -30,22 +40,25 @@ mod wasm_exports {
 
     #[wasm_bindgen]
     pub fn vulfram_init() -> u32 {
-        set_once();
+        ensure_panic_hook();
         core::vulfram_init() as u32
     }
 
     #[wasm_bindgen]
     pub fn vulfram_dispose() -> u32 {
+        ensure_panic_hook();
         core::vulfram_dispose() as u32
     }
 
     #[wasm_bindgen]
     pub fn vulfram_send_queue(data: &[u8]) -> u32 {
+        ensure_panic_hook();
         core::vulfram_send_queue(data.as_ptr(), data.len()) as u32
     }
 
     #[wasm_bindgen]
     pub fn vulfram_receive_queue() -> BufferResult {
+        ensure_panic_hook();
         let mut length: usize = 0;
         let mut ptr: *const u8 = std::ptr::null();
         let length_ptr = &mut length as *mut usize;
@@ -69,6 +82,7 @@ mod wasm_exports {
 
     #[wasm_bindgen]
     pub fn vulfram_receive_events() -> BufferResult {
+        ensure_panic_hook();
         let mut length: usize = 0;
         let mut ptr: *const u8 = std::ptr::null();
         let length_ptr = &mut length as *mut usize;
@@ -92,16 +106,19 @@ mod wasm_exports {
 
     #[wasm_bindgen]
     pub fn vulfram_upload_buffer(id: u64, upload_type: u32, data: &[u8]) -> u32 {
+        ensure_panic_hook();
         core::vulfram_upload_buffer(id, upload_type, data.as_ptr(), data.len()) as u32
     }
 
     #[wasm_bindgen]
     pub fn vulfram_tick(time_ms: f64, delta_ms: u32) -> u32 {
+        ensure_panic_hook();
         core::vulfram_tick(time_ms as u64, delta_ms) as u32
     }
 
     #[wasm_bindgen]
     pub fn vulfram_get_profiling() -> BufferResult {
+        ensure_panic_hook();
         let mut length: usize = 0;
         let mut ptr: *const u8 = std::ptr::null();
         let length_ptr = &mut length as *mut usize;

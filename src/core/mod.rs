@@ -17,6 +17,7 @@ mod state;
 pub mod system;
 pub mod target;
 mod tick;
+pub mod time;
 pub mod ui;
 pub mod window;
 

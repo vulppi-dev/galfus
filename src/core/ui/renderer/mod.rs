@@ -2,10 +2,10 @@ mod pipeline;
 mod textures;
 
 use std::collections::{HashMap, HashSet};
-use std::time::Instant;
 
 use egui::ClippedPrimitive;
 
+use crate::core::time::Instant;
 use crate::core::ui::renderer::pipeline::{UiPipeline, UiVertex};
 use crate::core::ui::renderer::textures::UiTextureStore;
 

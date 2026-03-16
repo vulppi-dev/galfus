@@ -19,8 +19,8 @@ pub struct MsaaConfig {
 impl Default for MsaaConfig {
     fn default() -> Self {
         Self {
-            enabled: false,
-            sample_count: 1,
+            enabled: true,
+            sample_count: 4,
         }
     }
 }
@@ -110,7 +110,7 @@ pub struct PostProcessConfig {
 impl Default for PostProcessConfig {
     fn default() -> Self {
         Self {
-            filter_enabled: false,
+            filter_enabled: true,
             filter_exposure: 1.0,
             filter_gamma: 1.0,
             filter_saturation: 1.0,
@@ -149,9 +149,9 @@ mod tests {
     use super::PostProcessConfig;
 
     #[test]
-    fn default_postprocess_is_neutral_and_disabled() {
+    fn default_postprocess_is_neutral() {
         let config = PostProcessConfig::default();
-        assert!(!config.filter_enabled);
+        assert!(config.filter_enabled);
         assert_eq!(config.filter_exposure, 1.0);
         assert_eq!(config.filter_gamma, 1.0);
         assert_eq!(config.filter_saturation, 1.0);

@@ -1,4 +1,4 @@
-use std::time::Instant;
+use crate::core::time::Instant;
 
 #[derive(Debug, Clone)]
 pub struct UiBenchResult {

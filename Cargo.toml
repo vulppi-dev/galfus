@@ -55,6 +55,7 @@ js-sys = { version = "0.3", optional = true }
 wasm-bindgen = { version = "0.2", optional = true }
 wasm-bindgen-futures = { version = "0.4", optional = true }
 console_error_panic_hook = { version = "0.1", optional = true }
+web-time = { version = "1.1", optional = true }
 web-sys = { version = "0.3", optional = true, features = [
     "Window",
     "Document",
@@ -104,7 +105,7 @@ ffi = ["dep:winit", "dep:gilrs", "dep:notify-rust", "dep:ctrlc"]  # C ABI / FFI 
 napi = ["dep:napi", "dep:napi-derive", "dep:winit", "dep:gilrs", "dep:notify-rust", "dep:ctrlc"]  # N-API export
 lua = ["dep:mlua", "dep:winit", "dep:gilrs", "dep:notify-rust", "dep:ctrlc"]
 python = ["dep:pyo3", "dep:winit", "dep:gilrs", "dep:notify-rust", "dep:ctrlc"]
-wasm = ["dep:wasm-bindgen", "dep:wasm-bindgen-futures", "dep:console_error_panic_hook", "dep:js-sys", "dep:web-sys"]
+wasm = ["dep:wasm-bindgen", "dep:wasm-bindgen-futures", "dep:console_error_panic_hook", "dep:web-time", "dep:js-sys", "dep:web-sys"]
 
 [profile.dev]
 opt-level = 0

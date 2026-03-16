@@ -4,10 +4,10 @@ use crate::core::input::events::{
 };
 use crate::core::realm::{RealmId, UniversalState};
 use crate::core::state::EngineState;
+use crate::core::time::Instant;
 use crate::core::ui::state::UiRealmState;
 use crate::core::window::WindowEvent;
 use std::collections::HashMap;
-use std::time::Instant;
 
 use super::input_keymap::map_key_code;
 

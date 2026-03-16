@@ -19,6 +19,9 @@ The Vulfram core is built as a Rust library with the following key crates:
     - DOM canvas, input events, gamepad polling
   - `console_error_panic_hook` (browser/WASM)
     - Captures Rust panics and forwards them to browser console traces
+    - Hook is installed at WASM module start and re-ensured on exported entry points
+  - `web-time` (browser/WASM)
+    - Provides `Instant::now()` compatibility where `std::time` is unsupported
 
 - **Rendering**
   - `wgpu`

@@ -7,12 +7,12 @@ use crate::core::realm::{AutoLink, RealmId, SurfaceId, SurfaceTable};
 use crate::core::render::RenderState;
 use crate::core::resources::RenderTarget;
 use crate::core::target::{TargetId, TargetLayerTable, TargetTable};
+use crate::core::time::Instant;
 use crate::core::ui::UiState;
 use crate::core::ui::events::UiEvent;
 use crate::core::ui::render::{hash_shapes, render_realm_documents, sync_ui_images};
 use std::collections::HashMap;
 use std::sync::Arc;
-use std::time::Instant;
 
 use actions::collect_platform_actions;
 use external_textures::collect_external_textures;
