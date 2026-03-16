@@ -17,6 +17,8 @@ The Vulfram core is built as a Rust library with the following key crates:
     - Input events (keyboard, mouse, touch, gestures)
   - `web-sys` (browser/WASM)
     - DOM canvas, input events, gamepad polling
+  - `console_error_panic_hook` (browser/WASM)
+    - Captures Rust panics and forwards them to browser console traces
 
 - **Rendering**
   - `wgpu`

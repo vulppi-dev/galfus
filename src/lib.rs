@@ -6,6 +6,7 @@ mod core;
 #[cfg(feature = "wasm")]
 mod wasm_exports {
     use super::core;
+    use console_error_panic_hook::set_once;
     use wasm_bindgen::prelude::*;
 
     #[wasm_bindgen]
@@ -29,6 +30,7 @@ mod wasm_exports {
 
     #[wasm_bindgen]
     pub fn vulfram_init() -> u32 {
+        set_once();
         core::vulfram_init() as u32
     }
 
