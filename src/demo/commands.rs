@@ -2,7 +2,7 @@ use crate::core::cmd::EngineCmd;
 use crate::core::resources::shadow::{CmdShadowConfigureArgs, ShadowConfig};
 use crate::core::resources::{
     CameraKind, CmdCameraCreateArgs, CmdLightCreateArgs, CmdMaterialCreateArgs, MaterialKind,
-    MaterialOptions, MaterialSampler, StandardOptions,
+    MaterialOptions, MaterialSampler, PbrOptions, StandardOptions,
 };
 use glam::{Mat4, Vec2, Vec4};
 
@@ -86,6 +86,28 @@ pub fn create_standard_material_cmd(
                 base_tex_id,
                 base_sampler: Some(MaterialSampler::LinearClamp),
                 emissive_color: emissive_color.unwrap_or(Vec4::ZERO),
+                ..Default::default()
+            })),
+        },
+    ))
+}
+
+pub fn create_pbr_material_cmd(
+    material_id: u32,
+    label: &str,
+    base_color: Vec4,
+    metallic: f32,
+    roughness: f32,
+) -> EngineCmd {
+    EngineCmd::CmdMaterialUpsert(crate::core::cmd::CmdMaterialUpsertArgs::Create(
+        CmdMaterialCreateArgs {
+            material_id,
+            label: Some(label.to_string()),
+            kind: MaterialKind::Pbr,
+            options: Some(MaterialOptions::Pbr(PbrOptions {
+                base_color,
+                metallic,
+                roughness,
                 ..Default::default()
             })),
         },

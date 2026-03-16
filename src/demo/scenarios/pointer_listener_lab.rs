@@ -20,8 +20,7 @@ use crate::core::target::{
 use crate::core::ui::cmd::{CmdUiApplyOpsArgs, CmdUiDocumentCreateArgs};
 use crate::core::ui::types::{UiColor, UiNodeProps, UiOp};
 use crate::demo::commands::{
-    create_ambient_light_cmd, create_camera_cmd, create_point_light_cmd,
-    create_standard_material_cmd,
+    create_ambient_light_cmd, create_camera_cmd, create_pbr_material_cmd, create_point_light_cmd,
 };
 use crate::demo::hud::FpsHud;
 use crate::demo::io::{receive_events, receive_responses, send_command, send_commands};
@@ -135,12 +134,12 @@ pub(super) fn run_demo_7_pointer_listener_lab(ctx: DemoContext) -> bool {
         Vec4::new(0.22, 0.28, 0.38, 1.0),
         0.55,
     ));
-    setup_cmds.push(create_standard_material_cmd(
+    setup_cmds.push(create_pbr_material_cmd(
         left_material_id,
         "Demo7 Left Material",
         Vec4::new(0.10, 0.75, 0.95, 1.0),
-        None,
-        None,
+        0.55,
+        0.25,
     ));
     setup_cmds.push(EngineCmd::CmdModelUpsert(CmdModelUpsertArgs::Create(
         crate::core::resources::CmdModelCreateArgs {
@@ -257,12 +256,12 @@ pub(super) fn run_demo_7_pointer_listener_lab(ctx: DemoContext) -> bool {
         Vec4::new(0.32, 0.24, 0.20, 1.0),
         0.6,
     ));
-    setup_cmds.push(create_standard_material_cmd(
+    setup_cmds.push(create_pbr_material_cmd(
         inner_material_id,
         "Demo7 Inner Material",
         Vec4::new(0.98, 0.45, 0.12, 1.0),
-        None,
-        None,
+        0.35,
+        0.40,
     ));
     setup_cmds.push(EngineCmd::CmdModelUpsert(CmdModelUpsertArgs::Create(
         crate::core::resources::CmdModelCreateArgs {
