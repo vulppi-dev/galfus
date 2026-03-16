@@ -54,6 +54,7 @@ impl RenderState {
             shadow: None,
             cache: RenderCache::new(),
             post_uniform_buffer: None,
+            compose_uniform_buffer: None,
             ssao_uniform_buffer: None,
             ssao_blur_uniform_buffer: None,
             bloom_uniform_buffer: None,
@@ -105,6 +106,7 @@ impl RenderState {
         self.shadow = None;
         self.cache.clear();
         self.post_uniform_buffer = None;
+        self.compose_uniform_buffer = None;
         self.ssao_uniform_buffer = None;
         self.ssao_blur_uniform_buffer = None;
         self.bloom_uniform_buffer = None;

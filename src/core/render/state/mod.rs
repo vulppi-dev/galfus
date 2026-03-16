@@ -51,6 +51,7 @@ pub struct RenderState {
     pub shadow: Option<ShadowManager>,
     pub cache: RenderCache,
     pub post_uniform_buffer: Option<wgpu::Buffer>,
+    pub compose_uniform_buffer: Option<wgpu::Buffer>,
     pub ssao_uniform_buffer: Option<wgpu::Buffer>,
     pub ssao_blur_uniform_buffer: Option<wgpu::Buffer>,
     pub bloom_uniform_buffer: Option<wgpu::Buffer>,

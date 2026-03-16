@@ -1,6 +1,6 @@
 [package]
 name = "vulfram-core"
-version = "0.19.3-alpha"
+version = "0.19.4-alpha"
 edition = "2024"
 license = "MIT"
 default-run = "vulfram-core"

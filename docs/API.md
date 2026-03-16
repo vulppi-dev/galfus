@@ -224,6 +224,8 @@ Async texture decode:
 
 The outline mask is rendered in a dedicated `outline` pass into `outline_color`
 (now `rgba8`), and sampled by the `post` pass for final composition.
+`post` and `compose` now use separate uniform buffers (`PostProcessUniform` vs
+cover `vec4`) to avoid cross-pass parameter overwrite.
 
 ---
 

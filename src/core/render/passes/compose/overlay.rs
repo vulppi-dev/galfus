@@ -29,7 +29,7 @@ pub fn pass_compose_overlays(
         Some(l) => l,
         None => return,
     };
-    let uniform_buffer = match render_state.post_uniform_buffer.as_ref() {
+    let uniform_buffer = match render_state.compose_uniform_buffer.as_ref() {
         Some(buffer) => buffer,
         None => return,
     };
@@ -146,7 +146,7 @@ pub fn pass_compose_surface(
         Some(l) => l,
         None => return,
     };
-    let uniform_buffer = match render_state.post_uniform_buffer.as_ref() {
+    let uniform_buffer = match render_state.compose_uniform_buffer.as_ref() {
         Some(buffer) => buffer,
         None => return,
     };

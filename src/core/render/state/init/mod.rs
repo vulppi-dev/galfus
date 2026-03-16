@@ -151,6 +151,12 @@ impl RenderState {
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
+        let compose_uniform_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("Compose Cover Uniform Buffer"),
+            size: 16,
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
 
         let ssao_uniform_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("SSAO Uniform Buffer"),
@@ -229,6 +235,7 @@ impl RenderState {
         });
 
         self.post_uniform_buffer = Some(post_uniform_buffer);
+        self.compose_uniform_buffer = Some(compose_uniform_buffer);
         self.ssao_uniform_buffer = Some(ssao_uniform_buffer);
         self.ssao_blur_uniform_buffer = Some(ssao_blur_uniform_buffer);
         self.bloom_uniform_buffer = Some(bloom_uniform_buffer);

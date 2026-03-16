@@ -1,6 +1,5 @@
 use crate::core::render::RenderState;
 use crate::core::render::cache::{PipelineKey, ShaderId};
-use crate::core::render::passes::update_post_uniform_buffer;
 use crate::core::render::state::ResourceLibrary;
 use crate::core::render::state::SampledTargetBindKey;
 
@@ -65,7 +64,7 @@ pub fn pass_compose_to_view(
         None => return,
     };
 
-    let uniform_buffer = match render_state.post_uniform_buffer.as_ref() {
+    let uniform_buffer = match render_state.compose_uniform_buffer.as_ref() {
         Some(buffer) => buffer,
         None => return,
     };
@@ -143,8 +142,6 @@ pub fn pass_compose_to_view(
 
     let mut used_bind_keys = std::collections::HashSet::new();
     for camera_id in render_state.camera_order.iter().copied() {
-        let post_config = &render_state.environment_for_camera(camera_id).post;
-        update_post_uniform_buffer(post_config, uniform_buffer, queue, frame_index);
         let Some(record) = render_state.scene.cameras.get(&camera_id) else {
             continue;
         };
