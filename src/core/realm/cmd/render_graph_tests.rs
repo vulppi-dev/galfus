@@ -1,0 +1,258 @@
+use super::*;
+use crate::core::cmd::EngineEvent;
+use crate::core::render::graph::{
+    LogicalId, RenderGraphDesc, RenderGraphLifetime, RenderGraphNode, RenderGraphResource,
+    RenderGraphResourceKind,
+};
+use crate::core::state::EngineState;
+use crate::core::system::SystemEvent;
+use std::collections::HashMap;
+
+fn valid_graph(graph_name: &str, resource_name: &str) -> RenderGraphDesc {
+    RenderGraphDesc {
+        graph_id: LogicalId::Str(graph_name.into()),
+        nodes: vec![RenderGraphNode {
+            node_id: LogicalId::Str(format!("{graph_name}-shadow")),
+            pass_id: "shadow".into(),
+            inputs: Vec::new(),
+            outputs: vec![LogicalId::Str(resource_name.into())],
+            params: HashMap::new(),
+        }],
+        edges: Vec::new(),
+        resources: vec![RenderGraphResource {
+            res_id: LogicalId::Str(resource_name.into()),
+            kind: RenderGraphResourceKind::Texture,
+            lifetime: RenderGraphLifetime::Frame,
+            alias_group: None,
+        }],
+        fallback: false,
+    }
+}
+
+fn invalid_graph_missing_resource(graph_name: &str) -> RenderGraphDesc {
+    RenderGraphDesc {
+        graph_id: LogicalId::Str(graph_name.into()),
+        nodes: vec![RenderGraphNode {
+            node_id: LogicalId::Str(format!("{graph_name}-forward")),
+            pass_id: "forward".into(),
+            inputs: vec![LogicalId::Str("missing".into())],
+            outputs: Vec::new(),
+            params: HashMap::new(),
+        }],
+        edges: Vec::new(),
+        resources: Vec::new(),
+        fallback: false,
+    }
+}
+
+fn create_realm(engine: &mut EngineState, kind: RealmKindDto) -> u32 {
+    let result = engine_cmd_realm_create(
+        engine,
+        &CmdRealmCreateArgs {
+            kind,
+            importance: None,
+            cache_policy: None,
+            flags: None,
+        },
+    );
+    assert!(result.success, "realm create failed: {}", result.message);
+    result.realm_id.expect("realm id should exist")
+}
+
+fn take_error_events(engine: &mut EngineState) -> Vec<(String, String, Option<String>)> {
+    let mut errors = Vec::new();
+    for event in engine.event_queue.drain(..) {
+        let EngineEvent::System(SystemEvent::Error {
+            scope,
+            message,
+            command_type,
+            ..
+        }) = event
+        else {
+            continue;
+        };
+        errors.push((scope, message, command_type));
+    }
+    errors
+}
+
+#[test]
+fn render_graph_upsert_and_list_includes_desc_hash_and_passes() {
+    let mut engine = EngineState::new();
+    let graph = valid_graph("custom_a", "shadow_atlas_custom_a");
+    let expected_hash = crate::core::render::graph::render_graph_desc_hash(&graph);
+
+    let upsert = engine_cmd_render_graph_upsert(
+        &mut engine,
+        &CmdRenderGraphUpsertArgs {
+            render_graph_id: 100,
+            graph,
+        },
+    );
+    assert!(upsert.success, "upsert failed: {}", upsert.message);
+
+    let listed = engine_cmd_render_graph_list(&mut engine, &CmdRenderGraphListArgs::default());
+    assert!(listed.success, "list failed: {}", listed.message);
+    let entry = listed
+        .render_graphs
+        .iter()
+        .find(|entry| entry.render_graph_id == 100)
+        .expect("custom graph must be listed");
+    assert_eq!(entry.desc_hash, expected_hash);
+    assert_eq!(entry.pass_count, 1);
+    assert_eq!(entry.pass_ids, vec!["shadow".to_string()]);
+}
+
+#[test]
+fn realm_bind_and_rebind_updates_realm_graph_id() {
+    let mut engine = EngineState::new();
+    let realm_id = create_realm(&mut engine, RealmKindDto::ThreeD);
+
+    assert!(
+        engine_cmd_render_graph_upsert(
+            &mut engine,
+            &CmdRenderGraphUpsertArgs {
+                render_graph_id: 101,
+                graph: valid_graph("custom_b", "shadow_atlas_custom_b"),
+            },
+        )
+        .success
+    );
+    assert!(
+        engine_cmd_render_graph_upsert(
+            &mut engine,
+            &CmdRenderGraphUpsertArgs {
+                render_graph_id: 102,
+                graph: valid_graph("custom_c", "shadow_atlas_custom_c"),
+            },
+        )
+        .success
+    );
+
+    let first_bind = engine_cmd_realm_render_graph_bind(
+        &mut engine,
+        &CmdRealmRenderGraphBindArgs {
+            realm_id,
+            render_graph_id: 101,
+        },
+    );
+    assert!(
+        first_bind.success,
+        "first bind failed: {}",
+        first_bind.message
+    );
+
+    let second_bind = engine_cmd_realm_render_graph_bind(
+        &mut engine,
+        &CmdRealmRenderGraphBindArgs {
+            realm_id,
+            render_graph_id: 102,
+        },
+    );
+    assert!(
+        second_bind.success,
+        "second bind failed: {}",
+        second_bind.message
+    );
+
+    let realm_entry = engine
+        .universal_state
+        .realms
+        .entries
+        .get(&crate::core::realm::RealmId(realm_id))
+        .expect("realm entry should exist");
+    assert_eq!(realm_entry.value.render_graph_id, Some(102));
+}
+
+#[test]
+fn render_graph_dispose_respects_realm_bindings() {
+    let mut engine = EngineState::new();
+    let realm_id = create_realm(&mut engine, RealmKindDto::ThreeD);
+    assert!(
+        engine_cmd_render_graph_upsert(
+            &mut engine,
+            &CmdRenderGraphUpsertArgs {
+                render_graph_id: 103,
+                graph: valid_graph("custom_d", "shadow_atlas_custom_d"),
+            },
+        )
+        .success
+    );
+
+    assert!(
+        engine_cmd_realm_render_graph_bind(
+            &mut engine,
+            &CmdRealmRenderGraphBindArgs {
+                realm_id,
+                render_graph_id: 103,
+            },
+        )
+        .success
+    );
+
+    let dispose_bound = engine_cmd_render_graph_dispose(
+        &mut engine,
+        &CmdRenderGraphDisposeArgs {
+            render_graph_id: 103,
+        },
+    );
+    assert!(!dispose_bound.success);
+    let errors = take_error_events(&mut engine);
+    assert!(errors.iter().any(|(scope, _, command_type)| {
+        scope == "render-graph" && command_type.as_deref() == Some("render-graph-dispose")
+    }));
+
+    assert!(
+        engine_cmd_realm_render_graph_bind(
+            &mut engine,
+            &CmdRealmRenderGraphBindArgs {
+                realm_id,
+                render_graph_id: crate::core::render::graph::DEFAULT_3D_RENDER_GRAPH_ID,
+            },
+        )
+        .success
+    );
+    let dispose_unbound = engine_cmd_render_graph_dispose(
+        &mut engine,
+        &CmdRenderGraphDisposeArgs {
+            render_graph_id: 103,
+        },
+    );
+    assert!(
+        dispose_unbound.success,
+        "dispose should succeed after unbind: {}",
+        dispose_unbound.message
+    );
+}
+
+#[test]
+fn invalid_upsert_and_unknown_bind_emit_error_events() {
+    let mut engine = EngineState::new();
+    let realm_id = create_realm(&mut engine, RealmKindDto::ThreeD);
+
+    let invalid_upsert = engine_cmd_render_graph_upsert(
+        &mut engine,
+        &CmdRenderGraphUpsertArgs {
+            render_graph_id: 104,
+            graph: invalid_graph_missing_resource("invalid_a"),
+        },
+    );
+    assert!(!invalid_upsert.success);
+
+    let unknown_bind = engine_cmd_realm_render_graph_bind(
+        &mut engine,
+        &CmdRealmRenderGraphBindArgs {
+            realm_id,
+            render_graph_id: 999_999,
+        },
+    );
+    assert!(!unknown_bind.success);
+
+    let errors = take_error_events(&mut engine);
+    assert!(errors.iter().any(|(scope, _, command_type)| {
+        scope == "render-graph" && command_type.as_deref() == Some("render-graph-upsert")
+    }));
+    assert!(errors.iter().any(|(scope, _, command_type)| {
+        scope == "render-graph" && command_type.as_deref() == Some("realm-render-graph-bind")
+    }));
+}
