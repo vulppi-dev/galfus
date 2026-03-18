@@ -109,6 +109,7 @@ pub struct ShadowManager {
 }
 
 impl ShadowManager {
+    const MAX_IDLE_FRAMES: u64 = 600;
     #[cfg(any(not(feature = "wasm"), target_arch = "wasm32"))]
     pub fn new(device: &Device, queue: &Queue, table_capacity: u32) -> Self {
         let config = ShadowConfig::default();
@@ -423,6 +424,7 @@ impl ShadowManager {
     }
 
     pub fn begin_frame(&mut self, frame_index: u64) {
+        self.evict_stale_pages(frame_index, Self::MAX_IDLE_FRAMES);
         self.page_table.begin_frame(frame_index);
         self.point_light_vp.begin_frame(frame_index);
         self.params_pool.begin_frame(frame_index);
@@ -432,24 +434,41 @@ impl ShadowManager {
         self.is_dirty = true;
     }
 
-    pub fn free_light(&mut self, light_id: u32) {
+    pub fn prune_inactive_dense_lights(&mut self, active_shadow_light_count: u32) {
         let mut to_remove: Vec<(ShadowPageKey, ShadowAtlasHandle)> = Vec::new();
-
         for (key, record) in &self.cache {
-            if key.light_id == light_id {
+            if key.light_id >= active_shadow_light_count {
                 to_remove.push((*key, record.atlas_handle));
             }
         }
-
         if to_remove.is_empty() {
             return;
         }
-
         for (key, handle) in to_remove {
             self.cache.remove(&key);
             self.atlas.free(handle);
         }
+        self.is_dirty = true;
+    }
 
+    fn evict_stale_pages(&mut self, current_frame: u64, max_idle_frames: u64) {
+        if max_idle_frames == 0 {
+            return;
+        }
+        let mut to_remove: Vec<(ShadowPageKey, ShadowAtlasHandle)> = Vec::new();
+        for (key, record) in &self.cache {
+            let idle_frames = current_frame.saturating_sub(record.last_frame_used);
+            if idle_frames > max_idle_frames {
+                to_remove.push((*key, record.atlas_handle));
+            }
+        }
+        if to_remove.is_empty() {
+            return;
+        }
+        for (key, handle) in to_remove {
+            self.cache.remove(&key);
+            self.atlas.free(handle);
+        }
         self.is_dirty = true;
     }
 

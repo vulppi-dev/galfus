@@ -363,11 +363,63 @@ fn upsert_rejects_incompatible_update_for_bound_realms() {
         },
     );
     assert!(!incompatible_update.success);
+    let rejected_hash = crate::core::render::graph::render_graph_desc_hash(&valid_graph(
+        "custom_3d_replacement",
+        "shadow_atlas_replacement",
+    ));
+    assert!(
+        !engine
+            .universal_state
+            .render_graph_plan_cache
+            .contains_key(&rejected_hash),
+        "incompatible upsert must not populate plan cache"
+    );
 
     let errors = take_error_events(&mut engine);
     assert!(errors.iter().any(|(scope, _, command_type)| {
         scope == "render-graph" && command_type.as_deref() == Some("render-graph-upsert")
     }));
+}
+
+#[test]
+fn dispose_prunes_orphaned_render_graph_plan_cache() {
+    let mut engine = EngineState::new();
+    let graph = valid_graph("custom_cache_prune", "shadow_atlas_cache_prune");
+    let desc_hash = crate::core::render::graph::render_graph_desc_hash(&graph);
+
+    assert!(
+        engine_cmd_render_graph_upsert(
+            &mut engine,
+            &CmdRenderGraphUpsertArgs {
+                render_graph_id: 109,
+                graph,
+            },
+        )
+        .success
+    );
+    assert!(
+        engine
+            .universal_state
+            .render_graph_plan_cache
+            .contains_key(&desc_hash)
+    );
+
+    assert!(
+        engine_cmd_render_graph_dispose(
+            &mut engine,
+            &CmdRenderGraphDisposeArgs {
+                render_graph_id: 109,
+            },
+        )
+        .success
+    );
+    assert!(
+        !engine
+            .universal_state
+            .render_graph_plan_cache
+            .contains_key(&desc_hash),
+        "cache entry should be dropped when no graph references desc hash"
+    );
 }
 
 #[test]

@@ -168,6 +168,8 @@ pub fn pass_shadow_update(
         }
     }
 
+    shadow_manager.prune_inactive_dense_lights(shadow_counter);
+
     if pages_to_render.is_empty() {
         return;
     }

@@ -138,12 +138,13 @@ pub fn engine_cmd_render_graph_upsert(
     }
 
     let desc_hash = crate::core::render::graph::render_graph_desc_hash(&args.graph);
-    let graph_state = if let Some(cached) = engine
+    let cached_graph_state = engine
         .universal_state
         .render_graph_plan_cache
         .get(&desc_hash)
-    {
-        cached.clone()
+        .cloned();
+    let graph_state = if let Some(cached) = cached_graph_state.clone() {
+        cached
     } else {
         let compiled =
             match crate::core::render::graph::RenderGraphState::from_desc(args.graph.clone()) {
@@ -160,10 +161,6 @@ pub fn engine_cmd_render_graph_upsert(
                     };
                 }
             };
-        engine
-            .universal_state
-            .render_graph_plan_cache
-            .insert(desc_hash, compiled.clone());
         compiled
     };
 
@@ -200,13 +197,19 @@ pub fn engine_cmd_render_graph_upsert(
         .insert(
             args.render_graph_id,
             crate::core::render::graph::RenderGraphRecord {
-                state: graph_state,
+                state: graph_state.clone(),
                 desc_hash,
             },
         )
         .is_some();
     for realm_id in used_by {
         mark_realm_windows_dirty(engine, realm_id.0);
+    }
+    if cached_graph_state.is_none() {
+        engine
+            .universal_state
+            .render_graph_plan_cache
+            .insert(desc_hash, graph_state.clone());
     }
 
     CmdResultRenderGraphUpsert {
@@ -259,12 +262,22 @@ pub fn engine_cmd_render_graph_dispose(
         };
     }
 
-    if engine
+    if let Some(removed_graph) = engine
         .universal_state
         .render_graphs
         .remove(&args.render_graph_id)
-        .is_some()
     {
+        let keep_plan_cached = engine
+            .universal_state
+            .render_graphs
+            .values()
+            .any(|record| record.desc_hash == removed_graph.desc_hash);
+        if !keep_plan_cached {
+            engine
+                .universal_state
+                .render_graph_plan_cache
+                .remove(&removed_graph.desc_hash);
+        }
         CmdResultRenderGraphDispose {
             success: true,
             message: "Render graph disposed successfully".into(),
