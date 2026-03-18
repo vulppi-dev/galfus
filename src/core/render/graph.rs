@@ -142,12 +142,6 @@ pub struct RenderGraphPlan {
     pub order: Vec<usize>,
 }
 
-impl RenderGraphPlan {
-    pub fn has_pass(&self, pass_id: &str) -> bool {
-        self.nodes.iter().any(|node| node.pass_id == pass_id)
-    }
-}
-
 #[derive(Debug, Clone)]
 pub struct RenderGraphState {
     fallback: RenderGraphPlan,

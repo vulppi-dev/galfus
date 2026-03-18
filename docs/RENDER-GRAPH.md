@@ -18,6 +18,9 @@ The core infers any missing resources from node inputs/outputs using default val
 3. A realm binds to that graph by `render_graph_id`.
 4. On missing/invalid bindings, the core uses a fallback graph.
 
+Execution order is strict: passes run exactly in graph topological order (`plan.order`).
+The core does not inject implicit render passes outside the bound graph.
+
 ## Graph Structure
 
 ### Graph

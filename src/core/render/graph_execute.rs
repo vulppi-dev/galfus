@@ -7,6 +7,14 @@ use crate::core::ui::events::UiEvent;
 use super::RenderState;
 use super::frame_helpers::write_gpu_timestamp;
 
+#[cfg(feature = "wasm")]
+use js_sys::Date;
+
+#[cfg(feature = "wasm")]
+fn now_ns() -> u64 {
+    (Date::now() * 1_000_000.0) as u64
+}
+
 pub(super) fn execute_graph_to_view(
     plan: &RenderGraphPlan,
     render_state: &mut RenderState,
@@ -37,16 +45,33 @@ pub(super) fn execute_graph_to_view(
     window_focused: bool,
     gpu_profiler: Option<&crate::core::profiling::gpu::GpuProfiler>,
     gpu_base: Option<u32>,
+    shadow_cpu_ns_accum: &mut u64,
 ) -> bool {
     let mut gpu_written = false;
     let mut skybox_done = false;
-    let has_skybox_node = plan.nodes.iter().any(|node| node.pass_id == "skybox");
 
     for &node_idx in &plan.order {
         let node = &plan.nodes[node_idx];
         match node.pass_id.as_str() {
             "shadow" => {
-                continue;
+                #[cfg(not(feature = "wasm"))]
+                let shadow_start = std::time::Instant::now();
+                #[cfg(feature = "wasm")]
+                let shadow_start = now_ns();
+                passes::pass_shadow_update(render_state, device, queue, encoder, frame_index);
+                if let Some(shadow) = &mut render_state.shadow {
+                    shadow.sync_table();
+                }
+                #[cfg(not(feature = "wasm"))]
+                {
+                    *shadow_cpu_ns_accum = shadow_cpu_ns_accum
+                        .saturating_add(shadow_start.elapsed().as_nanos() as u64);
+                }
+                #[cfg(feature = "wasm")]
+                {
+                    *shadow_cpu_ns_accum =
+                        shadow_cpu_ns_accum.saturating_add(now_ns().saturating_sub(shadow_start));
+                }
             }
             "skybox" => {
                 skybox_done =
@@ -62,10 +87,6 @@ pub(super) fn execute_graph_to_view(
                 }
             }
             "forward" => {
-                if !has_skybox_node {
-                    skybox_done =
-                        passes::pass_skybox(render_state, device, queue, encoder, frame_index);
-                }
                 if let Some(base) = gpu_base {
                     write_gpu_timestamp(encoder, gpu_profiler, base + 2, &mut gpu_written);
                 }
