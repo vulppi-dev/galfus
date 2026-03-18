@@ -9,6 +9,7 @@ use crate::core::cmd::CmdEnvironmentUpsertArgs;
 use crate::core::cmd::{CmdModelUpsertArgs, CommandResponse, EngineCmd, EngineEvent};
 use crate::core::input::listeners::CmdInputTargetListenerUpsertArgs;
 use crate::core::realm::cmd::{CmdRealmCreateArgs, RealmKindDto};
+use crate::core::resources::shadow::{CmdShadowConfigureArgs, ShadowConfig};
 use crate::core::resources::{
     CmdEnvironmentUpdateArgs, EnvironmentConfig, SkyboxConfig, SkyboxMode,
 };
@@ -52,13 +53,19 @@ pub(super) fn run_demo_7_pointer_listener_lab(ctx: DemoContext) -> bool {
     let left_camera_id = ids.camera_id + 700;
     let inner_camera_id = ids.camera_id + 701;
     let left_geometry_id = ids.geometry_id + 700;
+    let left_ground_geometry_id = ids.ground_geometry_id + 700;
     let inner_geometry_id = ids.geometry_id + 701;
+    let inner_ground_geometry_id = ids.ground_geometry_id + 701;
     let left_material_id = ids.material_id + 700;
+    let left_ground_material_id = ids.ground_material_id + 700;
     let inner_material_id = ids.material_id + 701;
+    let inner_ground_material_id = ids.ground_material_id + 701;
     let left_env_id = ids.env_id + 700;
     let inner_env_id = ids.env_id + 701;
     let left_model_id = ids.model_id + 700;
+    let left_ground_model_id = ids.ground_model_id + 700;
     let inner_model_id = ids.model_id + 701;
+    let inner_ground_model_id = ids.ground_model_id + 701;
     let left_light_id = ids.light_id + 700;
     let inner_light_id = ids.light_id + 701;
 
@@ -80,6 +87,14 @@ pub(super) fn run_demo_7_pointer_listener_lab(ctx: DemoContext) -> bool {
         format_policy: None,
         alpha_policy: None,
         msaa_samples: None,
+    }));
+    setup_cmds.push(EngineCmd::CmdShadowConfigure(CmdShadowConfigureArgs {
+        window_id: ctx.window_id,
+        config: ShadowConfig {
+            normal_bias: 0.01,
+            smoothing: 1,
+            ..Default::default()
+        },
     }));
     setup_cmds.push(EngineCmd::CmdTargetLayerUpsert(CmdTargetLayerUpsertArgs {
         realm_id: left_realm_id,
@@ -117,6 +132,14 @@ pub(super) fn run_demo_7_pointer_listener_lab(ctx: DemoContext) -> bool {
             options: None,
         },
     ));
+    setup_cmds.push(EngineCmd::CmdPrimitiveGeometryCreate(
+        crate::core::resources::CmdPrimitiveGeometryCreateArgs {
+            geometry_id: left_ground_geometry_id,
+            label: Some("Demo7 Left Ground".into()),
+            shape: crate::core::resources::PrimitiveShape::Plane,
+            options: None,
+        },
+    ));
     setup_cmds.push(create_camera_cmd(
         left_realm_id,
         left_camera_id,
@@ -126,13 +149,14 @@ pub(super) fn run_demo_7_pointer_listener_lab(ctx: DemoContext) -> bool {
     setup_cmds.push(create_point_light_cmd(
         left_realm_id,
         left_light_id,
-        Vec4::new(2.5, 4.5, 2.2, 1.0),
+        Vec4::new(2.4, 3.2, 2.0, 1.0),
+        20.0,
     ));
     setup_cmds.push(create_ambient_light_cmd(
         left_realm_id,
         left_light_id + 1,
         Vec4::new(0.22, 0.28, 0.38, 1.0),
-        0.55,
+        0.12,
     ));
     setup_cmds.push(create_pbr_material_cmd(
         left_material_id,
@@ -140,6 +164,13 @@ pub(super) fn run_demo_7_pointer_listener_lab(ctx: DemoContext) -> bool {
         Vec4::new(0.10, 0.75, 0.95, 1.0),
         0.55,
         0.25,
+    ));
+    setup_cmds.push(create_pbr_material_cmd(
+        left_ground_material_id,
+        "Demo7 Left Ground Material",
+        Vec4::new(0.16, 0.22, 0.30, 1.0),
+        0.05,
+        0.95,
     ));
     setup_cmds.push(EngineCmd::CmdModelUpsert(CmdModelUpsertArgs::Create(
         crate::core::resources::CmdModelCreateArgs {
@@ -151,6 +182,23 @@ pub(super) fn run_demo_7_pointer_listener_lab(ctx: DemoContext) -> bool {
             transform: Mat4::IDENTITY,
             layer_mask: 0xFFFF_FFFF,
             cast_shadow: true,
+            receive_shadow: true,
+            cast_outline: false,
+            outline_color: Vec4::ZERO,
+        },
+    )));
+    setup_cmds.push(EngineCmd::CmdModelUpsert(CmdModelUpsertArgs::Create(
+        crate::core::resources::CmdModelCreateArgs {
+            realm_id: left_realm_id,
+            model_id: left_ground_model_id,
+            label: Some("Demo7 Left Ground Model".into()),
+            geometry_id: left_ground_geometry_id,
+            material_id: Some(left_ground_material_id),
+            transform: Mat4::from_translation(Vec3::new(0.0, -1.2, 0.0))
+                * Mat4::from_rotation_x(-std::f32::consts::FRAC_PI_2)
+                * Mat4::from_scale(Vec3::splat(16.0)),
+            layer_mask: 0xFFFF_FFFF,
+            cast_shadow: false,
             receive_shadow: true,
             cast_outline: false,
             outline_color: Vec4::ZERO,
@@ -239,6 +287,14 @@ pub(super) fn run_demo_7_pointer_listener_lab(ctx: DemoContext) -> bool {
             options: None,
         },
     ));
+    setup_cmds.push(EngineCmd::CmdPrimitiveGeometryCreate(
+        crate::core::resources::CmdPrimitiveGeometryCreateArgs {
+            geometry_id: inner_ground_geometry_id,
+            label: Some("Demo7 Inner Ground".into()),
+            shape: crate::core::resources::PrimitiveShape::Plane,
+            options: None,
+        },
+    ));
     setup_cmds.push(create_camera_cmd(
         inner_realm_id,
         inner_camera_id,
@@ -248,13 +304,14 @@ pub(super) fn run_demo_7_pointer_listener_lab(ctx: DemoContext) -> bool {
     setup_cmds.push(create_point_light_cmd(
         inner_realm_id,
         inner_light_id,
-        Vec4::new(1.8, 3.4, 2.2, 1.0),
+        Vec4::new(1.9, 3.0, 1.8, 1.0),
+        20.0,
     ));
     setup_cmds.push(create_ambient_light_cmd(
         inner_realm_id,
         inner_light_id + 1,
         Vec4::new(0.32, 0.24, 0.20, 1.0),
-        0.6,
+        0.12,
     ));
     setup_cmds.push(create_pbr_material_cmd(
         inner_material_id,
@@ -262,6 +319,13 @@ pub(super) fn run_demo_7_pointer_listener_lab(ctx: DemoContext) -> bool {
         Vec4::new(0.98, 0.45, 0.12, 1.0),
         0.35,
         0.40,
+    ));
+    setup_cmds.push(create_pbr_material_cmd(
+        inner_ground_material_id,
+        "Demo7 Inner Ground Material",
+        Vec4::new(0.24, 0.18, 0.16, 1.0),
+        0.03,
+        0.96,
     ));
     setup_cmds.push(EngineCmd::CmdModelUpsert(CmdModelUpsertArgs::Create(
         crate::core::resources::CmdModelCreateArgs {
@@ -273,6 +337,23 @@ pub(super) fn run_demo_7_pointer_listener_lab(ctx: DemoContext) -> bool {
             transform: Mat4::IDENTITY,
             layer_mask: 0xFFFF_FFFF,
             cast_shadow: true,
+            receive_shadow: true,
+            cast_outline: false,
+            outline_color: Vec4::ZERO,
+        },
+    )));
+    setup_cmds.push(EngineCmd::CmdModelUpsert(CmdModelUpsertArgs::Create(
+        crate::core::resources::CmdModelCreateArgs {
+            realm_id: inner_realm_id,
+            model_id: inner_ground_model_id,
+            label: Some("Demo7 Inner Ground Model".into()),
+            geometry_id: inner_ground_geometry_id,
+            material_id: Some(inner_ground_material_id),
+            transform: Mat4::from_translation(Vec3::new(0.0, -1.2, 0.0))
+                * Mat4::from_rotation_x(-std::f32::consts::FRAC_PI_2)
+                * Mat4::from_scale(Vec3::splat(14.0)),
+            layer_mask: 0xFFFF_FFFF,
+            cast_shadow: false,
             receive_shadow: true,
             cast_outline: false,
             outline_color: Vec4::ZERO,

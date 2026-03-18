@@ -6,6 +6,15 @@ pub(super) fn run_demo_2_window_ui(ctx: DemoContext) -> bool {
     let Some(ui_realm_id) = create_ui_realm(ctx.window_id) else {
         return false;
     };
+    let scene_camera_id = ids.camera_id + 200;
+    let scene_light_id = ids.light_id + 200;
+    let scene_env_id = ids.env_id + 200;
+    let scene_cube_geometry_id = ids.geometry_id + 200;
+    let scene_cube_material_id = ids.material_id + 200;
+    let scene_cube_model_id = ids.model_id + 200;
+    let scene_ground_geometry_id = ids.ground_geometry_id + 200;
+    let scene_ground_material_id = ids.ground_material_id + 200;
+    let scene_ground_model_id = ids.ground_model_id + 200;
 
     let target_id = ids.target_id + 2_000;
     let control_doc_id = ids.ui_doc_extra + 200;
@@ -31,6 +40,99 @@ pub(super) fn run_demo_2_window_ui(ctx: DemoContext) -> bool {
             alpha_policy: None,
             msaa_samples: None,
         }),
+        EngineCmd::CmdEnvironmentUpsert(CmdEnvironmentUpsertArgs::Update(
+            CmdEnvironmentUpdateArgs {
+                environment_id: scene_env_id,
+                config: EnvironmentConfig {
+                    clear_color: Vec4::new(0.03, 0.06, 0.10, 1.0),
+                    skybox: SkyboxConfig {
+                        mode: SkyboxMode::None,
+                        ..Default::default()
+                    },
+                    ..Default::default()
+                },
+            },
+        )),
+        EngineCmd::CmdPrimitiveGeometryCreate(CmdPrimitiveGeometryCreateArgs {
+            geometry_id: scene_cube_geometry_id,
+            label: Some("Demo2 Cube".into()),
+            shape: PrimitiveShape::Cube,
+            options: None,
+        }),
+        EngineCmd::CmdPrimitiveGeometryCreate(CmdPrimitiveGeometryCreateArgs {
+            geometry_id: scene_ground_geometry_id,
+            label: Some("Demo2 Ground Plane".into()),
+            shape: PrimitiveShape::Plane,
+            options: None,
+        }),
+        create_camera_cmd(
+            ctx.realm_id,
+            scene_camera_id,
+            "Demo2 Scene Camera",
+            Mat4::look_at_rh(Vec3::new(0.0, 2.4, 5.8), Vec3::ZERO, Vec3::Y).inverse(),
+        ),
+        create_point_light_cmd(
+            ctx.realm_id,
+            scene_light_id,
+            Vec4::new(2.4, 4.2, 2.3, 1.0),
+            12.0,
+        ),
+        create_ambient_light_cmd(
+            ctx.realm_id,
+            scene_light_id + 1,
+            Vec4::new(0.23, 0.27, 0.32, 1.0),
+            0.12,
+        ),
+        create_standard_material_cmd(
+            scene_cube_material_id,
+            "Demo2 Cube Material",
+            Vec4::new(0.92, 0.42, 0.15, 1.0),
+            None,
+            None,
+        ),
+        create_standard_material_cmd(
+            scene_ground_material_id,
+            "Demo2 Ground Material",
+            Vec4::new(0.18, 0.22, 0.28, 1.0),
+            None,
+            None,
+        ),
+        EngineCmd::CmdModelUpsert(CmdModelUpsertArgs::Create(CmdModelCreateArgs {
+            realm_id: ctx.realm_id,
+            model_id: scene_cube_model_id,
+            label: Some("Demo2 Cube Model".into()),
+            geometry_id: scene_cube_geometry_id,
+            material_id: Some(scene_cube_material_id),
+            transform: Mat4::IDENTITY,
+            layer_mask: 0xFFFF_FFFF,
+            cast_shadow: true,
+            receive_shadow: true,
+            cast_outline: false,
+            outline_color: Vec4::ZERO,
+        })),
+        EngineCmd::CmdModelUpsert(CmdModelUpsertArgs::Create(CmdModelCreateArgs {
+            realm_id: ctx.realm_id,
+            model_id: scene_ground_model_id,
+            label: Some("Demo2 Ground Model".into()),
+            geometry_id: scene_ground_geometry_id,
+            material_id: Some(scene_ground_material_id),
+            transform: Mat4::from_translation(Vec3::new(0.0, -1.2, 0.0))
+                * Mat4::from_rotation_x(-std::f32::consts::FRAC_PI_2)
+                * Mat4::from_scale(Vec3::splat(18.0)),
+            layer_mask: 0xFFFF_FFFF,
+            cast_shadow: false,
+            receive_shadow: true,
+            cast_outline: false,
+            outline_color: Vec4::ZERO,
+        })),
+        EngineCmd::CmdTargetLayerUpsert(CmdTargetLayerUpsertArgs {
+            realm_id: ctx.realm_id,
+            target_id,
+            layout: TargetLayerLayout::default(),
+            camera_id: Some(scene_camera_id),
+            environment_id: Some(scene_env_id),
+        }),
+        create_shadow_config_cmd(ctx.window_id),
         EngineCmd::CmdTargetLayerUpsert(CmdTargetLayerUpsertArgs {
             realm_id: ui_realm_id,
             target_id,
@@ -129,6 +231,24 @@ pub(super) fn run_demo_2_window_ui(ctx: DemoContext) -> bool {
         total_ms = total_ms.saturating_add(delta_ms as u64);
 
         let mut frame_cmds = hud.frame_commands(total_ms, delta_ms);
+        frame_cmds.push(EngineCmd::CmdModelUpsert(CmdModelUpsertArgs::Update(
+            CmdModelUpdateArgs {
+                realm_id: ctx.realm_id,
+                model_id: scene_cube_model_id,
+                label: None,
+                geometry_id: None,
+                material_id: None,
+                transform: Some(
+                    Mat4::from_rotation_y(total_ms as f32 * 0.0007)
+                        * Mat4::from_rotation_x(total_ms as f32 * 0.00035),
+                ),
+                layer_mask: None,
+                cast_shadow: None,
+                receive_shadow: None,
+                cast_outline: None,
+                outline_color: None,
+            },
+        )));
         frame_cmds.push(window_measurement_cmd(ctx.window_id));
         if !frame_cmds.is_empty() {
             let _ = send_commands(frame_cmds);
