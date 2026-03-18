@@ -188,7 +188,7 @@ shadow -> forward -> outline + ssao -> ssao-blur + bloom -> post -> compose
 
 ## Performance Notes
 
-- **Cache per graphId**: Compile once, reuse execution plan and resource layout.
+- **Cache per graph hash**: Compile once per `RenderGraphDesc` hash and reuse across graph IDs/realms.
 - **Alias groups**: Allow the core to reuse memory for non-overlapping resources.
 - **Frame lifetime**: `lifetime = "frame"` resources are recycled automatically.
 - **Minimal validation on hot path**: Validate only when the graph changes.

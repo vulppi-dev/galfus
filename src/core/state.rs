@@ -102,6 +102,7 @@ impl EngineState {
         let mut universal_state = UniversalState::default();
         crate::core::render::graph::ensure_default_render_graphs(
             &mut universal_state.render_graphs,
+            &mut universal_state.render_graph_plan_cache,
         );
         universal_state.global_resources.materials_standard.insert(
             MATERIAL_FALLBACK_ID,

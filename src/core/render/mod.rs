@@ -50,7 +50,7 @@ fn resolve_realm_render_graph<'a>(
     if let Some(render_graph_id) = realm.value.render_graph_id
         && let Some(graph) = universal.render_graphs.get(&render_graph_id)
     {
-        return Some(graph);
+        return Some(&graph.state);
     }
     let fallback_graph_id = match realm.value.kind {
         crate::core::realm::RealmKind::ThreeD => {
@@ -60,7 +60,10 @@ fn resolve_realm_render_graph<'a>(
             crate::core::render::graph::DEFAULT_2D_RENDER_GRAPH_ID
         }
     };
-    universal.render_graphs.get(&fallback_graph_id)
+    universal
+        .render_graphs
+        .get(&fallback_graph_id)
+        .map(|record| &record.state)
 }
 
 pub fn render_frames(engine_state: &mut EngineState) {

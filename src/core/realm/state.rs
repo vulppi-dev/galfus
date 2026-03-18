@@ -224,7 +224,8 @@ pub struct UniversalState {
     pub surface_cache: SurfaceCache,
     pub frame_report: super::FrameReport,
     pub realm_entities: HashMap<RealmId, RealmEntities>,
-    pub render_graphs: HashMap<u32, crate::core::render::graph::RenderGraphState>,
+    pub render_graphs: HashMap<u32, crate::core::render::graph::RenderGraphRecord>,
+    pub render_graph_plan_cache: HashMap<u64, crate::core::render::graph::RenderGraphState>,
     pub global_resources: GlobalResources,
 }
 

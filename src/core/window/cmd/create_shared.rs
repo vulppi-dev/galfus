@@ -17,7 +17,10 @@ pub fn register_window_realm(
     window_id: u32,
     size: UVec2,
 ) -> WindowRealmBinding {
-    ensure_default_render_graphs(&mut engine.universal_state.render_graphs);
+    ensure_default_render_graphs(
+        &mut engine.universal_state.render_graphs,
+        &mut engine.universal_state.render_graph_plan_cache,
+    );
     let surface_id = engine.universal_state.surfaces.alloc(SurfaceState {
         kind: SurfaceKind::Onscreen,
         size,

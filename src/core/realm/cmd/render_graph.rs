@@ -40,6 +40,7 @@ pub struct CmdRenderGraphListArgs {}
 #[serde(default, rename_all = "camelCase")]
 pub struct RenderGraphEntry {
     pub render_graph_id: u32,
+    pub desc_hash: u64,
     pub pass_count: usize,
     pub pass_ids: Vec<String>,
 }
@@ -124,26 +125,46 @@ pub fn engine_cmd_render_graph_upsert(
         };
     }
 
-    let graph_state =
-        match crate::core::render::graph::RenderGraphState::from_desc(args.graph.clone()) {
-            Ok(state) => state,
-            Err(err) => {
-                let result = emit_render_graph_error(
-                    engine,
-                    format!("Invalid render graph {}: {}", args.render_graph_id, err),
-                    "render-graph-upsert",
-                );
-                return CmdResultRenderGraphUpsert {
-                    success: result.success,
-                    message: result.message,
-                };
-            }
-        };
+    let desc_hash = crate::core::render::graph::render_graph_desc_hash(&args.graph);
+    let graph_state = if let Some(cached) = engine
+        .universal_state
+        .render_graph_plan_cache
+        .get(&desc_hash)
+    {
+        cached.clone()
+    } else {
+        let compiled =
+            match crate::core::render::graph::RenderGraphState::from_desc(args.graph.clone()) {
+                Ok(state) => state,
+                Err(err) => {
+                    let result = emit_render_graph_error(
+                        engine,
+                        format!("Invalid render graph {}: {}", args.render_graph_id, err),
+                        "render-graph-upsert",
+                    );
+                    return CmdResultRenderGraphUpsert {
+                        success: result.success,
+                        message: result.message,
+                    };
+                }
+            };
+        engine
+            .universal_state
+            .render_graph_plan_cache
+            .insert(desc_hash, compiled.clone());
+        compiled
+    };
 
     let existed = engine
         .universal_state
         .render_graphs
-        .insert(args.render_graph_id, graph_state)
+        .insert(
+            args.render_graph_id,
+            crate::core::render::graph::RenderGraphRecord {
+                state: graph_state,
+                desc_hash,
+            },
+        )
         .is_some();
     let used_by = realms_using_graph(engine, args.render_graph_id);
     for realm_id in used_by {
@@ -239,10 +260,11 @@ pub fn engine_cmd_render_graph_list(
         let Some(graph) = engine.universal_state.render_graphs.get(&render_graph_id) else {
             continue;
         };
-        let plan = graph.plan();
+        let plan = graph.state.plan();
         let pass_ids = plan.nodes.iter().map(|node| node.pass_id.clone()).collect();
         render_graphs.push(RenderGraphEntry {
             render_graph_id,
+            desc_hash: graph.desc_hash,
             pass_count: plan.nodes.len(),
             pass_ids,
         });

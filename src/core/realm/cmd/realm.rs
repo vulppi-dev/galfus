@@ -50,7 +50,10 @@ pub fn engine_cmd_realm_create(
         RealmKindDto::ThreeD => RealmKind::ThreeD,
         RealmKindDto::TwoD => RealmKind::TwoD,
     };
-    ensure_default_render_graphs(&mut engine.universal_state.render_graphs);
+    ensure_default_render_graphs(
+        &mut engine.universal_state.render_graphs,
+        &mut engine.universal_state.render_graph_plan_cache,
+    );
     let render_graph_id = match kind {
         RealmKind::ThreeD => Some(DEFAULT_3D_RENDER_GRAPH_ID),
         RealmKind::TwoD => Some(DEFAULT_2D_RENDER_GRAPH_ID),

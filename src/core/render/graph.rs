@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet, VecDeque};
+use std::hash::{DefaultHasher, Hash, Hasher};
 
 mod validation;
 
@@ -151,6 +152,12 @@ pub struct RenderGraphState {
     uses_fallback: bool,
 }
 
+#[derive(Debug, Clone)]
+pub struct RenderGraphRecord {
+    pub state: RenderGraphState,
+    pub desc_hash: u64,
+}
+
 impl RenderGraphState {
     pub fn new() -> Self {
         Self::new_with_fallback(fallback_graph())
@@ -191,13 +198,44 @@ impl RenderGraphState {
 pub const DEFAULT_3D_RENDER_GRAPH_ID: u32 = 1;
 pub const DEFAULT_2D_RENDER_GRAPH_ID: u32 = 2;
 
-pub fn ensure_default_render_graphs(store: &mut HashMap<u32, RenderGraphState>) {
-    store
+pub fn render_graph_desc_hash(desc: &RenderGraphDesc) -> u64 {
+    let mut hasher = DefaultHasher::new();
+    match rmp_serde::to_vec_named(desc) {
+        Ok(bytes) => bytes.hash(&mut hasher),
+        Err(_) => format!("{:?}", desc.graph_id).hash(&mut hasher),
+    }
+    hasher.finish()
+}
+
+pub fn ensure_default_render_graphs(
+    graphs: &mut HashMap<u32, RenderGraphRecord>,
+    cache: &mut HashMap<u64, RenderGraphState>,
+) {
+    let fallback_3d = fallback_graph();
+    let hash_3d = render_graph_desc_hash(&fallback_3d);
+    let state_3d = cache
+        .entry(hash_3d)
+        .or_insert_with(RenderGraphState::new)
+        .clone();
+    graphs
         .entry(DEFAULT_3D_RENDER_GRAPH_ID)
-        .or_insert_with(RenderGraphState::new);
-    store
+        .or_insert(RenderGraphRecord {
+            state: state_3d,
+            desc_hash: hash_3d,
+        });
+
+    let fallback_2d = ui_fallback_graph();
+    let hash_2d = render_graph_desc_hash(&fallback_2d);
+    let state_2d = cache
+        .entry(hash_2d)
+        .or_insert_with(RenderGraphState::new_ui)
+        .clone();
+    graphs
         .entry(DEFAULT_2D_RENDER_GRAPH_ID)
-        .or_insert_with(RenderGraphState::new_ui);
+        .or_insert(RenderGraphRecord {
+            state: state_2d,
+            desc_hash: hash_2d,
+        });
 }
 
 pub fn validate_graph(desc: &RenderGraphDesc) -> Result<RenderGraphPlan, String> {
