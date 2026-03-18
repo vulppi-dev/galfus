@@ -1,6 +1,6 @@
 # Render Graph (Internal)
 
-This document describes the internal render graph format. Render graphs live in a global core catalog and are referenced by realms through logical `render_graph_id`. If a bound graph is missing or invalid, the core executes a safe fallback graph for that realm kind. Render graphs are realm-scoped (via binding), not window-scoped.
+This document describes the render graph format used by the engine. Render graphs live in a global core catalog and are referenced by realms through logical `render_graph_id`. If a bound graph is missing or invalid, the core executes a safe fallback graph for that realm kind. Render graphs are realm-scoped (via binding), not window-scoped.
 
 The core infers any missing resources from node inputs/outputs using default values (texture + frame lifetime).
 
@@ -13,9 +13,10 @@ The core infers any missing resources from node inputs/outputs using default val
 
 ## High-Level Flow
 
-1. The core constructs a render graph using logical IDs.
+1. The host upserts a render graph resource using logical IDs.
 2. The core validates the graph and compiles an execution plan.
-3. On failure, the core uses a fallback graph.
+3. A realm binds to that graph by `render_graph_id`.
+4. On missing/invalid bindings, the core uses a fallback graph.
 
 ## Graph Structure
 

@@ -181,6 +181,15 @@ impl RenderGraphState {
     pub fn plan(&self) -> &RenderGraphPlan {
         &self.active
     }
+
+    pub fn from_desc(desc: RenderGraphDesc) -> Result<Self, String> {
+        let active = validate_graph(&desc)?;
+        Ok(Self {
+            fallback: active.clone(),
+            active,
+            uses_fallback: false,
+        })
+    }
 }
 
 pub const DEFAULT_3D_RENDER_GRAPH_ID: u32 = 1;
