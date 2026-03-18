@@ -2,8 +2,6 @@
 
 This document describes the render graph format used by the engine. Render graphs live in a global core catalog and are referenced by realms through logical `render_graph_id`. If a bound graph is missing or invalid, the core executes a safe fallback graph for that realm kind. Render graphs are realm-scoped (via binding), not window-scoped.
 
-The core infers any missing resources from node inputs/outputs using default values (texture + frame lifetime).
-
 ## Goals
 
 - **Host control**: The host defines the render sequence and dependencies.
@@ -31,14 +29,14 @@ The core does not inject implicit render passes outside the bound graph.
 | nodes     | Node[]     | Render nodes                                  |
 | edges     | Edge[]     | Dependencies between nodes                    |
 | resources | Resource[] | Declared resources                            |
-| fallback  | bool       | If true, use fallback when invalid or missing |
+| fallback  | bool       | Reserved metadata field (currently not used in runtime decisions) |
 
 ### Node
 
 | Field   | Type        | Description                              |
 | ------- | ----------- | ---------------------------------------- |
 | nodeId  | LogicalId   | Logical node identifier                  |
-| passId  | LogicalId   | Logical pass type (e.g., "forward")      |
+| passId  | string      | Pass type (e.g., "forward")               |
 | inputs  | LogicalId[] | Resource IDs read by this node           |
 | outputs | LogicalId[] | Resource IDs written by this node        |
 | params  | Map         | Optional parameters (clear, flags, etc.) |
@@ -62,7 +60,7 @@ The core does not inject implicit render passes outside the bound graph.
 
 ### LogicalId
 
-Logical IDs can be strings or numeric values. The core maps them to internal IDs once per `graphId` and caches the result to avoid per-frame cost.
+Logical IDs can be strings or numeric values.
 
 ## Known Pass IDs
 
