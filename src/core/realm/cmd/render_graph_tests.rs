@@ -122,6 +122,7 @@ fn render_graph_upsert_and_list_includes_desc_hash_and_passes() {
     assert_eq!(entry.desc_hash, expected_hash);
     assert_eq!(entry.pass_count, 1);
     assert_eq!(entry.pass_ids, vec!["shadow".to_string()]);
+    assert_eq!(entry.bound_realm_ids, Vec::<u32>::new());
 }
 
 #[test]
@@ -367,4 +368,51 @@ fn upsert_rejects_incompatible_update_for_bound_realms() {
     assert!(errors.iter().any(|(scope, _, command_type)| {
         scope == "render-graph" && command_type.as_deref() == Some("render-graph-upsert")
     }));
+}
+
+#[test]
+fn render_graph_list_reports_bound_realms() {
+    let mut engine = EngineState::new();
+    let realm_a = create_realm(&mut engine, RealmKindDto::ThreeD);
+    let realm_b = create_realm(&mut engine, RealmKindDto::ThreeD);
+
+    assert!(
+        engine_cmd_render_graph_upsert(
+            &mut engine,
+            &CmdRenderGraphUpsertArgs {
+                render_graph_id: 108,
+                graph: valid_graph("custom_list_bind", "shadow_atlas_list_bind"),
+            },
+        )
+        .success
+    );
+    assert!(
+        engine_cmd_realm_render_graph_bind(
+            &mut engine,
+            &CmdRealmRenderGraphBindArgs {
+                realm_id: realm_a,
+                render_graph_id: 108,
+            },
+        )
+        .success
+    );
+    assert!(
+        engine_cmd_realm_render_graph_bind(
+            &mut engine,
+            &CmdRealmRenderGraphBindArgs {
+                realm_id: realm_b,
+                render_graph_id: 108,
+            },
+        )
+        .success
+    );
+
+    let listed = engine_cmd_render_graph_list(&mut engine, &CmdRenderGraphListArgs::default());
+    assert!(listed.success, "list failed: {}", listed.message);
+    let entry = listed
+        .render_graphs
+        .iter()
+        .find(|entry| entry.render_graph_id == 108)
+        .expect("custom graph must be listed");
+    assert_eq!(entry.bound_realm_ids, vec![realm_a, realm_b]);
 }

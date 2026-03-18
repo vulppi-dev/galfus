@@ -43,6 +43,7 @@ pub struct RenderGraphEntry {
     pub desc_hash: u64,
     pub pass_count: usize,
     pub pass_ids: Vec<String>,
+    pub bound_realm_ids: Vec<u32>,
 }
 
 #[derive(Debug, Default, Deserialize, Serialize, Clone)]
@@ -299,11 +300,17 @@ pub fn engine_cmd_render_graph_list(
         };
         let plan = graph.state.plan();
         let pass_ids = plan.nodes.iter().map(|node| node.pass_id.clone()).collect();
+        let mut bound_realm_ids: Vec<u32> = realms_using_graph(engine, render_graph_id)
+            .into_iter()
+            .map(|realm_id| realm_id.0)
+            .collect();
+        bound_realm_ids.sort_unstable();
         render_graphs.push(RenderGraphEntry {
             render_graph_id,
             desc_hash: graph.desc_hash,
             pass_count: plan.nodes.len(),
             pass_ids,
+            bound_realm_ids,
         });
     }
 

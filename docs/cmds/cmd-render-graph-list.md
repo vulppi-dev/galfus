@@ -24,3 +24,4 @@ Returns `CmdResultRenderGraphList`:
 | descHash      | u64         | Hash of the graph description used for compiled-plan cache |
 | passCount     | usize       | Number of pass nodes in the plan |
 | passIds       | Vec<String> | Ordered pass IDs from active plan |
+| boundRealmIds | Vec<u32>    | Realm IDs currently bound to this graph |
