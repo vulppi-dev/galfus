@@ -1,7 +1,9 @@
 use serde::{Deserialize, Serialize};
 
 use crate::core::realm::{RealmId, RealmKind, RealmState};
-use crate::core::render::graph::RenderGraphState;
+use crate::core::render::graph::{
+    DEFAULT_2D_RENDER_GRAPH_ID, DEFAULT_3D_RENDER_GRAPH_ID, ensure_default_render_graphs,
+};
 use crate::core::state::EngineState;
 use crate::core::target::resolve::remove_auto_link_for_layer;
 
@@ -48,15 +50,19 @@ pub fn engine_cmd_realm_create(
         RealmKindDto::ThreeD => RealmKind::ThreeD,
         RealmKindDto::TwoD => RealmKind::TwoD,
     };
-    let render_graph = match kind {
-        RealmKind::ThreeD => RenderGraphState::new(),
-        RealmKind::TwoD => RenderGraphState::new_ui(),
+    ensure_default_render_graphs(
+        &mut engine.universal_state.render_graphs,
+        &mut engine.universal_state.render_graph_plan_cache,
+    );
+    let render_graph_id = match kind {
+        RealmKind::ThreeD => Some(DEFAULT_3D_RENDER_GRAPH_ID),
+        RealmKind::TwoD => Some(DEFAULT_2D_RENDER_GRAPH_ID),
     };
 
     let realm_id = engine.universal_state.realms.alloc(RealmState {
         kind,
         output_surface: None,
-        render_graph: Some(render_graph),
+        render_graph_id,
         importance: args.importance.unwrap_or(1),
         cache_policy: args.cache_policy.unwrap_or(0),
         last_render_frame: 0,

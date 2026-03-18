@@ -24,7 +24,6 @@ pub use self::library::SamplerSet;
 pub use self::light::{FrustumPlane, LightCullingSystem};
 pub use self::scene::RenderScene;
 pub use self::skinning::SkinningSystem;
-pub use crate::core::render::graph::RenderGraphState;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct SampledTargetBindKey {
@@ -69,7 +68,6 @@ pub struct RenderState {
     pub light_prepare_frustums: Vec<FrustumPlane>,
     pub rgba16f_msaa_supported_mask: u8,
     pub skinning: SkinningSystem,
-    pub render_graph: RenderGraphState,
     pub ui_renderers: std::collections::HashMap<RealmId, UiRenderer>,
 
     /// Per-frame collector for draw calls, reused to avoid allocations.

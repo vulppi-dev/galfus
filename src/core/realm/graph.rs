@@ -156,7 +156,7 @@ mod tests {
         RealmState {
             kind: RealmKind::TwoD,
             output_surface,
-            render_graph: None,
+            render_graph_id: None,
             importance: 1,
             cache_policy: 0,
             last_render_frame: 0,

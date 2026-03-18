@@ -42,6 +42,30 @@ fn now_ns() -> u64 {
     (Date::now() * 1_000_000.0) as u64
 }
 
+fn resolve_realm_render_graph<'a>(
+    universal: &'a crate::core::realm::UniversalState,
+    realm_id: crate::core::realm::RealmId,
+) -> Option<&'a crate::core::render::graph::RenderGraphState> {
+    let realm = universal.realms.entries.get(&realm_id)?;
+    if let Some(render_graph_id) = realm.value.render_graph_id
+        && let Some(graph) = universal.render_graphs.get(&render_graph_id)
+    {
+        return Some(&graph.state);
+    }
+    let fallback_graph_id = match realm.value.kind {
+        crate::core::realm::RealmKind::ThreeD => {
+            crate::core::render::graph::DEFAULT_3D_RENDER_GRAPH_ID
+        }
+        crate::core::realm::RealmKind::TwoD => {
+            crate::core::render::graph::DEFAULT_2D_RENDER_GRAPH_ID
+        }
+    };
+    universal
+        .render_graphs
+        .get(&fallback_graph_id)
+        .map(|record| &record.state)
+}
+
 pub fn render_frames(engine_state: &mut EngineState) {
     engine_state.profiling.render.total_ns = 0;
     engine_state.profiling.render.shadow_ns = 0;
@@ -95,79 +119,9 @@ pub fn render_frames(engine_state: &mut EngineState) {
     #[cfg(feature = "wasm")]
     let total_start = now_ns();
 
-    // 1. Update Shadows (Global for all realms with a shadow pass)
-    let shadow_enabled = engine_state
-        .universal_state
-        .realms
-        .entries
-        .values()
-        .filter_map(|entry| entry.value.render_graph.as_ref())
-        .any(|graph| graph.plan().has_pass("shadow"));
-
-    if shadow_enabled {
-        #[cfg(not(feature = "wasm"))]
-        let shadow_start = std::time::Instant::now();
-        #[cfg(feature = "wasm")]
-        let shadow_start = now_ns();
-
-        let window_ids: Vec<u32> = engine_state.render.states.keys().copied().collect();
-        for (index, window_id) in window_ids.iter().copied().enumerate() {
-            let Some(render_state) = engine_state.render.get_mut(&window_id) else {
-                log::error!("Render state not found for window {}", window_id);
-                continue;
-            };
-
-            // Ensure data is ready but WITHOUT shadow atlas binding to avoid conflicts.
-            render_state.prepare_render(device, frame_spec, false);
-
-            let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                label: Some("Shadow Update Encoder"),
-            });
-
-            // Keep GPU timestamps lightweight: only first shadow update writes markers.
-            if index == 0
-                && let Some(gpu_profiler) = engine_state.gpu_profiler.as_ref()
-                && gpu_profiler.query_count() >= 2
-            {
-                encoder.write_timestamp(gpu_profiler.query_set(), 0);
-                gpu_written = true;
-            }
-
-            passes::pass_shadow_update(
-                render_state,
-                device,
-                queue,
-                &mut encoder,
-                engine_state.frame_index,
-            );
-
-            if index == 0
-                && let Some(gpu_profiler) = engine_state.gpu_profiler.as_ref()
-                && gpu_profiler.query_count() >= 2
-            {
-                encoder.write_timestamp(gpu_profiler.query_set(), 1);
-                gpu_written = true;
-            }
-
-            if let Some(shadow) = &mut render_state.shadow {
-                shadow.sync_table();
-            }
-
-            queue.submit(Some(encoder.finish()));
-        }
-
-        #[cfg(not(feature = "wasm"))]
-        {
-            engine_state.profiling.render.shadow_ns = shadow_start.elapsed().as_nanos() as u64;
-        }
-        #[cfg(feature = "wasm")]
-        {
-            engine_state.profiling.render.shadow_ns = now_ns().saturating_sub(shadow_start);
-        }
-    }
-
-    // 2. Render all realms (RealmGraph order)
+    // 1. Render all realms (RealmGraph order)
     let mut windows_ns: u64 = 0;
+    let mut shadow_ns: u64 = 0;
     let realm_plan = RealmGraphPlanner::default().build_plan(&engine_state.universal_state);
     let cut_connectors = collect_cut_connectors(&realm_plan);
     update_surface_cache(&mut engine_state.universal_state, &cut_connectors);
@@ -362,13 +316,7 @@ pub fn render_frames(engine_state: &mut EngineState) {
             });
             window_counter = window_counter.saturating_add(1);
 
-            let plan = match engine_state
-                .universal_state
-                .realms
-                .entries
-                .get(realm_id)
-                .and_then(|entry| entry.value.render_graph.as_ref())
-            {
+            let plan = match resolve_realm_render_graph(&engine_state.universal_state, *realm_id) {
                 Some(graph) => graph.plan().clone(),
                 None => {
                     log::error!("Realm {} is missing a render graph", realm_id.0);
@@ -423,6 +371,7 @@ pub fn render_frames(engine_state: &mut EngineState) {
                 window_focused,
                 engine_state.gpu_profiler.as_ref(),
                 gpu_base,
+                &mut shadow_ns,
             );
 
             compose_realm_connectors(
@@ -583,6 +532,7 @@ pub fn render_frames(engine_state: &mut EngineState) {
         push_error_event(engine_state, "realm-graph-soft-cut", message, None, None);
     }
     apply_ui_platform_actions(engine_state, ui_platform_actions);
+    engine_state.profiling.render.shadow_ns = shadow_ns;
     engine_state.profiling.render.windows_ns = windows_ns;
     #[cfg(not(feature = "wasm"))]
     {

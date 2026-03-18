@@ -77,6 +77,18 @@ pub(super) fn maybe_emit_response_error_event(
         CommandResponse::ShadowConfigure(result) => failure_case!(result, "shadow-configure"),
         CommandResponse::RealmCreate(result) => failure_case!(result, "realm-create"),
         CommandResponse::RealmDispose(result) => failure_case!(result, "realm-dispose"),
+        CommandResponse::RenderGraphUpsert(result) => {
+            failure_case!(result, "render-graph-upsert")
+        }
+        CommandResponse::RenderGraphDispose(result) => {
+            failure_case!(result, "render-graph-dispose")
+        }
+        CommandResponse::RenderGraphList(result) => {
+            failure_case!(result, "render-graph-list")
+        }
+        CommandResponse::RealmRenderGraphBind(result) => {
+            failure_case!(result, "realm-render-graph-bind")
+        }
         CommandResponse::TargetUpsert(result) => failure_case!(result, "target-upsert"),
         CommandResponse::TargetMeasurement(result) => failure_case!(result, "target-measurement"),
         CommandResponse::TargetDispose(result) => failure_case!(result, "target-dispose"),

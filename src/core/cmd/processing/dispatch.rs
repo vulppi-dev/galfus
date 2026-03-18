@@ -439,6 +439,43 @@ pub(super) fn dispatch_command(
                 response: CommandResponse::RealmDispose(result),
             });
         }
+        EngineCmd::CmdRenderGraphUpsert(args) => {
+            let result = realm::engine_cmd_render_graph_upsert(engine, &args);
+            if result.success {
+                mark_windows_dirty(engine);
+            }
+            engine.response_queue.push(CommandResponseEnvelope {
+                id: pack.id,
+                response: CommandResponse::RenderGraphUpsert(result),
+            });
+        }
+        EngineCmd::CmdRenderGraphDispose(args) => {
+            let result = realm::engine_cmd_render_graph_dispose(engine, &args);
+            if result.success {
+                mark_windows_dirty(engine);
+            }
+            engine.response_queue.push(CommandResponseEnvelope {
+                id: pack.id,
+                response: CommandResponse::RenderGraphDispose(result),
+            });
+        }
+        EngineCmd::CmdRenderGraphList(args) => {
+            let result = realm::engine_cmd_render_graph_list(engine, &args);
+            engine.response_queue.push(CommandResponseEnvelope {
+                id: pack.id,
+                response: CommandResponse::RenderGraphList(result),
+            });
+        }
+        EngineCmd::CmdRealmRenderGraphBind(args) => {
+            let result = realm::engine_cmd_realm_render_graph_bind(engine, &args);
+            if result.success {
+                mark_windows_dirty(engine);
+            }
+            engine.response_queue.push(CommandResponseEnvelope {
+                id: pack.id,
+                response: CommandResponse::RealmRenderGraphBind(result),
+            });
+        }
         EngineCmd::CmdTargetUpsert(args) => {
             let result = target::engine_cmd_target_upsert(engine, &args);
             if result.success {

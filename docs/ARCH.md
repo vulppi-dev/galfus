@@ -55,7 +55,7 @@ Core responsibilities:
 - Keep track of **instances** (components) per host ID:
   - Cameras, models, lights.
 - Maintain **Realm/Surface/RealmGraph** state:
-  - `Realm` owns a render graph and outputs to a `Surface`.
+  - `Realm` references a render graph (`render_graph_id`) and outputs to a `Surface`.
   - `Present` maps a `Surface` to a window.
   - `Connector` composes one realm into another.
 - Manage GPU buffers, textures, pipelines, and render passes.

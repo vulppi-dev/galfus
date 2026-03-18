@@ -24,7 +24,12 @@ pub fn create_camera_cmd(realm_id: u32, camera_id: u32, label: &str, transform: 
     ))
 }
 
-pub fn create_point_light_cmd(realm_id: u32, light_id: u32, position: Vec4) -> EngineCmd {
+pub fn create_point_light_cmd(
+    realm_id: u32,
+    light_id: u32,
+    position: Vec4,
+    intensity: f32,
+) -> EngineCmd {
     EngineCmd::CmdLightUpsert(crate::core::cmd::CmdLightUpsertArgs::Create(
         CmdLightCreateArgs {
             realm_id,
@@ -35,7 +40,7 @@ pub fn create_point_light_cmd(realm_id: u32, light_id: u32, position: Vec4) -> E
             direction: None,
             color: Some(Vec4::new(1.0, 1.0, 1.0, 1.0)),
             ground_color: None,
-            intensity: Some(20.0),
+            intensity: Some(intensity),
             range: Some(30.0),
             spot_inner_outer: None,
             layer_mask: 0xFFFFFFFF,

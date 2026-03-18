@@ -1,5 +1,8 @@
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet, VecDeque};
+use std::hash::{DefaultHasher, Hash, Hasher};
+
+mod validation;
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(untagged)]
@@ -142,17 +145,15 @@ pub struct RenderGraphPlan {
     pub order: Vec<usize>,
 }
 
-impl RenderGraphPlan {
-    pub fn has_pass(&self, pass_id: &str) -> bool {
-        self.nodes.iter().any(|node| node.pass_id == pass_id)
-    }
+#[derive(Debug, Clone)]
+pub struct RenderGraphState {
+    active: RenderGraphPlan,
 }
 
 #[derive(Debug, Clone)]
-pub struct RenderGraphState {
-    fallback: RenderGraphPlan,
-    active: RenderGraphPlan,
-    uses_fallback: bool,
+pub struct RenderGraphRecord {
+    pub state: RenderGraphState,
+    pub desc_hash: u64,
 }
 
 impl RenderGraphState {
@@ -166,21 +167,60 @@ impl RenderGraphState {
 
     pub fn new_with_fallback(fallback_desc: RenderGraphDesc) -> Self {
         let fallback = validate_graph(&fallback_desc).expect("Fallback graph must be valid");
-        Self {
-            active: fallback.clone(),
-            fallback,
-            uses_fallback: true,
-        }
-    }
-
-    pub fn reset_to_fallback(&mut self) {
-        self.active = self.fallback.clone();
-        self.uses_fallback = true;
+        Self { active: fallback }
     }
 
     pub fn plan(&self) -> &RenderGraphPlan {
         &self.active
     }
+
+    pub fn from_desc(desc: RenderGraphDesc) -> Result<Self, String> {
+        let active = validate_graph(&desc)?;
+        Ok(Self { active })
+    }
+}
+
+pub const DEFAULT_3D_RENDER_GRAPH_ID: u32 = 1;
+pub const DEFAULT_2D_RENDER_GRAPH_ID: u32 = 2;
+
+pub fn render_graph_desc_hash(desc: &RenderGraphDesc) -> u64 {
+    let mut hasher = DefaultHasher::new();
+    match rmp_serde::to_vec_named(desc) {
+        Ok(bytes) => bytes.hash(&mut hasher),
+        Err(_) => format!("{:?}", desc.graph_id).hash(&mut hasher),
+    }
+    hasher.finish()
+}
+
+pub fn ensure_default_render_graphs(
+    graphs: &mut HashMap<u32, RenderGraphRecord>,
+    cache: &mut HashMap<u64, RenderGraphState>,
+) {
+    let fallback_3d = fallback_graph();
+    let hash_3d = render_graph_desc_hash(&fallback_3d);
+    let state_3d = cache
+        .entry(hash_3d)
+        .or_insert_with(RenderGraphState::new)
+        .clone();
+    graphs
+        .entry(DEFAULT_3D_RENDER_GRAPH_ID)
+        .or_insert(RenderGraphRecord {
+            state: state_3d,
+            desc_hash: hash_3d,
+        });
+
+    let fallback_2d = ui_fallback_graph();
+    let hash_2d = render_graph_desc_hash(&fallback_2d);
+    let state_2d = cache
+        .entry(hash_2d)
+        .or_insert_with(RenderGraphState::new_ui)
+        .clone();
+    graphs
+        .entry(DEFAULT_2D_RENDER_GRAPH_ID)
+        .or_insert(RenderGraphRecord {
+            state: state_2d,
+            desc_hash: hash_2d,
+        });
 }
 
 pub fn validate_graph(desc: &RenderGraphDesc) -> Result<RenderGraphPlan, String> {
@@ -243,6 +283,7 @@ pub fn validate_graph(desc: &RenderGraphDesc) -> Result<RenderGraphPlan, String>
     }
 
     let order = topo_sort(&desc.nodes, &desc.edges)?;
+    validation::validate_graph_semantics(desc, &order)?;
 
     Ok(RenderGraphPlan {
         nodes: desc.nodes.clone(),
@@ -361,7 +402,10 @@ pub fn fallback_graph() -> RenderGraphDesc {
             RenderGraphNode {
                 node_id: LogicalId::Str("forward_pass".into()),
                 pass_id: "forward".into(),
-                inputs: vec![LogicalId::Str("shadow_atlas".into())],
+                inputs: vec![
+                    LogicalId::Str("shadow_atlas".into()),
+                    LogicalId::Str("hdr_color".into()),
+                ],
                 outputs: vec![
                     LogicalId::Str("hdr_color".into()),
                     LogicalId::Str("depth".into()),
@@ -435,7 +479,7 @@ pub fn fallback_graph() -> RenderGraphDesc {
             RenderGraphEdge {
                 from_node_id: LogicalId::Str("light_cull_pass".into()),
                 to_node_id: LogicalId::Str("skybox_pass".into()),
-                reason: Some(RenderGraphEdgeReason::ReadAfterWrite),
+                reason: None,
             },
             RenderGraphEdge {
                 from_node_id: LogicalId::Str("skybox_pass".into()),

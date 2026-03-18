@@ -81,8 +81,11 @@ mod window_ui;
 struct DemoIds {
     camera_id: u32,
     geometry_id: u32,
+    ground_geometry_id: u32,
     material_id: u32,
+    ground_material_id: u32,
     model_id: u32,
+    ground_model_id: u32,
     light_id: u32,
     target_id: u64,
     texture_id: u32,
@@ -98,8 +101,11 @@ impl DemoIds {
         Self {
             camera_id: base + 1,
             geometry_id: base + 2,
+            ground_geometry_id: base + 12,
             material_id: base + 3,
+            ground_material_id: base + 13,
             model_id: base + 4,
+            ground_model_id: base + 14,
             light_id: base + 5,
             target_id: 50_000 + number as u64,
             texture_id: base + 6,

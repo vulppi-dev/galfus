@@ -95,6 +95,7 @@ pub struct EngineState {
 `UniversalState` is the realm-centric runtime table set:
 
 - `realms`, `surfaces`, `connectors`, `presents`
+- `render_graphs` (global catalog of render graph resources referenced by `render_graph_id`)
 - `surface_cache` for cycle-breaking (`LastGoodSurface`/`FallbackSurface`)
 - `frame_report` for RealmGraph diagnostics
 

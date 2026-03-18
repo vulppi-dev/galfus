@@ -16,7 +16,9 @@ impl RenderState {
             &library.fallback_shadow_view
         };
 
-        let make_shared_group = |camera_buffer: &wgpu::Buffer, label: &str| {
+        let make_shared_group = |camera_buffer: &wgpu::Buffer,
+                                 shadow_view: &wgpu::TextureView,
+                                 label: &str| {
             device.create_bind_group(&wgpu::BindGroupDescriptor {
                 label: Some(label),
                 layout: &library.layout_shared,
@@ -95,7 +97,7 @@ impl RenderState {
                     },
                     wgpu::BindGroupEntry {
                         binding: 7,
-                        resource: wgpu::BindingResource::TextureView(shadow_atlas_view),
+                        resource: wgpu::BindingResource::TextureView(shadow_view),
                     },
                     wgpu::BindGroupEntry {
                         binding: 8,
@@ -144,12 +146,14 @@ impl RenderState {
         if bindings.shared_group.is_none() {
             bindings.shared_group = Some(make_shared_group(
                 bindings.camera_pool.buffer(),
+                shadow_atlas_view,
                 &format!("BindGroup Shared (Consolidated, shadows={with_shadows})"),
             ));
         }
         if bindings.shadow_shared_group.is_none() {
             bindings.shadow_shared_group = Some(make_shared_group(
                 bindings.shadow_camera_pool.buffer(),
+                &library.fallback_shadow_view,
                 &format!("BindGroup Shadow Shared (Consolidated, shadows={with_shadows})"),
             ));
         }

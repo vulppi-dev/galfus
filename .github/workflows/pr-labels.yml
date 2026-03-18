@@ -1,4 +1,4 @@
-name: PR Labels
+name: PR Labels and Validate
 
 on:
   pull_request_target:
@@ -112,3 +112,76 @@ jobs:
             }
 
             core.info(`changelog labels added=[${toAdd.join(", ")}], removed=[${toRemove.join(", ")}]`);
+
+  validate:
+    name: PR Validate
+    needs:
+      - labels
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Validate PR policy
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            if (!pr) {
+              core.setFailed('No pull_request payload found.');
+              return;
+            }
+
+            const errors = [];
+
+            const title = (pr.title || '').trim();
+            const semanticTitle = /^(feat|fix|perf|docs|chore|refactor|test|build|ci)(\([^)]+\))?!?:\s+.+$/;
+            if (!semanticTitle.test(title)) {
+              errors.push(
+                'Invalid PR title. Use semantic format: type(scope): summary (types: feat, fix, perf, docs, chore, refactor, test, build, ci).'
+              );
+            }
+
+            const body = (pr.body || '').toLowerCase();
+            const issuePatterns = [
+              /\b(close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved)\s+#\d+\b/i,
+              /\b(close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved)\s+https:\/\/github\.com\/[^/\s]+\/[^/\s]+\/issues\/\d+\b/i,
+            ];
+            if (!issuePatterns.some((re) => re.test(body))) {
+              errors.push("Missing linked issue in PR body. Add e.g. 'Closes #123'.");
+            }
+
+            const allowedChangelog = new Set([
+              'changelog:breaking',
+              'changelog:feature',
+              'changelog:fix',
+              'changelog:performance',
+              'changelog:docs',
+              'changelog:internal',
+            ]);
+            const labels = pr.labels.map((l) => l.name);
+            if (!labels.some((name) => allowedChangelog.has(name))) {
+              errors.push('Missing changelog label. Add one of: ' + [...allowedChangelog].join(', '));
+            }
+
+            const baseRef = pr.base.ref;
+            const headRef = pr.head.ref;
+            const isPromotionBase =
+              /^alpha\/.+$/.test(baseRef) ||
+              /^beta\/.+$/.test(baseRef) ||
+              /^release\/.+$/.test(baseRef);
+
+            if (isPromotionBase) {
+              const isMain = headRef === 'main';
+              const isStable = /^stable\/.+$/.test(headRef);
+              if (!isMain && !isStable) {
+                errors.push(
+                  `Invalid promotion source "${headRef}". Allowed sources for ${baseRef}: main or stable/*`
+                );
+              }
+            }
+
+            if (errors.length > 0) {
+              core.setFailed(errors.map((msg) => `- ${msg}`).join('\n'));
+            }

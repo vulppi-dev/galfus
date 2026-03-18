@@ -10,6 +10,7 @@ Demos no Vulfram validam, de forma incremental, os principais aspectos da engine
    - evento de fechamento da janela
    - atalho `Ctrl+W`
 2. Todo demo deve ter UI com FPS em tempo real visível em tela.
+3. Todo demo 3D deve incluir um `plane` para simular chão e manter sombras habilitadas.
 
 ## Estrutura Base dos Novos Demos
 

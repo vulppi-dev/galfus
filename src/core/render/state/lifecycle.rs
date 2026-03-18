@@ -61,7 +61,6 @@ impl RenderState {
             skybox_uniform_buffer: None,
             collector: DrawCollector::default(),
             skinning: crate::core::render::state::SkinningSystem::default(),
-            render_graph: crate::core::render::graph::RenderGraphState::new(),
             ui_renderers: HashMap::new(),
             environment: crate::core::resources::EnvironmentConfig::default(),
             environment_is_configured: false,
@@ -112,7 +111,6 @@ impl RenderState {
         self.bloom_uniform_buffer = None;
         self.skybox_uniform_buffer = None;
         self.skinning.clear();
-        self.render_graph.reset_to_fallback();
         self.ui_renderers.clear();
         self.environment = crate::core::resources::EnvironmentConfig::default();
         self.environment_is_configured = false;
