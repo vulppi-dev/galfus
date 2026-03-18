@@ -183,6 +183,18 @@ impl RenderGraphState {
     }
 }
 
+pub const DEFAULT_3D_RENDER_GRAPH_ID: u32 = 1;
+pub const DEFAULT_2D_RENDER_GRAPH_ID: u32 = 2;
+
+pub fn ensure_default_render_graphs(store: &mut HashMap<u32, RenderGraphState>) {
+    store
+        .entry(DEFAULT_3D_RENDER_GRAPH_ID)
+        .or_insert_with(RenderGraphState::new);
+    store
+        .entry(DEFAULT_2D_RENDER_GRAPH_ID)
+        .or_insert_with(RenderGraphState::new_ui);
+}
+
 pub fn validate_graph(desc: &RenderGraphDesc) -> Result<RenderGraphPlan, String> {
     let mut node_ids: HashSet<LogicalId> = HashSet::new();
     for node in &desc.nodes {

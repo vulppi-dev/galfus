@@ -36,7 +36,7 @@ pub enum SurfaceKind {
 pub struct RealmState {
     pub kind: RealmKind,
     pub output_surface: Option<SurfaceId>,
-    pub render_graph: Option<crate::core::render::graph::RenderGraphState>,
+    pub render_graph_id: Option<u32>,
     pub importance: u8,
     pub cache_policy: u8,
     pub last_render_frame: u64,
@@ -224,6 +224,7 @@ pub struct UniversalState {
     pub surface_cache: SurfaceCache,
     pub frame_report: super::FrameReport,
     pub realm_entities: HashMap<RealmId, RealmEntities>,
+    pub render_graphs: HashMap<u32, crate::core::render::graph::RenderGraphState>,
     pub global_resources: GlobalResources,
 }
 

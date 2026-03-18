@@ -1,6 +1,6 @@
 # Render Graph (Internal)
 
-This document describes the internal render graph format. The host does **not** build graphs; the core owns and executes them. If a graph is missing or invalid, the core executes a safe fallback graph. Render graphs are defined per Realm (3D or 2D), not per window.
+This document describes the internal render graph format. Render graphs live in a global core catalog and are referenced by realms through logical `render_graph_id`. If a bound graph is missing or invalid, the core executes a safe fallback graph for that realm kind. Render graphs are realm-scoped (via binding), not window-scoped.
 
 The core infers any missing resources from node inputs/outputs using default values (texture + frame lifetime).
 

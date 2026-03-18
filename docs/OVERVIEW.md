@@ -95,7 +95,7 @@ The core is responsible for:
 - Tracking **resources** (materials, textures, geometries…)
 - Tracking **component instances** (cameras, models, lights) per host ID
 - Managing **Realm/Surface/RealmGraph**:
-  - `Realm` owns a render graph and outputs to a `Surface`.
+  - `Realm` references a render graph (`render_graph_id`) and outputs to a `Surface`.
   - `Present` maps a `Surface` to a window.
   - `Connector` composes one realm into another.
 - Managing GPU buffers and pipelines

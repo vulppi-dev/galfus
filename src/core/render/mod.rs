@@ -42,6 +42,27 @@ fn now_ns() -> u64 {
     (Date::now() * 1_000_000.0) as u64
 }
 
+fn resolve_realm_render_graph<'a>(
+    universal: &'a crate::core::realm::UniversalState,
+    realm_id: crate::core::realm::RealmId,
+) -> Option<&'a crate::core::render::graph::RenderGraphState> {
+    let realm = universal.realms.entries.get(&realm_id)?;
+    if let Some(render_graph_id) = realm.value.render_graph_id
+        && let Some(graph) = universal.render_graphs.get(&render_graph_id)
+    {
+        return Some(graph);
+    }
+    let fallback_graph_id = match realm.value.kind {
+        crate::core::realm::RealmKind::ThreeD => {
+            crate::core::render::graph::DEFAULT_3D_RENDER_GRAPH_ID
+        }
+        crate::core::realm::RealmKind::TwoD => {
+            crate::core::render::graph::DEFAULT_2D_RENDER_GRAPH_ID
+        }
+    };
+    universal.render_graphs.get(&fallback_graph_id)
+}
+
 pub fn render_frames(engine_state: &mut EngineState) {
     engine_state.profiling.render.total_ns = 0;
     engine_state.profiling.render.shadow_ns = 0;
@@ -100,8 +121,8 @@ pub fn render_frames(engine_state: &mut EngineState) {
         .universal_state
         .realms
         .entries
-        .values()
-        .filter_map(|entry| entry.value.render_graph.as_ref())
+        .keys()
+        .filter_map(|realm_id| resolve_realm_render_graph(&engine_state.universal_state, *realm_id))
         .any(|graph| graph.plan().has_pass("shadow"));
 
     if shadow_enabled {
@@ -362,13 +383,7 @@ pub fn render_frames(engine_state: &mut EngineState) {
             });
             window_counter = window_counter.saturating_add(1);
 
-            let plan = match engine_state
-                .universal_state
-                .realms
-                .entries
-                .get(realm_id)
-                .and_then(|entry| entry.value.render_graph.as_ref())
-            {
+            let plan = match resolve_realm_render_graph(&engine_state.universal_state, *realm_id) {
                 Some(graph) => graph.plan().clone(),
                 None => {
                     log::error!("Realm {} is missing a render graph", realm_id.0);

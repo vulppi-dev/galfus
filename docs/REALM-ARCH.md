@@ -8,7 +8,7 @@ fundamentais para Realm/Surface/RealmGraph.
 - `Realm`
   - `kind`: `ThreeD` ou `TwoD`.
   - `output_surface`: `SurfaceId` principal do realm.
-  - `render_graph`: graph ativo do realm.
+  - `render_graph_id`: referência lógica para um graph no catálogo global.
   - `flags`: reservado para políticas de execução.
 - `Surface`
   - `kind`: `Onscreen` ou `Offscreen`.

@@ -3,7 +3,7 @@ use glam::UVec2;
 use crate::core::realm::{
     PresentId, PresentState, RealmId, RealmKind, RealmState, SurfaceId, SurfaceKind, SurfaceState,
 };
-use crate::core::render::graph::RenderGraphState;
+use crate::core::render::graph::{DEFAULT_3D_RENDER_GRAPH_ID, ensure_default_render_graphs};
 use crate::core::state::EngineState;
 
 pub struct WindowRealmBinding {
@@ -17,6 +17,7 @@ pub fn register_window_realm(
     window_id: u32,
     size: UVec2,
 ) -> WindowRealmBinding {
+    ensure_default_render_graphs(&mut engine.universal_state.render_graphs);
     let surface_id = engine.universal_state.surfaces.alloc(SurfaceState {
         kind: SurfaceKind::Onscreen,
         size,
@@ -27,7 +28,7 @@ pub fn register_window_realm(
     let realm_id = engine.universal_state.realms.alloc(RealmState {
         kind: RealmKind::ThreeD,
         output_surface: Some(surface_id),
-        render_graph: Some(RenderGraphState::new()),
+        render_graph_id: Some(DEFAULT_3D_RENDER_GRAPH_ID),
         importance: 1,
         cache_policy: 0,
         last_render_frame: 0,

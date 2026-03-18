@@ -191,7 +191,7 @@ mod tests {
         let _r0 = realms_a.alloc(RealmState {
             kind: RealmKind::TwoD,
             output_surface: None,
-            render_graph: None,
+            render_graph_id: None,
             importance: 1,
             cache_policy: 0,
             last_render_frame: 0,
@@ -211,7 +211,7 @@ mod tests {
         let _r0b = realms_b.alloc(RealmState {
             kind: RealmKind::TwoD,
             output_surface: None,
-            render_graph: None,
+            render_graph_id: None,
             importance: 1,
             cache_policy: 0,
             last_render_frame: 0,

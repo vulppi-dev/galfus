@@ -79,7 +79,7 @@ Este documento lista os sistemas atuais do core (`src/core`) agrupados por domí
 | Sistema | Responsabilidade | Módulos principais |
 |---|---|---|
 | Orquestrador de render | Execução do frame render completo, composição por realms/surfaces/targets | `src/core/render/mod.rs` |
-| Render graph (por realm) | Plano de passes (`shadow`, `skybox`, `forward`, `post`, `compose`, `ui` etc.) | `src/core/render/graph.rs` |
+| Render graph (catálogo global + binding por realm) | Recurso de graph reutilizável por ID lógico, referenciado por cada realm | `src/core/render/graph.rs`, `src/core/realm/state.rs` |
 | Compose realm graph | Coleta de views de surface, composição de connectors e cache de fallback | `src/core/render/realm_graph.rs` |
 | Render state | Estado por janela: cena, caches, bindings, pipelines, atlas, UI renderers | `src/core/render/state/mod.rs`, `src/core/render/state/scene.rs`, `src/core/render/state/lifecycle.rs` |
 | Inicialização de sistemas de render | Pipelines/layouts/fallbacks/samplers/uniform buffers | `src/core/render/state/init/*`, `src/core/render/state/library.rs` |
