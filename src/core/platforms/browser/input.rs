@@ -600,14 +600,10 @@ fn canvas_surface_size_from_rect(canvas: &HtmlCanvasElement) -> (u32, u32) {
     let dpr = web_sys::window()
         .map(|window| window.device_pixel_ratio())
         .unwrap_or(1.0);
-    let size = crate::core::window::resolve_canvas_surface_size_pixels(
-        canvas.width(),
-        canvas.height(),
-        rect.width(),
-        rect.height(),
-        dpr,
-    );
-    (size.x, size.y)
+    let safe_dpr = dpr.max(1.0);
+    let width = (rect.width() * safe_dpr).round().max(1.0) as u32;
+    let height = (rect.height() * safe_dpr).round().max(1.0) as u32;
+    (width, height)
 }
 
 fn with_live_window(window_id: u32, apply: impl FnOnce(&mut EngineState)) -> bool {

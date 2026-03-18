@@ -64,6 +64,7 @@ Responsibilities:
 - Creates window surfaces from a DOM canvas (`canvasId`).
 - Attaches DOM event listeners for keyboard/pointer/scroll/focus.
 - Integrates browser pointer lock (`locked`) and logical confined polyfill.
+- Tracks canvas resize from CSS bounds × DPR to keep render surface/projection in sync.
 - Polls the Web Gamepad API each tick.
 - Renders frames directly during `vulfram_tick` (no native event loop).
 
