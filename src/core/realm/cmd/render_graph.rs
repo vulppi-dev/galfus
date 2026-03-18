@@ -82,6 +82,22 @@ fn realms_using_graph(engine: &EngineState, render_graph_id: u32) -> Vec<RealmId
     realms
 }
 
+fn graph_is_compatible_with_realm_kind(
+    graph: &crate::core::render::graph::RenderGraphRecord,
+    realm_kind: RealmKind,
+) -> bool {
+    if realm_kind == RealmKind::ThreeD {
+        return true;
+    }
+
+    graph
+        .state
+        .plan()
+        .nodes
+        .iter()
+        .all(|node| node.pass_id == "ui")
+}
+
 fn emit_render_graph_error(
     engine: &mut EngineState,
     message: String,
@@ -281,11 +297,11 @@ pub fn engine_cmd_realm_render_graph_bind(
     engine: &mut EngineState,
     args: &CmdRealmRenderGraphBindArgs,
 ) -> CmdResultRealmRenderGraphBind {
-    if !engine
+    let Some(graph) = engine
         .universal_state
         .render_graphs
-        .contains_key(&args.render_graph_id)
-    {
+        .get(&args.render_graph_id)
+    else {
         let result = emit_render_graph_error(
             engine,
             format!("Render graph {} not found", args.render_graph_id),
@@ -295,10 +311,16 @@ pub fn engine_cmd_realm_render_graph_bind(
             success: result.success,
             message: result.message,
         };
-    }
+    };
 
     let realm_id = RealmId(args.realm_id);
-    let Some(realm) = engine.universal_state.realms.entries.get_mut(&realm_id) else {
+    let Some(realm_kind) = engine
+        .universal_state
+        .realms
+        .entries
+        .get(&realm_id)
+        .map(|entry| entry.value.kind)
+    else {
         let result = emit_render_graph_error(
             engine,
             format!("Realm {} not found", args.realm_id),
@@ -310,12 +332,13 @@ pub fn engine_cmd_realm_render_graph_bind(
         };
     };
 
-    if realm.value.kind == RealmKind::TwoD
-        && args.render_graph_id == crate::core::render::graph::DEFAULT_3D_RENDER_GRAPH_ID
-    {
+    if !graph_is_compatible_with_realm_kind(graph, realm_kind) {
         let result = emit_render_graph_error(
             engine,
-            "TwoD realm cannot bind the default 3D render graph".into(),
+            format!(
+                "Realm {} ({:?}) cannot bind render graph {} due to pass incompatibility",
+                args.realm_id, realm_kind, args.render_graph_id
+            ),
             "realm-render-graph-bind",
         );
         return CmdResultRealmRenderGraphBind {
@@ -323,6 +346,18 @@ pub fn engine_cmd_realm_render_graph_bind(
             message: result.message,
         };
     }
+
+    let Some(realm) = engine.universal_state.realms.entries.get_mut(&realm_id) else {
+        let result = emit_render_graph_error(
+            engine,
+            format!("Realm {} not found", args.realm_id),
+            "realm-render-graph-bind",
+        );
+        return CmdResultRealmRenderGraphBind {
+            success: result.success,
+            message: result.message,
+        };
+    };
 
     realm.value.render_graph_id = Some(args.render_graph_id);
     mark_realm_windows_dirty(engine, args.realm_id);

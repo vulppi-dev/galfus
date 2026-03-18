@@ -22,7 +22,7 @@ Returns `CmdResultRealmRenderGraphBind`:
 
 - `realmId` must exist.
 - `renderGraphId` must exist in the render graph catalog.
-- A `two-d` realm cannot bind the core default `three-d` graph ID.
+- `two-d` realms can bind only UI-only graphs (`passId = "ui"` for all nodes).
 
 When validation fails:
 - command response returns `success = false`

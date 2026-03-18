@@ -45,6 +45,27 @@ fn invalid_graph_missing_resource(graph_name: &str) -> RenderGraphDesc {
     }
 }
 
+fn ui_only_graph(graph_name: &str, resource_name: &str) -> RenderGraphDesc {
+    RenderGraphDesc {
+        graph_id: LogicalId::Str(graph_name.into()),
+        nodes: vec![RenderGraphNode {
+            node_id: LogicalId::Str(format!("{graph_name}-ui")),
+            pass_id: "ui".into(),
+            inputs: Vec::new(),
+            outputs: vec![LogicalId::Str(resource_name.into())],
+            params: HashMap::new(),
+        }],
+        edges: Vec::new(),
+        resources: vec![RenderGraphResource {
+            res_id: LogicalId::Str(resource_name.into()),
+            kind: RenderGraphResourceKind::Attachment,
+            lifetime: RenderGraphLifetime::Frame,
+            alias_group: None,
+        }],
+        fallback: false,
+    }
+}
+
 fn create_realm(engine: &mut EngineState, kind: RealmKindDto) -> u32 {
     let result = engine_cmd_realm_create(
         engine,
@@ -255,4 +276,54 @@ fn invalid_upsert_and_unknown_bind_emit_error_events() {
     assert!(errors.iter().any(|(scope, _, command_type)| {
         scope == "render-graph" && command_type.as_deref() == Some("realm-render-graph-bind")
     }));
+}
+
+#[test]
+fn twod_realm_rejects_graph_with_non_ui_passes() {
+    let mut engine = EngineState::new();
+    let twod_realm_id = create_realm(&mut engine, RealmKindDto::TwoD);
+
+    assert!(
+        engine_cmd_render_graph_upsert(
+            &mut engine,
+            &CmdRenderGraphUpsertArgs {
+                render_graph_id: 105,
+                graph: valid_graph("custom_3d_only", "shadow_atlas_custom"),
+            },
+        )
+        .success
+    );
+
+    let incompatible_bind = engine_cmd_realm_render_graph_bind(
+        &mut engine,
+        &CmdRealmRenderGraphBindArgs {
+            realm_id: twod_realm_id,
+            render_graph_id: 105,
+        },
+    );
+    assert!(!incompatible_bind.success);
+
+    assert!(
+        engine_cmd_render_graph_upsert(
+            &mut engine,
+            &CmdRenderGraphUpsertArgs {
+                render_graph_id: 106,
+                graph: ui_only_graph("custom_ui_only", "swapchain_custom"),
+            },
+        )
+        .success
+    );
+
+    let compatible_bind = engine_cmd_realm_render_graph_bind(
+        &mut engine,
+        &CmdRealmRenderGraphBindArgs {
+            realm_id: twod_realm_id,
+            render_graph_id: 106,
+        },
+    );
+    assert!(
+        compatible_bind.success,
+        "TwoD realm should accept ui-only graph: {}",
+        compatible_bind.message
+    );
 }

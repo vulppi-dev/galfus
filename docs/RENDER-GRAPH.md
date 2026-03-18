@@ -169,7 +169,7 @@ Bloom uses the emissive output from the forward pass when available and falls ba
 - **Edge reason coherence**: When `reason` is set, dependency direction must match resource usage.
 - **Multiple writers**: Rewrites of the same resource must preserve explicit dependency ordering.
 - **Pass compatibility**: Each `pass_id` must be a known core pass type.
-- **Format compatibility**: Pass requirements must match declared formats/usages.
+- **Realm bind compatibility**: `two-d` realms can bind only UI-only graphs (`ui` pass).
 
 If validation fails, the core switches to the fallback graph.
 
