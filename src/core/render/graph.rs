@@ -147,9 +147,7 @@ pub struct RenderGraphPlan {
 
 #[derive(Debug, Clone)]
 pub struct RenderGraphState {
-    fallback: RenderGraphPlan,
     active: RenderGraphPlan,
-    uses_fallback: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -169,16 +167,7 @@ impl RenderGraphState {
 
     pub fn new_with_fallback(fallback_desc: RenderGraphDesc) -> Self {
         let fallback = validate_graph(&fallback_desc).expect("Fallback graph must be valid");
-        Self {
-            active: fallback.clone(),
-            fallback,
-            uses_fallback: true,
-        }
-    }
-
-    pub fn reset_to_fallback(&mut self) {
-        self.active = self.fallback.clone();
-        self.uses_fallback = true;
+        Self { active: fallback }
     }
 
     pub fn plan(&self) -> &RenderGraphPlan {
@@ -187,11 +176,7 @@ impl RenderGraphState {
 
     pub fn from_desc(desc: RenderGraphDesc) -> Result<Self, String> {
         let active = validate_graph(&desc)?;
-        Ok(Self {
-            fallback: active.clone(),
-            active,
-            uses_fallback: false,
-        })
+        Ok(Self { active })
     }
 }
 
