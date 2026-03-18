@@ -12,7 +12,11 @@ Agrupa:
 
 ## Platform Notes
 
-- **WASM:** Não suportado (retorna `success=false` com mensagem).
+- **Desktop:** suporte completo para patch + get.
+- **WASM:** suporte parcial:
+  - mutações (`title`, `state`, `decorations`, `resizable`, `action`, `iconBufferId`) não são suportadas;
+  - getters suportados: `getState` e `getResizable`;
+  - `getDecorations` retorna `None` (não aplicável em canvas).
 
 ## Arguments
 
@@ -47,3 +51,4 @@ Retorna `CmdResultWindowState`:
 - Campos de patch são opcionais: envie apenas o que deseja alterar.
 - `iconBufferId` consome o upload (one-shot) e exige `uploadType = \"image-data\"`.
 - `fullscreen` exige modo exclusivo; se indisponível, o comando retorna `success=false` e o core emite `SystemEvent::Error`.
+- Mudanças de ciclo de vida disparam `WindowEvent::OnStateChange`.

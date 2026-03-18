@@ -1,6 +1,17 @@
 use glam::{IVec2, Vec2};
 use serde::{Deserialize, Serialize};
 
+use crate::core::window::{CursorGrabMode, EngineWindowState};
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WindowPointerCaptureState {
+    pub mode: CursorGrabMode,
+    pub active: bool,
+    #[serde(default)]
+    pub reason: Option<String>,
+}
+
 /// Window-related events
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(tag = "event", content = "data", rename_all = "kebab-case")]
@@ -73,4 +84,18 @@ pub enum WindowEvent {
     /// System theme changed
     #[serde(rename_all = "camelCase")]
     OnThemeChange { window_id: u32, dark_mode: bool },
+
+    /// Lifecycle state changed (windowed/fullscreen/minimized/etc)
+    #[serde(rename_all = "camelCase")]
+    OnStateChange {
+        window_id: u32,
+        state: EngineWindowState,
+    },
+
+    /// Pointer capture mode/activation changed
+    #[serde(rename_all = "camelCase")]
+    OnPointerCaptureChange {
+        window_id: u32,
+        capture: WindowPointerCaptureState,
+    },
 }

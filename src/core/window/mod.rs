@@ -5,7 +5,7 @@ mod events;
 mod state;
 
 pub use cmd::*;
-pub use events::WindowEvent;
+pub use events::{WindowEvent, WindowPointerCaptureState};
 #[cfg(feature = "wasm")]
 pub use state::WebListenerRegistration;
 pub use state::WindowManager;

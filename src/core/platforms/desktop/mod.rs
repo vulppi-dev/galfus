@@ -144,7 +144,9 @@ fn active_windows_from_events(events: &[EngineEvent]) -> std::collections::HashS
             | EngineEvent::Keyboard(KeyboardEvent::OnImeDisable { window_id, .. })
             | EngineEvent::Window(WindowEvent::OnFocus { window_id, .. })
             | EngineEvent::Window(WindowEvent::OnScaleFactorChange { window_id, .. })
-            | EngineEvent::Window(WindowEvent::OnResize { window_id, .. }) => {
+            | EngineEvent::Window(WindowEvent::OnResize { window_id, .. })
+            | EngineEvent::Window(WindowEvent::OnStateChange { window_id, .. })
+            | EngineEvent::Window(WindowEvent::OnPointerCaptureChange { window_id, .. }) => {
                 windows.insert(*window_id);
             }
             _ => {}

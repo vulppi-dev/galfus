@@ -272,6 +272,18 @@ pub fn engine_cmd_window_create_async(
                     web_listener_registrations: listeners,
                 },
             );
+            engine
+                .state
+                .window
+                .set_cursor_grab_mode(win_id, crate::core::window::CursorGrabMode::None);
+            engine
+                .state
+                .window
+                .set_pointer_capture_active(win_id, false);
+            engine
+                .state
+                .window
+                .set_lifecycle_state(win_id, crate::core::window::EngineWindowState::Windowed);
             let binding = register_window_realm(
                 &mut engine.state,
                 win_id,

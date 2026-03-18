@@ -491,6 +491,10 @@ The input layer aggregates events via the active platform proxy:
 These are translated into internal `EngineEvent` enums and pushed into
 `event_queue`.
 
+Window state transitions are emitted explicitly as:
+- `WindowEvent::OnStateChange` for lifecycle changes (`windowed`, `fullscreen`, etc.);
+- `WindowEvent::OnPointerCaptureChange` for pointer capture mode/activation changes.
+
 Pointer events now include optional routing metadata via `trace`, which
 provides the resolved `windowId`, `realmId`, `targetId`, `connectorId`,
 `sourceRealmId`, and UV coordinates when a connector hit-test succeeds. This

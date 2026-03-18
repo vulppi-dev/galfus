@@ -9,7 +9,12 @@ Agrupa:
 
 ## Platform Notes
 
-- **WASM:** Não suportado (retorna `success=false` com mensagem).
+- **Desktop:** suporte nativo a `none`, `confined` e `locked`.
+- **WASM:** suporte parcial:
+  - `mode=locked`: solicita Pointer Lock API;
+  - `mode=confined`: polyfill lógico (clamp de posição no canvas);
+  - `mode=none`: encerra capture/lock.
+  - `visible` e `icon` continuam não suportados.
 
 ## Arguments
 
@@ -70,3 +75,5 @@ Retorna `CmdResultWindowCursor`:
 
 - Todos os campos são opcionais: envie apenas o subset a atualizar.
 - Quando `icon` é enviado via comando do host, o ícone vira override persistente para a janela e tem prioridade sobre atualizações de cursor vindas do pipeline de UI.
+- Mudanças de captura disparam `WindowEvent::OnPointerCaptureChange`.
+- No browser, `Escape` pode liberar o pointer lock por política da plataforma; o core reporta a mudança via evento de captura.
