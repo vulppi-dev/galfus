@@ -170,6 +170,7 @@ Bloom uses the emissive output from the forward pass when available and falls ba
 - **Multiple writers**: Rewrites of the same resource must preserve explicit dependency ordering.
 - **Pass compatibility**: Each `pass_id` must be a known core pass type.
 - **Realm bind compatibility**: `two-d` realms can bind only UI-only graphs (`ui` pass).
+- **Safe updates**: updating a graph already bound to realms must preserve compatibility with all those realms.
 
 If validation fails, the core switches to the fallback graph.
 

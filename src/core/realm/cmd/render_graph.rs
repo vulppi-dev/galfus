@@ -83,19 +83,14 @@ fn realms_using_graph(engine: &EngineState, render_graph_id: u32) -> Vec<RealmId
 }
 
 fn graph_is_compatible_with_realm_kind(
-    graph: &crate::core::render::graph::RenderGraphRecord,
+    plan: &crate::core::render::graph::RenderGraphPlan,
     realm_kind: RealmKind,
 ) -> bool {
     if realm_kind == RealmKind::ThreeD {
         return true;
     }
 
-    graph
-        .state
-        .plan()
-        .nodes
-        .iter()
-        .all(|node| node.pass_id == "ui")
+    plan.nodes.iter().all(|node| node.pass_id == "ui")
 }
 
 fn emit_render_graph_error(
@@ -171,6 +166,33 @@ pub fn engine_cmd_render_graph_upsert(
         compiled
     };
 
+    let used_by = realms_using_graph(engine, args.render_graph_id);
+    for realm_id in &used_by {
+        let Some(realm_kind) = engine
+            .universal_state
+            .realms
+            .entries
+            .get(realm_id)
+            .map(|entry| entry.value.kind)
+        else {
+            continue;
+        };
+        if !graph_is_compatible_with_realm_kind(graph_state.plan(), realm_kind) {
+            let result = emit_render_graph_error(
+                engine,
+                format!(
+                    "Render graph {} is bound to realm {} ({:?}) and cannot be updated with incompatible passes",
+                    args.render_graph_id, realm_id.0, realm_kind
+                ),
+                "render-graph-upsert",
+            );
+            return CmdResultRenderGraphUpsert {
+                success: result.success,
+                message: result.message,
+            };
+        }
+    }
+
     let existed = engine
         .universal_state
         .render_graphs
@@ -182,7 +204,6 @@ pub fn engine_cmd_render_graph_upsert(
             },
         )
         .is_some();
-    let used_by = realms_using_graph(engine, args.render_graph_id);
     for realm_id in used_by {
         mark_realm_windows_dirty(engine, realm_id.0);
     }
@@ -332,7 +353,7 @@ pub fn engine_cmd_realm_render_graph_bind(
         };
     };
 
-    if !graph_is_compatible_with_realm_kind(graph, realm_kind) {
+    if !graph_is_compatible_with_realm_kind(graph.state.plan(), realm_kind) {
         let result = emit_render_graph_error(
             engine,
             format!(

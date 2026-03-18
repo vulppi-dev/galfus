@@ -24,6 +24,7 @@ Returns `CmdResultRenderGraphUpsert`:
 
 - `renderGraphId` must not use core-reserved default IDs.
 - `graph` must pass render-graph validation (`passId` known, resource refs declared, DAG order valid).
+- If `renderGraphId` is already bound to realms, updated passes must remain compatible with every bound realm kind.
 
 When validation fails:
 - command response returns `success = false`

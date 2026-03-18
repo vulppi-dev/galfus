@@ -327,3 +327,44 @@ fn twod_realm_rejects_graph_with_non_ui_passes() {
         compatible_bind.message
     );
 }
+
+#[test]
+fn upsert_rejects_incompatible_update_for_bound_realms() {
+    let mut engine = EngineState::new();
+    let twod_realm_id = create_realm(&mut engine, RealmKindDto::TwoD);
+
+    assert!(
+        engine_cmd_render_graph_upsert(
+            &mut engine,
+            &CmdRenderGraphUpsertArgs {
+                render_graph_id: 107,
+                graph: ui_only_graph("custom_ui_only_for_update", "swapchain_custom_update"),
+            },
+        )
+        .success
+    );
+    assert!(
+        engine_cmd_realm_render_graph_bind(
+            &mut engine,
+            &CmdRealmRenderGraphBindArgs {
+                realm_id: twod_realm_id,
+                render_graph_id: 107,
+            },
+        )
+        .success
+    );
+
+    let incompatible_update = engine_cmd_render_graph_upsert(
+        &mut engine,
+        &CmdRenderGraphUpsertArgs {
+            render_graph_id: 107,
+            graph: valid_graph("custom_3d_replacement", "shadow_atlas_replacement"),
+        },
+    );
+    assert!(!incompatible_update.success);
+
+    let errors = take_error_events(&mut engine);
+    assert!(errors.iter().any(|(scope, _, command_type)| {
+        scope == "render-graph" && command_type.as_deref() == Some("render-graph-upsert")
+    }));
+}
