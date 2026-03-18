@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet, VecDeque};
 
+mod validation;
+
 #[derive(Debug, Clone, Hash, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum LogicalId {
@@ -258,6 +260,7 @@ pub fn validate_graph(desc: &RenderGraphDesc) -> Result<RenderGraphPlan, String>
     }
 
     let order = topo_sort(&desc.nodes, &desc.edges)?;
+    validation::validate_graph_semantics(desc, &order)?;
 
     Ok(RenderGraphPlan {
         nodes: desc.nodes.clone(),
@@ -376,7 +379,10 @@ pub fn fallback_graph() -> RenderGraphDesc {
             RenderGraphNode {
                 node_id: LogicalId::Str("forward_pass".into()),
                 pass_id: "forward".into(),
-                inputs: vec![LogicalId::Str("shadow_atlas".into())],
+                inputs: vec![
+                    LogicalId::Str("shadow_atlas".into()),
+                    LogicalId::Str("hdr_color".into()),
+                ],
                 outputs: vec![
                     LogicalId::Str("hdr_color".into()),
                     LogicalId::Str("depth".into()),
@@ -450,7 +456,7 @@ pub fn fallback_graph() -> RenderGraphDesc {
             RenderGraphEdge {
                 from_node_id: LogicalId::Str("light_cull_pass".into()),
                 to_node_id: LogicalId::Str("skybox_pass".into()),
-                reason: Some(RenderGraphEdgeReason::ReadAfterWrite),
+                reason: None,
             },
             RenderGraphEdge {
                 from_node_id: LogicalId::Str("skybox_pass".into()),

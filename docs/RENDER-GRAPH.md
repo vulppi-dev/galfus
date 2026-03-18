@@ -166,6 +166,8 @@ Bloom uses the emissive output from the forward pass when available and falls ba
 - **DAG only**: No cycles.
 - **Resources exist**: Every input/output refers to a declared resource.
 - **Write ordering**: A resource must be produced before it is read.
+- **Edge reason coherence**: When `reason` is set, dependency direction must match resource usage.
+- **Multiple writers**: Rewrites of the same resource must preserve explicit dependency ordering.
 - **Pass compatibility**: Each `pass_id` must be a known core pass type.
 - **Format compatibility**: Pass requirements must match declared formats/usages.
 
