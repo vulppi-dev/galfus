@@ -228,7 +228,7 @@ jobs:
           echo "dist_dir=${DIST_DIR}" >> "${GITHUB_OUTPUT}"
 
       - name: Upload to Cloudflare R2
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         shell: bash
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
@@ -321,7 +321,7 @@ jobs:
           echo "dist_dir=${DIST_DIR}" >> "${GITHUB_OUTPUT}"
 
       - name: Upload to Cloudflare R2
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         shell: bash
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
