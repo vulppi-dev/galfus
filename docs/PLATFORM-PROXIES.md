@@ -47,6 +47,7 @@ Responsibilities:
 - Creates and owns a `winit` event loop.
 - Routes window creation through `EngineCustomEvents`.
 - Processes keyboard/mouse/touch/gesture events from `winit`.
+- Uses `DeviceEvent::MouseMotion` fallback for locked pointer motion.
 - Uses `gilrs` for gamepad events.
 - Requests redraws for each window during `vulfram_tick`.
 
@@ -62,6 +63,8 @@ Responsibilities:
 
 - Creates window surfaces from a DOM canvas (`canvasId`).
 - Attaches DOM event listeners for keyboard/pointer/scroll/focus.
+- Integrates browser pointer lock (`locked`) and logical confined polyfill.
+- Tracks canvas resize from CSS bounds × DPR to keep render surface/projection in sync.
 - Polls the Web Gamepad API each tick.
 - Renders frames directly during `vulfram_tick` (no native event loop).
 
@@ -102,3 +105,12 @@ No matter which proxy is active:
 - The host drives the frame via `vulfram_tick`.
 
 The internal platform split is invisible to the host.
+
+## 8. Window State Change Events
+
+Both proxies emit explicit window-state transition events:
+
+- `WindowEvent::OnStateChange` for lifecycle transitions (`windowed`, `fullscreen`, etc.).
+- `WindowEvent::OnPointerCaptureChange` for pointer capture mode/activation transitions.
+
+This keeps host behavior deterministic across platform differences.

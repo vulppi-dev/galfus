@@ -1,7 +1,9 @@
 use crate::core::render::RenderState;
 use crate::core::render::cache::{PipelineKey, ShaderId};
-use crate::core::resources::SkyboxMode;
+use crate::core::resources::{SkyboxDirectionalLightSun, SkyboxMode};
 use bytemuck::{Pod, Zeroable};
+
+const MAX_SKYBOX_SUNS: usize = 4;
 
 #[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable)]
@@ -13,6 +15,14 @@ struct SkyboxUniform {
     horizon_color: [f32; 4],
     sky_color: [f32; 4],
     params: [f32; 4],
+    sun_dirs: [[f32; 4]; MAX_SKYBOX_SUNS],
+    sun_colors: [[f32; 4]; MAX_SKYBOX_SUNS],
+    sun_sizes: [[f32; 4]; MAX_SKYBOX_SUNS],
+    sun_meta: [f32; 4],
+}
+
+pub fn skybox_uniform_buffer_size() -> u64 {
+    std::mem::size_of::<SkyboxUniform>() as u64
 }
 
 fn ensure_camera_skybox_msaa_target(
@@ -50,6 +60,69 @@ fn ensure_camera_skybox_msaa_target(
                 sample_count,
             ));
     }
+}
+
+fn sanitize_influences(ground_to_horizon: f32, horizon_to_sky: f32) -> (f32, f32) {
+    (
+        ground_to_horizon.clamp(0.0, 1.0),
+        horizon_to_sky.clamp(0.0, 1.0),
+    )
+}
+
+fn collect_skybox_suns(
+    render_state: &RenderState,
+    camera_record: &crate::core::resources::CameraRecord,
+    directional_lights: &[SkyboxDirectionalLightSun],
+) -> (
+    [[f32; 4]; MAX_SKYBOX_SUNS],
+    [[f32; 4]; MAX_SKYBOX_SUNS],
+    [[f32; 4]; MAX_SKYBOX_SUNS],
+    u32,
+) {
+    let mut dirs = [[0.0; 4]; MAX_SKYBOX_SUNS];
+    let mut colors = [[0.0; 4]; MAX_SKYBOX_SUNS];
+    let mut sizes = [[0.0; 4]; MAX_SKYBOX_SUNS];
+    let mut count = 0_u32;
+
+    if directional_lights.is_empty() {
+        return (dirs, colors, sizes, count);
+    }
+
+    for sun in directional_lights {
+        if count as usize >= MAX_SKYBOX_SUNS {
+            break;
+        }
+        let light_id = sun.light_id;
+        let Some(light_record) = render_state.scene.lights.get(&light_id) else {
+            continue;
+        };
+        if (light_record.layer_mask & camera_record.layer_mask) == 0 {
+            continue;
+        }
+        let is_directional = light_record.data.kind_flags.x == 0;
+        if !is_directional {
+            continue;
+        }
+        let direction = (-light_record.data.direction.truncate()).normalize_or_zero();
+        if direction.length_squared() <= f32::EPSILON {
+            continue;
+        }
+        let intensity = light_record.data.intensity_range.x.max(0.0);
+        let idx = count as usize;
+        dirs[idx] = [direction.x, direction.y, direction.z, 0.0];
+        colors[idx] = [
+            light_record.data.color.x.max(0.0),
+            light_record.data.color.y.max(0.0),
+            light_record.data.color.z.max(0.0),
+            intensity,
+        ];
+        let solid = sun.solid_size.max(0.001);
+        let gradient = sun.gradient_size.max(solid + 0.001);
+        sizes[idx] = [solid, gradient, 0.0, 0.0];
+        count += 1;
+    }
+
+    (dirs, colors, sizes, count)
 }
 
 pub fn pass_skybox(
@@ -125,6 +198,12 @@ pub fn pass_skybox(
             .as_ref()
             .map(|target| target.format)
             .unwrap_or(TARGET_FORMAT);
+        let (horizon_ground_threshold, horizon_sky_threshold) = sanitize_influences(
+            skybox.horizon_ground_threshold,
+            skybox.horizon_sky_threshold,
+        );
+        let (sun_dirs, sun_colors, sun_sizes, sun_count) =
+            collect_skybox_suns(render_state, camera_record, &skybox.directional_lights);
 
         let pipeline_key = PipelineKey {
             shader_id: ShaderId::Skybox as u64,
@@ -203,7 +282,16 @@ pub fn pass_skybox(
                 skybox.sky_color.z,
                 1.0,
             ],
-            params: [skybox.rotation, mode_value, 0.0, 0.0],
+            params: [
+                skybox.rotation,
+                mode_value,
+                horizon_ground_threshold,
+                horizon_sky_threshold,
+            ],
+            sun_dirs,
+            sun_colors,
+            sun_sizes,
+            sun_meta: [sun_count as f32, 0.0, 0.0, 0.0],
         };
         queue.write_buffer(uniform_buffer, 0, bytemuck::bytes_of(&uniform));
 

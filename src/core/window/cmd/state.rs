@@ -6,9 +6,11 @@ use crate::core::image::ImageDecoder;
 use crate::core::platform::winit;
 use serde::{Deserialize, Serialize};
 
+use crate::core::cmd::EngineEvent;
 use crate::core::state::EngineState;
 #[cfg(not(feature = "wasm"))]
 use crate::core::system::push_error_event;
+use crate::core::window::WindowEvent;
 
 use super::EngineWindowState;
 
@@ -231,17 +233,121 @@ pub fn engine_cmd_window_state(
             ..Default::default()
         };
     };
+    let current_state = read_window_state(window_state);
+    let current_decorations = window_state.window.is_decorated();
+    let current_resizable = window_state.window.is_resizable();
+    if engine
+        .window
+        .set_lifecycle_state(args.window_id, current_state)
+    {
+        engine
+            .event_queue
+            .push(EngineEvent::Window(WindowEvent::OnStateChange {
+                window_id: args.window_id,
+                state: current_state,
+            }));
+    }
 
     CmdResultWindowState {
         success: true,
         message: "Window state command applied successfully".into(),
-        state: read_state.then(|| read_window_state(window_state)),
-        decorations: read_decorations.then(|| window_state.window.is_decorated()),
-        resizable: read_resizable.then(|| window_state.window.is_resizable()),
+        state: read_state.then_some(current_state),
+        decorations: read_decorations.then_some(current_decorations),
+        resizable: read_resizable.then_some(current_resizable),
     }
 }
 
-#[cfg(feature = "wasm")]
+#[cfg(all(feature = "wasm", target_arch = "wasm32"))]
+pub fn engine_cmd_window_state(
+    _engine: &mut EngineState,
+    args: &CmdWindowStateArgs,
+) -> CmdResultWindowState {
+    let has_mutation = args.title.is_some()
+        || args.state.is_some()
+        || args.icon_buffer_id.is_some()
+        || args.decorations.is_some()
+        || args.resizable.is_some()
+        || args.action.is_some()
+        || args.attention_type.is_some();
+    if has_mutation {
+        return CmdResultWindowState {
+            success: false,
+            message: format!(
+                "Window state mutation is not supported in wasm (window_id={})",
+                args.window_id
+            ),
+            ..Default::default()
+        };
+    }
+    if !args.get_state && !args.get_decorations && !args.get_resizable {
+        return CmdResultWindowState {
+            success: true,
+            message: "No wasm window state getters requested".into(),
+            ..Default::default()
+        };
+    }
+    if !_engine.window.states.contains_key(&args.window_id) {
+        return CmdResultWindowState {
+            success: false,
+            message: format!("Window with id {} not found", args.window_id),
+            ..Default::default()
+        };
+    }
+
+    let Some(window) = web_sys::window() else {
+        return CmdResultWindowState {
+            success: false,
+            message: "Web window not available".into(),
+            ..Default::default()
+        };
+    };
+    let Some(document) = window.document() else {
+        return CmdResultWindowState {
+            success: false,
+            message: "Document not available".into(),
+            ..Default::default()
+        };
+    };
+
+    let lifecycle_state = if document.fullscreen_element().is_some() {
+        EngineWindowState::Fullscreen
+    } else {
+        EngineWindowState::Windowed
+    };
+    if _engine
+        .window
+        .set_lifecycle_state(args.window_id, lifecycle_state)
+    {
+        _engine
+            .event_queue
+            .push(EngineEvent::Window(WindowEvent::OnStateChange {
+                window_id: args.window_id,
+                state: lifecycle_state,
+            }));
+    }
+
+    let mut warnings = Vec::new();
+    if args.get_decorations {
+        warnings.push("decorations unavailable on canvas");
+    }
+
+    CmdResultWindowState {
+        success: true,
+        message: if warnings.is_empty() {
+            "WASM window state getters applied".into()
+        } else {
+            format!(
+                "WASM window state getters applied ({}).",
+                warnings.join(", ")
+            )
+        },
+        state: args.get_state.then_some(lifecycle_state),
+        decorations: None,
+        resizable: args.get_resizable.then_some(true),
+    }
+}
+
+#[cfg(all(feature = "wasm", not(target_arch = "wasm32")))]
 pub fn engine_cmd_window_state(
     _engine: &mut EngineState,
     args: &CmdWindowStateArgs,

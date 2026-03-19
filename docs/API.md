@@ -171,6 +171,12 @@ If a layer references a missing `environmentId`, that bind falls back to default
 - `ground_color`: ground/low hemisphere color
 - `horizon_color`: horizon blend color
 - `sky_color`: upper sky color
+- `horizon_ground_threshold`: ground influence over horizon on lower hemisphere (`0.0` = horizon-only, `1.0` = ground-dominant with minimal blend)
+- `horizon_sky_threshold`: sky influence over horizon on upper hemisphere (`0.0` = horizon-only, `1.0` = sky-dominant with minimal blend)
+- `directional_lights`: list of sun descriptors with:
+  - `light_id`: directional light id
+  - `solid_size`: normalized solid size (`0.0` no coverage, `1.0` covers hemisphere, `2.0` covers full sky)
+  - `gradient_size`: normalized halo size using the same scale as `solid_size` (should be >= solid size)
 - `cubemap_texture_id`: 2D equirect sky texture ID (lat/long); sampled only when `mode = cubemap`
 
 Texture loading notes:
@@ -490,6 +496,10 @@ The input layer aggregates events via the active platform proxy:
 
 These are translated into internal `EngineEvent` enums and pushed into
 `event_queue`.
+
+Window state transitions are emitted explicitly as:
+- `WindowEvent::OnStateChange` for lifecycle changes (`windowed`, `fullscreen`, etc.);
+- `WindowEvent::OnPointerCaptureChange` for pointer capture mode/activation changes.
 
 Pointer events now include optional routing metadata via `trace`, which
 provides the resolved `windowId`, `realmId`, `targetId`, `connectorId`,

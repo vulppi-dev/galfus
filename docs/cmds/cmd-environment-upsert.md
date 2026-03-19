@@ -22,9 +22,16 @@ Behavior:
 `EnvironmentConfig` fields:
 
 - `msaa { enabled, sampleCount }`
-- `skybox { mode, intensity, rotation, groundColor, horizonColor, skyColor, cubemapTextureId? }`
+- `skybox { mode, intensity, rotation, groundColor, horizonColor, skyColor, horizonGroundThreshold, horizonSkyThreshold, directionalLights[{ lightId, solidSize, gradientSize }], cubemapTextureId? }`
 - `clearColor` (`Vec4`, RGBA)
 - `post` (post-processing block: `filter_*`, outline, SSAO, bloom)
+
+Procedural skybox notes:
+- horizon center is fixed at 90deg (half-sphere split);
+- `horizonGroundThreshold` and `horizonSkyThreshold` control influence toward ground/sky (`0.0` favors horizon color, `1.0` favors ground/sky color with thinner transition);
+- sun sizing uses normalized hemisphere scale:
+  - `solidSize`: `0.0` none, `1.0` hemisphere, `2.0` full sky;
+  - `gradientSize`: halo size in the same scale (typically >= `solidSize`).
 
 ## Response
 

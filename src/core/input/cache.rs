@@ -37,9 +37,10 @@ impl PointerStateCache {
         }
     }
 
-    /// Check if position changed (with 1px threshold)
+    /// Check if position changed (epsilon threshold to keep high-frequency pointer updates)
     pub fn position_changed(&self, new_pos: Vec2) -> bool {
-        (self.position[0] - new_pos[0]).abs() > 1.0 || (self.position[1] - new_pos[1]).abs() > 1.0
+        (self.position[0] - new_pos[0]).abs() > f32::EPSILON
+            || (self.position[1] - new_pos[1]).abs() > f32::EPSILON
     }
 }
 

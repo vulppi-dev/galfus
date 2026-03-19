@@ -1,4 +1,5 @@
 use crate::core::platform::winit;
+use crate::core::platform::winit::event::DeviceEvent as WinitDeviceEvent;
 use crate::core::platform::winit::event::WindowEvent as WinitWindowEvent;
 use crate::core::platform::{ActiveEventLoop, ApplicationHandler, WindowId};
 use glam::{IVec2, UVec2, Vec2};
@@ -9,12 +10,47 @@ use crate::core::input::{
 };
 use crate::core::render::render_frames;
 use crate::core::system::SystemEvent;
-use crate::core::window::WindowEvent;
 use crate::core::window::engine_cmd_window_create;
+use crate::core::window::{
+    CursorGrabMode, EngineWindowState, WindowEvent, WindowPointerCaptureState,
+};
 
 use crate::core::cmd::{CommandResponse, CommandResponseEnvelope, EngineEvent};
 use crate::core::singleton::EngineCustomEvents;
 use crate::core::state::EngineState;
+
+fn read_window_lifecycle_state(
+    window_state: &crate::core::window::WindowState,
+) -> EngineWindowState {
+    if window_state.window.is_minimized().unwrap_or(false) {
+        EngineWindowState::Minimized
+    } else if window_state.window.is_maximized() {
+        EngineWindowState::Maximized
+    } else if window_state.window.fullscreen().is_some() {
+        match window_state.window.fullscreen() {
+            Some(winit::window::Fullscreen::Exclusive(_)) => EngineWindowState::Fullscreen,
+            Some(winit::window::Fullscreen::Borderless(_)) => EngineWindowState::WindowedFullscreen,
+            None => EngineWindowState::Windowed,
+        }
+    } else {
+        EngineWindowState::Windowed
+    }
+}
+
+fn emit_window_state_change_if_needed(engine: &mut EngineState, window_id: u32) {
+    let Some(window_state) = engine.window.states.get(&window_id) else {
+        return;
+    };
+    let next_state = read_window_lifecycle_state(window_state);
+    if engine.window.set_lifecycle_state(window_id, next_state) {
+        engine
+            .event_queue
+            .push(EngineEvent::Window(WindowEvent::OnStateChange {
+                window_id,
+                state: next_state,
+            }));
+    }
+}
 
 impl ApplicationHandler<EngineCustomEvents> for EngineState {
     fn resumed(&mut self, _event_loop: &ActiveEventLoop) {
@@ -115,6 +151,7 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
                         width: size.width,
                         height: size.height,
                     }));
+                emit_window_state_change_if_needed(self, window_id);
             }
 
             WinitWindowEvent::Moved(position) => {
@@ -219,6 +256,27 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
                         window_id,
                         focused,
                     }));
+                let mode = self.window.cursor_grab_mode(window_id);
+                if mode != CursorGrabMode::None {
+                    let active = focused;
+                    if self.window.set_pointer_capture_active(window_id, active) {
+                        self.event_queue.push(EngineEvent::Window(
+                            WindowEvent::OnPointerCaptureChange {
+                                window_id,
+                                capture: WindowPointerCaptureState {
+                                    mode,
+                                    active,
+                                    reason: Some(if focused {
+                                        "focus-gained".into()
+                                    } else {
+                                        "focus-lost".into()
+                                    }),
+                                },
+                            },
+                        ));
+                    }
+                }
+                emit_window_state_change_if_needed(self, window_id);
             }
 
             WinitWindowEvent::KeyboardInput {
@@ -547,6 +605,7 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
                         window_id,
                         occluded,
                     }));
+                emit_window_state_change_if_needed(self, window_id);
             }
 
             WinitWindowEvent::RedrawRequested => {
@@ -570,6 +629,80 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
             WinitWindowEvent::AxisMotion { .. } => {}
             WinitWindowEvent::TouchpadPressure { .. } => {}
         }
+    }
+
+    fn device_event(
+        &mut self,
+        _event_loop: &ActiveEventLoop,
+        _device_id: winit::event::DeviceId,
+        event: WinitDeviceEvent,
+    ) {
+        let WinitDeviceEvent::MouseMotion { delta } = event else {
+            return;
+        };
+        let Some(window_id) = self
+            .window
+            .states
+            .iter()
+            .find_map(|(window_id, window_state)| {
+                if window_state.window.has_focus()
+                    && self.window.cursor_grab_mode(*window_id) == CursorGrabMode::Locked
+                {
+                    Some(*window_id)
+                } else {
+                    None
+                }
+            })
+        else {
+            return;
+        };
+
+        let movement = Vec2::new(delta.0 as f32, delta.1 as f32);
+        if movement.length_squared() <= f32::EPSILON {
+            return;
+        }
+
+        let Some(window_state) = self.window.states.get(&window_id) else {
+            return;
+        };
+        let max_x = window_state.inner_size.x.saturating_sub(1) as f32;
+        let max_y = window_state.inner_size.y.saturating_sub(1) as f32;
+        let base_position = self
+            .window
+            .cursor_positions
+            .get(&window_id)
+            .copied()
+            .unwrap_or(Vec2::new(
+                (window_state.inner_size.x as f32 * 0.5).max(0.0),
+                (window_state.inner_size.y as f32 * 0.5).max(0.0),
+            ));
+        let next_position = Vec2::new(
+            (base_position.x + movement.x).clamp(0.0, max_x.max(0.0)),
+            (base_position.y + movement.y).clamp(0.0, max_y.max(0.0)),
+        );
+
+        let pointer_cache = self.input.cache.get_or_create_pointer(window_id);
+        if !pointer_cache.position_changed(next_position) {
+            return;
+        }
+        pointer_cache.position = next_position;
+        self.window
+            .cursor_positions
+            .insert(window_id, next_position);
+
+        self.event_queue
+            .push(EngineEvent::Pointer(PointerEvent::OnMove {
+                window_id,
+                window_width: None,
+                window_height: None,
+                pointer_type: 0,
+                pointer_id: 0,
+                position: next_position,
+                position_target: None,
+                target_width: None,
+                target_height: None,
+                trace: None,
+            }));
     }
 
     fn user_event(&mut self, event_loop: &ActiveEventLoop, event: EngineCustomEvents) {

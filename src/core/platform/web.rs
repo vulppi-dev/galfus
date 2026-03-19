@@ -8,7 +8,7 @@ pub struct WindowId(pub u32);
 #[derive(Debug, Clone)]
 pub struct Window {
     id: WindowId,
-    _canvas: HtmlCanvasElement,
+    canvas: HtmlCanvasElement,
 }
 
 impl Window {
@@ -16,12 +16,17 @@ impl Window {
     pub fn new(id: u32, canvas: HtmlCanvasElement) -> Self {
         Self {
             id: WindowId(id),
-            _canvas: canvas,
+            canvas,
         }
     }
 
     pub fn id(&self) -> WindowId {
         self.id
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    pub fn canvas(&self) -> HtmlCanvasElement {
+        self.canvas.clone()
     }
 }
 

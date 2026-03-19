@@ -1,10 +1,14 @@
 use serde::{Deserialize, Serialize};
 
+use crate::core::cmd::EngineEvent;
 #[cfg(not(feature = "wasm"))]
 use crate::core::platform::winit;
 use crate::core::state::EngineState;
+use crate::core::window::{WindowEvent, WindowPointerCaptureState};
+#[cfg(all(feature = "wasm", target_arch = "wasm32"))]
+use wasm_bindgen::JsCast;
 
-#[derive(Debug, Deserialize, Serialize, Clone, Copy, Default)]
+#[derive(Debug, Deserialize, Serialize, Clone, Copy, Default, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
 pub enum CursorGrabMode {
     #[default]
@@ -115,7 +119,12 @@ fn apply_window_cursor(
     args: &CmdWindowCursorArgs,
     persist_icon_override: bool,
 ) -> CmdResultWindowCursor {
-    let Some(window_state) = engine.window.states.get(&args.window_id) else {
+    let Some(window) = engine
+        .window
+        .states
+        .get(&args.window_id)
+        .map(|window_state| window_state.window.clone())
+    else {
         return CmdResultWindowCursor {
             success: false,
             message: format!("Window with id {} not found", args.window_id),
@@ -123,7 +132,7 @@ fn apply_window_cursor(
     };
 
     if let Some(visible) = args.visible {
-        window_state.window.set_cursor_visible(visible);
+        window.set_cursor_visible(visible);
     }
 
     if let Some(mode) = args.mode {
@@ -133,16 +142,31 @@ fn apply_window_cursor(
             CursorGrabMode::Locked => winit::window::CursorGrabMode::Locked,
         };
 
-        if let Err(error) = window_state.window.set_cursor_grab(raw_mode) {
+        if let Err(error) = window.set_cursor_grab(raw_mode) {
             return CmdResultWindowCursor {
                 success: false,
                 message: format!("Failed to set cursor grab mode: {:?}", error),
             };
         }
+        engine.window.set_cursor_grab_mode(args.window_id, mode);
+        let active = mode != CursorGrabMode::None;
+        engine
+            .window
+            .set_pointer_capture_active(args.window_id, active);
+        engine
+            .event_queue
+            .push(EngineEvent::Window(WindowEvent::OnPointerCaptureChange {
+                window_id: args.window_id,
+                capture: WindowPointerCaptureState {
+                    mode,
+                    active,
+                    reason: Some("command".into()),
+                },
+            }));
     }
 
     if let Some(icon) = args.icon {
-        window_state.window.set_cursor(map_cursor_icon(icon));
+        window.set_cursor(map_cursor_icon(icon));
         if persist_icon_override {
             engine
                 .window
@@ -189,6 +213,99 @@ pub fn engine_cmd_window_cursor(
     _engine: &mut EngineState,
     args: &CmdWindowCursorArgs,
 ) -> CmdResultWindowCursor {
+    #[cfg(target_arch = "wasm32")]
+    {
+        let Some(window_state) = _engine.window.states.get(&args.window_id) else {
+            return CmdResultWindowCursor {
+                success: false,
+                message: format!("Window with id {} not found", args.window_id),
+            };
+        };
+
+        let Some(mode) = args.mode else {
+            if args.visible.is_some() || args.icon.is_some() {
+                return CmdResultWindowCursor {
+                    success: false,
+                    message: "WASM cursor currently supports only mode updates".into(),
+                };
+            }
+            return CmdResultWindowCursor {
+                success: true,
+                message: "No cursor mode changes applied".into(),
+            };
+        };
+
+        let window_ref = window_state.window.clone();
+        let canvas = window_ref.canvas();
+        _engine.window.set_cursor_grab_mode(args.window_id, mode);
+
+        match mode {
+            CursorGrabMode::None => {
+                if let Some(window) = web_sys::window()
+                    && let Some(document) = window.document()
+                {
+                    document.exit_pointer_lock();
+                }
+                _engine
+                    .window
+                    .set_pointer_capture_active(args.window_id, false);
+                _engine.event_queue.push(EngineEvent::Window(
+                    WindowEvent::OnPointerCaptureChange {
+                        window_id: args.window_id,
+                        capture: WindowPointerCaptureState {
+                            mode,
+                            active: false,
+                            reason: Some("command".into()),
+                        },
+                    },
+                ));
+            }
+            CursorGrabMode::Confined => {
+                // Browser has no native confined mode; we emulate it logically in pointer input.
+                _engine
+                    .window
+                    .set_pointer_capture_active(args.window_id, true);
+                _engine.event_queue.push(EngineEvent::Window(
+                    WindowEvent::OnPointerCaptureChange {
+                        window_id: args.window_id,
+                        capture: WindowPointerCaptureState {
+                            mode,
+                            active: true,
+                            reason: Some("command-polyfill".into()),
+                        },
+                    },
+                ));
+            }
+            CursorGrabMode::Locked => {
+                let element: &web_sys::Element = canvas.unchecked_ref();
+                element.request_pointer_lock();
+                _engine
+                    .window
+                    .set_pointer_capture_active(args.window_id, false);
+                _engine.event_queue.push(EngineEvent::Window(
+                    WindowEvent::OnPointerCaptureChange {
+                        window_id: args.window_id,
+                        capture: WindowPointerCaptureState {
+                            mode,
+                            active: false,
+                            reason: Some("command-requested".into()),
+                        },
+                    },
+                ));
+            }
+        }
+
+        return CmdResultWindowCursor {
+            success: true,
+            message: match mode {
+                CursorGrabMode::None => "Pointer capture disabled".into(),
+                CursorGrabMode::Confined => "Pointer confined mode enabled (polyfill)".into(),
+                CursorGrabMode::Locked => "Pointer lock requested".into(),
+            },
+        };
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
     CmdResultWindowCursor {
         success: false,
         message: format!(
@@ -203,11 +320,5 @@ pub fn engine_cmd_window_cursor_from_ui(
     _engine: &mut EngineState,
     args: &CmdWindowCursorArgs,
 ) -> CmdResultWindowCursor {
-    CmdResultWindowCursor {
-        success: false,
-        message: format!(
-            "Window cursor commands are not supported in wasm (window_id={})",
-            args.window_id
-        ),
-    }
+    engine_cmd_window_cursor(_engine, args)
 }

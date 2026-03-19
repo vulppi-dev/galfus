@@ -16,7 +16,10 @@ use crate::core::input::events::{
 use crate::core::input::keycodes::map_web_key_code;
 use crate::core::singleton::with_engine;
 use crate::core::state::EngineState;
-use crate::core::window::{WebListenerRegistration, WindowEvent};
+use crate::core::window::{
+    CursorGrabMode, EngineWindowState, WebListenerRegistration, WindowEvent,
+    WindowPointerCaptureState,
+};
 
 pub fn attach_canvas_listeners(
     window_id: u32,
@@ -28,7 +31,12 @@ pub fn attach_canvas_listeners(
         Some(window) => window,
         None => return listeners,
     };
+    let document = match window.document() {
+        Some(document) => document,
+        None => return listeners,
+    };
     let window_target: EventTarget = window.clone().unchecked_into();
+    let document_target: EventTarget = document.clone().unchecked_into();
     let canvas_target: EventTarget = canvas.clone().unchecked_into();
     let modifiers_state = Rc::new(RefCell::new(ModifiersState::default()));
 
@@ -94,6 +102,99 @@ pub fn attach_canvas_listeners(
         });
     }) as Box<dyn FnMut(Event)>);
     register_listener(&window_target, "blur", blur_closure, &mut listeners);
+
+    let fullscreen_change = Closure::wrap(Box::new(move |_event: Event| {
+        with_live_window(window_id, |engine| {
+            let state = web_sys::window()
+                .and_then(|window| window.document())
+                .map(|document| {
+                    if document.fullscreen_element().is_some() {
+                        EngineWindowState::Fullscreen
+                    } else {
+                        EngineWindowState::Windowed
+                    }
+                })
+                .unwrap_or(EngineWindowState::Windowed);
+            if engine.window.set_lifecycle_state(window_id, state) {
+                engine
+                    .event_queue
+                    .push(EngineEvent::Window(WindowEvent::OnStateChange {
+                        window_id,
+                        state,
+                    }));
+            }
+        });
+    }) as Box<dyn FnMut(Event)>);
+    register_listener(
+        &document_target,
+        "fullscreenchange",
+        fullscreen_change,
+        &mut listeners,
+    );
+
+    let canvas_lock_id = canvas.id();
+    let pointer_lock_change = Closure::wrap(Box::new(move |_event: Event| {
+        with_live_window(window_id, |engine| {
+            let mode = engine.window.cursor_grab_mode(window_id);
+            if mode != CursorGrabMode::Locked {
+                return;
+            }
+            let active = web_sys::window()
+                .and_then(|window| window.document())
+                .and_then(|document| document.pointer_lock_element())
+                .map(|element| {
+                    if canvas_lock_id.is_empty() {
+                        true
+                    } else {
+                        element.id() == canvas_lock_id
+                    }
+                })
+                .unwrap_or(false);
+            if engine.window.set_pointer_capture_active(window_id, active) {
+                engine
+                    .event_queue
+                    .push(EngineEvent::Window(WindowEvent::OnPointerCaptureChange {
+                        window_id,
+                        capture: WindowPointerCaptureState {
+                            mode,
+                            active,
+                            reason: Some("pointer-lock-change".into()),
+                        },
+                    }));
+            }
+        });
+    }) as Box<dyn FnMut(Event)>);
+    register_listener(
+        &document_target,
+        "pointerlockchange",
+        pointer_lock_change,
+        &mut listeners,
+    );
+
+    let pointer_lock_error = Closure::wrap(Box::new(move |_event: Event| {
+        with_live_window(window_id, |engine| {
+            if engine.window.cursor_grab_mode(window_id) != CursorGrabMode::Locked {
+                return;
+            }
+            engine.window.set_pointer_capture_active(window_id, false);
+            engine
+                .event_queue
+                .push(EngineEvent::Window(WindowEvent::OnPointerCaptureChange {
+                    window_id,
+                    capture: WindowPointerCaptureState {
+                        mode: CursorGrabMode::Locked,
+                        active: false,
+                        reason: Some("pointer-lock-error".into()),
+                    },
+                }));
+        });
+    }) as Box<dyn FnMut(Event)>);
+    register_listener(
+        &document_target,
+        "pointerlockerror",
+        pointer_lock_error,
+        &mut listeners,
+    );
 
     let modifiers_state_for_keydown = modifiers_state.clone();
     let keydown_closure = Closure::wrap(Box::new(move |event: Event| {
@@ -268,11 +369,48 @@ pub fn attach_canvas_listeners(
             Ok(ev) => ev,
             Err(_) => return,
         };
-        let position = canvas_relative_pos(&canvas_for_pointer, event.client_x(), event.client_y());
         let pointer_type = map_pointer_type(&event.pointer_type());
         let pointer_id = event.pointer_id() as u64;
+        let absolute_position =
+            canvas_relative_pos(&canvas_for_pointer, event.client_x(), event.client_y());
+        let movement = glam::Vec2::new(event.movement_x() as f32, event.movement_y() as f32);
 
         with_live_window(window_id, |engine| {
+            let mode = engine.window.cursor_grab_mode(window_id);
+            let use_relative = match mode {
+                CursorGrabMode::None => false,
+                CursorGrabMode::Confined => true,
+                CursorGrabMode::Locked => engine.window.pointer_capture_active(window_id),
+            };
+            let position = if use_relative {
+                let fallback = if let Some(window_state) = engine.window.states.get(&window_id) {
+                    glam::Vec2::new(
+                        window_state.inner_size.x as f32 * 0.5,
+                        window_state.inner_size.y as f32 * 0.5,
+                    )
+                } else {
+                    absolute_position
+                };
+                let base = engine
+                    .window
+                    .cursor_positions
+                    .get(&window_id)
+                    .copied()
+                    .unwrap_or(fallback);
+                let target = base + movement;
+                if let Some(window_state) = engine.window.states.get(&window_id) {
+                    let max_x = window_state.inner_size.x.saturating_sub(1) as f32;
+                    let max_y = window_state.inner_size.y.saturating_sub(1) as f32;
+                    glam::Vec2::new(
+                        target.x.clamp(0.0, max_x.max(0.0)),
+                        target.y.clamp(0.0, max_y.max(0.0)),
+                    )
+                } else {
+                    target
+                }
+            } else {
+                absolute_position
+            };
             engine.window.cursor_positions.insert(window_id, position);
             engine
                 .event_queue
@@ -462,14 +600,10 @@ fn canvas_surface_size_from_rect(canvas: &HtmlCanvasElement) -> (u32, u32) {
     let dpr = web_sys::window()
         .map(|window| window.device_pixel_ratio())
         .unwrap_or(1.0);
-    let size = crate::core::window::resolve_canvas_surface_size_pixels(
-        canvas.width(),
-        canvas.height(),
-        rect.width(),
-        rect.height(),
-        dpr,
-    );
-    (size.x, size.y)
+    let safe_dpr = dpr.max(1.0);
+    let width = (rect.width() * safe_dpr).round().max(1.0) as u32;
+    let height = (rect.height() * safe_dpr).round().max(1.0) as u32;
+    (width, height)
 }
 
 fn with_live_window(window_id: u32, apply: impl FnOnce(&mut EngineState)) -> bool {

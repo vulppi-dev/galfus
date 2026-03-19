@@ -21,7 +21,7 @@ jobs:
     name: Quality Tests (Core)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -59,7 +59,7 @@ jobs:
             binding: lua
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Resolve channel and version
         id: meta
@@ -112,7 +112,7 @@ jobs:
         if: matrix.binding == 'napi'
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
 
       - name: Setup Python (for PyO3)
         if: matrix.binding == 'python'
@@ -249,7 +249,7 @@ jobs:
     needs: quality-tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Resolve channel and version
         id: meta
