@@ -665,8 +665,6 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
         let Some(window_state) = self.window.states.get(&window_id) else {
             return;
         };
-        let max_x = window_state.inner_size.x.saturating_sub(1) as f32;
-        let max_y = window_state.inner_size.y.saturating_sub(1) as f32;
         let base_position = self
             .window
             .cursor_positions
@@ -676,10 +674,7 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
                 (window_state.inner_size.x as f32 * 0.5).max(0.0),
                 (window_state.inner_size.y as f32 * 0.5).max(0.0),
             ));
-        let next_position = Vec2::new(
-            (base_position.x + movement.x).clamp(0.0, max_x.max(0.0)),
-            (base_position.y + movement.y).clamp(0.0, max_y.max(0.0)),
-        );
+        let next_position = base_position + movement;
 
         let pointer_cache = self.input.cache.get_or_create_pointer(window_id);
         if !pointer_cache.position_changed(next_position) {

@@ -1,4 +1,5 @@
 use std::time::Duration;
+use std::{cell::RefCell, rc::Rc};
 
 use glam::{Mat4, UVec2, Vec2, Vec3, Vec4};
 
@@ -12,7 +13,7 @@ use crate::core::cmd::{
     CmdCameraUpsertArgs, CmdEnvironmentUpsertArgs, CmdGeometryUpsertArgs, CmdLightUpsertArgs,
     CmdMaterialUpsertArgs, CmdModelUpsertArgs, CommandResponse, EngineCmd, EngineEvent,
 };
-use crate::core::input::events::{ElementState, KeyboardEvent};
+use crate::core::input::events::{ElementState, KeyboardEvent, PointerEvent};
 use crate::core::input::keycodes::{KEY_ESCAPE, KEY_W};
 use crate::core::profiling::state::ProfilingDetailLevel;
 use crate::core::realm::cmd::{CmdRealmCreateArgs, CmdRealmDisposeArgs, RealmKindDto};
@@ -66,6 +67,7 @@ use crate::demo::io::{receive_events, receive_responses, send_command, send_comm
 use crate::demo::loop_utils::run_loop_with_events;
 use crate::demo::session::create_window;
 use crate::demo::{DemoContext, DemoKind};
+use demo3_pointer::{Demo3PointerMode, Demo3State, demo3_mode_from_key};
 use pointer_listener_lab::run_demo_7_pointer_listener_lab;
 use setup::{
     aux_window_commands, base_scene_commands, extra_setup_commands, list_commands, ui_button_op,
@@ -73,6 +75,7 @@ use setup::{
 };
 use window_ui::run_demo_2_window_ui;
 
+mod demo3_pointer;
 mod pointer_listener_lab;
 mod pointer_listener_lab_ui;
 mod setup;
@@ -229,6 +232,17 @@ fn run_demo_bundle(
     let mut hud = FpsHud::new(demo_number);
     let mut setup_cmds = base_scene_commands(ctx, ids);
     setup_cmds.extend(hud.setup_commands(ui_realm_id));
+    let demo3_state = if demo_number == 3 {
+        let state = Rc::new(RefCell::new(Demo3State::new(ids)));
+        setup_cmds.extend(state.borrow().setup_commands(ui_realm_id));
+        setup_cmds.push(Demo3State::cursor_command(
+            ctx.window_id,
+            Demo3PointerMode::Normal,
+        ));
+        Some(state)
+    } else {
+        None
+    };
 
     let mut aux_windows: Vec<u32> = Vec::new();
     let mut aux_huds: Vec<(u32, FpsHud)> = Vec::new();
@@ -254,6 +268,8 @@ fn run_demo_bundle(
     let _ = receive_responses();
 
     let mut last_list_ms = 0_u64;
+    let demo3_state_frame = demo3_state.clone();
+    let demo3_state_event = demo3_state.clone();
     run_loop_with_events(
         ctx.window_id,
         None,
@@ -283,6 +299,14 @@ fn run_demo_bundle(
                     },
                 )));
             }
+            let model_transform = if let Some(state) = &demo3_state_frame {
+                let mut state = state.borrow_mut();
+                cmds.extend(state.frame_commands(total_ms));
+                state.model_transform()
+            } else {
+                Mat4::from_rotation_y(total_ms as f32 * 0.0006)
+                    * Mat4::from_rotation_x(total_ms as f32 * 0.0003)
+            };
             cmds.push(EngineCmd::CmdModelUpsert(CmdModelUpsertArgs::Update(
                 CmdModelUpdateArgs {
                     realm_id: ctx.realm_id,
@@ -290,10 +314,7 @@ fn run_demo_bundle(
                     label: None,
                     geometry_id: None,
                     material_id: None,
-                    transform: Some(
-                        Mat4::from_rotation_y(total_ms as f32 * 0.0006)
-                            * Mat4::from_rotation_x(total_ms as f32 * 0.0003),
-                    ),
+                    transform: Some(model_transform),
                     layer_mask: None,
                     cast_shadow: None,
                     receive_shadow: None,
@@ -328,6 +349,44 @@ fn run_demo_bundle(
             cmds
         },
         move |event| {
+            if let Some(state) = &demo3_state_event {
+                match &event {
+                    EngineEvent::Keyboard(KeyboardEvent::OnInput {
+                        window_id,
+                        key_code,
+                        state: ElementState::Pressed,
+                        ..
+                    }) if *window_id == ctx.window_id => {
+                        let next_mode = demo3_mode_from_key(*key_code);
+                        if let Some(next_mode) = next_mode {
+                            let mut state = state.borrow_mut();
+                            if state.set_mode(next_mode) {
+                                let _ = send_commands(vec![Demo3State::cursor_command(
+                                    ctx.window_id,
+                                    next_mode,
+                                )]);
+                            }
+                        }
+                    }
+                    EngineEvent::Pointer(PointerEvent::OnMove {
+                        window_id,
+                        position,
+                        ..
+                    }) if *window_id == ctx.window_id => {
+                        state.borrow_mut().on_pointer_move(*position);
+                    }
+                    EngineEvent::Window(
+                        crate::core::window::WindowEvent::OnPointerCaptureChange {
+                            window_id,
+                            capture,
+                        },
+                    ) if *window_id == ctx.window_id => {
+                        state.borrow_mut().update_capture_active(capture.active);
+                    }
+                    _ => {}
+                }
+            }
+
             for aux_window in &aux_windows {
                 if should_close_window(*aux_window, &event) {
                     let _ = send_commands(vec![EngineCmd::CmdWindowClose(

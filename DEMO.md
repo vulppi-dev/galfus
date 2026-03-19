@@ -37,6 +37,7 @@ Demos no Vulfram validam, de forma incremental, os principais aspectos da engine
    - fluxo de janela orientado por UI: medições (`window-measurement`) e botões para mudança de estado (`window-state`/`window-cursor`) em um único realm UI.
 3. `Demo 3`
    - recursos de cena e render (geometria, materiais, luzes, texturas, ambiente, sombras e pós).
+   - validação de ponteiro para FPS: teclas `1/2/3` alternam `normal/locked/confined`, cubo rotaciona por delta do mouse em `locked` e `confined`, UI exibe posição e delta do ponteiro.
 4. `Demo 4`
    - UI runtime completa, introspecção, debug visual, viewport/raycast e integração 3D.
 5. `Demo 5`
