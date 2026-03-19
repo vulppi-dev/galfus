@@ -277,19 +277,19 @@ All public ABI functions are prefixed with `vulfram_`:
 
 ### Documentation Files
 
-- `vulfram_overview.md`
+- `docs/OVERVIEW.md`
   - High-level summary and concepts.
 
-- `vulfram_abi_spec.md`
+- `docs/ABI.md`
   - Functions, ABI details and usage contract.
 
-- `vulfram_architecture_lifecycle.md`
+- `docs/ARCH.md`
   - Architecture, lifecycle, and main loop contract.
 
-- `vulfram_internal_api.md`
+- `docs/API.md`
   - Internal Rust API: crates, structs, internal flows.
 
-- `vulfram_glossary.md`
+- `docs/GLOSSARY.md`
   - This document: terminology and naming patterns.
 
 ---

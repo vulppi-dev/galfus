@@ -369,7 +369,6 @@ vulfram/
 │
 ├── docs/                        # Documentation
 ├── assets/                      # Visual resources
-├── wen-test/                    # WASM test harness (Vite)
 ├── Cargo.toml                   # Rust dependencies
 └── README.md                    # This file
 ```
@@ -402,7 +401,6 @@ Comprehensive documentation is available in the `docs/` folder.
 
 **Additional Resources:**
 
-- **[MASCOT-DEFINITION.md](docs/MASCOT-DEFINITION.md)** - Brand mascot guidelines
 - **[UI.md](docs/UI.md)** - UI runtime technical index
 - **[ui/README.md](docs/ui/README.md)** - RealmUI overview and subsystem docs
 - **[PLATFORM-PROXIES.md](docs/PLATFORM-PROXIES.md)** - Platform proxy architecture
