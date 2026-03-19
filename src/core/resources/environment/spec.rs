@@ -27,6 +27,34 @@ impl Default for MsaaConfig {
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
+pub struct SkyboxDirectionalLightSun {
+    pub light_id: u32,
+    #[serde(default = "default_sun_solid_size")]
+    pub solid_size: f32,
+    #[serde(default = "default_sun_gradient_size")]
+    pub gradient_size: f32,
+}
+
+fn default_sun_solid_size() -> f32 {
+    0.0018
+}
+
+fn default_sun_gradient_size() -> f32 {
+    0.0287
+}
+
+impl Default for SkyboxDirectionalLightSun {
+    fn default() -> Self {
+        Self {
+            light_id: 0,
+            solid_size: default_sun_solid_size(),
+            gradient_size: default_sun_gradient_size(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SkyboxConfig {
     pub mode: SkyboxMode,
     pub intensity: f32,
@@ -34,8 +62,22 @@ pub struct SkyboxConfig {
     pub ground_color: Vec3,
     pub horizon_color: Vec3,
     pub sky_color: Vec3,
+    #[serde(default = "default_horizon_ground_threshold")]
+    pub horizon_ground_threshold: f32,
+    #[serde(default = "default_horizon_sky_threshold")]
+    pub horizon_sky_threshold: f32,
+    #[serde(default)]
+    pub directional_lights: Vec<SkyboxDirectionalLightSun>,
     #[serde(default)]
     pub cubemap_texture_id: Option<u32>,
+}
+
+fn default_horizon_ground_threshold() -> f32 {
+    0.45
+}
+
+fn default_horizon_sky_threshold() -> f32 {
+    0.55
 }
 
 impl Default for SkyboxConfig {
@@ -47,6 +89,9 @@ impl Default for SkyboxConfig {
             ground_color: Vec3::new(0.02, 0.03, 0.04),
             horizon_color: Vec3::new(0.12, 0.16, 0.22),
             sky_color: Vec3::new(0.2, 0.35, 0.6),
+            horizon_ground_threshold: default_horizon_ground_threshold(),
+            horizon_sky_threshold: default_horizon_sky_threshold(),
+            directional_lights: Vec::new(),
             cubemap_texture_id: None,
         }
     }
@@ -146,7 +191,7 @@ impl Default for PostProcessConfig {
 
 #[cfg(test)]
 mod tests {
-    use super::PostProcessConfig;
+    use super::{PostProcessConfig, SkyboxConfig};
 
     #[test]
     fn default_postprocess_is_neutral() {
@@ -162,5 +207,13 @@ mod tests {
         assert_eq!(config.filter_chromatic_aberration, 0.0);
         assert_eq!(config.filter_blur, 0.0);
         assert_eq!(config.filter_sharpen, 0.0);
+    }
+
+    #[test]
+    fn default_skybox_supports_multi_sun_controls() {
+        let config = SkyboxConfig::default();
+        assert_eq!(config.horizon_ground_threshold, 0.45);
+        assert_eq!(config.horizon_sky_threshold, 0.55);
+        assert!(config.directional_lights.is_empty());
     }
 }

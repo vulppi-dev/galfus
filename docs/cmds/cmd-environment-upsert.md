@@ -22,7 +22,7 @@ Behavior:
 `EnvironmentConfig` fields:
 
 - `msaa { enabled, sampleCount }`
-- `skybox { mode, intensity, rotation, groundColor, horizonColor, skyColor, cubemapTextureId? }`
+- `skybox { mode, intensity, rotation, groundColor, horizonColor, skyColor, horizonGroundThreshold, horizonSkyThreshold, directionalLights[{ lightId, solidSize, gradientSize }], cubemapTextureId? }`
 - `clearColor` (`Vec4`, RGBA)
 - `post` (post-processing block: `filter_*`, outline, SSAO, bloom)
 

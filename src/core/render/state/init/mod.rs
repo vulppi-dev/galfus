@@ -180,7 +180,7 @@ impl RenderState {
         });
         let skybox_uniform_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("Skybox Uniform Buffer"),
-            size: 160,
+            size: crate::core::render::passes::skybox_uniform_buffer_size(),
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });

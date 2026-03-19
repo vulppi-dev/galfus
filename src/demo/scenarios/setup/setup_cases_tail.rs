@@ -146,7 +146,92 @@ pub(super) fn append_setup_commands_tail(
                 image_id: ids.aux_id,
             }));
         }
-        20 => {}
+        20 => {
+            let sun_a_id = ids.light_id + 200;
+            let sun_b_id = ids.light_id + 201;
+            cmds.push(EngineCmd::CmdModelDispose(CmdModelDisposeArgs {
+                realm_id: ctx.realm_id,
+                model_id: ids.ground_model_id,
+            }));
+            cmds.push(EngineCmd::CmdLightDispose(CmdLightDisposeArgs {
+                realm_id: ctx.realm_id,
+                light_id: ids.light_id,
+            }));
+            cmds.push(EngineCmd::CmdLightDispose(CmdLightDisposeArgs {
+                realm_id: ctx.realm_id,
+                light_id: ids.light_id + 1,
+            }));
+            cmds.push(EngineCmd::CmdLightUpsert(CmdLightUpsertArgs::Create(
+                CmdLightCreateArgs {
+                    realm_id: ctx.realm_id,
+                    light_id: sun_a_id,
+                    label: Some("Demo 4 Sun A".into()),
+                    kind: Some(LightKind::Directional),
+                    position: Some(Vec4::new(0.0, 0.0, 0.0, 1.0)),
+                    direction: Some(Vec4::new(-0.45, -0.85, -0.30, 0.0)),
+                    color: Some(Vec4::new(1.0, 0.92, 0.75, 1.0)),
+                    ground_color: None,
+                    intensity: Some(0.5),
+                    range: Some(0.0),
+                    spot_inner_outer: None,
+                    layer_mask: 0xFFFF_FFFF,
+                    cast_shadow: false,
+                },
+            )));
+            cmds.push(EngineCmd::CmdLightUpsert(CmdLightUpsertArgs::Create(
+                CmdLightCreateArgs {
+                    realm_id: ctx.realm_id,
+                    light_id: sun_b_id,
+                    label: Some("Demo 4 Sun B".into()),
+                    kind: Some(LightKind::Directional),
+                    position: Some(Vec4::new(0.0, 0.0, 0.0, 1.0)),
+                    direction: Some(Vec4::new(0.55, -0.65, 0.48, 0.0)),
+                    color: Some(Vec4::new(0.70, 0.82, 1.0, 1.0)),
+                    ground_color: None,
+                    intensity: Some(0.5),
+                    range: Some(0.0),
+                    spot_inner_outer: None,
+                    layer_mask: 0xFFFF_FFFF,
+                    cast_shadow: false,
+                },
+            )));
+            cmds.push(EngineCmd::CmdEnvironmentUpsert(
+                CmdEnvironmentUpsertArgs::Update(CmdEnvironmentUpdateArgs {
+                    environment_id: ids.env_id,
+                    config: EnvironmentConfig {
+                        skybox: SkyboxConfig {
+                            mode: SkyboxMode::Procedural,
+                            ground_color: Vec3::new(0.34, 0.22, 0.14),
+                            horizon_color: Vec3::new(0.98, 0.86, 0.38),
+                            sky_color: Vec3::new(0.24, 0.52, 0.92),
+                            horizon_ground_threshold: 0.98,
+                            horizon_sky_threshold: 0.98,
+                            directional_lights: vec![
+                                SkyboxDirectionalLightSun {
+                                    light_id: sun_a_id,
+                                    solid_size: 0.002,
+                                    gradient_size: 0.012,
+                                },
+                                SkyboxDirectionalLightSun {
+                                    light_id: sun_b_id,
+                                    solid_size: 0.0016,
+                                    gradient_size: 0.010,
+                                },
+                            ],
+                            ..Default::default()
+                        },
+                        ..Default::default()
+                    },
+                }),
+            ));
+            cmds.push(EngineCmd::CmdTargetLayerUpsert(CmdTargetLayerUpsertArgs {
+                realm_id: ctx.realm_id,
+                target_id: ids.target_id,
+                layout: TargetLayerLayout::default(),
+                camera_id: Some(ids.camera_id),
+                environment_id: Some(ids.env_id),
+            }));
+        }
         21 => {
             let realm_plane_target = ids.target_id + 700;
             cmds.push(EngineCmd::CmdTargetUpsert(CmdTargetUpsertArgs {

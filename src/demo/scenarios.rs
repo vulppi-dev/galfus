@@ -21,14 +21,15 @@ use crate::core::resources::geometry::{CmdGeometryCreateArgs, GeometryPrimitiveE
 use crate::core::resources::shadow::CmdShadowConfigureArgs;
 use crate::core::resources::shadow::ShadowConfig;
 use crate::core::resources::{
-    CameraKind, CmdCameraCreateArgs, CmdCameraDisposeArgs, CmdCameraListArgs,
+    CameraKind, CmdCameraCreateArgs, CmdCameraDisposeArgs, CmdCameraListArgs, CmdCameraUpdateArgs,
     CmdEnvironmentUpdateArgs, CmdGeometryDisposeArgs, CmdGeometryListArgs, CmdLightCreateArgs,
     CmdLightDisposeArgs, CmdLightListArgs, CmdMaterialCreateArgs, CmdMaterialDisposeArgs,
-    CmdMaterialListArgs, CmdModelCreateArgs, CmdModelListArgs, CmdModelUpdateArgs,
-    CmdPoseUpdateArgs, CmdPrimitiveGeometryCreateArgs, CmdTextureBindTargetArgs,
-    CmdTextureCreateFromBufferArgs, CmdTextureCreateSolidColorArgs, CmdTextureDisposeArgs,
-    CmdTextureListArgs, EnvironmentConfig, LightKind, MaterialKind, MaterialOptions, MsaaConfig,
-    PbrOptions, PostProcessConfig, PrimitiveShape, SkyboxConfig, SkyboxMode, TextureCreateMode,
+    CmdMaterialListArgs, CmdModelCreateArgs, CmdModelDisposeArgs, CmdModelListArgs,
+    CmdModelUpdateArgs, CmdPoseUpdateArgs, CmdPrimitiveGeometryCreateArgs,
+    CmdTextureBindTargetArgs, CmdTextureCreateFromBufferArgs, CmdTextureCreateSolidColorArgs,
+    CmdTextureDisposeArgs, CmdTextureListArgs, EnvironmentConfig, LightKind, MaterialKind,
+    MaterialOptions, MsaaConfig, PbrOptions, PostProcessConfig, PrimitiveShape, SkyboxConfig,
+    SkyboxDirectionalLightSun, SkyboxMode, TextureCreateMode,
 };
 use crate::core::system::{
     diagnostics::CmdSystemDiagnosticsSetArgs,
@@ -260,6 +261,27 @@ fn run_demo_bundle(
             let mut cmds = hud.frame_commands(total_ms, delta_ms);
             for (_, aux_hud) in &mut aux_huds {
                 cmds.extend(aux_hud.frame_commands(total_ms, delta_ms));
+            }
+            if demo_number == 4 {
+                let pitch = (total_ms as f32 * 0.0012).sin() * 0.95;
+                let direction = Vec3::new(0.0, pitch.sin(), -pitch.cos()).normalize();
+                let transform =
+                    Mat4::look_to_rh(Vec3::new(0.0, 2.2, 5.5), direction, Vec3::Y).inverse();
+                cmds.push(EngineCmd::CmdCameraUpsert(CmdCameraUpsertArgs::Update(
+                    CmdCameraUpdateArgs {
+                        realm_id: ctx.realm_id,
+                        camera_id: ids.camera_id,
+                        label: None,
+                        transform: Some(transform),
+                        kind: None,
+                        flags: None,
+                        near_far: None,
+                        layer_mask: None,
+                        order: None,
+                        view_position: None,
+                        ortho_scale: None,
+                    },
+                )));
             }
             cmds.push(EngineCmd::CmdModelUpsert(CmdModelUpsertArgs::Update(
                 CmdModelUpdateArgs {
