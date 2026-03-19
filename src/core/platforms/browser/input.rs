@@ -397,17 +397,7 @@ pub fn attach_canvas_listeners(
                     .get(&window_id)
                     .copied()
                     .unwrap_or(fallback);
-                let target = base + movement;
-                if let Some(window_state) = engine.window.states.get(&window_id) {
-                    let max_x = window_state.inner_size.x.saturating_sub(1) as f32;
-                    let max_y = window_state.inner_size.y.saturating_sub(1) as f32;
-                    glam::Vec2::new(
-                        target.x.clamp(0.0, max_x.max(0.0)),
-                        target.y.clamp(0.0, max_y.max(0.0)),
-                    )
-                } else {
-                    target
-                }
+                base + movement
             } else {
                 absolute_position
             };

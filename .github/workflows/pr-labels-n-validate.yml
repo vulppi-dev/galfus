@@ -121,6 +121,7 @@ jobs:
     permissions:
       contents: read
       pull-requests: read
+      issues: read
     steps:
       - name: Validate PR policy
         uses: actions/github-script@v8
@@ -142,13 +143,72 @@ jobs:
               );
             }
 
-            const body = (pr.body || '').toLowerCase();
-            const issuePatterns = [
-              /\b(close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved)\s+#\d+\b/i,
-              /\b(close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved)\s+https:\/\/github\.com\/[^/\s]+\/[^/\s]+\/issues\/\d+\b/i,
-            ];
-            if (!issuePatterns.some((re) => re.test(body))) {
-              errors.push("Missing linked issue in PR body. Add e.g. 'Closes #123'.");
+            const body = pr.body || '';
+            const linkedTargetRegex =
+              /\b(?:close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved)\s+(#\d+|https:\/\/github\.com\/[^\s)]+\/[^\s)]+\/(?:issues|pull)\/\d+)\b/gi;
+            const linkedIssues = [];
+
+            for (const match of body.matchAll(linkedTargetRegex)) {
+              const target = match[1];
+              const shortRef = /^#(\d+)$/i.exec(target);
+              if (shortRef) {
+                linkedIssues.push({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: Number(shortRef[1]),
+                  raw: target,
+                });
+                continue;
+              }
+
+              const urlRef = /^https:\/\/github\.com\/([^/\s]+)\/([^/\s]+)\/(issues|pull)\/(\d+)$/i.exec(target);
+              if (!urlRef) {
+                errors.push(`Invalid linked issue reference: "${target}".`);
+                continue;
+              }
+
+              const [, owner, repo, kind, number] = urlRef;
+              if (kind.toLowerCase() !== 'issues') {
+                errors.push(`Linked reference "${target}" must point to an issue, not a pull request.`);
+                continue;
+              }
+
+              linkedIssues.push({
+                owner,
+                repo,
+                issue_number: Number(number),
+                raw: target,
+              });
+            }
+
+            if (linkedIssues.length > 0) {
+              const seen = new Set();
+              for (const ref of linkedIssues) {
+                const key = `${ref.owner}/${ref.repo}#${ref.issue_number}`;
+                if (seen.has(key)) continue;
+                seen.add(key);
+
+                try {
+                  const { data: issue } = await github.rest.issues.get({
+                    owner: ref.owner,
+                    repo: ref.repo,
+                    issue_number: ref.issue_number,
+                  });
+                  if (issue.pull_request) {
+                    errors.push(
+                      `Linked reference "${ref.raw}" resolves to PR #${ref.issue_number}, not an issue.`
+                    );
+                  }
+                } catch (error) {
+                  if (error?.status === 404) {
+                    errors.push(`Linked issue "${ref.raw}" was not found.`);
+                  } else {
+                    throw error;
+                  }
+                }
+              }
+            } else {
+              core.info('No linked issues found in PR body; skipping linked issue validation.');
             }
 
             const allowedChangelog = new Set([

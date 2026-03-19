@@ -12,7 +12,7 @@ Agrupa:
 - **Desktop:** suporte nativo a `none`, `confined` e `locked`.
 - **WASM:** suporte parcial:
   - `mode=locked`: solicita Pointer Lock API;
-  - `mode=confined`: polyfill lógico (clamp de posição no canvas);
+  - `mode=confined`: polyfill lógico com movimento relativo sem clamp de deltas;
   - `mode=none`: encerra capture/lock.
   - `visible` e `icon` continuam não suportados.
 
