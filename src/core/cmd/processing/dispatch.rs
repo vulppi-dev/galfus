@@ -548,7 +548,8 @@ pub(super) fn dispatch_command(
         | EngineCmd::CmdLightList(_)
         | EngineCmd::CmdCameraList(_)
         | EngineCmd::CmdGizmoDrawLine(_)
-        | EngineCmd::CmdGizmoDrawAabb(_)) => {
+        | EngineCmd::CmdGizmoDrawAabb(_)
+        | EngineCmd::CmdGizmoDrawPolyline(_)) => {
             super::dispatch_tail::dispatch_ui_and_misc(engine, pack.id, cmd);
         }
     }

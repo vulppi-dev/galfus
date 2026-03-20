@@ -1,16 +1,16 @@
-# CmdGizmoDrawAabb
+# CmdGizmoDrawPolyline
 
-Draws a 3D Axis-Aligned Bounding Box (AABB) gizmo. Gizmos are cleared every frame.
+Draws a 3D polyline gizmo using a point list (`path`) in world space. Gizmos are cleared every frame.
 Gizmos render only to the main color path and do not contribute to emissive/bloom.
-Thickness is rendered as solid triangulated ribbons per edge.
+Thickness is rendered as a solid triangulated ribbon per segment.
 
 ## Arguments
 
 | Field     | Type        | Description                                                   |
 | --------- | ----------- | ------------------------------------------------------------- |
-| min       | Vec3        | Minimum corner (x, y, z)                                     |
-| max       | Vec3        | Maximum corner (x, y, z)                                     |
-| color     | Vec4        | Color of the box lines (RGBA)                                |
+| points    | Vec<Vec3>   | Ordered points of the path (at least 2 points)               |
+| color     | Vec4        | Color of the polyline (RGBA)                                 |
+| closed    | bool        | (Optional) If true, closes the path from last to first       |
 | thickness | Option<f32> | (Optional) Screen-space thickness in pixels. `0`/unset keeps thin line. |
 
 ## Response

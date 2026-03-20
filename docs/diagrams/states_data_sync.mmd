@@ -1,7 +1,7 @@
 flowchart LR
   RE["realm_entities[realm_id]"]
-  GR["global_resources"]
-  SYNC["sync_scene_from_realm_and_globals"]
+  GR["universal_resources"]
+  SYNC["sync_scene_from_realm_and_universal_resources"]
   SCN["RenderState.scene (cameras/models/lights/materials/textures)"]
   CAM["sync_camera_targets_and_projection"]
   PREP["prepare_render"]
@@ -13,7 +13,7 @@ flowchart LR
   CAM --> PREP
 
   C1["cameras/models/lights come from current realm only"]
-  C2["materials/textures/geometries are shared globals"]
+  C2["materials/textures/geometries are shared universal resources"]
   C3["projection size tracks resolved target/surface size"]
 
   RE --> C1

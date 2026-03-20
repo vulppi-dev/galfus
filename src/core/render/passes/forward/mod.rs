@@ -115,7 +115,6 @@ pub fn pass_forward(
         &mut render_state.cache,
         &mut render_state.gizmos,
     );
-    gizmos.prepare(device, queue);
 
     // 1. Sort cameras by order
     for (camera_index, camera_id) in camera_ids.iter().copied().enumerate() {
@@ -258,13 +257,22 @@ pub fn pass_forward(
 
             // 7. Draw Gizmos
             if !gizmos.is_empty() {
+                let viewport_size = camera_record
+                    .render_target
+                    .as_ref()
+                    .map(|target| {
+                        let size = target.texture.size();
+                        glam::UVec2::new(size.width, size.height)
+                    })
+                    .unwrap_or(glam::UVec2::new(1, 1));
+                gizmos.prepare_for_camera(device, queue, camera_record, viewport_size);
                 let key = PipelineKey {
                     shader_id: ShaderId::Gizmo as u64,
                     color_format: TARGET_FORMAT,
                     color_target_count: 2,
                     depth_format: Some(wgpu::TextureFormat::Depth32Float),
                     sample_count,
-                    topology: wgpu::PrimitiveTopology::LineList,
+                    topology: wgpu::PrimitiveTopology::TriangleList,
                     cull_mode: None,
                     front_face: wgpu::FrontFace::Ccw,
                     depth_write_enabled: false,
@@ -316,7 +324,7 @@ pub fn pass_forward(
                             compilation_options: wgpu::PipelineCompilationOptions::default(),
                         }),
                         primitive: wgpu::PrimitiveState {
-                            topology: wgpu::PrimitiveTopology::LineList,
+                            topology: wgpu::PrimitiveTopology::TriangleList,
                             ..Default::default()
                         },
                         depth_stencil: Some(wgpu::DepthStencilState {

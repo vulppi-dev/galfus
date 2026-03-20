@@ -88,7 +88,7 @@ pub fn engine_cmd_material_list(
     args: &CmdMaterialListArgs,
 ) -> CmdResultMaterialList {
     let _ = args;
-    let resources = &engine.universal_state.global_resources;
+    let resources = &engine.universal_state.universal_resources;
 
     let mut materials = Vec::new();
 
@@ -136,7 +136,7 @@ pub fn engine_cmd_texture_list(
     args: &CmdTextureListArgs,
 ) -> CmdResultTextureList {
     let _ = args;
-    let resources = &engine.universal_state.global_resources;
+    let resources = &engine.universal_state.universal_resources;
 
     let mut textures = Vec::new();
 
@@ -193,7 +193,7 @@ pub fn engine_cmd_geometry_list(
     let _ = args;
     let geometries = engine
         .universal_state
-        .global_resources
+        .universal_resources
         .geometries
         .iter()
         .map(|(&id, rec)| ResourceEntry {

@@ -2,7 +2,7 @@ use super::RenderState;
 use crate::core::realm::RealmId;
 use std::hash::{Hash, Hasher};
 
-pub(super) fn sync_scene_from_realm_and_globals(
+pub(super) fn sync_scene_from_realm_and_universal_resources(
     render_state: &mut RenderState,
     universal: &crate::core::realm::UniversalState,
     realm_id: RealmId,
@@ -119,7 +119,7 @@ pub(super) fn sync_scene_from_realm_and_globals(
     let mut previous_materials_standard =
         std::mem::take(&mut render_state.scene.materials_standard);
     render_state.scene.materials_standard.clear();
-    for (material_id, node) in &universal.global_resources.materials_standard {
+    for (material_id, node) in &universal.universal_resources.materials_standard {
         if let Some(mut record) = previous_materials_standard.remove(material_id) {
             let changed = record.label != node.label
                 || bytemuck::bytes_of(&record.data) != bytemuck::bytes_of(&node.data)
@@ -148,7 +148,7 @@ pub(super) fn sync_scene_from_realm_and_globals(
     }
     let mut previous_materials_pbr = std::mem::take(&mut render_state.scene.materials_pbr);
     render_state.scene.materials_pbr.clear();
-    for (material_id, node) in &universal.global_resources.materials_pbr {
+    for (material_id, node) in &universal.universal_resources.materials_pbr {
         if let Some(mut record) = previous_materials_pbr.remove(material_id) {
             let changed = record.label != node.label
                 || bytemuck::bytes_of(&record.data) != bytemuck::bytes_of(&node.data)
@@ -175,27 +175,28 @@ pub(super) fn sync_scene_from_realm_and_globals(
                 .insert(*material_id, node.clone());
         }
     }
-    let textures_hash = hash_texture_records(&universal.global_resources.textures);
+    let textures_hash = hash_texture_records(&universal.universal_resources.textures);
     if render_state.textures_sync_hash != textures_hash {
         sync_texture_records(
             &mut render_state.scene.textures,
-            &universal.global_resources.textures,
+            &universal.universal_resources.textures,
         );
         render_state.textures_sync_hash = textures_hash;
     }
-    let atlas_hash = hash_forward_atlas_entries(&universal.global_resources.forward_atlas_entries);
+    let atlas_hash =
+        hash_forward_atlas_entries(&universal.universal_resources.forward_atlas_entries);
     if render_state.atlas_sync_hash != atlas_hash {
         sync_forward_atlas_entries(
             &mut render_state.scene.forward_atlas_entries,
-            &universal.global_resources.forward_atlas_entries,
+            &universal.universal_resources.forward_atlas_entries,
         );
         render_state.atlas_sync_hash = atlas_hash;
     }
-    let binds_hash = hash_target_texture_binds(&universal.global_resources.target_texture_binds);
+    let binds_hash = hash_target_texture_binds(&universal.universal_resources.target_texture_binds);
     if render_state.target_binds_sync_hash != binds_hash {
         sync_target_texture_binds(
             &mut render_state.target_texture_binds,
-            &universal.global_resources.target_texture_binds,
+            &universal.universal_resources.target_texture_binds,
         );
         render_state.target_binds_sync_hash = binds_hash;
     }
@@ -304,7 +305,7 @@ fn sync_target_texture_binds(
 
 pub(super) fn sync_window_geometry_registry(
     render_state: &mut RenderState,
-    geometries: &std::collections::HashMap<u32, crate::core::realm::GlobalGeometryRecord>,
+    geometries: &std::collections::HashMap<u32, crate::core::realm::UniversalGeometryRecord>,
 ) {
     let Some(vertex) = render_state.vertex.as_mut() else {
         return;

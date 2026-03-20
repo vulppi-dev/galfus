@@ -12,6 +12,7 @@ pub enum PrimitiveShape {
     Cylinder,
     Torus,
     Pyramid,
+    Pill,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -113,6 +114,25 @@ impl Default for PyramidOptions {
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct PillOptions {
+    pub radius: f32,
+    pub height: f32,
+    pub sectors: u32,
+    pub stacks: u32,
+}
+impl Default for PillOptions {
+    fn default() -> Self {
+        Self {
+            radius: 0.25,
+            height: 0.5,
+            sectors: 32,
+            stacks: 8,
+        }
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(tag = "type", content = "content", rename_all = "kebab-case")]
 pub enum PrimitiveOptions {
     Cube(CubeOptions),
@@ -121,6 +141,7 @@ pub enum PrimitiveOptions {
     Cylinder(CylinderOptions),
     Torus(TorusOptions),
     Pyramid(PyramidOptions),
+    Pill(PillOptions),
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -169,6 +190,10 @@ pub fn engine_cmd_primitive_geometry_create(
             PrimitiveOptions::Pyramid(opts.clone())
         }
         (PrimitiveShape::Pyramid, None) => PrimitiveOptions::Pyramid(PyramidOptions::default()),
+        (PrimitiveShape::Pill, Some(PrimitiveOptions::Pill(opts))) => {
+            PrimitiveOptions::Pill(opts.clone())
+        }
+        (PrimitiveShape::Pill, None) => PrimitiveOptions::Pill(PillOptions::default()),
         (shape, Some(_)) => {
             return CmdResultPrimitiveGeometryCreate {
                 success: false,
@@ -192,25 +217,57 @@ pub fn engine_cmd_primitive_geometry_create(
         PrimitiveOptions::Cylinder(opts) => generators::generate_cylinder(&opts),
         PrimitiveOptions::Torus(opts) => generators::generate_torus(&opts),
         PrimitiveOptions::Pyramid(opts) => generators::generate_pyramid(&opts),
+        PrimitiveOptions::Pill(opts) => generators::generate_pill(&opts),
     };
 
-    engine.universal_state.global_resources.geometries.insert(
-        args.geometry_id,
-        crate::core::realm::GlobalGeometryRecord {
-            label: args.label.clone(),
-            entries: geometry_data.clone(),
-        },
-    );
+    let mut uploaded_windows: Vec<u32> = Vec::new();
+    let mut upload_error: Option<String> = None;
     for (window_id, render_state) in engine.render.states.iter_mut() {
-        if let Some(vertex_allocator) = render_state.vertex.as_mut() {
-            let _ = vertex_allocator.create_geometry(
-                args.geometry_id,
-                args.label.clone(),
-                geometry_data.clone(),
-            );
-            if let Some(window_state) = engine.window.states.get_mut(window_id) {
-                window_state.is_dirty = true;
+        let Some(vertex_allocator) = render_state.vertex.as_mut() else {
+            continue;
+        };
+        match vertex_allocator.create_geometry(
+            args.geometry_id,
+            args.label.clone(),
+            geometry_data.clone(),
+        ) {
+            Ok(()) => uploaded_windows.push(*window_id),
+            Err(error) => {
+                upload_error = Some(format!(
+                    "Failed to upload primitive geometry to window {}: {}",
+                    window_id, error
+                ));
+                break;
             }
+        }
+    }
+    if let Some(message) = upload_error {
+        for window_id in uploaded_windows {
+            if let Some(render_state) = engine.render.states.get_mut(&window_id)
+                && let Some(vertex_allocator) = render_state.vertex.as_mut()
+            {
+                let _ = vertex_allocator.destroy_geometry(args.geometry_id);
+            }
+        }
+        return CmdResultPrimitiveGeometryCreate {
+            success: false,
+            message,
+        };
+    }
+    engine
+        .universal_state
+        .universal_resources
+        .geometries
+        .insert(
+            args.geometry_id,
+            crate::core::realm::UniversalGeometryRecord {
+                label: args.label.clone(),
+                entries: geometry_data.clone(),
+            },
+        );
+    for window_id in uploaded_windows {
+        if let Some(window_state) = engine.window.states.get_mut(&window_id) {
+            window_state.is_dirty = true;
         }
     }
     CmdResultPrimitiveGeometryCreate {
@@ -255,6 +312,20 @@ fn validate_options(options: &PrimitiveOptions) -> Result<(), String> {
         PrimitiveOptions::Pyramid(opts) => {
             if opts.subdivisions == 0 {
                 return Err("Pyramid subdivisions must be >= 1".to_string());
+            }
+        }
+        PrimitiveOptions::Pill(opts) => {
+            if opts.radius <= 0.0 {
+                return Err("Pill radius must be > 0".to_string());
+            }
+            if opts.height < 0.0 {
+                return Err("Pill height must be >= 0".to_string());
+            }
+            if opts.sectors < 3 {
+                return Err("Pill sectors must be >= 3".to_string());
+            }
+            if opts.stacks < 1 {
+                return Err("Pill stacks must be >= 1".to_string());
             }
         }
     }

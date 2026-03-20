@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::core::realm::GlobalGeometryRecord;
+use crate::core::realm::UniversalGeometryRecord;
 use crate::core::resources::vertex::GeometryPrimitiveType;
 use crate::core::state::EngineState;
 
@@ -143,13 +143,17 @@ pub fn engine_cmd_geometry_create(
         }
     };
 
-    engine.universal_state.global_resources.geometries.insert(
-        args.geometry_id,
-        GlobalGeometryRecord {
-            label: args.label.clone(),
-            entries: geometry_data.clone(),
-        },
-    );
+    engine
+        .universal_state
+        .universal_resources
+        .geometries
+        .insert(
+            args.geometry_id,
+            UniversalGeometryRecord {
+                label: args.label.clone(),
+                entries: geometry_data.clone(),
+            },
+        );
     upload_geometry_to_windows(engine, args.geometry_id, args.label.clone(), &geometry_data);
     consume_entry_buffers(engine, &args.entries);
     CmdResultGeometryCreate {
@@ -165,7 +169,7 @@ pub fn engine_cmd_geometry_update(
     if args.entries.is_none() {
         if let Some(record) = engine
             .universal_state
-            .global_resources
+            .universal_resources
             .geometries
             .get_mut(&args.geometry_id)
         {
@@ -199,13 +203,17 @@ pub fn engine_cmd_geometry_update(
             };
         }
     };
-    engine.universal_state.global_resources.geometries.insert(
-        args.geometry_id,
-        GlobalGeometryRecord {
-            label: args.label.clone(),
-            entries: geometry_data.clone(),
-        },
-    );
+    engine
+        .universal_state
+        .universal_resources
+        .geometries
+        .insert(
+            args.geometry_id,
+            UniversalGeometryRecord {
+                label: args.label.clone(),
+                entries: geometry_data.clone(),
+            },
+        );
     upload_geometry_to_windows(engine, args.geometry_id, args.label.clone(), &geometry_data);
     consume_entry_buffers(engine, entries);
     CmdResultGeometryUpdate {
@@ -220,7 +228,7 @@ pub fn engine_cmd_geometry_dispose(
 ) -> CmdResultGeometryDispose {
     let removed = engine
         .universal_state
-        .global_resources
+        .universal_resources
         .geometries
         .remove(&args.geometry_id)
         .is_some();

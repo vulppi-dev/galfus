@@ -1,6 +1,6 @@
 # CmdMaterialUpsert
 
-Upserts a material (`Create` or `Update`) in the global resource registry.
+Upserts a material (`Create` or `Update`) in the universal resource registry.
 
 ## Arguments
 

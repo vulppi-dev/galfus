@@ -13,7 +13,7 @@ pub fn engine_cmd_texture_create_from_buffer(
     engine: &mut EngineState,
     args: &CmdTextureCreateFromBufferArgs,
 ) -> CmdResultTextureCreateFromBuffer {
-    let resources = &engine.universal_state.global_resources;
+    let resources = &engine.universal_state.universal_resources;
     if resources.textures.contains_key(&args.texture_id)
         || resources
             .forward_atlas_entries
@@ -82,7 +82,7 @@ fn create_texture_from_image(
     args: &CmdTextureCreateFromBufferArgs,
     image: ImageBuffer,
 ) -> CmdResultTextureCreateFromBuffer {
-    let resources = &mut engine.universal_state.global_resources;
+    let resources = &mut engine.universal_state.universal_resources;
     if resources.textures.contains_key(&args.texture_id)
         || resources
             .forward_atlas_entries
@@ -310,7 +310,7 @@ pub fn engine_cmd_texture_create_solid_color(
     engine: &mut EngineState,
     args: &CmdTextureCreateSolidColorArgs,
 ) -> CmdResultTextureCreateSolidColor {
-    let resources = &mut engine.universal_state.global_resources;
+    let resources = &mut engine.universal_state.universal_resources;
     if resources.textures.contains_key(&args.texture_id)
         || resources
             .forward_atlas_entries
@@ -404,7 +404,7 @@ pub fn engine_cmd_texture_dispose(
     engine
         .pending_texture_decode_results
         .retain(|pending| pending.texture_id != args.texture_id);
-    let resources = &mut engine.universal_state.global_resources;
+    let resources = &mut engine.universal_state.universal_resources;
     let mut removed = false;
     removed |= resources.textures.remove(&args.texture_id).is_some();
     removed |= resources
@@ -436,7 +436,7 @@ pub fn engine_cmd_texture_bind_target(
     engine: &mut EngineState,
     args: &CmdTextureBindTargetArgs,
 ) -> CmdResultTextureBindTarget {
-    let resources = &mut engine.universal_state.global_resources;
+    let resources = &mut engine.universal_state.universal_resources;
     if resources.textures.contains_key(&args.texture_id)
         || resources
             .forward_atlas_entries

@@ -223,7 +223,7 @@ fn resolve_ui_source_for_model(
     material_id: Option<u32>,
 ) -> Option<UiTextureSource> {
     let material_id = material_id?;
-    let resources = &engine_state.universal_state.global_resources;
+    let resources = &engine_state.universal_state.universal_resources;
 
     if let Some(standard) = resources.materials_standard.get(&material_id) {
         for (slot_index, &texture_id) in standard.texture_ids.iter().enumerate() {

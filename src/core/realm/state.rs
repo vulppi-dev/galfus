@@ -188,19 +188,19 @@ pub struct RealmEntities {
 }
 
 #[derive(Debug, Clone)]
-pub struct GlobalGeometryRecord {
+pub struct UniversalGeometryRecord {
     pub label: Option<String>,
     pub entries: Vec<(GeometryPrimitiveType, Vec<u8>)>,
 }
 
 #[derive(Debug, Default)]
-pub struct GlobalResources {
+pub struct UniversalResources {
     pub materials_standard: HashMap<u32, MaterialStandardRecord>,
     pub materials_pbr: HashMap<u32, MaterialPbrRecord>,
     pub textures: HashMap<u32, TextureRecord>,
     pub forward_atlas_entries: HashMap<u32, ForwardAtlasEntry>,
     pub target_texture_binds: HashMap<u32, TargetTextureBinding>,
-    pub geometries: HashMap<u32, GlobalGeometryRecord>,
+    pub geometries: HashMap<u32, UniversalGeometryRecord>,
 }
 
 #[derive(Debug, Default)]
@@ -226,7 +226,7 @@ pub struct UniversalState {
     pub realm_entities: HashMap<RealmId, RealmEntities>,
     pub render_graphs: HashMap<u32, crate::core::render::graph::RenderGraphRecord>,
     pub render_graph_plan_cache: HashMap<u64, crate::core::render::graph::RenderGraphState>,
-    pub global_resources: GlobalResources,
+    pub universal_resources: UniversalResources,
 }
 
 #[derive(Debug, Clone)]
