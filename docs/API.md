@@ -113,8 +113,14 @@ The core manages several first-class resources:
 State ownership split (current):
 
 - `camera`, `model`, and `light` are realm-owned entities (`realmId` scoped).
-- `material`, `texture`, and `geometry` are global shareable registries.
+- `material`, `texture`, and `geometry` are shared under `UniversalState.universal_resources`.
 - Window lifecycle affects presentation/surfaces, not universal resource ownership.
+
+Gizmos (current):
+
+- `line`, `aabb`, and `polyline` commands render in the forward color path.
+- `thickness` is interpreted in screen-space pixels.
+- Thick gizmos are emitted as solid triangulated ribbons (triangle list), not hardware line width.
 
 ---
 

@@ -2,6 +2,7 @@
 
 Draws a 3D polyline gizmo using a point list (`path`) in world space. Gizmos are cleared every frame.
 Gizmos render only to the main color path and do not contribute to emissive/bloom.
+Thickness is rendered as a solid triangulated ribbon per segment.
 
 ## Arguments
 

@@ -272,7 +272,7 @@ pub fn pass_forward(
                     color_target_count: 2,
                     depth_format: Some(wgpu::TextureFormat::Depth32Float),
                     sample_count,
-                    topology: wgpu::PrimitiveTopology::LineList,
+                    topology: wgpu::PrimitiveTopology::TriangleList,
                     cull_mode: None,
                     front_face: wgpu::FrontFace::Ccw,
                     depth_write_enabled: false,
@@ -324,7 +324,7 @@ pub fn pass_forward(
                             compilation_options: wgpu::PipelineCompilationOptions::default(),
                         }),
                         primitive: wgpu::PrimitiveState {
-                            topology: wgpu::PrimitiveTopology::LineList,
+                            topology: wgpu::PrimitiveTopology::TriangleList,
                             ..Default::default()
                         },
                         depth_stencil: Some(wgpu::DepthStencilState {

@@ -63,8 +63,6 @@ pub struct GizmoSystem {
 }
 
 impl GizmoSystem {
-    const MAX_SCREEN_PARALLELS: usize = 16;
-
     #[cfg(any(not(feature = "wasm"), target_arch = "wasm32"))]
     pub fn new() -> Self {
         Self {
@@ -162,46 +160,44 @@ impl GizmoSystem {
 
         let segments = self.segments.clone();
         for seg in segments {
-            if seg.thickness_px <= 0.0 {
-                self.push_vertex_pair(seg.start, seg.end, seg.color);
+            let line_dir = (seg.end - seg.start).normalize_or_zero();
+            if line_dir.length_squared() < 1e-8 {
                 continue;
             }
-
-            let line_dir = (seg.end - seg.start).normalize_or_zero();
             let mut perp = line_dir.cross(view_dir).normalize_or_zero();
             if perp.length_squared() < 1e-8 {
                 perp = line_dir.cross(camera_up).normalize_or_zero();
             }
             if perp.length_squared() < 1e-8 {
-                self.push_vertex_pair(seg.start, seg.end, seg.color);
                 continue;
             }
-
-            let lanes = seg
-                .thickness_px
-                .round()
-                .clamp(1.0, Self::MAX_SCREEN_PARALLELS as f32) as usize;
-            let lane_step = if lanes > 1 {
-                seg.thickness_px / (lanes as f32 - 1.0)
-            } else {
-                0.0
-            };
-            let lane_start = -seg.thickness_px * 0.5;
-
-            for lane in 0..lanes {
-                let offset_px = lane_start + lane_step * lane as f32;
-                let offset_start = self.pixel_to_world_offset(
-                    kind, seg.start, camera_pos, view_dir, proj_yy, viewport_h, offset_px,
-                );
-                let offset_end = self.pixel_to_world_offset(
-                    kind, seg.end, camera_pos, view_dir, proj_yy, viewport_h, offset_px,
-                );
-                self.push_vertex_pair(
-                    seg.start + perp * offset_start,
-                    seg.end + perp * offset_end,
-                    seg.color,
-                );
-            }
+            let half_thickness_px = seg.thickness_px.max(1.0) * 0.5;
+            let offset_start = self.pixel_to_world_offset(
+                kind,
+                seg.start,
+                camera_pos,
+                view_dir,
+                proj_yy,
+                viewport_h,
+                half_thickness_px,
+            );
+            let offset_end = self.pixel_to_world_offset(
+                kind,
+                seg.end,
+                camera_pos,
+                view_dir,
+                proj_yy,
+                viewport_h,
+                half_thickness_px,
+            );
+            self.push_segment_quad(
+                seg.start,
+                seg.end,
+                perp,
+                offset_start,
+                offset_end,
+                seg.color,
+            );
         }
 
         if self.vertices.is_empty() {
@@ -248,14 +244,32 @@ impl GizmoSystem {
         }
     }
 
-    fn push_vertex_pair(&mut self, start: Vec3, end: Vec3, color: Vec4) {
+    fn push_segment_quad(
+        &mut self,
+        start: Vec3,
+        end: Vec3,
+        perp: Vec3,
+        start_half_width: f32,
+        end_half_width: f32,
+        color: Vec4,
+    ) {
+        let s_left = start + perp * start_half_width;
+        let s_right = start - perp * start_half_width;
+        let e_left = end + perp * end_half_width;
+        let e_right = end - perp * end_half_width;
+
+        self.push_vertex(s_left, color);
+        self.push_vertex(e_left, color);
+        self.push_vertex(e_right, color);
+
+        self.push_vertex(s_left, color);
+        self.push_vertex(e_right, color);
+        self.push_vertex(s_right, color);
+    }
+
+    fn push_vertex(&mut self, position: Vec3, color: Vec4) {
         self.vertices.push(GizmoVertex {
-            position: start,
-            _pad: 0.0,
-            color,
-        });
-        self.vertices.push(GizmoVertex {
-            position: end,
+            position,
             _pad: 0.0,
             color,
         });
