@@ -115,6 +115,7 @@ pub(super) fn command_type_for_cmd(cmd: &EngineCmd) -> &'static str {
         EngineCmd::CmdCameraList(_) => "camera-list",
         EngineCmd::CmdGizmoDrawLine(_) => "gizmo-draw-line",
         EngineCmd::CmdGizmoDrawAabb(_) => "gizmo-draw-aabb",
+        EngineCmd::CmdGizmoDrawPolyline(_) => "gizmo-draw-polyline",
     }
 }
 
@@ -251,7 +252,7 @@ fn command_has_pending_dependencies(engine: &EngineState, cmd: &EngineCmd) -> bo
         EngineCmd::CmdMaterialUpsert(args) => match args {
             CmdMaterialUpsertArgs::Create(_) => false,
             CmdMaterialUpsertArgs::Update(update) => {
-                let resources = &engine.universal_state.global_resources;
+                let resources = &engine.universal_state.universal_resources;
                 !(resources
                     .materials_standard
                     .contains_key(&update.material_id)
@@ -262,7 +263,7 @@ fn command_has_pending_dependencies(engine: &EngineState, cmd: &EngineCmd) -> bo
             CmdGeometryUpsertArgs::Create(_) => false,
             CmdGeometryUpsertArgs::Update(update) => !engine
                 .universal_state
-                .global_resources
+                .universal_resources
                 .geometries
                 .contains_key(&update.geometry_id),
         },

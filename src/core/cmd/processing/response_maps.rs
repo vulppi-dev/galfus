@@ -78,6 +78,7 @@ pub(super) fn response_is_success(response: &CommandResponse) -> bool {
         CommandResponse::CameraList(result) => result.success,
         CommandResponse::GizmoDrawLine(result) => result.status == 0,
         CommandResponse::GizmoDrawAabb(result) => result.status == 0,
+        CommandResponse::GizmoDrawPolyline(result) => result.status == 0,
     }
 }
 
@@ -159,6 +160,7 @@ pub(super) fn response_message(response: &CommandResponse) -> Option<String> {
         CommandResponse::CameraList(result) => Some(result.message.clone()),
         CommandResponse::GizmoDrawLine(_) => None,
         CommandResponse::GizmoDrawAabb(_) => None,
+        CommandResponse::GizmoDrawPolyline(_) => None,
     }
 }
 

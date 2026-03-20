@@ -101,9 +101,10 @@ pub(super) fn dispatch_ui_and_misc(engine: &mut EngineState, envelope_id: u64, c
         }
         EngineCmd::CmdGizmoDrawLine(args) => {
             for (window_id, render_state) in engine.render.states.iter_mut() {
+                let thickness = args.thickness.unwrap_or(0.0).max(0.0);
                 render_state
                     .gizmos
-                    .add_line(args.start, args.end, args.color);
+                    .add_line(args.start, args.end, args.color, thickness);
                 if let Some(window_state) = engine.window.states.get_mut(window_id) {
                     window_state.is_dirty = true;
                 }
@@ -115,7 +116,10 @@ pub(super) fn dispatch_ui_and_misc(engine: &mut EngineState, envelope_id: u64, c
         }
         EngineCmd::CmdGizmoDrawAabb(args) => {
             for (window_id, render_state) in engine.render.states.iter_mut() {
-                render_state.gizmos.add_aabb(args.min, args.max, args.color);
+                let thickness = args.thickness.unwrap_or(0.0).max(0.0);
+                render_state
+                    .gizmos
+                    .add_aabb(args.min, args.max, args.color, thickness);
                 if let Some(window_state) = engine.window.states.get_mut(window_id) {
                     window_state.is_dirty = true;
                 }
@@ -123,6 +127,23 @@ pub(super) fn dispatch_ui_and_misc(engine: &mut EngineState, envelope_id: u64, c
             engine.response_queue.push(CommandResponseEnvelope {
                 id: envelope_id,
                 response: CommandResponse::GizmoDrawAabb(gizmo::CmdResultGizmoDraw { status: 0 }),
+            });
+        }
+        EngineCmd::CmdGizmoDrawPolyline(args) => {
+            for (window_id, render_state) in engine.render.states.iter_mut() {
+                let thickness = args.thickness.unwrap_or(0.0).max(0.0);
+                render_state
+                    .gizmos
+                    .add_polyline(&args.points, args.color, args.closed, thickness);
+                if let Some(window_state) = engine.window.states.get_mut(window_id) {
+                    window_state.is_dirty = true;
+                }
+            }
+            engine.response_queue.push(CommandResponseEnvelope {
+                id: envelope_id,
+                response: CommandResponse::GizmoDrawPolyline(gizmo::CmdResultGizmoDraw {
+                    status: 0,
+                }),
             });
         }
         _ => {}

@@ -114,7 +114,7 @@ State ownership split (current):
 
 - `camera`, `model`, and `light` are realm-owned entities (`realmId` scoped).
 - `material`, `texture`, and `geometry` are global shareable registries.
-- Window lifecycle affects presentation/surfaces, not global resource ownership.
+- Window lifecycle affects presentation/surfaces, not universal resource ownership.
 
 ---
 

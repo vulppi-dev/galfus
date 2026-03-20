@@ -5,11 +5,12 @@ Gizmos render only to the main color path and do not contribute to emissive/bloo
 
 ## Arguments
 
-| Field | Type | Description                   |
-| ----- | ---- | ----------------------------- |
-| min   | Vec3 | Minimum corner (x, y, z)      |
-| max   | Vec3 | Maximum corner (x, y, z)      |
-| color | Vec4 | Color of the box lines (RGBA) |
+| Field     | Type        | Description                                                   |
+| --------- | ----------- | ------------------------------------------------------------- |
+| min       | Vec3        | Minimum corner (x, y, z)                                     |
+| max       | Vec3        | Maximum corner (x, y, z)                                     |
+| color     | Vec4        | Color of the box lines (RGBA)                                |
+| thickness | Option<f32> | (Optional) Screen-space thickness in pixels. `0`/unset keeps thin line. |
 
 ## Response
 

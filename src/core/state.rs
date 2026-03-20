@@ -104,13 +104,16 @@ impl EngineState {
             &mut universal_state.render_graphs,
             &mut universal_state.render_graph_plan_cache,
         );
-        universal_state.global_resources.materials_standard.insert(
-            MATERIAL_FALLBACK_ID,
-            MaterialStandardRecord::new(
-                Some("Fallback Material".into()),
-                MaterialStandardParams::default(),
-            ),
-        );
+        universal_state
+            .universal_resources
+            .materials_standard
+            .insert(
+                MATERIAL_FALLBACK_ID,
+                MaterialStandardRecord::new(
+                    Some("Fallback Material".into()),
+                    MaterialStandardParams::default(),
+                ),
+            );
 
         Self {
             window: WindowManager::new(),
@@ -201,7 +204,7 @@ impl EngineState {
                     .entries
                     .retain(|target_id, _| !targets_to_remove.contains(target_id));
                 self.universal_state
-                    .global_resources
+                    .universal_resources
                     .target_texture_binds
                     .retain(|_, binding| !targets_to_remove.contains(&binding.target_id));
                 self.universal_state

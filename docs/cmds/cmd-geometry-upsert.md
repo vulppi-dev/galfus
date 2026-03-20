@@ -1,6 +1,6 @@
 # CmdGeometryUpsert
 
-Upserts a geometry (`Create` or `Update`) in the global resource registry.
+Upserts a geometry (`Create` or `Update`) in the universal resource registry.
 
 ## Arguments
 

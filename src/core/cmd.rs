@@ -162,6 +162,7 @@ pub enum EngineCmd {
     CmdCameraList(res::CmdCameraListArgs),
     CmdGizmoDrawLine(gizmo::CmdGizmoDrawLineArgs),
     CmdGizmoDrawAabb(gizmo::CmdGizmoDrawAabbArgs),
+    CmdGizmoDrawPolyline(gizmo::CmdGizmoDrawPolylineArgs),
 }
 
 /// Spontaneous engine events (input, window changes, system events)
@@ -256,6 +257,7 @@ pub enum CommandResponse {
     CameraList(res::CmdResultCameraList),
     GizmoDrawLine(gizmo::CmdResultGizmoDraw),
     GizmoDrawAabb(gizmo::CmdResultGizmoDraw),
+    GizmoDrawPolyline(gizmo::CmdResultGizmoDraw),
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]

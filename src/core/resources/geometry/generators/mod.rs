@@ -1,5 +1,6 @@
 mod cube;
 mod cylinder;
+mod pill;
 mod plane;
 mod pyramid;
 mod sphere;
@@ -7,6 +8,7 @@ mod torus;
 
 pub use cube::generate_cube;
 pub use cylinder::generate_cylinder;
+pub use pill::generate_pill;
 pub use plane::generate_plane;
 pub use pyramid::generate_pyramid;
 pub use sphere::generate_sphere;

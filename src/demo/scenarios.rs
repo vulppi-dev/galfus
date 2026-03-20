@@ -17,7 +17,9 @@ use crate::core::input::events::{ElementState, KeyboardEvent, PointerEvent};
 use crate::core::input::keycodes::{KEY_ESCAPE, KEY_W};
 use crate::core::profiling::state::ProfilingDetailLevel;
 use crate::core::realm::cmd::{CmdRealmCreateArgs, CmdRealmDisposeArgs, RealmKindDto};
-use crate::core::render::gizmos::{CmdGizmoDrawAabbArgs, CmdGizmoDrawLineArgs};
+use crate::core::render::gizmos::{
+    CmdGizmoDrawAabbArgs, CmdGizmoDrawLineArgs, CmdGizmoDrawPolylineArgs,
+};
 use crate::core::resources::geometry::{CmdGeometryCreateArgs, GeometryPrimitiveEntry};
 use crate::core::resources::shadow::CmdShadowConfigureArgs;
 use crate::core::resources::shadow::ShadowConfig;
@@ -165,7 +167,7 @@ fn run_demo_3(ctx: DemoContext) -> bool {
         BundleOptions {
             create_temp_realm: false,
             enable_aux_window: false,
-            draw_gizmos: false,
+            draw_gizmos: true,
             poll_lists: false,
             log_input_wait: false,
         },
@@ -180,7 +182,7 @@ fn run_demo_4(ctx: DemoContext) -> bool {
         BundleOptions {
             create_temp_realm: false,
             enable_aux_window: false,
-            draw_gizmos: true,
+            draw_gizmos: false,
             poll_lists: false,
             log_input_wait: false,
         },
@@ -324,15 +326,56 @@ fn run_demo_bundle(
             )));
 
             if options.draw_gizmos {
+                let t = total_ms as f32 * 0.001;
+                let polyline_points = vec![
+                    Vec3::new(-1.8, 0.25, -1.0),
+                    Vec3::new(-1.1, 0.55 + (t * 1.3).sin() * 0.12, -0.3),
+                    Vec3::new(-0.3, 0.35 + (t * 1.9).cos() * 0.12, -0.9),
+                    Vec3::new(0.5, 0.75 + (t * 1.1).sin() * 0.12, -0.2),
+                    Vec3::new(1.3, 0.45 + (t * 1.7).cos() * 0.12, -0.8),
+                ];
+                let curve_points = sample_cubic_bezier(
+                    Vec3::new(-1.5, 1.7, 0.2),
+                    Vec3::new(-0.7, 2.3 + (t * 0.8).sin() * 0.25, -0.4),
+                    Vec3::new(0.7, 1.1 + (t * 1.2).cos() * 0.25, 0.6),
+                    Vec3::new(1.5, 1.7, -0.2),
+                    24,
+                );
+
                 cmds.push(EngineCmd::CmdGizmoDrawLine(CmdGizmoDrawLineArgs {
                     start: Vec3::new(-2.0, 0.0, 0.0),
                     end: Vec3::new(2.0, 0.0, 0.0),
                     color: Vec4::new(1.0, 0.2, 0.2, 1.0),
+                    thickness: Some(4.0),
                 }));
                 cmds.push(EngineCmd::CmdGizmoDrawAabb(CmdGizmoDrawAabbArgs {
                     min: Vec3::new(-1.0, -1.0, -1.0),
                     max: Vec3::new(1.0, 1.0, 1.0),
                     color: Vec4::new(0.2, 1.0, 0.2, 0.5),
+                    thickness: Some(3.0),
+                }));
+                cmds.push(EngineCmd::CmdGizmoDrawPolyline(CmdGizmoDrawPolylineArgs {
+                    points: polyline_points,
+                    color: Vec4::new(0.2, 0.75, 1.0, 1.0),
+                    closed: false,
+                    thickness: Some(5.0),
+                }));
+                cmds.push(EngineCmd::CmdGizmoDrawPolyline(CmdGizmoDrawPolylineArgs {
+                    points: vec![
+                        Vec3::new(-0.6, 1.15, 0.7),
+                        Vec3::new(0.0, 1.55, 0.1),
+                        Vec3::new(0.6, 1.15, 0.7),
+                        Vec3::new(0.0, 0.9, 1.2),
+                    ],
+                    color: Vec4::new(1.0, 0.85, 0.2, 1.0),
+                    closed: true,
+                    thickness: Some(4.0),
+                }));
+                cmds.push(EngineCmd::CmdGizmoDrawPolyline(CmdGizmoDrawPolylineArgs {
+                    points: curve_points,
+                    color: Vec4::new(1.0, 0.4, 0.9, 1.0),
+                    closed: false,
+                    thickness: Some(6.0),
                 }));
             }
 
@@ -399,6 +442,21 @@ fn run_demo_bundle(
             false
         },
     )
+}
+
+fn sample_cubic_bezier(p0: Vec3, p1: Vec3, p2: Vec3, p3: Vec3, segments: usize) -> Vec<Vec3> {
+    let segments = segments.max(1);
+    let mut points = Vec::with_capacity(segments + 1);
+    for i in 0..=segments {
+        let t = i as f32 / segments as f32;
+        let omt = 1.0 - t;
+        let p = p0 * (omt * omt * omt)
+            + p1 * (3.0 * omt * omt * t)
+            + p2 * (3.0 * omt * t * t)
+            + p3 * (t * t * t);
+        points.push(p);
+    }
+    points
 }
 
 fn should_close_window(window_id: u32, event: &EngineEvent) -> bool {

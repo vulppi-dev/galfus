@@ -26,7 +26,7 @@ use realm_graph::{
     resolve_realm_surface, update_surface_cache,
 };
 pub use runtime::RenderManager;
-use scene_sync::{sync_scene_from_realm_and_globals, sync_window_geometry_registry};
+use scene_sync::{sync_scene_from_realm_and_universal_resources, sync_window_geometry_registry};
 pub use state::RenderState;
 use std::collections::HashSet;
 use ui_platform_actions::apply_ui_platform_actions;
@@ -156,7 +156,7 @@ pub fn render_frames(engine_state: &mut EngineState) {
         &mut engine_state.render.states,
         &engine_state
             .universal_state
-            .global_resources
+            .universal_resources
             .target_texture_binds,
         &target_surface_map,
         &engine_state.surface_targets,
@@ -233,7 +233,7 @@ pub fn render_frames(engine_state: &mut EngineState) {
             #[cfg(feature = "wasm")]
             let window_start = now_ns();
 
-            sync_scene_from_realm_and_globals(
+            sync_scene_from_realm_and_universal_resources(
                 render_state,
                 &engine_state.universal_state,
                 *realm_id,
@@ -241,7 +241,7 @@ pub fn render_frames(engine_state: &mut EngineState) {
             if synced_windows.insert(*window_id) {
                 sync_window_geometry_registry(
                     render_state,
-                    &engine_state.universal_state.global_resources.geometries,
+                    &engine_state.universal_state.universal_resources.geometries,
                 );
             }
             let camera_target_sizes = collect_window_camera_target_sizes(

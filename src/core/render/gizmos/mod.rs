@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Copy, Debug, Pod, Zeroable)]
 pub struct GizmoVertex {
     pub position: Vec3,
-    pub _pad: f32, // Explicit padding to make it 16 bytes aligned for color (Vec4)
+    pub _pad: f32,
     pub color: Vec4,
 }
 
@@ -16,6 +16,8 @@ pub struct CmdGizmoDrawLineArgs {
     pub start: Vec3,
     pub end: Vec3,
     pub color: Vec4,
+    #[serde(default)]
+    pub thickness: Option<f32>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -24,6 +26,19 @@ pub struct CmdGizmoDrawAabbArgs {
     pub min: Vec3,
     pub max: Vec3,
     pub color: Vec4,
+    #[serde(default)]
+    pub thickness: Option<f32>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct CmdGizmoDrawPolylineArgs {
+    pub points: Vec<Vec3>,
+    pub color: Vec4,
+    #[serde(default)]
+    pub closed: bool,
+    #[serde(default)]
+    pub thickness: Option<f32>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -32,36 +47,44 @@ pub struct CmdResultGizmoDraw {
     pub status: u32,
 }
 
+#[derive(Clone, Copy, Debug)]
+struct GizmoSegment {
+    start: Vec3,
+    end: Vec3,
+    color: Vec4,
+    thickness_px: f32,
+}
+
 pub struct GizmoSystem {
+    segments: Vec<GizmoSegment>,
     vertices: Vec<GizmoVertex>,
     buffer: Option<wgpu::Buffer>,
     capacity: usize,
 }
 
 impl GizmoSystem {
+    const MAX_SCREEN_PARALLELS: usize = 16;
+
     #[cfg(any(not(feature = "wasm"), target_arch = "wasm32"))]
     pub fn new() -> Self {
         Self {
+            segments: Vec::with_capacity(1024),
             vertices: Vec::with_capacity(1024),
             buffer: None,
             capacity: 0,
         }
     }
 
-    pub fn add_line(&mut self, start: Vec3, end: Vec3, color: Vec4) {
-        self.vertices.push(GizmoVertex {
-            position: start,
-            _pad: 0.0,
+    pub fn add_line(&mut self, start: Vec3, end: Vec3, color: Vec4, thickness_px: f32) {
+        self.segments.push(GizmoSegment {
+            start,
+            end,
             color,
-        });
-        self.vertices.push(GizmoVertex {
-            position: end,
-            _pad: 0.0,
-            color,
+            thickness_px: thickness_px.max(0.0),
         });
     }
 
-    pub fn add_aabb(&mut self, min: Vec3, max: Vec3, color: Vec4) {
+    pub fn add_aabb(&mut self, min: Vec3, max: Vec3, color: Vec4, thickness_px: f32) {
         let corners = [
             Vec3::new(min.x, min.y, min.z),
             Vec3::new(max.x, min.y, min.z),
@@ -73,34 +96,114 @@ impl GizmoSystem {
             Vec3::new(min.x, max.y, max.z),
         ];
 
-        // Bottom square
-        self.add_line(corners[0], corners[1], color);
-        self.add_line(corners[1], corners[2], color);
-        self.add_line(corners[2], corners[3], color);
-        self.add_line(corners[3], corners[0], color);
+        self.add_line(corners[0], corners[1], color, thickness_px);
+        self.add_line(corners[1], corners[2], color, thickness_px);
+        self.add_line(corners[2], corners[3], color, thickness_px);
+        self.add_line(corners[3], corners[0], color, thickness_px);
 
-        // Top square
-        self.add_line(corners[4], corners[5], color);
-        self.add_line(corners[5], corners[6], color);
-        self.add_line(corners[6], corners[7], color);
-        self.add_line(corners[7], corners[4], color);
+        self.add_line(corners[4], corners[5], color, thickness_px);
+        self.add_line(corners[5], corners[6], color, thickness_px);
+        self.add_line(corners[6], corners[7], color, thickness_px);
+        self.add_line(corners[7], corners[4], color, thickness_px);
 
-        // Connection lines
-        self.add_line(corners[0], corners[4], color);
-        self.add_line(corners[1], corners[5], color);
-        self.add_line(corners[2], corners[6], color);
-        self.add_line(corners[3], corners[7], color);
+        self.add_line(corners[0], corners[4], color, thickness_px);
+        self.add_line(corners[1], corners[5], color, thickness_px);
+        self.add_line(corners[2], corners[6], color, thickness_px);
+        self.add_line(corners[3], corners[7], color, thickness_px);
+    }
+
+    pub fn add_polyline(&mut self, points: &[Vec3], color: Vec4, closed: bool, thickness_px: f32) {
+        if points.len() < 2 {
+            return;
+        }
+        for segment in points.windows(2) {
+            self.add_line(segment[0], segment[1], color, thickness_px);
+        }
+        if closed {
+            let start = points[0];
+            let end = points[points.len() - 1];
+            if start != end {
+                self.add_line(end, start, color, thickness_px);
+            }
+        }
     }
 
     pub fn clear(&mut self) {
+        self.segments.clear();
         self.vertices.clear();
     }
 
     pub fn is_empty(&self) -> bool {
-        self.vertices.is_empty()
+        self.segments.is_empty()
     }
 
-    pub fn prepare(&mut self, device: &wgpu::Device, queue: &wgpu::Queue) {
+    pub fn prepare_for_camera(
+        &mut self,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        camera: &crate::core::resources::CameraRecord,
+        viewport: glam::UVec2,
+    ) {
+        if self.segments.is_empty() {
+            self.vertices.clear();
+            return;
+        }
+
+        self.vertices.clear();
+
+        let view_dir = camera.data.direction.truncate().normalize_or_zero();
+        let camera_up = camera.data.up.truncate().normalize_or_zero();
+        let camera_pos = camera.data.position.truncate();
+        let kind = crate::core::resources::CameraKind::from_u32(camera.data.kind_flags.x)
+            .unwrap_or(crate::core::resources::CameraKind::Perspective);
+        let proj = camera.data.projection.to_cols_array_2d();
+        let proj_yy = proj[1][1].abs().max(1e-6);
+        let viewport_h = viewport.y.max(1) as f32;
+
+        let segments = self.segments.clone();
+        for seg in segments {
+            if seg.thickness_px <= 0.0 {
+                self.push_vertex_pair(seg.start, seg.end, seg.color);
+                continue;
+            }
+
+            let line_dir = (seg.end - seg.start).normalize_or_zero();
+            let mut perp = line_dir.cross(view_dir).normalize_or_zero();
+            if perp.length_squared() < 1e-8 {
+                perp = line_dir.cross(camera_up).normalize_or_zero();
+            }
+            if perp.length_squared() < 1e-8 {
+                self.push_vertex_pair(seg.start, seg.end, seg.color);
+                continue;
+            }
+
+            let lanes = seg
+                .thickness_px
+                .round()
+                .clamp(1.0, Self::MAX_SCREEN_PARALLELS as f32) as usize;
+            let lane_step = if lanes > 1 {
+                seg.thickness_px / (lanes as f32 - 1.0)
+            } else {
+                0.0
+            };
+            let lane_start = -seg.thickness_px * 0.5;
+
+            for lane in 0..lanes {
+                let offset_px = lane_start + lane_step * lane as f32;
+                let offset_start = self.pixel_to_world_offset(
+                    kind, seg.start, camera_pos, view_dir, proj_yy, viewport_h, offset_px,
+                );
+                let offset_end = self.pixel_to_world_offset(
+                    kind, seg.end, camera_pos, view_dir, proj_yy, viewport_h, offset_px,
+                );
+                self.push_vertex_pair(
+                    seg.start + perp * offset_start,
+                    seg.end + perp * offset_end,
+                    seg.color,
+                );
+            }
+        }
+
         if self.vertices.is_empty() {
             return;
         }
@@ -119,6 +222,43 @@ impl GizmoSystem {
         if let Some(buffer) = &self.buffer {
             queue.write_buffer(buffer, 0, bytemuck::cast_slice(&self.vertices));
         }
+    }
+
+    fn pixel_to_world_offset(
+        &self,
+        kind: crate::core::resources::CameraKind,
+        world_pos: Vec3,
+        camera_pos: Vec3,
+        camera_dir: Vec3,
+        proj_yy: f32,
+        viewport_h: f32,
+        pixel_offset: f32,
+    ) -> f32 {
+        match kind {
+            crate::core::resources::CameraKind::Perspective => {
+                let depth = (world_pos - camera_pos).dot(camera_dir).abs().max(1e-4);
+                let world_per_px = 2.0 * depth / (proj_yy * viewport_h);
+                pixel_offset * world_per_px
+            }
+            crate::core::resources::CameraKind::Orthographic => {
+                let world_height = 2.0 / proj_yy;
+                let world_per_px = world_height / viewport_h;
+                pixel_offset * world_per_px
+            }
+        }
+    }
+
+    fn push_vertex_pair(&mut self, start: Vec3, end: Vec3, color: Vec4) {
+        self.vertices.push(GizmoVertex {
+            position: start,
+            _pad: 0.0,
+            color,
+        });
+        self.vertices.push(GizmoVertex {
+            position: end,
+            _pad: 0.0,
+            color,
+        });
     }
 
     pub fn draw<'a>(&'a self, rpass: &mut wgpu::RenderPass<'a>) {
