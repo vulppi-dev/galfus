@@ -158,8 +158,8 @@ impl GizmoSystem {
         let proj_yy = proj[1][1].abs().max(1e-6);
         let viewport_h = viewport.y.max(1) as f32;
 
-        let segments = self.segments.clone();
-        for seg in segments {
+        for index in 0..self.segments.len() {
+            let seg = self.segments[index];
             let line_dir = (seg.end - seg.start).normalize_or_zero();
             if line_dir.length_squared() < 1e-8 {
                 continue;
@@ -172,7 +172,7 @@ impl GizmoSystem {
                 continue;
             }
             let half_thickness_px = seg.thickness_px.max(1.0) * 0.5;
-            let offset_start = self.pixel_to_world_offset(
+            let Some(offset_start) = self.pixel_to_world_offset(
                 kind,
                 seg.start,
                 camera_pos,
@@ -180,8 +180,10 @@ impl GizmoSystem {
                 proj_yy,
                 viewport_h,
                 half_thickness_px,
-            );
-            let offset_end = self.pixel_to_world_offset(
+            ) else {
+                continue;
+            };
+            let Some(offset_end) = self.pixel_to_world_offset(
                 kind,
                 seg.end,
                 camera_pos,
@@ -189,10 +191,13 @@ impl GizmoSystem {
                 proj_yy,
                 viewport_h,
                 half_thickness_px,
-            );
+            ) else {
+                continue;
+            };
             self.push_segment_quad(
                 seg.start,
                 seg.end,
+                line_dir,
                 perp,
                 offset_start,
                 offset_end,
@@ -229,17 +234,20 @@ impl GizmoSystem {
         proj_yy: f32,
         viewport_h: f32,
         pixel_offset: f32,
-    ) -> f32 {
+    ) -> Option<f32> {
         match kind {
             crate::core::resources::CameraKind::Perspective => {
-                let depth = (world_pos - camera_pos).dot(camera_dir).abs().max(1e-4);
+                let depth = (world_pos - camera_pos).dot(camera_dir);
+                if depth <= 1e-4 {
+                    return None;
+                }
                 let world_per_px = 2.0 * depth / (proj_yy * viewport_h);
-                pixel_offset * world_per_px
+                Some(pixel_offset * world_per_px)
             }
             crate::core::resources::CameraKind::Orthographic => {
                 let world_height = 2.0 / proj_yy;
                 let world_per_px = world_height / viewport_h;
-                pixel_offset * world_per_px
+                Some(pixel_offset * world_per_px)
             }
         }
     }
@@ -248,15 +256,20 @@ impl GizmoSystem {
         &mut self,
         start: Vec3,
         end: Vec3,
+        line_dir: Vec3,
         perp: Vec3,
         start_half_width: f32,
         end_half_width: f32,
         color: Vec4,
     ) {
-        let s_left = start + perp * start_half_width;
-        let s_right = start - perp * start_half_width;
-        let e_left = end + perp * end_half_width;
-        let e_right = end - perp * end_half_width;
+        // Extend each segment along its tangent to create square caps and
+        // increase overlap between adjacent segments.
+        let s_center = start - line_dir * start_half_width;
+        let e_center = end + line_dir * end_half_width;
+        let s_left = s_center + perp * start_half_width;
+        let s_right = s_center - perp * start_half_width;
+        let e_left = e_center + perp * end_half_width;
+        let e_right = e_center - perp * end_half_width;
 
         self.push_vertex(s_left, color);
         self.push_vertex(e_left, color);

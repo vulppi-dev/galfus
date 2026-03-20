@@ -220,6 +220,40 @@ pub fn engine_cmd_primitive_geometry_create(
         PrimitiveOptions::Pill(opts) => generators::generate_pill(&opts),
     };
 
+    let mut uploaded_windows: Vec<u32> = Vec::new();
+    let mut upload_error: Option<String> = None;
+    for (window_id, render_state) in engine.render.states.iter_mut() {
+        let Some(vertex_allocator) = render_state.vertex.as_mut() else {
+            continue;
+        };
+        match vertex_allocator.create_geometry(
+            args.geometry_id,
+            args.label.clone(),
+            geometry_data.clone(),
+        ) {
+            Ok(()) => uploaded_windows.push(*window_id),
+            Err(error) => {
+                upload_error = Some(format!(
+                    "Failed to upload primitive geometry to window {}: {}",
+                    window_id, error
+                ));
+                break;
+            }
+        }
+    }
+    if let Some(message) = upload_error {
+        for window_id in uploaded_windows {
+            if let Some(render_state) = engine.render.states.get_mut(&window_id)
+                && let Some(vertex_allocator) = render_state.vertex.as_mut()
+            {
+                let _ = vertex_allocator.destroy_geometry(args.geometry_id);
+            }
+        }
+        return CmdResultPrimitiveGeometryCreate {
+            success: false,
+            message,
+        };
+    }
     engine
         .universal_state
         .universal_resources
@@ -231,16 +265,9 @@ pub fn engine_cmd_primitive_geometry_create(
                 entries: geometry_data.clone(),
             },
         );
-    for (window_id, render_state) in engine.render.states.iter_mut() {
-        if let Some(vertex_allocator) = render_state.vertex.as_mut() {
-            let _ = vertex_allocator.create_geometry(
-                args.geometry_id,
-                args.label.clone(),
-                geometry_data.clone(),
-            );
-            if let Some(window_state) = engine.window.states.get_mut(window_id) {
-                window_state.is_dirty = true;
-            }
+    for window_id in uploaded_windows {
+        if let Some(window_state) = engine.window.states.get_mut(&window_id) {
+            window_state.is_dirty = true;
         }
     }
     CmdResultPrimitiveGeometryCreate {
