@@ -175,9 +175,9 @@ pub(crate) fn extra_setup_commands(
                     label: Some("PBR Material".into()),
                     kind: MaterialKind::Pbr,
                     options: Some(MaterialOptions::Pbr(PbrOptions {
-                        base_color: Vec4::new(0.7, 0.8, 1.0, 1.0),
-                        metallic: 0.8,
-                        roughness: 0.2,
+                        base_color: Some(Vec4::new(0.7, 0.8, 1.0, 1.0)),
+                        metallic: Some(0.8),
+                        roughness: Some(0.2),
                         ..Default::default()
                     })),
                 },

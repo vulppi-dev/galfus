@@ -5,6 +5,8 @@ pub struct DrawItem {
     pub model_id: u32,
     pub geometry_id: u32,
     pub material_id: u32,
+    pub topology: crate::core::resources::PrimitiveTopology,
+    pub polygon_mode: crate::core::resources::PolygonMode,
     pub depth: f32,
     pub instance_idx: u32,
 }

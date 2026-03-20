@@ -1,6 +1,8 @@
 use crate::core::render::state::DrawItem;
 use crate::core::resources::geometry::Frustum;
-use crate::core::resources::{CameraRecord, MATERIAL_FALLBACK_ID, SurfaceType};
+use crate::core::resources::{
+    CameraRecord, MATERIAL_FALLBACK_ID, PolygonMode, PrimitiveTopology, SurfaceType,
+};
 
 pub(crate) fn collect_objects(
     scene: &crate::core::render::state::RenderScene,
@@ -51,6 +53,8 @@ pub(crate) fn collect_objects(
                 model_id: *model_id,
                 geometry_id: model_record.geometry_id,
                 material_id,
+                topology: record.topology,
+                polygon_mode: record.polygon_mode,
                 depth: model_depth,
                 instance_idx: 0,
             };
@@ -67,15 +71,21 @@ pub(crate) fn collect_objects(
             .filter(|id| materials_standard.contains_key(id))
             .unwrap_or(MATERIAL_FALLBACK_ID);
 
-        let surface_type = materials_standard
+        let (surface_type, topology, polygon_mode) = materials_standard
             .get(&material_id)
-            .map(|record| record.surface_type)
-            .unwrap_or(SurfaceType::Opaque);
+            .map(|record| (record.surface_type, record.topology, record.polygon_mode))
+            .unwrap_or((
+                SurfaceType::Opaque,
+                PrimitiveTopology::TriangleList,
+                PolygonMode::Fill,
+            ));
 
         let item = DrawItem {
             model_id: *model_id,
             geometry_id: model_record.geometry_id,
             material_id,
+            topology,
+            polygon_mode,
             depth: model_depth,
             instance_idx: 0,
         };
@@ -113,18 +123,38 @@ pub(crate) fn collect_objects(
 }
 
 fn sort_collector(collector: &mut crate::core::render::state::DrawCollector) {
-    collector
-        .pbr_opaque
-        .sort_by_key(|a| (a.material_id, a.geometry_id));
-    collector
-        .standard_opaque
-        .sort_by_key(|a| (a.material_id, a.geometry_id));
-    collector
-        .pbr_masked
-        .sort_by_key(|a| (a.material_id, a.geometry_id));
-    collector
-        .standard_masked
-        .sort_by_key(|a| (a.material_id, a.geometry_id));
+    collector.pbr_opaque.sort_by_key(|a| {
+        (
+            a.topology as u32,
+            a.polygon_mode as u32,
+            a.material_id,
+            a.geometry_id,
+        )
+    });
+    collector.standard_opaque.sort_by_key(|a| {
+        (
+            a.topology as u32,
+            a.polygon_mode as u32,
+            a.material_id,
+            a.geometry_id,
+        )
+    });
+    collector.pbr_masked.sort_by_key(|a| {
+        (
+            a.topology as u32,
+            a.polygon_mode as u32,
+            a.material_id,
+            a.geometry_id,
+        )
+    });
+    collector.standard_masked.sort_by_key(|a| {
+        (
+            a.topology as u32,
+            a.polygon_mode as u32,
+            a.material_id,
+            a.geometry_id,
+        )
+    });
 
     // Sort Far-to-Near (Painter's Algorithm)
     // With Reverse Z: Far is 0.0, Near is 1.0. So we sort Ascending.

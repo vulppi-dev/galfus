@@ -87,10 +87,11 @@ pub fn create_standard_material_cmd(
             label: Some(label.to_string()),
             kind: MaterialKind::Standard,
             options: Some(MaterialOptions::Standard(StandardOptions {
-                base_color,
+                base_color: Some(base_color),
                 base_tex_id,
                 base_sampler: Some(MaterialSampler::LinearClamp),
-                emissive_color: emissive_color.unwrap_or(Vec4::ZERO),
+                emissive_color: Some(emissive_color.unwrap_or(Vec4::ZERO)),
+                polygon_mode: Some(crate::core::resources::PolygonMode::Line),
                 ..Default::default()
             })),
         },
@@ -110,9 +111,9 @@ pub fn create_pbr_material_cmd(
             label: Some(label.to_string()),
             kind: MaterialKind::Pbr,
             options: Some(MaterialOptions::Pbr(PbrOptions {
-                base_color,
-                metallic,
-                roughness,
+                base_color: Some(base_color),
+                metallic: Some(metallic),
+                roughness: Some(roughness),
                 ..Default::default()
             })),
         },

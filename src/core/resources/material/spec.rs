@@ -11,6 +11,24 @@ pub enum SurfaceType {
     Transparent = 2,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deserialize, Serialize)]
+#[serde(rename_all = "kebab-case")]
+#[repr(u32)]
+pub enum PrimitiveTopology {
+    PointList = 0,
+    LineList = 1,
+    TriangleList = 2,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deserialize, Serialize)]
+#[serde(rename_all = "kebab-case")]
+#[repr(u32)]
+pub enum PolygonMode {
+    Fill = 0,
+    Line = 1,
+    Point = 2,
+}
+
 pub const MATERIAL_FALLBACK_ID: u32 = 0;
 pub const STANDARD_INPUTS_PER_MATERIAL: u32 = 8;
 pub const STANDARD_TEXTURE_SLOTS: usize = 8;
@@ -87,6 +105,8 @@ pub struct MaterialStandardRecord {
     pub inputs: Vec<Vec4>,
     pub texture_ids: [u32; STANDARD_TEXTURE_SLOTS],
     pub surface_type: SurfaceType,
+    pub topology: PrimitiveTopology,
+    pub polygon_mode: PolygonMode,
     pub is_dirty: bool,
     pub bind_group: Option<wgpu::BindGroup>,
 }
@@ -103,6 +123,8 @@ impl MaterialStandardRecord {
             inputs,
             texture_ids: [STANDARD_INVALID_SLOT; STANDARD_TEXTURE_SLOTS],
             surface_type: SurfaceType::Opaque,
+            topology: PrimitiveTopology::TriangleList,
+            polygon_mode: PolygonMode::Fill,
             is_dirty: true,
             bind_group: None,
         }
@@ -124,6 +146,8 @@ pub struct MaterialPbrRecord {
     pub inputs: Vec<Vec4>,
     pub texture_ids: [u32; PBR_TEXTURE_SLOTS],
     pub surface_type: SurfaceType,
+    pub topology: PrimitiveTopology,
+    pub polygon_mode: PolygonMode,
     pub is_dirty: bool,
     pub bind_group: Option<wgpu::BindGroup>,
 }
@@ -141,6 +165,8 @@ impl MaterialPbrRecord {
             inputs,
             texture_ids: [PBR_INVALID_SLOT; PBR_TEXTURE_SLOTS],
             surface_type: SurfaceType::Opaque,
+            topology: PrimitiveTopology::TriangleList,
+            polygon_mode: PolygonMode::Fill,
             is_dirty: true,
             bind_group: None,
         }

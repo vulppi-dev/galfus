@@ -1,4 +1,4 @@
-use crate::core::resources::SurfaceType;
+use crate::core::resources::{PolygonMode, PrimitiveTopology, SurfaceType};
 use glam::Vec4;
 use serde::{Deserialize, Serialize};
 
@@ -19,13 +19,14 @@ pub enum MaterialSampler {
     LinearRepeat = 3,
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct StandardOptions {
-    pub base_color: Vec4,
-    pub surface_type: SurfaceType,
-    #[serde(default)]
-    pub emissive_color: Vec4,
+    pub base_color: Option<Vec4>,
+    pub surface_type: Option<SurfaceType>,
+    pub topology: Option<PrimitiveTopology>,
+    pub polygon_mode: Option<PolygonMode>,
+    pub emissive_color: Option<Vec4>,
     pub spec_color: Option<Vec4>,
     pub spec_power: Option<f32>,
     pub base_tex_id: Option<u32>,
@@ -38,44 +39,22 @@ pub struct StandardOptions {
     pub toon_ramp_sampler: Option<MaterialSampler>,
     pub emissive_tex_id: Option<u32>,
     pub emissive_sampler: Option<MaterialSampler>,
-    pub flags: u32,
+    pub flags: Option<u32>,
     pub toon_params: Option<Vec4>,
 }
 
-impl Default for StandardOptions {
-    fn default() -> Self {
-        Self {
-            base_color: Vec4::ONE,
-            surface_type: SurfaceType::Opaque,
-            emissive_color: Vec4::ZERO,
-            spec_color: None,
-            spec_power: None,
-            base_tex_id: None,
-            base_sampler: None,
-            spec_tex_id: None,
-            spec_sampler: None,
-            normal_tex_id: None,
-            normal_sampler: None,
-            toon_ramp_tex_id: None,
-            toon_ramp_sampler: None,
-            emissive_tex_id: None,
-            emissive_sampler: None,
-            flags: 0,
-            toon_params: None,
-        }
-    }
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct PbrOptions {
-    pub base_color: Vec4,
-    pub surface_type: SurfaceType,
-    pub emissive_color: Vec4,
-    pub metallic: f32,
-    pub roughness: f32,
-    pub ao: f32,
-    pub normal_scale: f32,
+    pub base_color: Option<Vec4>,
+    pub surface_type: Option<SurfaceType>,
+    pub topology: Option<PrimitiveTopology>,
+    pub polygon_mode: Option<PolygonMode>,
+    pub emissive_color: Option<Vec4>,
+    pub metallic: Option<f32>,
+    pub roughness: Option<f32>,
+    pub ao: Option<f32>,
+    pub normal_scale: Option<f32>,
     pub base_tex_id: Option<u32>,
     pub base_sampler: Option<MaterialSampler>,
     pub normal_tex_id: Option<u32>,
@@ -86,32 +65,7 @@ pub struct PbrOptions {
     pub emissive_sampler: Option<MaterialSampler>,
     pub ao_tex_id: Option<u32>,
     pub ao_sampler: Option<MaterialSampler>,
-    pub flags: u32,
-}
-
-impl Default for PbrOptions {
-    fn default() -> Self {
-        Self {
-            base_color: Vec4::ONE,
-            surface_type: SurfaceType::Opaque,
-            emissive_color: Vec4::ZERO,
-            metallic: 0.0,
-            roughness: 0.5,
-            ao: 1.0,
-            normal_scale: 1.0,
-            base_tex_id: None,
-            base_sampler: None,
-            normal_tex_id: None,
-            normal_sampler: None,
-            metallic_roughness_tex_id: None,
-            metallic_roughness_sampler: None,
-            emissive_tex_id: None,
-            emissive_sampler: None,
-            ao_tex_id: None,
-            ao_sampler: None,
-            flags: 0,
-        }
-    }
+    pub flags: Option<u32>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]

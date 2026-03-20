@@ -31,6 +31,7 @@ pub struct PipelineKey {
     pub depth_format: Option<wgpu::TextureFormat>,
     pub sample_count: u32,
     pub topology: wgpu::PrimitiveTopology,
+    pub polygon_mode: wgpu::PolygonMode,
     pub cull_mode: Option<wgpu::Face>,
     pub front_face: wgpu::FrontFace,
     pub depth_write_enabled: bool,

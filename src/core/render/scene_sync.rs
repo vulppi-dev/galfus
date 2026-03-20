@@ -125,12 +125,16 @@ pub(super) fn sync_scene_from_realm_and_universal_resources(
                 || bytemuck::bytes_of(&record.data) != bytemuck::bytes_of(&node.data)
                 || record.inputs != node.inputs
                 || record.texture_ids != node.texture_ids
-                || record.surface_type != node.surface_type;
+                || record.surface_type != node.surface_type
+                || record.topology != node.topology
+                || record.polygon_mode != node.polygon_mode;
             record.label = node.label.clone();
             record.data = node.data;
             record.inputs = node.inputs.clone();
             record.texture_ids = node.texture_ids;
             record.surface_type = node.surface_type;
+            record.topology = node.topology;
+            record.polygon_mode = node.polygon_mode;
             if changed {
                 record.mark_dirty();
                 record.bind_group = None;
@@ -154,12 +158,16 @@ pub(super) fn sync_scene_from_realm_and_universal_resources(
                 || bytemuck::bytes_of(&record.data) != bytemuck::bytes_of(&node.data)
                 || record.inputs != node.inputs
                 || record.texture_ids != node.texture_ids
-                || record.surface_type != node.surface_type;
+                || record.surface_type != node.surface_type
+                || record.topology != node.topology
+                || record.polygon_mode != node.polygon_mode;
             record.label = node.label.clone();
             record.data = node.data;
             record.inputs = node.inputs.clone();
             record.texture_ids = node.texture_ids;
             record.surface_type = node.surface_type;
+            record.topology = node.topology;
+            record.polygon_mode = node.polygon_mode;
             if changed {
                 record.mark_dirty();
                 record.bind_group = None;
