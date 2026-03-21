@@ -91,7 +91,7 @@ pub fn create_standard_material_cmd(
                 base_tex_id,
                 base_sampler: Some(MaterialSampler::LinearClamp),
                 emissive_color: Some(emissive_color.unwrap_or(Vec4::ZERO)),
-                polygon_mode: Some(crate::core::resources::PolygonMode::Line),
+                polygon_mode: Some(crate::core::resources::PolygonMode::Fill),
                 ..Default::default()
             })),
         },
@@ -114,6 +114,7 @@ pub fn create_pbr_material_cmd(
                 base_color: Some(base_color),
                 metallic: Some(metallic),
                 roughness: Some(roughness),
+                polygon_mode: Some(crate::core::resources::PolygonMode::Fill),
                 ..Default::default()
             })),
         },

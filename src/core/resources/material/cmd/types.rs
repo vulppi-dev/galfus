@@ -1,4 +1,4 @@
-use crate::core::resources::{PolygonMode, PrimitiveTopology, SurfaceType};
+use crate::core::resources::{PolygonMode, PrimitiveTopology, RenderSide, SurfaceType};
 use glam::Vec4;
 use serde::{Deserialize, Serialize};
 
@@ -26,6 +26,7 @@ pub struct StandardOptions {
     pub surface_type: Option<SurfaceType>,
     pub topology: Option<PrimitiveTopology>,
     pub polygon_mode: Option<PolygonMode>,
+    pub render_side: Option<RenderSide>,
     pub emissive_color: Option<Vec4>,
     pub spec_color: Option<Vec4>,
     pub spec_power: Option<f32>,
@@ -50,6 +51,7 @@ pub struct PbrOptions {
     pub surface_type: Option<SurfaceType>,
     pub topology: Option<PrimitiveTopology>,
     pub polygon_mode: Option<PolygonMode>,
+    pub render_side: Option<RenderSide>,
     pub emissive_color: Option<Vec4>,
     pub metallic: Option<f32>,
     pub roughness: Option<f32>,

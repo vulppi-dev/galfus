@@ -55,7 +55,7 @@ pub(super) fn window_cursor_cmd(window_id: u32, icon: CursorIcon) -> EngineCmd {
 }
 
 pub(super) fn base_scene_commands(ctx: DemoContext, ids: DemoIds) -> Vec<EngineCmd> {
-    let mut cmds = vec![
+    let cmds = vec![
         EngineCmd::CmdEnvironmentUpsert(CmdEnvironmentUpsertArgs::Update(
             CmdEnvironmentUpdateArgs {
                 environment_id: ids.env_id,
@@ -163,73 +163,6 @@ pub(super) fn base_scene_commands(ctx: DemoContext, ids: DemoIds) -> Vec<EngineC
         }),
         create_shadow_config_cmd(ctx.window_id),
     ];
-
-    // Additional primitives
-    let extra_shapes = [
-        (
-            PrimitiveShape::Sphere,
-            "Sphere",
-            Vec4::new(0.2, 0.8, 0.3, 1.0),
-        ),
-        (
-            PrimitiveShape::Cylinder,
-            "Cylinder",
-            Vec4::new(0.2, 0.4, 0.9, 1.0),
-        ),
-        (
-            PrimitiveShape::Torus,
-            "Torus",
-            Vec4::new(0.8, 0.2, 0.7, 1.0),
-        ),
-        (
-            PrimitiveShape::Pyramid,
-            "Pyramid",
-            Vec4::new(0.9, 0.9, 0.2, 1.0),
-        ),
-        (PrimitiveShape::Pill, "Pill", Vec4::new(0.2, 0.9, 0.9, 1.0)),
-    ];
-
-    for (i, (shape, label, color)) in extra_shapes.iter().enumerate() {
-        let geom_id = ids.geometry_id + 50 + i as u32;
-        let mat_id = ids.material_id + 50 + i as u32;
-        let model_id = ids.model_id + 50 + i as u32;
-
-        cmds.push(EngineCmd::CmdPrimitiveGeometryCreate(
-            CmdPrimitiveGeometryCreateArgs {
-                geometry_id: geom_id,
-                label: Some(format!("Demo {}", label)),
-                shape: *shape,
-                options: None,
-            },
-        ));
-
-        cmds.push(create_standard_material_cmd(
-            mat_id,
-            &format!("{} Material", label),
-            *color,
-            None,
-            None,
-        ));
-
-        let x = (i as f32 - 1.5) * 2.0;
-        let z = if i % 2 == 0 { -1.5 } else { 1.5 };
-
-        cmds.push(EngineCmd::CmdModelUpsert(CmdModelUpsertArgs::Create(
-            CmdModelCreateArgs {
-                realm_id: ctx.realm_id,
-                model_id,
-                label: Some(format!("Demo {} Model", label)),
-                geometry_id: geom_id,
-                material_id: Some(mat_id),
-                transform: Mat4::from_translation(Vec3::new(x, 0.0, z)),
-                layer_mask: 0xFFFF_FFFF,
-                cast_shadow: true,
-                receive_shadow: true,
-                cast_outline: false,
-                outline_color: Vec4::ZERO,
-            },
-        )));
-    }
 
     cmds
 }

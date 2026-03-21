@@ -29,6 +29,15 @@ pub enum PolygonMode {
     Point = 2,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deserialize, Serialize)]
+#[serde(rename_all = "kebab-case")]
+#[repr(u32)]
+pub enum RenderSide {
+    Front = 0,
+    Back = 1,
+    DoubleSide = 2,
+}
+
 pub const MATERIAL_FALLBACK_ID: u32 = 0;
 pub const STANDARD_INPUTS_PER_MATERIAL: u32 = 8;
 pub const STANDARD_TEXTURE_SLOTS: usize = 8;
@@ -107,6 +116,7 @@ pub struct MaterialStandardRecord {
     pub surface_type: SurfaceType,
     pub topology: PrimitiveTopology,
     pub polygon_mode: PolygonMode,
+    pub render_side: RenderSide,
     pub is_dirty: bool,
     pub bind_group: Option<wgpu::BindGroup>,
 }
@@ -125,6 +135,7 @@ impl MaterialStandardRecord {
             surface_type: SurfaceType::Opaque,
             topology: PrimitiveTopology::TriangleList,
             polygon_mode: PolygonMode::Fill,
+            render_side: RenderSide::Front,
             is_dirty: true,
             bind_group: None,
         }
@@ -148,6 +159,7 @@ pub struct MaterialPbrRecord {
     pub surface_type: SurfaceType,
     pub topology: PrimitiveTopology,
     pub polygon_mode: PolygonMode,
+    pub render_side: RenderSide,
     pub is_dirty: bool,
     pub bind_group: Option<wgpu::BindGroup>,
 }
@@ -167,6 +179,7 @@ impl MaterialPbrRecord {
             surface_type: SurfaceType::Opaque,
             topology: PrimitiveTopology::TriangleList,
             polygon_mode: PolygonMode::Fill,
+            render_side: RenderSide::Front,
             is_dirty: true,
             bind_group: None,
         }

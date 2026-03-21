@@ -20,6 +20,13 @@ pub(crate) fn pack_standard_material(
         flags |= 1;
     }
 
+    if let Some(side) = opts.render_side {
+        record.render_side = side;
+    }
+    // Encode RenderSide in bits 1-2
+    flags &= !(0b11 << 1);
+    flags |= (record.render_side as u32) << 1;
+
     let surface_type = opts.surface_type.unwrap_or(record.surface_type);
     record.data.surface_flags = glam::UVec2::new(surface_type as u32, flags);
 
@@ -181,7 +188,15 @@ pub(crate) fn pack_pbr_material(
     record.data.inputs_offset_count = glam::UVec2::new(inputs_offset, PBR_INPUTS_PER_MATERIAL);
 
     let surface_type = opts.surface_type.unwrap_or(record.surface_type);
-    let flags = opts.flags.unwrap_or(record.data.surface_flags.y);
+    let mut flags = opts.flags.unwrap_or(record.data.surface_flags.y);
+
+    if let Some(side) = opts.render_side {
+        record.render_side = side;
+    }
+    // Encode RenderSide in bits 1-2
+    flags &= !(0b11 << 1);
+    flags |= (record.render_side as u32) << 1;
+
     record.data.surface_flags = glam::UVec2::new(surface_type as u32, flags);
 
     let mut texture_slots = record.data.texture_slots;

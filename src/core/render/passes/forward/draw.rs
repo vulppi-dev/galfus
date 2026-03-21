@@ -137,8 +137,9 @@ fn draw_group(
         let geom_id = item.geometry_id;
         let topology = item.topology;
         let polygon_mode = item.polygon_mode;
+        let render_side = item.render_side;
 
-        if current_state != Some((topology, polygon_mode)) {
+        if current_state != Some((topology, polygon_mode, render_side)) {
             let pipeline = if is_pbr {
                 branches::pbr::get_pipeline(
                     cache,
@@ -148,6 +149,7 @@ fn draw_group(
                     surface_type,
                     topology,
                     polygon_mode,
+                    render_side,
                     sample_count,
                 )
             } else {
@@ -159,11 +161,12 @@ fn draw_group(
                     surface_type,
                     topology,
                     polygon_mode,
+                    render_side,
                     sample_count,
                 )
             };
             render_pass.set_pipeline(pipeline);
-            current_state = Some((topology, polygon_mode));
+            current_state = Some((topology, polygon_mode, render_side));
         }
 
         while i < items.len() && items[i].material_id == mat_id && items[i].geometry_id == geom_id {

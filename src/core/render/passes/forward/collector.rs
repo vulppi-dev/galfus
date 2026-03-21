@@ -1,7 +1,7 @@
 use crate::core::render::state::DrawItem;
 use crate::core::resources::geometry::Frustum;
 use crate::core::resources::{
-    CameraRecord, MATERIAL_FALLBACK_ID, PolygonMode, PrimitiveTopology, SurfaceType,
+    CameraRecord, MATERIAL_FALLBACK_ID, PolygonMode, PrimitiveTopology, RenderSide, SurfaceType,
 };
 
 pub(crate) fn collect_objects(
@@ -55,6 +55,7 @@ pub(crate) fn collect_objects(
                 material_id,
                 topology: record.topology,
                 polygon_mode: record.polygon_mode,
+                render_side: record.render_side,
                 depth: model_depth,
                 instance_idx: 0,
             };
@@ -71,13 +72,21 @@ pub(crate) fn collect_objects(
             .filter(|id| materials_standard.contains_key(id))
             .unwrap_or(MATERIAL_FALLBACK_ID);
 
-        let (surface_type, topology, polygon_mode) = materials_standard
+        let (surface_type, topology, polygon_mode, render_side) = materials_standard
             .get(&material_id)
-            .map(|record| (record.surface_type, record.topology, record.polygon_mode))
+            .map(|record| {
+                (
+                    record.surface_type,
+                    record.topology,
+                    record.polygon_mode,
+                    record.render_side,
+                )
+            })
             .unwrap_or((
                 SurfaceType::Opaque,
                 PrimitiveTopology::TriangleList,
                 PolygonMode::Fill,
+                RenderSide::Front,
             ));
 
         let item = DrawItem {
@@ -86,6 +95,7 @@ pub(crate) fn collect_objects(
             material_id,
             topology,
             polygon_mode,
+            render_side,
             depth: model_depth,
             instance_idx: 0,
         };
@@ -127,6 +137,7 @@ fn sort_collector(collector: &mut crate::core::render::state::DrawCollector) {
         (
             a.topology as u32,
             a.polygon_mode as u32,
+            a.render_side as u32,
             a.material_id,
             a.geometry_id,
         )
@@ -135,6 +146,7 @@ fn sort_collector(collector: &mut crate::core::render::state::DrawCollector) {
         (
             a.topology as u32,
             a.polygon_mode as u32,
+            a.render_side as u32,
             a.material_id,
             a.geometry_id,
         )
@@ -143,6 +155,7 @@ fn sort_collector(collector: &mut crate::core::render::state::DrawCollector) {
         (
             a.topology as u32,
             a.polygon_mode as u32,
+            a.render_side as u32,
             a.material_id,
             a.geometry_id,
         )
@@ -151,6 +164,7 @@ fn sort_collector(collector: &mut crate::core::render::state::DrawCollector) {
         (
             a.topology as u32,
             a.polygon_mode as u32,
+            a.render_side as u32,
             a.material_id,
             a.geometry_id,
         )
