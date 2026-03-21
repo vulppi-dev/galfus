@@ -79,6 +79,7 @@ pub fn pass_compose_to_view(
         depth_format: None,
         sample_count: 1,
         topology: wgpu::PrimitiveTopology::TriangleList,
+        polygon_mode: wgpu::PolygonMode::Fill,
         cull_mode: None,
         front_face: wgpu::FrontFace::Ccw,
         depth_write_enabled: false,

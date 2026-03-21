@@ -128,33 +128,46 @@ fn draw_group(
         return;
     }
 
-    let pipeline = if is_pbr {
-        branches::pbr::get_pipeline(
-            cache,
-            frame_index,
-            device,
-            library,
-            surface_type,
-            sample_count,
-        )
-    } else {
-        branches::standard::get_pipeline(
-            cache,
-            frame_index,
-            device,
-            library,
-            surface_type,
-            sample_count,
-        )
-    };
-    render_pass.set_pipeline(pipeline);
-
+    let mut current_state = None;
     let mut i = 0;
     while i < items.len() {
         let batch_start = i;
         let item = &items[i];
         let mat_id = item.material_id;
         let geom_id = item.geometry_id;
+        let topology = item.topology;
+        let polygon_mode = item.polygon_mode;
+        let render_side = item.render_side;
+
+        if current_state != Some((topology, polygon_mode, render_side)) {
+            let pipeline = if is_pbr {
+                branches::pbr::get_pipeline(
+                    cache,
+                    frame_index,
+                    device,
+                    library,
+                    surface_type,
+                    topology,
+                    polygon_mode,
+                    render_side,
+                    sample_count,
+                )
+            } else {
+                branches::standard::get_pipeline(
+                    cache,
+                    frame_index,
+                    device,
+                    library,
+                    surface_type,
+                    topology,
+                    polygon_mode,
+                    render_side,
+                    sample_count,
+                )
+            };
+            render_pass.set_pipeline(pipeline);
+            current_state = Some((topology, polygon_mode, render_side));
+        }
 
         while i < items.len() && items[i].material_id == mat_id && items[i].geometry_id == geom_id {
             i += 1;

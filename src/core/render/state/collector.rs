@@ -1,10 +1,13 @@
-use crate::core::resources::ModelComponent;
+use crate::core::resources::{ModelComponent, PolygonMode, PrimitiveTopology, RenderSide};
 
 #[derive(Clone, Copy)]
 pub struct DrawItem {
     pub model_id: u32,
     pub geometry_id: u32,
     pub material_id: u32,
+    pub topology: PrimitiveTopology,
+    pub polygon_mode: PolygonMode,
+    pub render_side: RenderSide,
     pub depth: f32,
     pub instance_idx: u32,
 }

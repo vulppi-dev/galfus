@@ -273,6 +273,7 @@ pub fn pass_forward(
                     depth_format: Some(wgpu::TextureFormat::Depth32Float),
                     sample_count,
                     topology: wgpu::PrimitiveTopology::TriangleList,
+                    polygon_mode: wgpu::PolygonMode::Fill,
                     cull_mode: None,
                     front_face: wgpu::FrontFace::Ccw,
                     depth_write_enabled: false,

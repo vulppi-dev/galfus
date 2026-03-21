@@ -13,7 +13,10 @@ Key fields:
 
 - `materialId` (required)
 - `kind` (`standard` or `pbr`)
-- `options` (material-specific payload)
+- `options` (material-specific payload):
+    - `topology` (optional): `point-list`, `line-list`, `triangle-list` (default)
+    - `polygonMode` (optional): `fill` (default), `line`, `point`
+    - (other standard/pbr specific properties)
 
 ## Notes
 

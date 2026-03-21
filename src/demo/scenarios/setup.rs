@@ -1,4 +1,5 @@
 use super::*;
+use crate::core::resources::*;
 mod setup_cases_tail;
 pub(super) fn ui_button_op(parent: u32, node_id: u32, label: &str) -> UiOp {
     UiOp::Add {
@@ -54,7 +55,7 @@ pub(super) fn window_cursor_cmd(window_id: u32, icon: CursorIcon) -> EngineCmd {
 }
 
 pub(super) fn base_scene_commands(ctx: DemoContext, ids: DemoIds) -> Vec<EngineCmd> {
-    vec![
+    let cmds = vec![
         EngineCmd::CmdEnvironmentUpsert(CmdEnvironmentUpsertArgs::Update(
             CmdEnvironmentUpdateArgs {
                 environment_id: ids.env_id,
@@ -97,23 +98,23 @@ pub(super) fn base_scene_commands(ctx: DemoContext, ids: DemoIds) -> Vec<EngineC
             ctx.realm_id,
             ids.camera_id,
             "Main Camera",
-            Mat4::look_at_rh(Vec3::new(0.0, 2.2, 5.5), Vec3::ZERO, Vec3::Y).inverse(),
+            Mat4::look_at_rh(Vec3::new(0.0, 3.5, 9.0), Vec3::ZERO, Vec3::Y).inverse(),
         ),
         create_point_light_cmd(
             ctx.realm_id,
             ids.light_id,
-            Vec4::new(2.0, 4.0, 2.0, 1.0),
-            12.0,
+            Vec4::new(4.0, 6.0, 4.0, 1.0),
+            8.0,
         ),
         create_ambient_light_cmd(
             ctx.realm_id,
             ids.light_id + 1,
             Vec4::new(0.2, 0.2, 0.2, 1.0),
-            0.12,
+            0.08,
         ),
         create_standard_material_cmd(
             ids.material_id,
-            "Demo Material",
+            "Cube Material",
             Vec4::new(0.9, 0.5, 0.2, 1.0),
             None,
             None,
@@ -131,7 +132,7 @@ pub(super) fn base_scene_commands(ctx: DemoContext, ids: DemoIds) -> Vec<EngineC
             label: Some("Demo Cube Model".into()),
             geometry_id: ids.geometry_id,
             material_id: Some(ids.material_id),
-            transform: Mat4::IDENTITY,
+            transform: Mat4::from_translation(Vec3::new(-3.0, 0.0, 0.0)),
             layer_mask: 0xFFFF_FFFF,
             cast_shadow: true,
             receive_shadow: true,
@@ -161,7 +162,9 @@ pub(super) fn base_scene_commands(ctx: DemoContext, ids: DemoIds) -> Vec<EngineC
             environment_id: Some(ids.env_id),
         }),
         create_shadow_config_cmd(ctx.window_id),
-    ]
+    ];
+
+    cmds
 }
 
 pub(super) fn aux_window_commands(window_id: u32, realm_id: u32, ids: DemoIds) -> Vec<EngineCmd> {

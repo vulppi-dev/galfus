@@ -8,7 +8,103 @@ pub(crate) fn extra_setup_commands(
     let mut cmds = Vec::new();
 
     match scenario {
-        1 => {}
+        1 => {
+            // Additional primitives for Demo 1 only
+            let extra_shapes = [
+                (
+                    PrimitiveShape::Sphere,
+                    "Sphere (Wireframe)",
+                    Vec4::new(0.2, 0.8, 0.3, 1.0),
+                    Some(PolygonMode::Line),
+                    Some(RenderSide::Front),
+                ),
+                (
+                    PrimitiveShape::Cylinder,
+                    "Cylinder (DoubleSide)",
+                    Vec4::new(0.2, 0.4, 0.9, 1.0),
+                    Some(PolygonMode::Fill),
+                    Some(RenderSide::DoubleSide),
+                ),
+                (
+                    PrimitiveShape::Torus,
+                    "Torus (BackSide)",
+                    Vec4::new(0.8, 0.2, 0.7, 1.0),
+                    Some(PolygonMode::Fill),
+                    Some(RenderSide::Back),
+                ),
+                (
+                    PrimitiveShape::Pyramid,
+                    "Pyramid (Wireframe + DoubleSide)",
+                    Vec4::new(0.9, 0.9, 0.2, 1.0),
+                    Some(PolygonMode::Line),
+                    Some(RenderSide::DoubleSide),
+                ),
+                (
+                    PrimitiveShape::Pill,
+                    "Pill (Transparent + DoubleSide)",
+                    Vec4::new(0.2, 0.9, 0.9, 0.5),
+                    Some(PolygonMode::Fill),
+                    Some(RenderSide::DoubleSide),
+                ),
+            ];
+
+            for (i, (shape, label, color, polygon_mode, render_side)) in
+                extra_shapes.iter().enumerate()
+            {
+                let geom_id = ids.geometry_id + 50 + i as u32;
+                let mat_id = ids.material_id + 50 + i as u32;
+                let model_id = ids.model_id + 50 + i as u32;
+
+                cmds.push(EngineCmd::CmdPrimitiveGeometryCreate(
+                    CmdPrimitiveGeometryCreateArgs {
+                        geometry_id: geom_id,
+                        label: Some(format!("Demo {}", label)),
+                        shape: *shape,
+                        options: None,
+                    },
+                ));
+
+                let surface_type = if color.w < 1.0 {
+                    Some(SurfaceType::Transparent)
+                } else {
+                    None
+                };
+
+                cmds.push(EngineCmd::CmdMaterialUpsert(CmdMaterialUpsertArgs::Create(
+                    CmdMaterialCreateArgs {
+                        material_id: mat_id,
+                        label: Some(format!("{} Material", label)),
+                        kind: MaterialKind::Standard,
+                        options: Some(MaterialOptions::Standard(StandardOptions {
+                            base_color: Some(*color),
+                            surface_type,
+                            polygon_mode: *polygon_mode,
+                            render_side: *render_side,
+                            ..Default::default()
+                        })),
+                    },
+                )));
+
+                let x = (i as f32 - 1.5) * 2.0;
+                let z = if i % 2 == 0 { -1.5 } else { 1.5 };
+
+                cmds.push(EngineCmd::CmdModelUpsert(CmdModelUpsertArgs::Create(
+                    CmdModelCreateArgs {
+                        realm_id: ctx.realm_id,
+                        model_id,
+                        label: Some(format!("Demo {} Model", label)),
+                        geometry_id: geom_id,
+                        material_id: Some(mat_id),
+                        transform: Mat4::from_translation(Vec3::new(x, 0.0, z)),
+                        layer_mask: 0xFFFF_FFFF,
+                        cast_shadow: true,
+                        receive_shadow: true,
+                        cast_outline: false,
+                        outline_color: Vec4::ZERO,
+                    },
+                )));
+            }
+        }
         2 => {
             cmds.push(EngineCmd::CmdWindowMeasurement(CmdWindowMeasurementArgs {
                 window_id: ctx.window_id,
@@ -175,9 +271,9 @@ pub(crate) fn extra_setup_commands(
                     label: Some("PBR Material".into()),
                     kind: MaterialKind::Pbr,
                     options: Some(MaterialOptions::Pbr(PbrOptions {
-                        base_color: Vec4::new(0.7, 0.8, 1.0, 1.0),
-                        metallic: 0.8,
-                        roughness: 0.2,
+                        base_color: Some(Vec4::new(0.7, 0.8, 1.0, 1.0)),
+                        metallic: Some(0.8),
+                        roughness: Some(0.2),
                         ..Default::default()
                     })),
                 },

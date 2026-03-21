@@ -1,6 +1,8 @@
 use crate::core::render::cache::{PipelineKey, RenderCache, ShaderId};
 use crate::core::render::state::ResourceLibrary;
-use crate::core::resources::{SurfaceType, VertexStream};
+use crate::core::resources::{
+    PolygonMode, PrimitiveTopology, RenderSide, SurfaceType, VertexStream,
+};
 
 pub fn get_pipeline<'a>(
     cache: &'a mut RenderCache,
@@ -8,29 +10,50 @@ pub fn get_pipeline<'a>(
     device: &wgpu::Device,
     library: &ResourceLibrary,
     surface: SurfaceType,
+    topology: PrimitiveTopology,
+    polygon_mode: PolygonMode,
+    render_side: RenderSide,
     sample_count: u32,
 ) -> &'a wgpu::RenderPipeline {
-    let (blend, depth_write, depth_compare, cull_mode) = match surface {
+    let (blend, depth_write, depth_compare) = match surface {
         SurfaceType::Transparent => (
             Some(wgpu::BlendState::ALPHA_BLENDING),
             false,
             wgpu::CompareFunction::Greater,
-            None,
         ),
         _ => (
             None,
             true,
             wgpu::CompareFunction::Greater, // Reverse Z
-            Some(wgpu::Face::Back),
         ),
     };
+
+    let cull_mode = match render_side {
+        RenderSide::Front => Some(wgpu::Face::Back),
+        RenderSide::Back => Some(wgpu::Face::Front),
+        RenderSide::DoubleSide => None,
+    };
+
+    let wgpu_topology = match topology {
+        PrimitiveTopology::PointList => wgpu::PrimitiveTopology::PointList,
+        PrimitiveTopology::LineList => wgpu::PrimitiveTopology::LineList,
+        PrimitiveTopology::TriangleList => wgpu::PrimitiveTopology::TriangleList,
+    };
+
+    let wgpu_polygon_mode = match polygon_mode {
+        PolygonMode::Fill => wgpu::PolygonMode::Fill,
+        PolygonMode::Line => wgpu::PolygonMode::Line,
+        PolygonMode::Point => wgpu::PolygonMode::Point,
+    };
+
     let key = PipelineKey {
         shader_id: ShaderId::ForwardPbr as u64,
         color_format: wgpu::TextureFormat::Rgba16Float,
         color_target_count: 2,
         depth_format: Some(wgpu::TextureFormat::Depth32Float), // Reverse Z
         sample_count,
-        topology: wgpu::PrimitiveTopology::TriangleList,
+        topology: wgpu_topology,
+        polygon_mode: wgpu_polygon_mode,
         cull_mode,
         front_face: wgpu::FrontFace::Ccw,
         depth_write_enabled: depth_write,
@@ -152,7 +175,7 @@ pub fn get_pipeline<'a>(
                 front_face: key.front_face,
                 cull_mode: key.cull_mode,
                 unclipped_depth: false,
-                polygon_mode: wgpu::PolygonMode::Fill,
+                polygon_mode: key.polygon_mode,
                 conservative: false,
             },
             depth_stencil: key.depth_format.map(|format| wgpu::DepthStencilState {

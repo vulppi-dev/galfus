@@ -3,7 +3,7 @@ use crate::core::state::EngineState;
 use glam::Vec3;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Deserialize, Serialize, Clone, Copy)]
+#[derive(Debug, Deserialize, Serialize, Clone, Copy, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
 pub enum PrimitiveShape {
     Cube,

@@ -126,6 +126,7 @@ pub fn pass_outline(
             depth_format: None,
             sample_count: 1,
             topology: wgpu::PrimitiveTopology::TriangleList,
+            polygon_mode: wgpu::PolygonMode::Fill,
             cull_mode: Some(wgpu::Face::Back),
             front_face: wgpu::FrontFace::Ccw,
             depth_write_enabled: false,

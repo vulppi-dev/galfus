@@ -20,19 +20,11 @@ use crate::core::realm::cmd::{CmdRealmCreateArgs, CmdRealmDisposeArgs, RealmKind
 use crate::core::render::gizmos::{
     CmdGizmoDrawAabbArgs, CmdGizmoDrawLineArgs, CmdGizmoDrawPolylineArgs,
 };
-use crate::core::resources::geometry::{CmdGeometryCreateArgs, GeometryPrimitiveEntry};
 use crate::core::resources::shadow::CmdShadowConfigureArgs;
 use crate::core::resources::shadow::ShadowConfig;
 use crate::core::resources::{
-    CameraKind, CmdCameraCreateArgs, CmdCameraDisposeArgs, CmdCameraListArgs, CmdCameraUpdateArgs,
-    CmdEnvironmentUpdateArgs, CmdGeometryDisposeArgs, CmdGeometryListArgs, CmdLightCreateArgs,
-    CmdLightDisposeArgs, CmdLightListArgs, CmdMaterialCreateArgs, CmdMaterialDisposeArgs,
-    CmdMaterialListArgs, CmdModelCreateArgs, CmdModelDisposeArgs, CmdModelListArgs,
-    CmdModelUpdateArgs, CmdPoseUpdateArgs, CmdPrimitiveGeometryCreateArgs,
-    CmdTextureBindTargetArgs, CmdTextureCreateFromBufferArgs, CmdTextureCreateSolidColorArgs,
-    CmdTextureDisposeArgs, CmdTextureListArgs, EnvironmentConfig, LightKind, MaterialKind,
-    MaterialOptions, MsaaConfig, PbrOptions, PostProcessConfig, PrimitiveShape, SkyboxConfig,
-    SkyboxDirectionalLightSun, SkyboxMode, TextureCreateMode,
+    CmdCameraUpdateArgs, CmdEnvironmentUpdateArgs, CmdModelCreateArgs, CmdModelUpdateArgs,
+    CmdPrimitiveGeometryCreateArgs, EnvironmentConfig, PrimitiveShape, SkyboxConfig, SkyboxMode,
 };
 use crate::core::system::{
     diagnostics::CmdSystemDiagnosticsSetArgs,
@@ -305,10 +297,15 @@ fn run_demo_bundle(
                 let mut state = state.borrow_mut();
                 cmds.extend(state.frame_commands(total_ms));
                 state.model_transform()
+            } else if demo_number == 1 {
+                Mat4::from_translation(Vec3::new(-3.0, 0.0, 0.0))
+                    * Mat4::from_rotation_y(total_ms as f32 * 0.0006)
+                    * Mat4::from_rotation_x(total_ms as f32 * 0.0003)
             } else {
                 Mat4::from_rotation_y(total_ms as f32 * 0.0006)
                     * Mat4::from_rotation_x(total_ms as f32 * 0.0003)
             };
+
             cmds.push(EngineCmd::CmdModelUpsert(CmdModelUpsertArgs::Update(
                 CmdModelUpdateArgs {
                     realm_id: ctx.realm_id,
@@ -324,6 +321,34 @@ fn run_demo_bundle(
                     outline_color: None,
                 },
             )));
+
+            if demo_number == 1 {
+                // Rotate extra models
+                for i in 0..5 {
+                    let model_id = ids.model_id + 50 + i as u32;
+                    let x = (i as f32 - 1.5) * 2.0;
+                    let z = if i % 2 == 0 { -1.5 } else { 1.5 };
+                    let transform = Mat4::from_translation(Vec3::new(x, 0.0, z))
+                        * Mat4::from_rotation_y(total_ms as f32 * 0.0008 + i as f32)
+                        * Mat4::from_rotation_z(total_ms as f32 * 0.0004);
+
+                    cmds.push(EngineCmd::CmdModelUpsert(CmdModelUpsertArgs::Update(
+                        CmdModelUpdateArgs {
+                            realm_id: ctx.realm_id,
+                            model_id,
+                            label: None,
+                            geometry_id: None,
+                            material_id: None,
+                            transform: Some(transform),
+                            layer_mask: None,
+                            cast_shadow: None,
+                            receive_shadow: None,
+                            cast_outline: None,
+                            outline_color: None,
+                        },
+                    )));
+                }
+            }
 
             if options.draw_gizmos {
                 let t = total_ms as f32 * 0.001;

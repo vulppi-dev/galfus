@@ -110,6 +110,13 @@ pub fn engine_cmd_window_create(
             required_features |=
                 wgpu::Features::TIMESTAMP_QUERY | wgpu::Features::TIMESTAMP_QUERY_INSIDE_ENCODERS;
         }
+
+        if adapter_features.contains(wgpu::Features::POLYGON_MODE_LINE) {
+            required_features |= wgpu::Features::POLYGON_MODE_LINE;
+        }
+        if adapter_features.contains(wgpu::Features::POLYGON_MODE_POINT) {
+            required_features |= wgpu::Features::POLYGON_MODE_POINT;
+        }
         let adapter_specific_format_features_supported =
             adapter_features.contains(wgpu::Features::TEXTURE_ADAPTER_SPECIFIC_FORMAT_FEATURES);
         if adapter_specific_format_features_supported {

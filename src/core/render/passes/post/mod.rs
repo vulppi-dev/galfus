@@ -180,6 +180,7 @@ pub fn pass_post(
             depth_format: None,
             sample_count: output_target.sample_count,
             topology: wgpu::PrimitiveTopology::TriangleList,
+            polygon_mode: wgpu::PolygonMode::Fill,
             cull_mode: None,
             front_face: wgpu::FrontFace::Ccw,
             depth_write_enabled: false,

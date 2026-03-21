@@ -251,7 +251,8 @@ pub fn pass_shadow_update(
             depth_format: Some(wgpu::TextureFormat::Depth32Float),
             sample_count: 1,
             topology: wgpu::PrimitiveTopology::TriangleList,
-            cull_mode: None,
+            polygon_mode: wgpu::PolygonMode::Fill,
+            cull_mode: Some(wgpu::Face::Back),
             front_face: wgpu::FrontFace::Ccw,
             depth_write_enabled: true,
             depth_compare: wgpu::CompareFunction::Greater, // Reverse Z
