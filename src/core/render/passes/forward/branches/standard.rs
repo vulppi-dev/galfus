@@ -1,6 +1,8 @@
 use crate::core::render::cache::{PipelineKey, RenderCache, ShaderId};
 use crate::core::render::state::ResourceLibrary;
-use crate::core::resources::{PolygonMode, PrimitiveTopology, RenderSide, SurfaceType, VertexStream};
+use crate::core::resources::{
+    PolygonMode, PrimitiveTopology, RenderSide, SurfaceType, VertexStream,
+};
 
 pub fn get_pipeline<'a>(
     cache: &'a mut RenderCache,
