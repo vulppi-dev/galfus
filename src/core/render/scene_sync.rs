@@ -1,6 +1,5 @@
 use super::RenderState;
 use crate::core::realm::RealmId;
-use std::hash::{Hash, Hasher};
 
 pub(super) fn sync_scene_from_realm_and_universal_resources(
     render_state: &mut RenderState,
@@ -213,46 +212,52 @@ pub(super) fn sync_scene_from_realm_and_universal_resources(
 fn hash_texture_records(
     textures: &std::collections::HashMap<u32, crate::core::resources::TextureRecord>,
 ) -> u64 {
-    let mut hasher = std::collections::hash_map::DefaultHasher::new();
-    textures.len().hash(&mut hasher);
-    for (id, record) in textures {
-        id.hash(&mut hasher);
-        record.label.hash(&mut hasher);
-        let size = record._texture.size();
-        size.width.hash(&mut hasher);
-        size.height.hash(&mut hasher);
-        size.depth_or_array_layers.hash(&mut hasher);
-        record._texture.format().hash(&mut hasher);
-        (record as *const crate::core::resources::TextureRecord as usize).hash(&mut hasher);
-    }
-    hasher.finish()
+    let records: Vec<_> = textures
+        .iter()
+        .map(|(id, record)| {
+            let size = record._texture.size();
+            vulfram_realm_3d::TextureRecordMeta {
+                id: *id,
+                label: record.label.clone(),
+                width: size.width,
+                height: size.height,
+                depth_or_array_layers: size.depth_or_array_layers,
+                format: format!("{:?}", record._texture.format()),
+            }
+        })
+        .collect();
+    vulfram_realm_3d::hash_texture_records(&records)
 }
 
 fn hash_forward_atlas_entries(
     entries: &std::collections::HashMap<u32, crate::core::resources::ForwardAtlasEntry>,
 ) -> u64 {
-    let mut hasher = std::collections::hash_map::DefaultHasher::new();
-    entries.len().hash(&mut hasher);
-    for (id, entry) in entries {
-        id.hash(&mut hasher);
-        entry.label.hash(&mut hasher);
-        entry.layer.hash(&mut hasher);
-        bytemuck::bytes_of(&entry.uv_scale_bias.to_array()).hash(&mut hasher);
-    }
-    hasher.finish()
+    let entries: Vec<_> = entries
+        .iter()
+        .map(|(id, entry)| vulfram_realm_3d::ForwardAtlasEntryMeta {
+            id: *id,
+            label: entry.label.clone(),
+            layer: entry.layer,
+            uv_scale_bias: entry.uv_scale_bias.to_array(),
+        })
+        .collect();
+    vulfram_realm_3d::hash_forward_atlas_entries(&entries)
 }
 
 fn hash_target_texture_binds(
     binds: &std::collections::HashMap<u32, crate::core::resources::TargetTextureBinding>,
 ) -> u64 {
-    let mut hasher = std::collections::hash_map::DefaultHasher::new();
-    binds.len().hash(&mut hasher);
-    for (texture_id, bind) in binds {
-        texture_id.hash(&mut hasher);
-        bind.target_id.hash(&mut hasher);
-        bind.label.hash(&mut hasher);
-    }
-    hasher.finish()
+    let binds: Vec<_> = binds
+        .iter()
+        .map(
+            |(texture_id, bind)| vulfram_realm_3d::TargetTextureBindingMeta {
+                texture_id: *texture_id,
+                target_id: bind.target_id,
+                label: bind.label.clone(),
+            },
+        )
+        .collect();
+    vulfram_realm_3d::hash_target_texture_binds(&binds)
 }
 
 fn sync_texture_records(

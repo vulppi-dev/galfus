@@ -4006,6 +4006,10 @@ version = "0.21.2-alpha"
 [[package]]
 name = "vulfram-realm-3d"
 version = "0.21.2-alpha"
+dependencies = [
+ "bytemuck",
+ "vulfram-realm-core",
+]
 
 [[package]]
 name = "vulfram-realm-core"
