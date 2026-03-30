@@ -302,6 +302,58 @@ impl Default for PointerTraceConfig {
     }
 }
 
+fn default_true() -> bool {
+    true
+}
+
+const fn u8_100() -> u8 {
+    100
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CmdInputTargetListenerUpsertArgs {
+    pub listener_id: u64,
+    pub target_id: u64,
+    #[serde(default = "default_true")]
+    pub enabled: bool,
+    #[serde(default)]
+    pub events: Vec<String>,
+    #[serde(default = "u8_100")]
+    pub sample_percent: u8,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CmdInputTargetListenerDisposeArgs {
+    pub listener_id: u64,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CmdInputTargetListenerListArgs {
+    #[serde(default)]
+    pub target_id: Option<u64>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InputTargetListenerSnapshot {
+    pub listener_id: u64,
+    pub target_id: u64,
+    pub enabled: bool,
+    pub events: Vec<String>,
+    pub sample_percent: u8,
+}
+
+#[derive(Debug, Default, Clone, Deserialize, Serialize)]
+#[serde(default, rename_all = "camelCase")]
+pub struct CmdResultInputTargetListenerList {
+    pub success: bool,
+    pub message: String,
+    pub listeners: Vec<InputTargetListenerSnapshot>,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -356,5 +408,16 @@ mod tests {
             }
             _ => panic!("decoded wrong keyboard event variant"),
         }
+    }
+
+    #[test]
+    fn input_target_listener_upsert_defaults_are_applied() {
+        let decoded: CmdInputTargetListenerUpsertArgs =
+            serde_json::from_str(r#"{ "listenerId": 1, "targetId": 2 }"#)
+                .expect("listener args should decode");
+
+        assert!(decoded.enabled);
+        assert_eq!(decoded.sample_percent, 100);
+        assert!(decoded.events.is_empty());
     }
 }
