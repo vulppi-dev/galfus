@@ -22,7 +22,6 @@ mod tests {
     use crate::core::input::events::{PointerEvent, PointerEventTrace};
     use crate::core::state::EngineState;
     use crate::core::system::SystemEvent;
-    use crate::core::target::TargetId;
 
     #[test]
     fn listener_emits_system_event_for_matching_pointer_target() {
@@ -32,7 +31,7 @@ mod tests {
             .target_listeners
             .upsert(InputTargetListenerConfig {
                 listener_id: 10,
-                target_id: TargetId(99),
+                target_id: 99,
                 enabled: true,
                 events: vec!["pointer-move".into()],
                 sample_percent: 100,

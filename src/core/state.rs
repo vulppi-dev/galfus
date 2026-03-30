@@ -225,7 +225,7 @@ impl EngineState {
                 let _ = self
                     .universal_state
                     .target_listeners
-                    .dispose_targets(targets_to_remove.iter().copied());
+                    .dispose_targets(targets_to_remove.iter().map(|target_id| target_id.0));
                 self.universal_state
                     .input_routing
                     .focus_targets

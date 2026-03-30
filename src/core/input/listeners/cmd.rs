@@ -1,6 +1,5 @@
 use crate::core::cmd::CmdResultSimple;
 use crate::core::state::EngineState;
-use crate::core::target::TargetId;
 
 use super::model::{
     CmdInputTargetListenerDisposeArgs, CmdInputTargetListenerListArgs,
@@ -16,7 +15,7 @@ pub fn engine_cmd_input_target_listener_upsert(
         .target_listeners
         .upsert(InputTargetListenerConfig {
             listener_id: args.listener_id,
-            target_id: TargetId(args.target_id),
+            target_id: args.target_id,
             enabled: args.enabled,
             events: args.events.clone(),
             sample_percent: args.sample_percent.min(100),
@@ -49,10 +48,7 @@ pub fn engine_cmd_input_target_listener_list(
     engine: &mut EngineState,
     args: &CmdInputTargetListenerListArgs,
 ) -> CmdResultInputTargetListenerList {
-    let listeners = engine
-        .universal_state
-        .target_listeners
-        .list(args.target_id.map(TargetId));
+    let listeners = engine.universal_state.target_listeners.list(args.target_id);
     CmdResultInputTargetListenerList {
         success: true,
         message: "Input target listeners listed".into(),

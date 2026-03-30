@@ -284,7 +284,7 @@ pub fn engine_cmd_target_dispose(
     let _ = engine
         .universal_state
         .target_listeners
-        .dispose_target(target_id);
+        .dispose_target(target_id.0);
     engine
         .universal_state
         .universal_resources

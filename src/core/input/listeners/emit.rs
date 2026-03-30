@@ -5,7 +5,6 @@ use crate::core::cmd::EngineEvent;
 use crate::core::input::events::{KeyboardEvent, PointerEvent};
 use crate::core::state::EngineState;
 use crate::core::system::SystemEvent;
-use crate::core::target::TargetId;
 
 use super::model::InputTargetListenerConfig;
 
@@ -256,7 +255,7 @@ fn emit_pointer_listener_events(engine: &mut EngineState, event: &PointerEvent) 
     let listeners = engine
         .universal_state
         .target_listeners
-        .listeners_for_target(TargetId(target_id));
+        .listeners_for_target(target_id);
     for listener in listeners {
         if !listener_matches(&listener, event_type, engine.frame_index) {
             continue;
@@ -327,7 +326,7 @@ fn emit_keyboard_listener_events(engine: &mut EngineState, event: &KeyboardEvent
     let listeners = engine
         .universal_state
         .target_listeners
-        .listeners_for_target(target_id);
+        .listeners_for_target(target_id.0);
     for listener in listeners {
         if !listener_matches(&listener, event_type, engine.frame_index) {
             continue;

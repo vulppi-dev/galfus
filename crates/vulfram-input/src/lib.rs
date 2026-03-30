@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use glam::Vec2;
 use serde::{Deserialize, Serialize};
 
@@ -346,12 +348,116 @@ pub struct InputTargetListenerSnapshot {
     pub sample_percent: u8,
 }
 
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InputTargetListenerConfig {
+    pub listener_id: u64,
+    pub target_id: u64,
+    pub enabled: bool,
+    pub events: Vec<String>,
+    pub sample_percent: u8,
+}
+
 #[derive(Debug, Default, Clone, Deserialize, Serialize)]
 #[serde(default, rename_all = "camelCase")]
 pub struct CmdResultInputTargetListenerList {
     pub success: bool,
     pub message: String,
     pub listeners: Vec<InputTargetListenerSnapshot>,
+}
+
+#[derive(Debug, Default)]
+pub struct InputTargetListenerStore {
+    by_listener: HashMap<u64, InputTargetListenerConfig>,
+    listeners_by_target: HashMap<u64, Vec<u64>>,
+}
+
+impl InputTargetListenerStore {
+    pub fn upsert(&mut self, config: InputTargetListenerConfig) {
+        if let Some(previous) = self.by_listener.insert(config.listener_id, config.clone()) {
+            self.remove_from_target_index(previous.target_id, previous.listener_id);
+        }
+        self.listeners_by_target
+            .entry(config.target_id)
+            .or_default()
+            .push(config.listener_id);
+    }
+
+    pub fn dispose(&mut self, listener_id: u64) -> bool {
+        let Some(config) = self.by_listener.remove(&listener_id) else {
+            return false;
+        };
+        self.remove_from_target_index(config.target_id, listener_id);
+        true
+    }
+
+    pub fn dispose_target(&mut self, target_id: u64) -> usize {
+        let Some(listener_ids) = self.listeners_by_target.remove(&target_id) else {
+            return 0;
+        };
+        let mut removed = 0;
+        for listener_id in listener_ids {
+            if self.by_listener.remove(&listener_id).is_some() {
+                removed += 1;
+            }
+        }
+        removed
+    }
+
+    pub fn dispose_targets<I: IntoIterator<Item = u64>>(&mut self, target_ids: I) -> usize {
+        target_ids
+            .into_iter()
+            .map(|target_id| self.dispose_target(target_id))
+            .sum()
+    }
+
+    pub fn list(&self, target_id: Option<u64>) -> Vec<InputTargetListenerSnapshot> {
+        let mut listeners = match target_id {
+            Some(target_id) => self
+                .listeners_by_target
+                .get(&target_id)
+                .into_iter()
+                .flat_map(|listener_ids| listener_ids.iter())
+                .filter_map(|listener_id| self.by_listener.get(listener_id))
+                .map(to_snapshot)
+                .collect::<Vec<_>>(),
+            None => self
+                .by_listener
+                .values()
+                .map(to_snapshot)
+                .collect::<Vec<_>>(),
+        };
+        listeners.sort_by_key(|listener| listener.listener_id);
+        listeners
+    }
+
+    pub fn listeners_for_target(&self, target_id: u64) -> Vec<InputTargetListenerConfig> {
+        self.listeners_by_target
+            .get(&target_id)
+            .into_iter()
+            .flat_map(|listener_ids| listener_ids.iter())
+            .filter_map(|listener_id| self.by_listener.get(listener_id).cloned())
+            .collect()
+    }
+
+    fn remove_from_target_index(&mut self, target_id: u64, listener_id: u64) {
+        if let Some(listener_ids) = self.listeners_by_target.get_mut(&target_id) {
+            listener_ids.retain(|id| *id != listener_id);
+            if listener_ids.is_empty() {
+                self.listeners_by_target.remove(&target_id);
+            }
+        }
+    }
+}
+
+fn to_snapshot(config: &InputTargetListenerConfig) -> InputTargetListenerSnapshot {
+    InputTargetListenerSnapshot {
+        listener_id: config.listener_id,
+        target_id: config.target_id,
+        enabled: config.enabled,
+        events: config.events.clone(),
+        sample_percent: config.sample_percent,
+    }
 }
 
 #[cfg(test)]
@@ -419,5 +525,60 @@ mod tests {
         assert!(decoded.enabled);
         assert_eq!(decoded.sample_percent, 100);
         assert!(decoded.events.is_empty());
+    }
+
+    #[test]
+    fn input_target_listener_store_lists_sorted_snapshots() {
+        let mut store = InputTargetListenerStore::default();
+        store.upsert(InputTargetListenerConfig {
+            listener_id: 20,
+            target_id: 7,
+            enabled: true,
+            events: vec!["pointer-move".into()],
+            sample_percent: 100,
+        });
+        store.upsert(InputTargetListenerConfig {
+            listener_id: 10,
+            target_id: 7,
+            enabled: false,
+            events: Vec::new(),
+            sample_percent: 0,
+        });
+
+        let listeners = store.list(Some(7));
+        assert_eq!(listeners.len(), 2);
+        assert_eq!(listeners[0].listener_id, 10);
+        assert_eq!(listeners[1].listener_id, 20);
+    }
+
+    #[test]
+    fn input_target_listener_store_disposes_target_group() {
+        let mut store = InputTargetListenerStore::default();
+        store.upsert(InputTargetListenerConfig {
+            listener_id: 1,
+            target_id: 10,
+            enabled: true,
+            events: Vec::new(),
+            sample_percent: 100,
+        });
+        store.upsert(InputTargetListenerConfig {
+            listener_id: 2,
+            target_id: 10,
+            enabled: true,
+            events: Vec::new(),
+            sample_percent: 100,
+        });
+        store.upsert(InputTargetListenerConfig {
+            listener_id: 3,
+            target_id: 11,
+            enabled: true,
+            events: Vec::new(),
+            sample_percent: 100,
+        });
+
+        assert_eq!(store.dispose_target(10), 2);
+        assert_eq!(store.list(None).len(), 1);
+        assert_eq!(store.listeners_for_target(10).len(), 0);
+        assert_eq!(store.listeners_for_target(11).len(), 1);
     }
 }
