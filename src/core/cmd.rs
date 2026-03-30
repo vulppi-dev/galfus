@@ -260,21 +260,9 @@ pub enum CommandResponse {
     GizmoDrawPolyline(gizmo::CmdResultGizmoDraw),
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct EngineCmdEnvelope {
-    pub id: u64,
-    #[serde(flatten)]
-    pub cmd: EngineCmd,
-}
+pub type EngineCmdEnvelope = vulfram_protocol::CommandEnvelope<EngineCmd>;
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct CommandResponseEnvelope {
-    pub id: u64,
-    #[serde(flatten)]
-    pub response: CommandResponse,
-}
+pub type CommandResponseEnvelope = vulfram_protocol::ResponseEnvelope<CommandResponse>;
 
 pub type EngineBatchCmds = Vec<EngineCmdEnvelope>;
 

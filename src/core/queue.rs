@@ -14,21 +14,8 @@ fn now_ns() -> u64 {
 use super::singleton::with_engine;
 
 fn decode_engine_batch_cmds(data: &[u8]) -> Result<EngineBatchCmds, String> {
-    let mut deserializer = rmp_serde::Deserializer::new(data);
-    match serde_path_to_error::deserialize::<_, EngineBatchCmds>(&mut deserializer) {
-        Ok(batch) => Ok(batch),
-        Err(error) => {
-            let path = error.path().to_string();
-            let inner = error.into_inner();
-            if path.is_empty() {
-                Err(format!("Invalid MessagePack in command batch: {inner}"))
-            } else {
-                Err(format!(
-                    "Invalid MessagePack in command batch at '{path}': {inner}"
-                ))
-            }
-        }
-    }
+    vulfram_protocol::decode_named(data)
+        .map_err(|error| format!("Invalid MessagePack in command batch: {error}"))
 }
 
 /// Send a batch of commands to the engine
@@ -77,7 +64,7 @@ pub fn vulfram_receive_queue(out_ptr: *mut *const u8, out_length: *mut usize) ->
         let serialization_start = Instant::now();
         #[cfg(feature = "wasm")]
         let serialization_start = now_ns();
-        let serialized_data = match rmp_serde::to_vec_named(&engine.response_queue) {
+        let serialized_data = match vulfram_protocol::encode_named(&engine.response_queue) {
             Ok(data) => data,
             Err(_) => return VulframResult::UnknownError,
         };
@@ -126,7 +113,7 @@ pub fn vulfram_receive_events(out_ptr: *mut *const u8, out_length: *mut usize) -
         let serialization_start = Instant::now();
         #[cfg(feature = "wasm")]
         let serialization_start = now_ns();
-        let serialized_data = match rmp_serde::to_vec_named(&engine.event_queue) {
+        let serialized_data = match vulfram_protocol::encode_named(&engine.event_queue) {
             Ok(data) => data,
             Err(_) => return VulframResult::UnknownError,
         };

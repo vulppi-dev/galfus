@@ -1,18 +1,8 @@
 use serde::{Deserialize, Serialize};
+pub use vulfram_types::{UiDocumentId, UiFontId, UiImageId, UiNodeId, UiThemeId};
 
 mod node_props;
 pub use node_props::{UiImageSource, UiNodeProps, UiPaintOp, UiPaintStroke};
-
-#[allow(dead_code)]
-pub type UiThemeId = u32;
-#[allow(dead_code)]
-pub type UiFontId = u32;
-#[allow(dead_code)]
-pub type UiImageId = u32;
-#[allow(dead_code)]
-pub type UiDocumentId = u32;
-#[allow(dead_code)]
-pub type UiNodeId = u32;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(untagged)]

@@ -3959,12 +3959,34 @@ dependencies = [
  "serde",
  "serde_path_to_error",
  "smallvec",
+ "vulfram-protocol",
+ "vulfram-types",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
  "web-time",
  "wgpu",
  "winit",
+]
+
+[[package]]
+name = "vulfram-protocol"
+version = "0.21.2-alpha"
+dependencies = [
+ "rmp-serde",
+ "serde",
+ "serde_json",
+ "serde_path_to_error",
+ "vulfram-types",
+]
+
+[[package]]
+name = "vulfram-types"
+version = "0.21.2-alpha"
+dependencies = [
+ "rmp-serde",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

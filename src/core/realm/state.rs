@@ -7,30 +7,7 @@ use crate::core::resources::{
 };
 use crate::core::target::{TargetGraphCache, TargetLayerTable, TargetTable};
 use crate::core::ui::UiState;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct RealmId(pub u32);
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct SurfaceId(pub u32);
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct ConnectorId(pub u32);
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct PresentId(pub u32);
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum RealmKind {
-    ThreeD,
-    TwoD,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum SurfaceKind {
-    Onscreen,
-    Offscreen,
-}
+pub use vulfram_types::{ConnectorId, PresentId, RealmId, RealmKind, SurfaceId, SurfaceKind};
 
 #[derive(Debug, Clone)]
 pub struct RealmState {
