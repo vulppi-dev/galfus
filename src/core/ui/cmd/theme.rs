@@ -1,46 +1,8 @@
-use std::collections::HashMap;
-
-use serde::{Deserialize, Serialize};
-
 use crate::core::state::EngineState;
 use crate::core::ui::state::UiThemeState;
-use crate::core::ui::types::{UiThemeId, UiThemeValue};
-
-#[derive(Debug, Deserialize, Serialize, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct CmdUiThemeDefineArgs {
-    pub theme_id: UiThemeId,
-    #[serde(default)]
-    pub version: Option<u32>,
-    #[serde(default)]
-    pub data: HashMap<String, UiThemeValue>,
-    #[serde(default)]
-    pub font_data: HashMap<String, Vec<u8>>,
-    #[serde(default)]
-    pub font_families: HashMap<String, Vec<String>>,
-}
-
-#[derive(Debug, Default, Deserialize, Serialize, Clone)]
-#[serde(default, rename_all = "camelCase")]
-pub struct CmdResultUiThemeDefine {
-    pub success: bool,
-    pub message: String,
-    pub theme_id: Option<UiThemeId>,
-    pub version: Option<u32>,
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct CmdUiThemeDisposeArgs {
-    pub theme_id: UiThemeId,
-}
-
-#[derive(Debug, Default, Deserialize, Serialize, Clone)]
-#[serde(default, rename_all = "camelCase")]
-pub struct CmdResultUiThemeDispose {
-    pub success: bool,
-    pub message: String,
-}
+pub use vulfram_ui::{
+    CmdResultUiThemeDefine, CmdResultUiThemeDispose, CmdUiThemeDefineArgs, CmdUiThemeDisposeArgs,
+};
 
 pub fn engine_cmd_ui_theme_define(
     engine: &mut EngineState,

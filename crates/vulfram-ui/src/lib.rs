@@ -5,13 +5,15 @@ mod node_props;
 mod types;
 
 pub use contracts::{
-    CmdResultUiApplyOps, CmdResultUiDocumentCreate, CmdResultUiDocumentDispose,
-    CmdResultUiDocumentGetLayoutRects, CmdResultUiDocumentGetTree, CmdResultUiDocumentSetRect,
-    CmdResultUiDocumentSetTheme, CmdResultUiEventTraceSet, CmdResultUiFocusGet,
-    CmdResultUiFocusSet, CmdUiApplyOpsArgs, CmdUiDocumentCreateArgs, CmdUiDocumentDisposeArgs,
+    CmdResultUiApplyOps, CmdResultUiDebugSet, CmdResultUiDocumentCreate,
+    CmdResultUiDocumentDispose, CmdResultUiDocumentGetLayoutRects, CmdResultUiDocumentGetTree,
+    CmdResultUiDocumentSetRect, CmdResultUiDocumentSetTheme, CmdResultUiEventTraceSet,
+    CmdResultUiFocusGet, CmdResultUiFocusSet, CmdResultUiThemeDefine, CmdResultUiThemeDispose,
+    CmdUiApplyOpsArgs, CmdUiDebugSetArgs, CmdUiDocumentCreateArgs, CmdUiDocumentDisposeArgs,
     CmdUiDocumentGetLayoutRectsArgs, CmdUiDocumentGetTreeArgs, CmdUiDocumentSetRectArgs,
     CmdUiDocumentSetThemeArgs, CmdUiEventTraceSetArgs, CmdUiFocusGetArgs, CmdUiFocusSetArgs,
-    UiDocumentTreeNode, UiFocusEntry, UiNodeLayoutRect, build_tree_node,
+    CmdUiThemeDefineArgs, CmdUiThemeDisposeArgs, UiDocumentTreeNode, UiFocusEntry,
+    UiNodeLayoutRect, build_tree_node,
 };
 pub use document::{UiDocument, UiNodeEntry, UiThemeState};
 pub use events::{UiEvent, UiEventKind};

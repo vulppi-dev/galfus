@@ -1,7 +1,9 @@
 use serde::{Deserialize, Serialize};
 use vulfram_input::PointerTraceLevel;
 
-use crate::{UiDocument, UiDocumentId, UiNodeId, UiNodeKind, UiOp, UiThemeId};
+use std::collections::HashMap;
+
+use crate::{UiDocument, UiDocumentId, UiNodeId, UiNodeKind, UiOp, UiThemeId, UiThemeValue};
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -183,6 +185,61 @@ pub struct CmdResultUiEventTraceSet {
     pub message: String,
     pub level: Option<PointerTraceLevel>,
     pub sampling_percent: Option<u8>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct CmdUiThemeDefineArgs {
+    pub theme_id: UiThemeId,
+    #[serde(default)]
+    pub version: Option<u32>,
+    #[serde(default)]
+    pub data: HashMap<String, UiThemeValue>,
+    #[serde(default)]
+    pub font_data: HashMap<String, Vec<u8>>,
+    #[serde(default)]
+    pub font_families: HashMap<String, Vec<String>>,
+}
+
+#[derive(Debug, Default, Deserialize, Serialize, Clone)]
+#[serde(default, rename_all = "camelCase")]
+pub struct CmdResultUiThemeDefine {
+    pub success: bool,
+    pub message: String,
+    pub theme_id: Option<UiThemeId>,
+    pub version: Option<u32>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct CmdUiThemeDisposeArgs {
+    pub theme_id: UiThemeId,
+}
+
+#[derive(Debug, Default, Deserialize, Serialize, Clone)]
+#[serde(default, rename_all = "camelCase")]
+pub struct CmdResultUiThemeDispose {
+    pub success: bool,
+    pub message: String,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct CmdUiDebugSetArgs {
+    pub enabled: bool,
+    #[serde(default)]
+    pub show_bounds: bool,
+    #[serde(default)]
+    pub show_ids: bool,
+    #[serde(default)]
+    pub show_profile: bool,
+}
+
+#[derive(Debug, Default, Deserialize, Serialize, Clone)]
+#[serde(default, rename_all = "camelCase")]
+pub struct CmdResultUiDebugSet {
+    pub success: bool,
+    pub message: String,
 }
 
 pub fn build_tree_node(doc: &UiDocument, node_id: UiNodeId) -> Option<UiDocumentTreeNode> {
