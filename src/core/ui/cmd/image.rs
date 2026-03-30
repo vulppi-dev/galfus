@@ -1,41 +1,12 @@
-use serde::{Deserialize, Serialize};
-
 use crate::core::buffers::state::UploadType;
 use crate::core::state::EngineState;
 use crate::core::system::SystemEvent;
 use crate::core::ui::image_async::{UiImageAsyncEvent, UiImageDecodeJob};
 use crate::core::ui::state::UiImageRecord;
-use crate::core::ui::types::UiImageId;
-
-#[derive(Debug, Deserialize, Serialize, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct CmdUiImageCreateFromBufferArgs {
-    pub image_id: UiImageId,
-    pub buffer_id: u64,
-    #[serde(default)]
-    pub label: Option<String>,
-}
-
-#[derive(Debug, Default, Deserialize, Serialize, Clone)]
-#[serde(default, rename_all = "camelCase")]
-pub struct CmdResultUiImageCreateFromBuffer {
-    pub success: bool,
-    pub message: String,
-    pub pending: bool,
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct CmdUiImageDisposeArgs {
-    pub image_id: UiImageId,
-}
-
-#[derive(Debug, Default, Deserialize, Serialize, Clone)]
-#[serde(default, rename_all = "camelCase")]
-pub struct CmdResultUiImageDispose {
-    pub success: bool,
-    pub message: String,
-}
+pub use vulfram_ui::{
+    CmdResultUiImageCreateFromBuffer, CmdResultUiImageDispose, CmdUiImageCreateFromBufferArgs,
+    CmdUiImageDisposeArgs,
+};
 
 pub fn engine_cmd_ui_image_create_from_buffer(
     engine: &mut EngineState,

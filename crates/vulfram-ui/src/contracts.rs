@@ -3,7 +3,9 @@ use vulfram_input::PointerTraceLevel;
 
 use std::collections::HashMap;
 
-use crate::{UiDocument, UiDocumentId, UiNodeId, UiNodeKind, UiOp, UiThemeId, UiThemeValue};
+use crate::{
+    UiDocument, UiDocumentId, UiImageId, UiNodeId, UiNodeKind, UiOp, UiThemeId, UiThemeValue,
+};
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -238,6 +240,70 @@ pub struct CmdUiDebugSetArgs {
 #[derive(Debug, Default, Deserialize, Serialize, Clone)]
 #[serde(default, rename_all = "camelCase")]
 pub struct CmdResultUiDebugSet {
+    pub success: bool,
+    pub message: String,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct CmdUiImageCreateFromBufferArgs {
+    pub image_id: UiImageId,
+    pub buffer_id: u64,
+    #[serde(default)]
+    pub label: Option<String>,
+}
+
+#[derive(Debug, Default, Deserialize, Serialize, Clone)]
+#[serde(default, rename_all = "camelCase")]
+pub struct CmdResultUiImageCreateFromBuffer {
+    pub success: bool,
+    pub message: String,
+    pub pending: bool,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct CmdUiImageDisposeArgs {
+    pub image_id: UiImageId,
+}
+
+#[derive(Debug, Default, Deserialize, Serialize, Clone)]
+#[serde(default, rename_all = "camelCase")]
+pub struct CmdResultUiImageDispose {
+    pub success: bool,
+    pub message: String,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct CmdUiClipboardPasteArgs {
+    pub window_id: u32,
+    pub text: String,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct CmdUiScreenshotReplyArgs {
+    pub window_id: u32,
+    #[serde(default)]
+    pub realm_id: Option<u32>,
+    pub width: u32,
+    pub height: u32,
+    pub rgba: Vec<u8>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct CmdUiAccessKitActionRequestArgs {
+    pub window_id: u32,
+    #[serde(default)]
+    pub realm_id: Option<u32>,
+    pub action: String,
+}
+
+#[derive(Debug, Default, Deserialize, Serialize, Clone)]
+#[serde(default, rename_all = "camelCase")]
+pub struct CmdResultUiInputEvent {
     pub success: bool,
     pub message: String,
 }

@@ -1,43 +1,11 @@
 use std::sync::Arc;
 
-use serde::{Deserialize, Serialize};
-
 use crate::core::state::EngineState;
 use crate::core::system::push_error_event;
-
-#[derive(Debug, Deserialize, Serialize, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct CmdUiClipboardPasteArgs {
-    pub window_id: u32,
-    pub text: String,
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct CmdUiScreenshotReplyArgs {
-    pub window_id: u32,
-    #[serde(default)]
-    pub realm_id: Option<u32>,
-    pub width: u32,
-    pub height: u32,
-    pub rgba: Vec<u8>,
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct CmdUiAccessKitActionRequestArgs {
-    pub window_id: u32,
-    #[serde(default)]
-    pub realm_id: Option<u32>,
-    pub action: String,
-}
-
-#[derive(Debug, Default, Deserialize, Serialize, Clone)]
-#[serde(default, rename_all = "camelCase")]
-pub struct CmdResultUiInputEvent {
-    pub success: bool,
-    pub message: String,
-}
+pub use vulfram_ui::{
+    CmdResultUiInputEvent, CmdUiAccessKitActionRequestArgs, CmdUiClipboardPasteArgs,
+    CmdUiScreenshotReplyArgs,
+};
 
 pub fn engine_cmd_ui_clipboard_paste(
     engine: &mut EngineState,
