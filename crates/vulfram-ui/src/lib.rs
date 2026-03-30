@@ -1,7 +1,9 @@
+mod document;
 mod events;
 mod node_props;
 mod types;
 
+pub use document::{UiDocument, UiNodeEntry, UiThemeState};
 pub use events::{UiEvent, UiEventKind};
 pub use node_props::{UiImageSource, UiNodeProps, UiPaintOp, UiPaintStroke};
 pub use types::{

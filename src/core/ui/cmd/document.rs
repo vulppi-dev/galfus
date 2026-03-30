@@ -1,9 +1,9 @@
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 
 use crate::core::state::EngineState;
-use crate::core::ui::state::{UiDocument, UiNodeEntry, UiState};
-use crate::core::ui::types::{UiDocumentId, UiNodeId, UiNodeProps, UiOp, UiThemeId};
+use crate::core::ui::state::{UiDocument, UiState};
+use crate::core::ui::types::{UiDocumentId, UiNodeId, UiOp, UiThemeId};
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -187,219 +187,22 @@ pub fn engine_cmd_ui_apply_ops(
             version: None,
         };
     };
-
-    let mut undo_log: Vec<UndoAction> = Vec::with_capacity(args.ops.len());
-    let mut removed_nodes: HashSet<UiNodeId> = HashSet::new();
-    for op in &args.ops {
-        let result = match op {
-            UiOp::Add {
-                parent,
-                node,
-                index,
-            } => (|| -> Result<(), String> {
-                doc.add_node(*parent, node.clone(), *index)?;
-                undo_log.push(UndoAction::Add { node_id: node.id });
-                Ok(())
-            })(),
-            UiOp::Remove { node_id } => (|| -> Result<(), String> {
-                let snapshot = snapshot_subtree(doc, *node_id)?;
-                removed_nodes.extend(snapshot.entries.keys().copied());
-                doc.remove_node(*node_id)?;
-                undo_log.push(UndoAction::Remove { snapshot });
-                Ok(())
-            })(),
-            UiOp::Clear { parent } => (|| -> Result<(), String> {
-                let children = children_of(doc, *parent)?;
-                let mut snapshots: Vec<SubtreeSnapshot> = Vec::with_capacity(children.len());
-                for child in children {
-                    let snapshot = snapshot_subtree(doc, child)?;
-                    removed_nodes.extend(snapshot.entries.keys().copied());
-                    snapshots.push(snapshot);
-                }
-                doc.clear_children(*parent)?;
-                undo_log.push(UndoAction::Clear { snapshots });
-                Ok(())
-            })(),
-            UiOp::Set { node_id, props } => (|| -> Result<(), String> {
-                let old_props = doc
-                    .nodes
-                    .get(node_id)
-                    .ok_or_else(|| format!("UiNode {} not found", node_id))?
-                    .node
-                    .props
-                    .clone();
-                doc.set_props(*node_id, props.clone())?;
-                undo_log.push(UndoAction::Set {
-                    node_id: *node_id,
-                    old_props,
-                });
-                Ok(())
-            })(),
-            UiOp::Move {
-                node_id,
-                new_parent,
-                index,
-            } => (|| -> Result<(), String> {
-                let old_parent = doc
-                    .nodes
-                    .get(node_id)
-                    .ok_or_else(|| format!("UiNode {} not found", node_id))?
-                    .parent;
-                let old_index = child_index(doc, old_parent, *node_id)
-                    .ok_or_else(|| format!("UiNode {} not attached to parent", node_id))?;
-                doc.move_node(*node_id, *new_parent, *index)?;
-                undo_log.push(UndoAction::Move {
-                    node_id: *node_id,
-                    old_parent,
-                    old_index,
-                });
-                Ok(())
-            })(),
-        };
-        if let Err(message) = result {
-            rollback_document_ops(doc, &undo_log);
+    let removed_nodes = match doc.apply_ops(args.version, &args.ops) {
+        Ok(result) => result.removed_nodes.into_iter().collect::<HashSet<_>>(),
+        Err(result) => {
             return CmdResultUiApplyOps {
                 success: false,
-                message,
-                version: Some(current_version),
+                message: result.message,
+                version: result.version.or(Some(current_version)),
             };
         }
-    }
-
-    doc.version = args.version;
+    };
     prune_removed_nodes(ui_state, args.document_id, &removed_nodes);
 
     CmdResultUiApplyOps {
         success: true,
         message: "UI ops applied".into(),
         version: Some(args.version),
-    }
-}
-
-#[derive(Debug, Clone)]
-struct SubtreeSnapshot {
-    root_id: UiNodeId,
-    parent: Option<UiNodeId>,
-    index: usize,
-    entries: HashMap<UiNodeId, UiNodeEntry>,
-}
-
-#[derive(Debug, Clone)]
-enum UndoAction {
-    Add {
-        node_id: UiNodeId,
-    },
-    Remove {
-        snapshot: SubtreeSnapshot,
-    },
-    Clear {
-        snapshots: Vec<SubtreeSnapshot>,
-    },
-    Set {
-        node_id: UiNodeId,
-        old_props: UiNodeProps,
-    },
-    Move {
-        node_id: UiNodeId,
-        old_parent: Option<UiNodeId>,
-        old_index: usize,
-    },
-}
-
-fn rollback_document_ops(doc: &mut UiDocument, undo_log: &[UndoAction]) {
-    for undo in undo_log.iter().rev() {
-        match undo {
-            UndoAction::Add { node_id } => {
-                let _ = doc.remove_node(*node_id);
-            }
-            UndoAction::Remove { snapshot } => {
-                restore_subtree(doc, snapshot);
-            }
-            UndoAction::Clear { snapshots } => {
-                for snapshot in snapshots {
-                    restore_subtree(doc, snapshot);
-                }
-            }
-            UndoAction::Set { node_id, old_props } => {
-                let _ = doc.set_props(*node_id, old_props.clone());
-            }
-            UndoAction::Move {
-                node_id,
-                old_parent,
-                old_index,
-            } => {
-                let _ = doc.move_node(*node_id, *old_parent, Some(*old_index as u32));
-            }
-        }
-    }
-}
-
-fn snapshot_subtree(doc: &UiDocument, node_id: UiNodeId) -> Result<SubtreeSnapshot, String> {
-    let entry = doc
-        .nodes
-        .get(&node_id)
-        .ok_or_else(|| format!("UiNode {} not found", node_id))?;
-    let parent = entry.parent;
-    let index = child_index(doc, parent, node_id)
-        .ok_or_else(|| format!("UiNode {} not attached to parent", node_id))?;
-
-    let mut stack = vec![node_id];
-    let mut entries: HashMap<UiNodeId, UiNodeEntry> = HashMap::new();
-    while let Some(current) = stack.pop() {
-        let Some(current_entry) = doc.nodes.get(&current) else {
-            continue;
-        };
-        for child in &current_entry.children {
-            stack.push(*child);
-        }
-        entries.insert(current, current_entry.clone());
-    }
-
-    Ok(SubtreeSnapshot {
-        root_id: node_id,
-        parent,
-        index,
-        entries,
-    })
-}
-
-fn restore_subtree(doc: &mut UiDocument, snapshot: &SubtreeSnapshot) {
-    for (node_id, entry) in &snapshot.entries {
-        doc.nodes.insert(*node_id, entry.clone());
-    }
-    let list = match snapshot.parent {
-        Some(parent_id) => doc
-            .nodes
-            .get_mut(&parent_id)
-            .map(|entry| &mut entry.children),
-        None => Some(&mut doc.root_children),
-    };
-    if let Some(children) = list {
-        let insert_index = snapshot.index.min(children.len());
-        if !children.contains(&snapshot.root_id) {
-            children.insert(insert_index, snapshot.root_id);
-        }
-    }
-    doc.layout_dirty = true;
-}
-
-fn child_index(doc: &UiDocument, parent: Option<UiNodeId>, node_id: UiNodeId) -> Option<usize> {
-    let children = match parent {
-        Some(parent_id) => doc.nodes.get(&parent_id).map(|entry| &entry.children)?,
-        None => &doc.root_children,
-    };
-    children.iter().position(|child| *child == node_id)
-}
-
-fn children_of(doc: &UiDocument, parent: Option<UiNodeId>) -> Result<Vec<UiNodeId>, String> {
-    match parent {
-        Some(parent_id) => Ok(doc
-            .nodes
-            .get(&parent_id)
-            .ok_or_else(|| format!("UiNode {} not found", parent_id))?
-            .children
-            .clone()),
-        None => Ok(doc.root_children.clone()),
     }
 }
 
