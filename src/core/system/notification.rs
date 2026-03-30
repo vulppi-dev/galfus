@@ -3,37 +3,12 @@ use crate::core::platform::EventLoopProxy;
 use notify_rust::Urgency;
 #[cfg(not(feature = "wasm"))]
 use notify_rust::{Notification, Timeout};
-use serde::{Deserialize, Serialize};
 
 use crate::core::singleton::EngineCustomEvents;
 use crate::core::state::EngineState;
 #[cfg(not(feature = "wasm"))]
 use crate::core::system::SystemEvent;
-
-#[derive(Debug, Deserialize, Serialize, Clone)]
-#[serde(rename_all = "kebab-case")]
-pub enum NotificationLevel {
-    Info,
-    Warning,
-    Error,
-    Success,
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct CmdNotificationSendArgs {
-    pub id: Option<String>,
-    pub title: String,
-    pub body: String,
-    pub level: NotificationLevel,
-    pub timeout: Option<u32>,
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct CmdResultNotificationSend {
-    pub success: bool,
-}
+pub use vulfram_protocol::{CmdNotificationSendArgs, CmdResultNotificationSend, NotificationLevel};
 
 #[cfg(feature = "wasm")]
 pub fn engine_cmd_notification_send(

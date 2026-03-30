@@ -24,6 +24,50 @@ impl Display for ProtocolCodecError {
 
 impl std::error::Error for ProtocolCodecError {}
 
+#[derive(Debug, Default, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(default, rename_all = "camelCase")]
+pub struct CmdResultSimple {
+    pub success: bool,
+    pub message: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+pub enum NotificationLevel {
+    Info,
+    Warning,
+    Error,
+    Success,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct CmdNotificationSendArgs {
+    pub id: Option<String>,
+    pub title: String,
+    pub body: String,
+    pub level: NotificationLevel,
+    pub timeout: Option<u32>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct CmdResultNotificationSend {
+    pub success: bool,
+}
+
+#[derive(Debug, Default, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(default, rename_all = "camelCase")]
+pub struct CmdSystemBuildVersionGetArgs {}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct CmdResultSystemBuildVersionGet {
+    pub success: bool,
+    pub message: String,
+    pub build_version: String,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct CommandEnvelope<T> {
@@ -112,5 +156,22 @@ mod tests {
             error.to_string().contains("id"),
             "decode error should mention failing field: {error}"
         );
+    }
+
+    #[test]
+    fn notification_args_round_trip_through_named_codec() {
+        let payload = CmdNotificationSendArgs {
+            id: Some("notif-1".into()),
+            title: "Hello".into(),
+            body: "World".into(),
+            level: NotificationLevel::Success,
+            timeout: Some(3000),
+        };
+
+        let encoded = encode_named(&payload).expect("notification args should encode");
+        let decoded: CmdNotificationSendArgs =
+            decode_named(&encoded).expect("notification args should decode");
+
+        assert_eq!(decoded, payload);
     }
 }

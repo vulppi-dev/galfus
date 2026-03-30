@@ -76,12 +76,7 @@ pub enum CmdAudioSourceUpsertArgs {
     Update(audio::CmdAudioSourceUpdateArgs),
 }
 
-#[derive(Debug, Default, Deserialize, Serialize, Clone)]
-#[serde(default, rename_all = "camelCase")]
-pub struct CmdResultSimple {
-    pub success: bool,
-    pub message: String,
-}
+pub type CmdResultSimple = vulfram_protocol::CmdResultSimple;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(tag = "type", content = "content", rename_all = "kebab-case")]

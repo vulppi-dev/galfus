@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+pub use vulfram_protocol::{CmdResultSystemBuildVersionGet, CmdSystemBuildVersionGetArgs};
 
 use crate::core::input::events::PointerTraceLevel;
 use crate::core::profiling::state::ProfilingDetailLevel;
@@ -15,23 +16,11 @@ pub struct CmdSystemDiagnosticsSetArgs {
     pub trace_sampling_percent: Option<u8>,
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone, Default)]
-#[serde(default, rename_all = "camelCase")]
-pub struct CmdSystemBuildVersionGetArgs {}
-
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct CmdResultSystemDiagnosticsSet {
     pub success: bool,
     pub message: String,
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct CmdResultSystemBuildVersionGet {
-    pub success: bool,
-    pub message: String,
-    pub build_version: String,
 }
 
 pub fn engine_cmd_system_diagnostics_set(
