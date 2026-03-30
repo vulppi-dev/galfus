@@ -1,77 +1,13 @@
-use serde::{Deserialize, Serialize};
-
 use crate::core::cmd::EngineEvent;
 #[cfg(not(feature = "wasm"))]
 use crate::core::platform::winit;
 use crate::core::state::EngineState;
 use crate::core::window::{WindowEvent, WindowPointerCaptureState};
+pub use vulfram_protocol::{
+    CmdResultWindowCursor, CmdWindowCursorArgs, CursorGrabMode, CursorIcon,
+};
 #[cfg(all(feature = "wasm", target_arch = "wasm32"))]
 use wasm_bindgen::JsCast;
-
-#[derive(Debug, Deserialize, Serialize, Clone, Copy, Default, PartialEq, Eq)]
-#[serde(rename_all = "kebab-case")]
-pub enum CursorGrabMode {
-    #[default]
-    None = 0,
-    Confined,
-    Locked,
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone, Copy, Default)]
-#[serde(rename_all = "kebab-case")]
-pub enum CursorIcon {
-    #[default]
-    Default = 0,
-    ContextMenu,
-    Help,
-    Pointer,
-    Progress,
-    Wait,
-    Cell,
-    Crosshair,
-    Text,
-    VerticalText,
-    Alias,
-    Copy,
-    Move,
-    NoDrop,
-    NotAllowed,
-    Grab,
-    Grabbing,
-    EResize,
-    NResize,
-    NeResize,
-    NwResize,
-    SResize,
-    SeResize,
-    SwResize,
-    WResize,
-    EwResize,
-    NsResize,
-    NeswResize,
-    NwseResize,
-    ColResize,
-    RowResize,
-    AllScroll,
-    ZoomIn,
-    ZoomOut,
-}
-
-#[derive(Debug, Default, Deserialize, Serialize, Clone)]
-#[serde(default, rename_all = "camelCase")]
-pub struct CmdWindowCursorArgs {
-    pub window_id: u32,
-    pub visible: Option<bool>,
-    pub mode: Option<CursorGrabMode>,
-    pub icon: Option<CursorIcon>,
-}
-
-#[derive(Debug, Default, Deserialize, Serialize, Clone)]
-#[serde(default, rename_all = "camelCase")]
-pub struct CmdResultWindowCursor {
-    pub success: bool,
-    pub message: String,
-}
 
 #[cfg(not(feature = "wasm"))]
 fn map_cursor_icon(icon: CursorIcon) -> winit::window::CursorIcon {

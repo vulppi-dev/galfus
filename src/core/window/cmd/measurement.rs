@@ -1,36 +1,9 @@
 #[cfg(not(feature = "wasm"))]
 use crate::core::platform::winit::dpi::{PhysicalPosition, PhysicalSize};
-use glam::{IVec2, UVec2};
-use serde::{Deserialize, Serialize};
 
 use crate::core::state::EngineState;
-
-#[derive(Debug, Default, Deserialize, Serialize, Clone)]
-#[serde(default, rename_all = "camelCase")]
-pub struct CmdWindowMeasurementArgs {
-    pub window_id: u32,
-    pub position: Option<IVec2>,
-    pub size: Option<UVec2>,
-    pub get_position: bool,
-    pub get_size: bool,
-    pub get_outer_size: bool,
-    pub get_surface_size: bool,
-}
-
-#[derive(Debug, Default, Deserialize, Serialize, Clone)]
-#[serde(default, rename_all = "camelCase")]
-pub struct CmdResultWindowMeasurement {
-    pub success: bool,
-    pub message: String,
-    #[serde(default)]
-    pub position: Option<IVec2>,
-    #[serde(default)]
-    pub size: Option<UVec2>,
-    #[serde(default)]
-    pub outer_size: Option<UVec2>,
-    #[serde(default)]
-    pub surface_size: Option<UVec2>,
-}
+use glam::{IVec2, UVec2};
+pub use vulfram_protocol::{CmdResultWindowMeasurement, CmdWindowMeasurementArgs};
 
 pub fn engine_cmd_window_measurement(
     engine: &mut EngineState,

@@ -4,7 +4,6 @@ use crate::core::buffers::state::UploadType;
 use crate::core::image::ImageDecoder;
 #[cfg(not(feature = "wasm"))]
 use crate::core::platform::winit;
-use serde::{Deserialize, Serialize};
 
 use crate::core::cmd::EngineEvent;
 use crate::core::state::EngineState;
@@ -13,49 +12,9 @@ use crate::core::system::push_error_event;
 use crate::core::window::WindowEvent;
 
 use super::EngineWindowState;
-
-#[derive(Debug, Deserialize, Serialize, Clone, Copy)]
-#[serde(rename_all = "kebab-case")]
-pub enum UserAttentionType {
-    Critical = 0,
-    Informational,
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone, Copy)]
-#[serde(rename_all = "kebab-case")]
-pub enum WindowStateAction {
-    Focus,
-    RequestAttention,
-}
-
-#[derive(Debug, Default, Deserialize, Serialize, Clone)]
-#[serde(default, rename_all = "camelCase")]
-pub struct CmdWindowStateArgs {
-    pub window_id: u32,
-    pub title: Option<String>,
-    pub state: Option<EngineWindowState>,
-    pub icon_buffer_id: Option<u64>,
-    pub decorations: Option<bool>,
-    pub resizable: Option<bool>,
-    pub action: Option<WindowStateAction>,
-    pub attention_type: Option<UserAttentionType>,
-    pub get_state: bool,
-    pub get_decorations: bool,
-    pub get_resizable: bool,
-}
-
-#[derive(Debug, Default, Deserialize, Serialize, Clone)]
-#[serde(default, rename_all = "camelCase")]
-pub struct CmdResultWindowState {
-    pub success: bool,
-    pub message: String,
-    #[serde(default)]
-    pub state: Option<EngineWindowState>,
-    #[serde(default)]
-    pub decorations: Option<bool>,
-    #[serde(default)]
-    pub resizable: Option<bool>,
-}
+pub use vulfram_protocol::{
+    CmdResultWindowState, CmdWindowStateArgs, UserAttentionType, WindowStateAction,
+};
 
 #[cfg(not(feature = "wasm"))]
 fn set_window_icon(engine: &mut EngineState, window_id: u32, buffer_id: u64) -> Result<(), String> {

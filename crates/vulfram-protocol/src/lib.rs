@@ -68,6 +68,264 @@ pub struct CmdResultSystemBuildVersionGet {
     pub build_version: String,
 }
 
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+pub enum EngineWindowState {
+    Minimized = 0,
+    Maximized,
+    #[default]
+    Windowed,
+    Fullscreen,
+    WindowedFullscreen,
+}
+
+pub fn window_size_default() -> glam::UVec2 {
+    glam::UVec2::new(800, 600)
+}
+
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+pub enum CursorGrabMode {
+    #[default]
+    None = 0,
+    Confined,
+    Locked,
+}
+
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+pub enum CursorIcon {
+    #[default]
+    Default = 0,
+    ContextMenu,
+    Help,
+    Pointer,
+    Progress,
+    Wait,
+    Cell,
+    Crosshair,
+    Text,
+    VerticalText,
+    Alias,
+    Copy,
+    Move,
+    NoDrop,
+    NotAllowed,
+    Grab,
+    Grabbing,
+    EResize,
+    NResize,
+    NeResize,
+    NwResize,
+    SResize,
+    SeResize,
+    SwResize,
+    WResize,
+    EwResize,
+    NsResize,
+    NeswResize,
+    NwseResize,
+    ColResize,
+    RowResize,
+    AllScroll,
+    ZoomIn,
+    ZoomOut,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+pub enum UserAttentionType {
+    Critical = 0,
+    Informational,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "kebab-case")]
+pub enum WindowStateAction {
+    Focus,
+    RequestAttention,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct WindowPointerCaptureState {
+    pub mode: CursorGrabMode,
+    pub active: bool,
+    #[serde(default)]
+    pub reason: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(tag = "event", content = "data", rename_all = "kebab-case")]
+pub enum WindowEvent {
+    #[serde(rename_all = "camelCase")]
+    OnCreate { window_id: u32 },
+    #[serde(rename_all = "camelCase")]
+    OnResize {
+        window_id: u32,
+        width: u32,
+        height: u32,
+    },
+    #[serde(rename_all = "camelCase")]
+    OnMove {
+        window_id: u32,
+        position: glam::IVec2,
+    },
+    #[serde(rename_all = "camelCase")]
+    OnCloseRequest { window_id: u32 },
+    #[serde(rename_all = "camelCase")]
+    OnDestroy { window_id: u32 },
+    #[serde(rename_all = "camelCase")]
+    OnFocus { window_id: u32, focused: bool },
+    #[serde(rename_all = "camelCase")]
+    OnScaleFactorChange {
+        window_id: u32,
+        scale_factor: f64,
+        new_width: u32,
+        new_height: u32,
+    },
+    #[serde(rename_all = "camelCase")]
+    OnOcclude { window_id: u32, occluded: bool },
+    #[serde(rename_all = "camelCase")]
+    OnRedrawRequest { window_id: u32 },
+    #[serde(rename_all = "camelCase")]
+    OnFileDrop {
+        window_id: u32,
+        path: String,
+        position: glam::Vec2,
+    },
+    #[serde(rename_all = "camelCase")]
+    OnFileHover {
+        window_id: u32,
+        path: String,
+        position: glam::Vec2,
+    },
+    #[serde(rename_all = "camelCase")]
+    OnFileHoverCancel { window_id: u32 },
+    #[serde(rename_all = "camelCase")]
+    OnThemeChange { window_id: u32, dark_mode: bool },
+    #[serde(rename_all = "camelCase")]
+    OnStateChange {
+        window_id: u32,
+        state: EngineWindowState,
+    },
+    #[serde(rename_all = "camelCase")]
+    OnPointerCaptureChange {
+        window_id: u32,
+        capture: WindowPointerCaptureState,
+    },
+}
+
+#[derive(Debug, Default, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(default, rename_all = "camelCase")]
+pub struct CmdWindowCloseArgs {
+    pub window_id: u32,
+}
+
+pub type CmdResultWindowClose = CmdResultSimple;
+
+#[derive(Debug, Default, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(default, rename_all = "camelCase")]
+pub struct CmdWindowCreateArgs {
+    pub window_id: u32,
+    #[serde(default)]
+    pub title: String,
+    #[serde(default = "window_size_default")]
+    pub size: glam::UVec2,
+    #[serde(default)]
+    pub position: glam::IVec2,
+    #[serde(default)]
+    pub canvas_id: Option<String>,
+    #[serde(default)]
+    pub borderless: bool,
+    #[serde(default)]
+    pub resizable: bool,
+    #[serde(default)]
+    pub transparent: bool,
+    #[serde(default)]
+    pub initial_state: EngineWindowState,
+}
+
+#[derive(Debug, Default, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(default, rename_all = "camelCase")]
+pub struct CmdResultWindowCreate {
+    pub success: bool,
+    pub message: String,
+    #[serde(default)]
+    pub realm_id: Option<u32>,
+    #[serde(default)]
+    pub surface_id: Option<u32>,
+    #[serde(default)]
+    pub present_id: Option<u32>,
+}
+
+#[derive(Debug, Default, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(default, rename_all = "camelCase")]
+pub struct CmdWindowMeasurementArgs {
+    pub window_id: u32,
+    pub position: Option<glam::IVec2>,
+    pub size: Option<glam::UVec2>,
+    pub get_position: bool,
+    pub get_size: bool,
+    pub get_outer_size: bool,
+    pub get_surface_size: bool,
+}
+
+#[derive(Debug, Default, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(default, rename_all = "camelCase")]
+pub struct CmdResultWindowMeasurement {
+    pub success: bool,
+    pub message: String,
+    #[serde(default)]
+    pub position: Option<glam::IVec2>,
+    #[serde(default)]
+    pub size: Option<glam::UVec2>,
+    #[serde(default)]
+    pub outer_size: Option<glam::UVec2>,
+    #[serde(default)]
+    pub surface_size: Option<glam::UVec2>,
+}
+
+#[derive(Debug, Default, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(default, rename_all = "camelCase")]
+pub struct CmdWindowCursorArgs {
+    pub window_id: u32,
+    pub visible: Option<bool>,
+    pub mode: Option<CursorGrabMode>,
+    pub icon: Option<CursorIcon>,
+}
+
+pub type CmdResultWindowCursor = CmdResultSimple;
+
+#[derive(Debug, Default, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(default, rename_all = "camelCase")]
+pub struct CmdWindowStateArgs {
+    pub window_id: u32,
+    pub title: Option<String>,
+    pub state: Option<EngineWindowState>,
+    pub icon_buffer_id: Option<u64>,
+    pub decorations: Option<bool>,
+    pub resizable: Option<bool>,
+    pub action: Option<WindowStateAction>,
+    pub attention_type: Option<UserAttentionType>,
+    pub get_state: bool,
+    pub get_decorations: bool,
+    pub get_resizable: bool,
+}
+
+#[derive(Debug, Default, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(default, rename_all = "camelCase")]
+pub struct CmdResultWindowState {
+    pub success: bool,
+    pub message: String,
+    #[serde(default)]
+    pub state: Option<EngineWindowState>,
+    #[serde(default)]
+    pub decorations: Option<bool>,
+    #[serde(default)]
+    pub resizable: Option<bool>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct CommandEnvelope<T> {
@@ -173,5 +431,13 @@ mod tests {
             decode_named(&encoded).expect("notification args should decode");
 
         assert_eq!(decoded, payload);
+    }
+
+    #[test]
+    fn window_create_args_apply_default_size() {
+        let decoded: CmdWindowCreateArgs =
+            serde_json::from_str(r#"{ "windowId": 1 }"#).expect("window create args should decode");
+        assert_eq!(decoded.size, glam::UVec2::new(800, 600));
+        assert_eq!(decoded.initial_state, EngineWindowState::Windowed);
     }
 }

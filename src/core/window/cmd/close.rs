@@ -1,19 +1,5 @@
-use serde::{Deserialize, Serialize};
-
 use crate::core::state::EngineState;
-
-#[derive(Debug, Default, Deserialize, Serialize, Clone)]
-#[serde(default, rename_all = "camelCase")]
-pub struct CmdWindowCloseArgs {
-    pub window_id: u32,
-}
-
-#[derive(Debug, Default, Deserialize, Serialize, Clone)]
-#[serde(default, rename_all = "camelCase")]
-pub struct CmdResultWindowClose {
-    success: bool,
-    message: String,
-}
+pub use vulfram_protocol::{CmdResultWindowClose, CmdWindowCloseArgs};
 
 pub fn engine_cmd_window_close(
     engine: &mut EngineState,

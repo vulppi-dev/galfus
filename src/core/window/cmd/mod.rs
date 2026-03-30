@@ -1,5 +1,3 @@
-use serde::{Deserialize, Serialize};
-
 mod close;
 mod create;
 mod cursor;
@@ -11,24 +9,9 @@ pub use create::*;
 pub use cursor::*;
 pub use measurement::*;
 pub use state::*;
-
-// Shared types
-#[derive(Debug, Deserialize, Serialize, Clone, Copy, PartialEq, Eq)]
-#[serde(rename_all = "kebab-case")]
-pub enum EngineWindowState {
-    Minimized = 0,
-    Maximized,
-    Windowed,
-    Fullscreen,
-    WindowedFullscreen,
-}
-
-impl Default for EngineWindowState {
-    fn default() -> Self {
-        EngineWindowState::Windowed
-    }
-}
-
-fn window_size_default() -> glam::UVec2 {
-    glam::UVec2::new(800, 600)
-}
+pub use vulfram_protocol::{
+    CmdResultWindowClose, CmdResultWindowCreate, CmdResultWindowCursor, CmdResultWindowMeasurement,
+    CmdResultWindowState, CmdWindowCloseArgs, CmdWindowCreateArgs, CmdWindowCursorArgs,
+    CmdWindowMeasurementArgs, CmdWindowStateArgs, CursorGrabMode, CursorIcon, EngineWindowState,
+    UserAttentionType, WindowStateAction,
+};
