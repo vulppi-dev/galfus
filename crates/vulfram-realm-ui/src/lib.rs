@@ -1,6 +1,7 @@
 mod contracts;
 mod document;
 mod events;
+mod interaction;
 mod node_props;
 mod state;
 mod trace;
@@ -22,6 +23,10 @@ pub use contracts::{
 };
 pub use document::{UiDocument, UiNodeEntry, UiThemeState};
 pub use events::{UiEvent, UiEventKind};
+pub use interaction::{
+    UiCaptureEntry, UiCaptureUpdate, UiFocusUpdate, UiPointerPositionUpdate,
+    UiTracedPointerPumpPlan, plan_traced_pointer_pump, pointer_event_window_id,
+};
 pub use node_props::{UiImageSource, UiNodeProps, UiPaintOp, UiPaintStroke};
 pub use state::{
     UiAnimKey, UiAnimProperty, UiAnimState, UiDebugState, UiFrameProfile, UiSceneState,

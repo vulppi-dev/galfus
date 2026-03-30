@@ -8,7 +8,10 @@ use crate::core::time::Instant;
 use crate::core::ui::state::UiRealmState;
 use crate::core::window::WindowEvent;
 use std::collections::HashMap;
-use vulfram_realm_ui::{UiTracedPointerContext, resolve_traced_pointer_dispatch};
+use vulfram_realm_ui::{
+    UiCaptureUpdate, UiTracedPointerContext, UiTracedPointerDispatch, plan_traced_pointer_pump,
+    pointer_event_window_id, resolve_traced_pointer_dispatch,
+};
 
 use super::input_keymap::map_key_code;
 
@@ -29,9 +32,16 @@ pub fn process_ui_input(engine: &mut EngineState) {
     for event in engine.event_queue.iter() {
         match event {
             EngineEvent::Pointer(pointer_event) => {
-                if let Some((realm_id, document_id, pos)) =
-                    resolve_pointer_realm(engine, pointer_event)
-                {
+                let focused_realm_id = engine
+                    .universal_state
+                    .ui
+                    .focus_by_window
+                    .get(&pointer_event_window_id(pointer_event))
+                    .copied();
+                let dispatch = resolve_pointer_realm(engine, pointer_event);
+                if let Some(dispatch) = dispatch {
+                    let realm_id = dispatch.realm_id;
+                    let pos = egui::pos2(dispatch.pos.x, dispatch.pos.y);
                     let modifiers = current_modifiers(engine, realm_id);
                     if matches!(pointer_event, PointerEvent::OnMove { .. }) {
                         let previous = engine
@@ -51,47 +61,24 @@ pub fn process_ui_input(engine: &mut EngineState) {
                     {
                         pointer_updates.push((realm_id, pointer_event));
                     }
-                    if matches!(
-                        pointer_event,
-                        PointerEvent::OnMove { .. }
-                            | PointerEvent::OnEnter { .. }
-                            | PointerEvent::OnButton { .. }
-                            | PointerEvent::OnTouch { .. }
-                    ) {
-                        pointer_pos_updates.push((realm_id, Some(pos)));
+                }
+                let pump_plan = plan_traced_pointer_pump(pointer_event, dispatch, focused_realm_id);
+                if let Some(focus_update) = pump_plan.focus_update {
+                    focus_updates.push((
+                        focus_update.window_id,
+                        focus_update.realm_id,
+                        focus_update.document_id,
+                    ));
+                }
+                match pump_plan.capture_update {
+                    UiCaptureUpdate::None => {}
+                    UiCaptureUpdate::Set { window_id, capture } => {
+                        engine.universal_state.ui.capture_by_window.insert(
+                            window_id,
+                            (capture.realm_id, capture.document_id, capture.node_id),
+                        );
                     }
-
-                    if matches!(
-                        pointer_event,
-                        PointerEvent::OnButton {
-                            state: ElementState::Pressed,
-                            ..
-                        } | PointerEvent::OnTouch {
-                            phase: TouchPhase::Started,
-                            ..
-                        }
-                    ) {
-                        let window_id = pointer_window_id(pointer_event);
-                        focus_updates.push((window_id, realm_id, document_id));
-                        engine
-                            .universal_state
-                            .ui
-                            .capture_by_window
-                            .insert(window_id, (realm_id, document_id, 0));
-                    } else if matches!(
-                        pointer_event,
-                        PointerEvent::OnButton {
-                            state: ElementState::Released,
-                            ..
-                        } | PointerEvent::OnTouch {
-                            phase: TouchPhase::Ended,
-                            ..
-                        } | PointerEvent::OnTouch {
-                            phase: TouchPhase::Cancelled,
-                            ..
-                        }
-                    ) {
-                        let window_id = pointer_window_id(pointer_event);
+                    UiCaptureUpdate::Clear { window_id } => {
                         engine
                             .universal_state
                             .ui
@@ -99,17 +86,13 @@ pub fn process_ui_input(engine: &mut EngineState) {
                             .remove(&window_id);
                     }
                 }
-                if matches!(pointer_event, PointerEvent::OnLeave { .. }) {
-                    let window_id = pointer_window_id(pointer_event);
-                    if let Some(realm_id) = engine
-                        .universal_state
-                        .ui
-                        .focus_by_window
-                        .get(&window_id)
-                        .copied()
-                    {
-                        pointer_pos_updates.push((realm_id, None));
-                    }
+                if let Some(pointer_pos_update) = pump_plan.pointer_pos_update {
+                    pointer_pos_updates.push((
+                        pointer_pos_update.realm_id,
+                        pointer_pos_update
+                            .pos
+                            .map(|value| egui::pos2(value.x, value.y)),
+                    ));
                 }
             }
             EngineEvent::Keyboard(keyboard_event) => {
@@ -219,7 +202,7 @@ fn ensure_realm(
 fn resolve_pointer_realm(
     engine: &EngineState,
     event: &PointerEvent,
-) -> Option<(RealmId, u32, egui::Pos2)> {
+) -> Option<UiTracedPointerDispatch> {
     let trace = match event {
         PointerEvent::OnMove { trace, .. }
         | PointerEvent::OnEnter { trace, .. }
@@ -262,11 +245,7 @@ fn resolve_pointer_realm(
             ),
         },
     )?;
-    Some((
-        dispatch.realm_id,
-        dispatch.document_id,
-        egui::pos2(dispatch.pos.x, dispatch.pos.y),
-    ))
+    Some(dispatch)
 }
 
 fn connector_source_size(
@@ -505,20 +484,5 @@ fn pointer_button(button: u32) -> Option<egui::PointerButton> {
         3 => Some(egui::PointerButton::Extra1),
         4 => Some(egui::PointerButton::Extra2),
         _ => None,
-    }
-}
-
-fn pointer_window_id(event: &PointerEvent) -> u32 {
-    match event {
-        PointerEvent::OnMove { window_id, .. }
-        | PointerEvent::OnEnter { window_id, .. }
-        | PointerEvent::OnLeave { window_id, .. }
-        | PointerEvent::OnButton { window_id, .. }
-        | PointerEvent::OnScroll { window_id, .. }
-        | PointerEvent::OnTouch { window_id, .. }
-        | PointerEvent::OnPinchGesture { window_id, .. }
-        | PointerEvent::OnPanGesture { window_id, .. }
-        | PointerEvent::OnRotationGesture { window_id, .. }
-        | PointerEvent::OnDoubleTapGesture { window_id, .. } => *window_id,
     }
 }
