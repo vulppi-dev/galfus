@@ -3959,6 +3959,7 @@ dependencies = [
  "serde",
  "serde_path_to_error",
  "smallvec",
+ "vulfram-input",
  "vulfram-protocol",
  "vulfram-scene-core",
  "vulfram-types",
@@ -3968,6 +3969,16 @@ dependencies = [
  "web-time",
  "wgpu",
  "winit",
+]
+
+[[package]]
+name = "vulfram-input"
+version = "0.21.2-alpha"
+dependencies = [
+ "glam 0.30.10",
+ "rmp-serde",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -3987,6 +3998,7 @@ name = "vulfram-scene-core"
 version = "0.21.2-alpha"
 dependencies = [
  "glam 0.30.10",
+ "serde",
  "vulfram-types",
 ]
 

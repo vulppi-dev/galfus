@@ -1,5 +1,6 @@
 [workspace]
 members = [
+    "crates/vulfram-input",
     "crates/vulfram-protocol",
     "crates/vulfram-scene-core",
     "crates/vulfram-types",
@@ -32,6 +33,7 @@ encase = "0.12"
 rmp-serde = "1.3"
 serde = { version = "1.0", features = ["derive"] }
 serde_path_to_error = "0.1"
+vulfram-input = { path = "crates/vulfram-input" }
 vulfram-protocol = { path = "crates/vulfram-protocol" }
 vulfram-scene-core = { path = "crates/vulfram-scene-core" }
 vulfram-types = { path = "crates/vulfram-types" }
