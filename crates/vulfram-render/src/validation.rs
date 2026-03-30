@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet, VecDeque};
 
-use super::{LogicalId, RenderGraphDesc, RenderGraphEdgeReason};
+use crate::{LogicalId, RenderGraphDesc, RenderGraphEdgeReason};
 
 pub(super) fn validate_graph_semantics(
     desc: &RenderGraphDesc,
@@ -156,9 +156,10 @@ fn has_path(adjacency: &[Vec<usize>], from: usize, to: usize) -> bool {
 mod tests {
     use std::collections::HashMap;
 
-    use super::super::{
-        LogicalId, RenderGraphDesc, RenderGraphEdge, RenderGraphEdgeReason, RenderGraphNode,
-        RenderGraphResource, RenderGraphResourceKind, RenderGraphState, validate_graph,
+    use crate::{
+        LogicalId, RenderGraphDesc, RenderGraphEdge, RenderGraphEdgeReason, RenderGraphLifetime,
+        RenderGraphNode, RenderGraphResource, RenderGraphResourceKind, RenderGraphState,
+        validate_graph,
     };
 
     fn id(name: &str) -> LogicalId {
@@ -169,14 +170,14 @@ mod tests {
         RenderGraphResource {
             res_id: id(name),
             kind: RenderGraphResourceKind::Texture,
-            lifetime: super::super::RenderGraphLifetime::Frame,
+            lifetime: RenderGraphLifetime::Frame,
             alias_group: None,
         }
     }
 
     #[test]
     fn fallback_graph_remains_semantically_valid() {
-        let fallback = super::super::fallback_graph();
+        let fallback = crate::fallback_graph();
         let result = validate_graph(&fallback);
         assert!(result.is_ok());
         assert!(RenderGraphState::from_desc(fallback).is_ok());
