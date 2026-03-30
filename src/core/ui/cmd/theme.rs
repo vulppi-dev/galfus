@@ -1,6 +1,6 @@
 use crate::core::state::EngineState;
 use crate::core::ui::state::UiThemeState;
-pub use vulfram_ui::{
+pub use vulfram_realm_ui::{
     CmdResultUiThemeDefine, CmdResultUiThemeDispose, CmdUiThemeDefineArgs, CmdUiThemeDisposeArgs,
 };
 

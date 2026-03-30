@@ -73,13 +73,13 @@ vulfram/
 │   ├── vulfram-protocol/
 │   ├── vulfram-scene-core/
 │   ├── vulfram-input/
-│   ├── vulfram-ui/
+│   ├── vulfram-realm-ui/
 │   ├── vulfram-render/
 │   ├── vulfram-audio/
 │   ├── vulfram-runtime/
 │   ├── vulfram-platform/
-│   ├── vulfram-scene-3d/
-│   ├── vulfram-scene-2d/
+│   ├── vulfram-realm-3d/
+│   ├── vulfram-realm-2d/
 │   ├── vulfram-bindings-c/
 │   ├── vulfram-bindings-wasm/
 │   ├── vulfram-bindings-napi/
@@ -170,7 +170,7 @@ Não deve conter:
 - canvas ou janela concretos
 - orchestration de runtime
 
-### `vulfram-ui`
+### `vulfram-realm-ui`
 
 Responsabilidade:
 - documentos e árvores de UI
@@ -245,7 +245,7 @@ Não deve conter:
 - protocolo
 - estado global de runtime além do estritamente necessário para integração
 
-### `vulfram-scene-3d`
+### `vulfram-realm-3d`
 
 Responsabilidade:
 - câmera 3D
@@ -259,7 +259,7 @@ Não deve conter:
 - shaders
 - alocação direta de buffers GPU
 
-### `vulfram-scene-2d`
+### `vulfram-realm-2d`
 
 Responsabilidade:
 - semântica 2D quando essa camada existir de forma real
@@ -308,21 +308,21 @@ vulfram-types
 ├── vulfram-audio
 └── crates semânticos auxiliares
 
-vulfram-ui         ──► vulfram-types
-vulfram-ui         ──► vulfram-input
-vulfram-ui         ──► vulfram-scene-core
+vulfram-realm-ui   ──► vulfram-types
+vulfram-realm-ui   ──► vulfram-input
+vulfram-realm-ui   ──► vulfram-scene-core
 
-vulfram-scene-3d   ──► vulfram-types
-vulfram-scene-3d   ──► vulfram-scene-core
+vulfram-realm-3d   ──► vulfram-types
+vulfram-realm-3d   ──► vulfram-scene-core
 
-vulfram-scene-2d   ──► vulfram-types
-vulfram-scene-2d   ──► vulfram-scene-core
+vulfram-realm-2d   ──► vulfram-types
+vulfram-realm-2d   ──► vulfram-scene-core
 
 vulfram-render     ──► vulfram-types
 vulfram-render     ──► vulfram-scene-core
-vulfram-render     ──► vulfram-scene-3d
-vulfram-render     ──► vulfram-scene-2d
-vulfram-render     ──► vulfram-ui
+vulfram-render     ──► vulfram-realm-3d
+vulfram-render     ──► vulfram-realm-2d
+vulfram-render     ──► vulfram-realm-ui
 
 vulfram-platform   ──► vulfram-types
 vulfram-platform   ──► vulfram-input
@@ -331,12 +331,12 @@ vulfram-runtime    ──► vulfram-protocol
 vulfram-runtime    ──► vulfram-types
 vulfram-runtime    ──► vulfram-scene-core
 vulfram-runtime    ──► vulfram-input
-vulfram-runtime    ──► vulfram-ui
+vulfram-runtime    ──► vulfram-realm-ui
 vulfram-runtime    ──► vulfram-render
 vulfram-runtime    ──► vulfram-audio
 vulfram-runtime    ──► vulfram-platform
-vulfram-runtime    ──► vulfram-scene-3d
-vulfram-runtime    ──► vulfram-scene-2d
+vulfram-runtime    ──► vulfram-realm-3d
+vulfram-runtime    ──► vulfram-realm-2d
 
 vulfram-bindings-* ──► vulfram-runtime
 vulfram-demo       ──► vulfram-runtime
@@ -349,8 +349,8 @@ vulfram-demo       ──► vulfram-runtime
 3. `vulfram-input` depende apenas de `vulfram-types`
 4. `vulfram-scene-core` depende apenas de `vulfram-types`
 5. `vulfram-audio` depende apenas de `vulfram-types` ou abstrações neutras estritamente necessárias
-6. `vulfram-ui` depende de `vulfram-types`, `vulfram-input` e `vulfram-scene-core`
-7. `vulfram-scene-3d` e `vulfram-scene-2d` dependem de `vulfram-types` e `vulfram-scene-core`
+6. `vulfram-realm-ui` depende de `vulfram-types`, `vulfram-input` e `vulfram-scene-core`
+7. `vulfram-realm-3d` e `vulfram-realm-2d` dependem de `vulfram-types` e `vulfram-scene-core`
 8. `vulfram-render` pode depender de crates semânticos, mas nenhum crate semântico pode depender de `vulfram-render`
 9. `vulfram-platform` pode depender de `vulfram-input`, nunca o contrário
 10. `vulfram-runtime` é o orquestrador e pode depender dos demais
@@ -514,13 +514,13 @@ Critério de aceite:
 - sem DOM e sem `winit`
 - tipos úteis tanto para desktop quanto browser
 
-### Fase 5 — Criação de `vulfram-ui`
+### Fase 5 — Criação de `vulfram-realm-ui`
 
 Objetivo:
 - reconstruir UI como subsistema semântico, separado de render e runtime
 
 Tarefas:
-- criar `crates/vulfram-ui`
+- criar `crates/vulfram-realm-ui`
 - definir documentos, árvore, layout e estado de interação
 - integrar com `vulfram-input`
 - integrar com `vulfram-scene-core` apenas onde a composição exigir
@@ -617,13 +617,13 @@ Critério de aceite:
 - `platform` depende de `input`
 - `input` não depende de `platform`
 
-### Fase 10 — Criação de `vulfram-scene-3d`
+### Fase 10 — Criação de `vulfram-realm-3d`
 
 Objetivo:
 - separar explicitamente a semântica 3D quando a base composicional já estiver firme
 
 Tarefas:
-- criar `crates/vulfram-scene-3d`
+- criar `crates/vulfram-realm-3d`
 - definir câmera 3D, luzes, modelos e componentes 3D
 - integrar com `scene-core`
 - deixar `render` apenas consumir essas estruturas
@@ -636,13 +636,13 @@ Critério de aceite:
 - sem `wgpu`
 - sem ownership gráfico
 
-### Fase 11 — Criação de `vulfram-scene-2d`
+### Fase 11 — Criação de `vulfram-realm-2d`
 
 Objetivo:
 - abrir a fronteira 2D apenas quando houver contrato real suficiente
 
 Tarefas:
-- criar `crates/vulfram-scene-2d`
+- criar `crates/vulfram-realm-2d`
 - definir os tipos e estruturas 2D realmente necessários
 - integrar com `scene-core`
 

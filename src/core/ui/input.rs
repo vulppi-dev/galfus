@@ -8,6 +8,7 @@ use crate::core::time::Instant;
 use crate::core::ui::state::UiRealmState;
 use crate::core::window::WindowEvent;
 use std::collections::HashMap;
+use vulfram_realm_ui::{UiTracedPointerContext, resolve_traced_pointer_dispatch};
 
 use super::input_keymap::map_key_code;
 
@@ -232,11 +233,6 @@ fn resolve_pointer_realm(
         | PointerEvent::OnDoubleTapGesture { trace, .. } => trace.as_ref(),
     }?;
 
-    let realm_id = trace
-        .source_realm_id
-        .map(RealmId)
-        .unwrap_or(RealmId(trace.realm_id));
-
     let position = match event {
         PointerEvent::OnMove { position, .. }
         | PointerEvent::OnButton { position, .. }
@@ -248,79 +244,29 @@ fn resolve_pointer_realm(
             .copied(),
     };
 
-    let (pos, realm_size) = if let Some(uv) = trace.uv {
-        let size = if trace.source_realm_id.is_some() {
-            realm_output_size(&engine.universal_state, realm_id)
-                .or_else(|| connector_source_size(&engine.universal_state, trace.connector_id))
-        } else {
-            connector_source_size(&engine.universal_state, trace.connector_id)
-                .or_else(|| realm_output_size(&engine.universal_state, realm_id))
-        }?;
-        (egui::pos2(uv.x * size.x as f32, uv.y * size.y as f32), size)
-    } else if let Some(position) = position {
-        let size = realm_output_size(&engine.universal_state, realm_id)
-            .or_else(|| connector_source_size(&engine.universal_state, trace.connector_id))
-            .unwrap_or(glam::UVec2::new(1, 1));
-        (egui::pos2(position.x, position.y), size)
-    } else {
-        return None;
-    };
-
-    let document_id = hit_test_ui_document(&engine.universal_state.ui, realm_id, pos, realm_size)?;
-    Some((realm_id, document_id, pos))
-}
-
-fn hit_test_ui_document(
-    ui_state: &crate::core::ui::UiState,
-    realm_id: RealmId,
-    pos: egui::Pos2,
-    realm_size: glam::UVec2,
-) -> Option<u32> {
-    let mut best: Option<(i32, u32)> = None;
-    for document in ui_state.documents.values() {
-        if document.realm_id != realm_id {
-            continue;
-        }
-        let rect = resolve_document_rect(document.rect, realm_size);
-        if !rect.contains(pos) {
-            continue;
-        }
-        let z = document
-            .root_children
-            .iter()
-            .filter_map(|node_id| {
-                document
-                    .nodes
-                    .get(node_id)
-                    .and_then(|entry| entry.node.z_index)
-            })
-            .max()
-            .unwrap_or(0);
-        let key = (z, document.document_id);
-        match best {
-            Some(current) if key <= current => {}
-            _ => best = Some(key),
-        }
-    }
-    best.map(|(_, document_id)| document_id)
-}
-
-fn resolve_document_rect(rect: glam::Vec4, realm_size: glam::UVec2) -> egui::Rect {
-    let max_w = realm_size.x.max(1) as f32;
-    let max_h = realm_size.y.max(1) as f32;
-    let x = rect.x.max(0.0).min(max_w);
-    let y = rect.y.max(0.0).min(max_h);
-    let mut w = rect.z;
-    let mut h = rect.w;
-    if w <= 0.0 {
-        w = (max_w - x).max(1.0);
-    }
-    if h <= 0.0 {
-        h = (max_h - y).max(1.0);
-    }
-    let clamped_w = w.max(1.0).min((max_w - x).max(1.0));
-    let clamped_h = h.max(1.0).min((max_h - y).max(1.0));
-    egui::Rect::from_min_size(egui::pos2(x, y), egui::vec2(clamped_w, clamped_h))
+    let dispatch = resolve_traced_pointer_dispatch(
+        &engine.universal_state.ui.documents,
+        &UiTracedPointerContext {
+            trace_realm_id: RealmId(trace.realm_id),
+            trace_source_realm_id: trace.source_realm_id.map(RealmId),
+            uv: trace.uv,
+            cursor_position: position.map(|value| glam::vec2(value.x, value.y)),
+            realm_output_size: trace
+                .source_realm_id
+                .map(RealmId)
+                .or(Some(RealmId(trace.realm_id)))
+                .and_then(|realm_id| realm_output_size(&engine.universal_state, realm_id)),
+            connector_source_size: connector_source_size(
+                &engine.universal_state,
+                trace.connector_id,
+            ),
+        },
+    )?;
+    Some((
+        dispatch.realm_id,
+        dispatch.document_id,
+        egui::pos2(dispatch.pos.x, dispatch.pos.y),
+    ))
 }
 
 fn connector_source_size(

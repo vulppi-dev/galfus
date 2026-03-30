@@ -1,6 +1,6 @@
 use crate::core::realm::RealmId;
 use crate::core::state::EngineState;
-pub use vulfram_ui::{
+pub use vulfram_realm_ui::{
     CmdResultUiDocumentGetLayoutRects, CmdResultUiDocumentGetTree, CmdResultUiEventTraceSet,
     CmdResultUiFocusGet, CmdResultUiFocusSet, CmdUiDocumentGetLayoutRectsArgs,
     CmdUiDocumentGetTreeArgs, CmdUiEventTraceSetArgs, CmdUiFocusGetArgs, CmdUiFocusSetArgs,

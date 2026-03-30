@@ -1,5 +1,5 @@
 use crate::core::state::EngineState;
-pub use vulfram_ui::{CmdResultUiDebugSet, CmdUiDebugSetArgs};
+pub use vulfram_realm_ui::{CmdResultUiDebugSet, CmdUiDebugSetArgs};
 
 pub fn engine_cmd_ui_debug_set(
     engine: &mut EngineState,

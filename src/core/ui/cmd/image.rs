@@ -3,7 +3,7 @@ use crate::core::state::EngineState;
 use crate::core::system::SystemEvent;
 use crate::core::ui::image_async::{UiImageAsyncEvent, UiImageDecodeJob};
 use crate::core::ui::state::UiImageRecord;
-pub use vulfram_ui::{
+pub use vulfram_realm_ui::{
     CmdResultUiImageCreateFromBuffer, CmdResultUiImageDispose, CmdUiImageCreateFromBufferArgs,
     CmdUiImageDisposeArgs,
 };

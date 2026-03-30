@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use crate::core::state::EngineState;
 use crate::core::ui::state::{UiDocument, UiState};
-pub use vulfram_ui::{
+pub use vulfram_realm_ui::{
     CmdResultUiApplyOps, CmdResultUiDocumentCreate, CmdResultUiDocumentDispose,
     CmdResultUiDocumentSetRect, CmdResultUiDocumentSetTheme, CmdUiApplyOpsArgs,
     CmdUiDocumentCreateArgs, CmdUiDocumentDisposeArgs, CmdUiDocumentSetRectArgs,

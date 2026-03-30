@@ -7,7 +7,7 @@ use crate::core::ui::image_async::UiImageAsyncManager;
 use crate::core::ui::renderer::ExternalTextureInput;
 use crate::core::ui::types::{UiDocumentId, UiImageId, UiNodeId, UiThemeId};
 use egui::Context;
-pub use vulfram_ui::{
+pub use vulfram_realm_ui::{
     UiAnimKey, UiAnimProperty, UiAnimState, UiDebugState, UiDocument, UiFrameProfile, UiNodeEntry,
     UiSceneState, UiThemeState,
 };

@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::core::state::EngineState;
 use crate::core::system::push_error_event;
-pub use vulfram_ui::{
+pub use vulfram_realm_ui::{
     CmdResultUiInputEvent, CmdUiAccessKitActionRequestArgs, CmdUiClipboardPasteArgs,
     CmdUiScreenshotReplyArgs,
 };
