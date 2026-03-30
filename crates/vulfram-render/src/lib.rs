@@ -2,7 +2,10 @@ use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::hash::{DefaultHasher, Hash, Hasher};
 
+mod ui_actions;
 mod validation;
+
+pub use ui_actions::{UiPlatformAction, collect_platform_actions};
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(untagged)]

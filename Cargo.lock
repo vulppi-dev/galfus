@@ -4012,8 +4012,10 @@ dependencies = [
 name = "vulfram-render"
 version = "0.21.2-alpha"
 dependencies = [
+ "egui",
  "rmp-serde",
  "serde",
+ "vulfram-protocol",
 ]
 
 [[package]]

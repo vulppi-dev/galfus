@@ -1,64 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::core::input::events::ElementState;
-
-#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
-#[serde(rename_all = "kebab-case")]
-pub enum UiViewportClass {
-    Root,
-    Deferred,
-    Immediate,
-    Embedded,
-}
-
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
-#[serde(tag = "type", content = "content", rename_all = "kebab-case")]
-pub enum UiViewportCommand {
-    Close,
-    Title {
-        title: String,
-    },
-    InnerSize {
-        width: f32,
-        height: f32,
-    },
-    OuterPosition {
-        x: f32,
-        y: f32,
-    },
-    Resizable {
-        value: bool,
-    },
-    Decorations {
-        value: bool,
-    },
-    Fullscreen {
-        value: bool,
-    },
-    Minimized {
-        value: bool,
-    },
-    Maximized {
-        value: bool,
-    },
-    Focus,
-    Screenshot,
-    CursorVisible {
-        value: bool,
-    },
-    CursorGrab {
-        mode: String,
-    },
-    ImeAllowed {
-        value: bool,
-    },
-    ImeRect {
-        min_x: f32,
-        min_y: f32,
-        max_x: f32,
-        max_y: f32,
-    },
-}
+use vulfram_protocol::{UiViewportClass, UiViewportCommand};
 
 /// System-level events
 #[derive(Debug, Clone, Deserialize, Serialize)]

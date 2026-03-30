@@ -1,8 +1,8 @@
 use std::hash::{Hash, Hasher};
 
-use crate::core::realm::RealmId;
-use crate::core::system::{UiViewportClass, UiViewportCommand};
-use crate::core::window::{CursorIcon, EngineWindowState, UserAttentionType};
+use vulfram_protocol::{
+    CursorIcon, EngineWindowState, UiViewportClass, UiViewportCommand, UserAttentionType,
+};
 
 #[derive(Debug, Clone)]
 pub enum UiPlatformAction {
@@ -95,7 +95,7 @@ pub enum UiPlatformAction {
 pub fn collect_platform_actions(
     output: &egui::FullOutput,
     window_id: u32,
-    realm_id: RealmId,
+    realm_id: u32,
 ) -> Vec<UiPlatformAction> {
     let mut actions = Vec::new();
     if let Some(icon) = map_cursor_icon(output.platform_output.cursor_icon) {
@@ -104,7 +104,7 @@ pub fn collect_platform_actions(
     if let Some(open_url) = output.platform_output.open_url.as_ref() {
         actions.push(UiPlatformAction::OpenUrl {
             window_id,
-            realm_id: realm_id.0,
+            realm_id,
             url: open_url.url.clone(),
             new_tab: open_url.new_tab,
         });
@@ -112,7 +112,7 @@ pub fn collect_platform_actions(
     if !output.platform_output.copied_text.is_empty() {
         actions.push(UiPlatformAction::ClipboardSetText {
             window_id,
-            realm_id: realm_id.0,
+            realm_id,
             text: output.platform_output.copied_text.clone(),
         });
     }
@@ -121,7 +121,7 @@ pub fn collect_platform_actions(
         let parent_viewport_id = Some(viewport_id_key(viewport.parent));
         actions.push(UiPlatformAction::EmitViewportSync {
             window_id,
-            realm_id: realm_id.0,
+            realm_id,
             viewport_id,
             parent_viewport_id,
             class: map_viewport_class(viewport.class),
@@ -130,7 +130,7 @@ pub fn collect_platform_actions(
         if !matches!(viewport.class, egui::ViewportClass::Root) {
             actions.push(UiPlatformAction::EmitViewportFallbackEmbedded {
                 window_id,
-                realm_id: realm_id.0,
+                realm_id,
                 viewport_id,
                 parent_viewport_id,
             });
@@ -140,7 +140,7 @@ pub fn collect_platform_actions(
                 if let Some(command) = map_viewport_command(command) {
                     actions.push(UiPlatformAction::EmitViewportCommand {
                         window_id,
-                        realm_id: realm_id.0,
+                        realm_id,
                         viewport_id,
                         command,
                     });
@@ -208,19 +208,19 @@ pub fn collect_platform_actions(
                 egui::ViewportCommand::RequestCopy => {
                     actions.push(UiPlatformAction::ClipboardRequestCopy {
                         window_id,
-                        realm_id: realm_id.0,
+                        realm_id,
                     });
                 }
                 egui::ViewportCommand::RequestCut => {
                     actions.push(UiPlatformAction::ClipboardRequestCut {
                         window_id,
-                        realm_id: realm_id.0,
+                        realm_id,
                     });
                 }
                 egui::ViewportCommand::RequestPaste => {
                     actions.push(UiPlatformAction::ClipboardRequestPaste {
                         window_id,
-                        realm_id: realm_id.0,
+                        realm_id,
                     });
                 }
                 egui::ViewportCommand::Focus => {
@@ -235,14 +235,14 @@ pub fn collect_platform_actions(
                 egui::ViewportCommand::Screenshot => {
                     actions.push(UiPlatformAction::ScreenshotRequest {
                         window_id,
-                        realm_id: realm_id.0,
+                        realm_id,
                     });
                 }
                 _ => {
                     if let Some(command) = map_viewport_command(command) {
                         actions.push(UiPlatformAction::EmitViewportCommand {
                             window_id,
-                            realm_id: realm_id.0,
+                            realm_id,
                             viewport_id,
                             command,
                         });
@@ -271,9 +271,9 @@ fn map_viewport_class(class: egui::ViewportClass) -> UiViewportClass {
     }
 }
 
-fn viewport_id_key(viewport_id: egui::ViewportId) -> u64 {
+fn viewport_id_key(id: egui::ViewportId) -> u64 {
     let mut hasher = std::collections::hash_map::DefaultHasher::new();
-    viewport_id.hash(&mut hasher);
+    id.hash(&mut hasher);
     hasher.finish()
 }
 
@@ -363,5 +363,61 @@ fn map_cursor_icon(icon: egui::CursorIcon) -> Option<CursorIcon> {
         egui::CursorIcon::ResizeRow => Some(CursorIcon::RowResize),
         egui::CursorIcon::ZoomIn => Some(CursorIcon::ZoomIn),
         egui::CursorIcon::ZoomOut => Some(CursorIcon::ZoomOut),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{UiPlatformAction, collect_platform_actions};
+
+    #[test]
+    fn collects_root_viewport_window_actions() {
+        let viewport = egui::ViewportOutput {
+            parent: egui::ViewportId::ROOT,
+            class: egui::ViewportClass::Root,
+            builder: egui::ViewportBuilder::default().with_title("Main"),
+            viewport_ui_cb: None,
+            commands: vec![egui::ViewportCommand::Title("Renamed".into())],
+            repaint_delay: std::time::Duration::ZERO,
+        };
+        let mut output = egui::FullOutput::default();
+        output
+            .viewport_output
+            .insert(egui::ViewportId::ROOT, viewport);
+
+        let actions = collect_platform_actions(&output, 7, 11);
+        assert!(actions.iter().any(|action| matches!(
+            action,
+            UiPlatformAction::SetWindowTitle { window_id, title }
+            if *window_id == 7 && title == "Renamed"
+        )));
+    }
+
+    #[test]
+    fn emits_embedded_fallback_for_non_root_viewport() {
+        let child = egui::ViewportOutput {
+            parent: egui::ViewportId::ROOT,
+            class: egui::ViewportClass::Deferred,
+            builder: egui::ViewportBuilder::default(),
+            viewport_ui_cb: None,
+            commands: vec![egui::ViewportCommand::Close],
+            repaint_delay: std::time::Duration::ZERO,
+        };
+        let mut output = egui::FullOutput::default();
+        output
+            .viewport_output
+            .insert(egui::ViewportId::from_hash_of("child"), child);
+
+        let actions = collect_platform_actions(&output, 3, 9);
+        assert!(actions.iter().any(|action| matches!(
+            action,
+            UiPlatformAction::EmitViewportFallbackEmbedded { window_id, realm_id, .. }
+            if *window_id == 3 && *realm_id == 9
+        )));
+        assert!(actions.iter().any(|action| matches!(
+            action,
+            UiPlatformAction::EmitViewportCommand { window_id, realm_id, .. }
+            if *window_id == 3 && *realm_id == 9
+        )));
     }
 }

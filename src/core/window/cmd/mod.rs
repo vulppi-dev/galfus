@@ -13,5 +13,5 @@ pub use vulfram_protocol::{
     CmdResultWindowClose, CmdResultWindowCreate, CmdResultWindowCursor, CmdResultWindowMeasurement,
     CmdResultWindowState, CmdWindowCloseArgs, CmdWindowCreateArgs, CmdWindowCursorArgs,
     CmdWindowMeasurementArgs, CmdWindowStateArgs, CursorGrabMode, CursorIcon, EngineWindowState,
-    UserAttentionType, WindowStateAction,
+    WindowStateAction,
 };

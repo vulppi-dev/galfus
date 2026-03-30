@@ -1,7 +1,6 @@
-mod actions;
 mod external_textures;
 
-pub use actions::UiPlatformAction;
+pub use vulfram_render::UiPlatformAction;
 
 use crate::core::realm::{AutoLink, RealmId, SurfaceId, SurfaceTable};
 use crate::core::render::RenderState;
@@ -14,7 +13,6 @@ use crate::core::ui::render::{hash_shapes, render_realm_documents, sync_ui_image
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use actions::collect_platform_actions;
 use external_textures::collect_external_textures;
 
 pub fn pass_ui(
@@ -104,7 +102,7 @@ pub fn pass_ui(
     if let Some(realm) = ui_state.realm_mut(realm_id) {
         realm.needs_repaint = needs_repaint;
     }
-    let platform_actions = collect_platform_actions(&output, window_id, realm_id);
+    let platform_actions = vulfram_render::collect_platform_actions(&output, window_id, realm_id.0);
     let layout_ms = layout_start.elapsed().as_secs_f32() * 1000.0;
 
     let tess_start = Instant::now();
