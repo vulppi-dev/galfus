@@ -3,7 +3,7 @@ use glam::{UVec2, Vec2};
 use crate::core::realm::{ConnectorId, ConnectorState, RealmId, UniversalState};
 
 use super::route_cache::realm_surface_size;
-pub(super) use vulfram_input::resolve_hit_connector;
+pub(super) use vulfram_input::{InputTargetSizing, resolve_hit_connector};
 
 pub(super) fn resolve_connector_uv(
     universal: &UniversalState,
@@ -31,16 +31,17 @@ pub(super) fn resolve_target_relative_position(
     connector_id: Option<ConnectorId>,
     uv: Option<Vec2>,
 ) -> Option<Vec2> {
-    let uv = uv?;
-    let size = source_realm_id
-        .and_then(|realm_id| realm_surface_size(universal, realm_id))
-        .or_else(|| {
-            connector_id.and_then(|connector_id| connector_source_size(universal, connector_id))
-        })?;
-    Some(Vec2::new(
-        uv.x.clamp(0.0, 1.0) * size.x.max(1) as f32,
-        uv.y.clamp(0.0, 1.0) * size.y.max(1) as f32,
-    ))
+    vulfram_input::resolve_target_relative_position(
+        InputTargetSizing {
+            source_realm_size: source_realm_id
+                .and_then(|realm_id| realm_surface_size(universal, realm_id)),
+            connector_source_size: connector_id
+                .and_then(|connector_id| connector_source_size(universal, connector_id)),
+            target_surface_size: None,
+            target_declared_size: None,
+        },
+        uv,
+    )
 }
 
 pub(super) fn resolve_target_size(
@@ -49,21 +50,21 @@ pub(super) fn resolve_target_size(
     connector_id: Option<ConnectorId>,
     target_id: Option<crate::core::target::TargetId>,
 ) -> Option<UVec2> {
-    source_realm_id
-        .and_then(|realm_id| realm_surface_size(universal, realm_id))
-        .or_else(|| {
-            connector_id.and_then(|connector_id| connector_source_size(universal, connector_id))
-        })
-        .or_else(|| target_id.and_then(|target_id| target_surface_size(universal, target_id)))
-        .or_else(|| {
-            target_id.and_then(|target_id| {
-                universal
-                    .targets
-                    .entries
-                    .get(&target_id)
-                    .and_then(|target| target.size)
-            })
-        })
+    vulfram_input::resolve_target_size(InputTargetSizing {
+        source_realm_size: source_realm_id
+            .and_then(|realm_id| realm_surface_size(universal, realm_id)),
+        connector_source_size: connector_id
+            .and_then(|connector_id| connector_source_size(universal, connector_id)),
+        target_surface_size: target_id
+            .and_then(|target_id| target_surface_size(universal, target_id)),
+        target_declared_size: target_id.and_then(|target_id| {
+            universal
+                .targets
+                .entries
+                .get(&target_id)
+                .and_then(|target| target.size)
+        }),
+    })
 }
 
 fn connector_source_size(universal: &UniversalState, connector_id: ConnectorId) -> Option<UVec2> {

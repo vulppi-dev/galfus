@@ -462,6 +462,14 @@ pub struct InputRoutingTopologySnapshot {
     pub surfaces: Vec<InputRoutingSurfaceSizeRecord>,
 }
 
+#[derive(Debug, Clone, Copy, Default)]
+pub struct InputTargetSizing {
+    pub source_realm_size: Option<glam::UVec2>,
+    pub connector_source_size: Option<glam::UVec2>,
+    pub target_surface_size: Option<glam::UVec2>,
+    pub target_declared_size: Option<glam::UVec2>,
+}
+
 #[derive(Debug, Default, Clone, Deserialize, Serialize)]
 #[serde(default, rename_all = "camelCase")]
 pub struct CmdResultInputTargetListenerList {
@@ -968,6 +976,26 @@ pub fn resolve_connector_for_target(
         }
     }
     None
+}
+
+pub fn resolve_target_relative_position(
+    sizing: InputTargetSizing,
+    uv: Option<Vec2>,
+) -> Option<Vec2> {
+    let uv = uv?;
+    let size = sizing.source_realm_size.or(sizing.connector_source_size)?;
+    Some(Vec2::new(
+        uv.x.clamp(0.0, 1.0) * size.x.max(1) as f32,
+        uv.y.clamp(0.0, 1.0) * size.y.max(1) as f32,
+    ))
+}
+
+pub fn resolve_target_size(sizing: InputTargetSizing) -> Option<glam::UVec2> {
+    sizing
+        .source_realm_size
+        .or(sizing.connector_source_size)
+        .or(sizing.target_surface_size)
+        .or(sizing.target_declared_size)
 }
 
 pub fn build_input_routing_cache(snapshot: &InputRoutingTopologySnapshot) -> InputRoutingCache {
@@ -1607,5 +1635,43 @@ mod tests {
         );
         assert_eq!(connectors[0].id, ConnectorId(2));
         assert_eq!(connectors[1].id, ConnectorId(1));
+    }
+
+    #[test]
+    fn resolve_target_relative_position_uses_first_runtime_size() {
+        let position = resolve_target_relative_position(
+            InputTargetSizing {
+                source_realm_size: Some(glam::UVec2::new(200, 100)),
+                connector_source_size: Some(glam::UVec2::new(10, 10)),
+                target_surface_size: None,
+                target_declared_size: None,
+            },
+            Some(Vec2::new(0.25, 0.5)),
+        );
+
+        assert_eq!(position, Some(Vec2::new(50.0, 50.0)));
+    }
+
+    #[test]
+    fn resolve_target_size_falls_back_through_all_sources() {
+        assert_eq!(
+            resolve_target_size(InputTargetSizing {
+                source_realm_size: None,
+                connector_source_size: None,
+                target_surface_size: Some(glam::UVec2::new(300, 200)),
+                target_declared_size: Some(glam::UVec2::new(10, 10)),
+            }),
+            Some(glam::UVec2::new(300, 200))
+        );
+
+        assert_eq!(
+            resolve_target_size(InputTargetSizing {
+                source_realm_size: None,
+                connector_source_size: None,
+                target_surface_size: None,
+                target_declared_size: Some(glam::UVec2::new(10, 10)),
+            }),
+            Some(glam::UVec2::new(10, 10))
+        );
     }
 }
