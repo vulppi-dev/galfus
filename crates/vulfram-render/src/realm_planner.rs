@@ -1,7 +1,10 @@
 use std::collections::{HashMap, HashSet};
 use std::hash::Hasher;
 
-use vulfram_scene_core::{ConnectorId, RealmGraphPlan, RealmId, SurfaceCache, SurfaceId};
+use vulfram_scene_core::{
+    AutoLink, ConnectorId, RealmGraphPlan, RealmId, RealmState, SurfaceCache, SurfaceId, TargetId,
+    TargetKind, TargetLayerState,
+};
 
 pub fn collect_cut_connectors(plan: &RealmGraphPlan) -> HashSet<ConnectorId> {
     plan.cut_edges
@@ -135,15 +138,114 @@ pub fn update_present_size_cache(
     true
 }
 
+pub fn should_render_realm(realm_state: &mut RealmState, frame_index: u64) -> bool {
+    let importance = realm_state.importance;
+    if importance == 0 {
+        return false;
+    }
+    let base_interval: u64 = match importance {
+        1 => 1,
+        2 => 2,
+        3 => 4,
+        _ => 1,
+    };
+    let cache_multiplier: u64 = match realm_state.cache_policy {
+        0 => 1,
+        1 => 2,
+        2 => 4,
+        _ => 1,
+    };
+    let interval = base_interval.saturating_mul(cache_multiplier);
+    let should_render = frame_index.saturating_sub(realm_state.last_render_frame) >= interval;
+    if should_render {
+        realm_state.last_render_frame = frame_index;
+    }
+    should_render
+}
+
+pub fn build_target_surface_map(
+    targets: &HashMap<TargetId, (TargetKind, Option<glam::UVec2>)>,
+    auto_links: &HashMap<(u32, TargetId), AutoLink>,
+) -> HashMap<TargetId, SurfaceId> {
+    let mut chosen: HashMap<TargetId, (u32, SurfaceId)> = HashMap::new();
+
+    for ((realm_id, target_id), link) in auto_links {
+        let Some((kind, _size)) = targets.get(target_id) else {
+            continue;
+        };
+        if *kind != TargetKind::Texture {
+            continue;
+        }
+
+        match chosen.get(target_id) {
+            Some((current_realm, _)) if *current_realm <= *realm_id => {}
+            _ => {
+                chosen.insert(*target_id, (*realm_id, link.surface_id));
+            }
+        }
+    }
+
+    chosen
+        .into_iter()
+        .map(|(target_id, (_realm_id, surface_id))| (target_id, surface_id))
+        .collect()
+}
+
+pub fn collect_window_camera_target_sizes(
+    layers: &HashMap<(u32, TargetId), TargetLayerState>,
+    targets: &HashMap<TargetId, (Option<u32>, Option<glam::UVec2>)>,
+    realm_id: RealmId,
+    window_id: u32,
+    window_size: glam::UVec2,
+) -> HashMap<u32, glam::UVec2> {
+    const DEFAULT_CH_WIDTH: f32 = 8.0;
+    let mut sizes = HashMap::new();
+    for layer in layers.values() {
+        if layer.realm_id != realm_id.0 {
+            continue;
+        }
+        let Some(camera_id) = layer.camera_id else {
+            continue;
+        };
+        let Some((target_window_id, target_size)) = targets.get(&layer.target_id) else {
+            continue;
+        };
+        if *target_window_id != Some(window_id) {
+            continue;
+        }
+
+        let ref_width = window_size.x.max(1) as f32;
+        let ref_height = window_size.y.max(1) as f32;
+        let layout_width = layer
+            .layout
+            .width
+            .resolve(ref_width, DEFAULT_CH_WIDTH)
+            .max(1.0)
+            .round() as u32;
+        let layout_height = layer
+            .layout
+            .height
+            .resolve(ref_height, DEFAULT_CH_WIDTH)
+            .max(1.0)
+            .round() as u32;
+
+        let size = target_size.unwrap_or(glam::UVec2::new(layout_width, layout_height));
+        sizes.insert(camera_id, glam::UVec2::new(size.x.max(1), size.y.max(1)));
+    }
+    sizes
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
-        collect_connectors_by_realm, collect_cut_connectors, map_realms_to_windows,
-        resolve_realm_surface, update_present_size_cache, update_surface_cache,
+        build_target_surface_map, collect_connectors_by_realm, collect_cut_connectors,
+        collect_window_camera_target_sizes, map_realms_to_windows, resolve_realm_surface,
+        should_render_realm, update_present_size_cache, update_surface_cache,
     };
     use std::collections::{HashMap, HashSet};
     use vulfram_scene_core::{
-        ConnectorId, RealmGraphEdge, RealmGraphPlan, RealmId, SurfaceCache, SurfaceId,
+        AutoLink, ConnectorId, DimensionValue, RealmGraphEdge, RealmGraphPlan, RealmId, RealmState,
+        SurfaceCache, SurfaceId, TargetId, TargetKind, TargetLayerLayout, TargetLayerState,
     };
 
     #[test]
@@ -248,5 +350,107 @@ mod tests {
             resolve_realm_surface(&realm_output_surfaces, RealmId(3)),
             Some(SurfaceId(77))
         );
+    }
+
+    #[test]
+    fn should_render_realm_tracks_interval_and_updates_frame() {
+        let mut realm = RealmState {
+            kind: vulfram_scene_core::RealmKind::ThreeD,
+            output_surface: None,
+            render_graph_id: None,
+            importance: 2,
+            cache_policy: 1,
+            last_render_frame: 0,
+        };
+
+        assert!(!should_render_realm(&mut realm, 1));
+        assert!(should_render_realm(&mut realm, 4));
+        assert_eq!(realm.last_render_frame, 4);
+    }
+
+    #[test]
+    fn builds_target_surface_map_for_texture_targets() {
+        let targets = HashMap::from([
+            (TargetId(1), (TargetKind::Texture, None)),
+            (TargetId(2), (TargetKind::Window, None)),
+        ]);
+        let auto_links = HashMap::from([
+            (
+                (8, TargetId(1)),
+                AutoLink {
+                    surface_id: SurfaceId(40),
+                    connector_id: None,
+                    present_id: None,
+                },
+            ),
+            (
+                (3, TargetId(1)),
+                AutoLink {
+                    surface_id: SurfaceId(30),
+                    connector_id: None,
+                    present_id: None,
+                },
+            ),
+        ]);
+
+        let map = build_target_surface_map(&targets, &auto_links);
+        assert_eq!(map.get(&TargetId(1)), Some(&SurfaceId(30)));
+        assert!(!map.contains_key(&TargetId(2)));
+    }
+
+    #[test]
+    fn collects_window_camera_target_sizes_from_layout_or_explicit_size() {
+        let layers = HashMap::from([
+            (
+                (77, TargetId(1)),
+                TargetLayerState {
+                    realm_id: 77,
+                    target_id: TargetId(1),
+                    layout: TargetLayerLayout {
+                        left: DimensionValue::Percent(0.0),
+                        top: DimensionValue::Percent(0.0),
+                        width: DimensionValue::Percent(50.0),
+                        height: DimensionValue::Percent(25.0),
+                        z_index: 0,
+                        blend_mode: 0,
+                        clip: None,
+                    },
+                    camera_id: Some(501),
+                    environment_id: None,
+                },
+            ),
+            (
+                (77, TargetId(2)),
+                TargetLayerState {
+                    realm_id: 77,
+                    target_id: TargetId(2),
+                    layout: TargetLayerLayout {
+                        left: DimensionValue::Percent(0.0),
+                        top: DimensionValue::Percent(0.0),
+                        width: DimensionValue::Percent(10.0),
+                        height: DimensionValue::Percent(10.0),
+                        z_index: 0,
+                        blend_mode: 0,
+                        clip: None,
+                    },
+                    camera_id: Some(777),
+                    environment_id: None,
+                },
+            ),
+        ]);
+        let targets = HashMap::from([
+            (TargetId(1), (Some(9), None)),
+            (TargetId(2), (Some(9), Some(glam::UVec2::new(333, 222)))),
+        ]);
+
+        let sizes = collect_window_camera_target_sizes(
+            &layers,
+            &targets,
+            RealmId(77),
+            9,
+            glam::UVec2::new(1920, 1080),
+        );
+        assert_eq!(sizes.get(&501), Some(&glam::UVec2::new(960, 270)));
+        assert_eq!(sizes.get(&777), Some(&glam::UVec2::new(333, 222)));
     }
 }

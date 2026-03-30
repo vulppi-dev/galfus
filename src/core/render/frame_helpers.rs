@@ -56,28 +56,7 @@ pub(super) fn should_render_realm(
     entry: &mut crate::core::realm::TableEntry<crate::core::realm::RealmState>,
     frame_index: u64,
 ) -> bool {
-    let importance = entry.value.importance;
-    if importance == 0 {
-        return false;
-    }
-    let base_interval: u64 = match importance {
-        1 => 1,
-        2 => 2,
-        3 => 4,
-        _ => 1,
-    };
-    let cache_multiplier: u64 = match entry.value.cache_policy {
-        0 => 1,
-        1 => 2,
-        2 => 4,
-        _ => 1,
-    };
-    let interval = base_interval.saturating_mul(cache_multiplier);
-    let should_render = frame_index.saturating_sub(entry.value.last_render_frame) >= interval;
-    if should_render {
-        entry.value.last_render_frame = frame_index;
-    }
-    should_render
+    vulfram_render::should_render_realm(&mut entry.value, frame_index)
 }
 
 pub(super) fn write_gpu_timestamp(
@@ -145,29 +124,12 @@ pub(super) fn build_target_surface_map(
     targets: &TargetTable,
     auto_links: &std::collections::HashMap<(u32, TargetId), crate::core::realm::AutoLink>,
 ) -> std::collections::HashMap<TargetId, crate::core::realm::SurfaceId> {
-    let mut chosen: std::collections::HashMap<TargetId, (u32, crate::core::realm::SurfaceId)> =
-        std::collections::HashMap::new();
-
-    for ((realm_id, target_id), link) in auto_links {
-        let Some(target) = targets.entries.get(target_id) else {
-            continue;
-        };
-        if target.kind != TargetKind::Texture {
-            continue;
-        }
-
-        match chosen.get(target_id) {
-            Some((current_realm, _)) if *current_realm <= *realm_id => {}
-            _ => {
-                chosen.insert(*target_id, (*realm_id, link.surface_id));
-            }
-        }
-    }
-
-    chosen
-        .into_iter()
-        .map(|(target_id, (_, surface_id))| (target_id, surface_id))
-        .collect()
+    let target_kinds = targets
+        .entries
+        .iter()
+        .map(|(target_id, target)| (*target_id, (target.kind, target.size)))
+        .collect();
+    vulfram_render::build_target_surface_map(&target_kinds, auto_links)
 }
 
 pub(super) fn refresh_window_target_textures(
@@ -222,43 +184,19 @@ pub(super) fn collect_window_camera_target_sizes(
     window_id: u32,
     window_size: glam::UVec2,
 ) -> std::collections::HashMap<u32, glam::UVec2> {
-    const DEFAULT_CH_WIDTH: f32 = 8.0;
-    let mut sizes = std::collections::HashMap::new();
-    for layer in universal.target_layers.entries.values() {
-        if layer.realm_id != realm_id.0 {
-            continue;
-        }
-        let Some(camera_id) = layer.camera_id else {
-            continue;
-        };
-        let Some(target) = universal.targets.entries.get(&layer.target_id) else {
-            continue;
-        };
-        if target.window_id != Some(window_id) {
-            continue;
-        }
-
-        let ref_width = window_size.x.max(1) as f32;
-        let ref_height = window_size.y.max(1) as f32;
-        let layout_width = layer
-            .layout
-            .width
-            .resolve(ref_width, DEFAULT_CH_WIDTH)
-            .max(1.0)
-            .round() as u32;
-        let layout_height = layer
-            .layout
-            .height
-            .resolve(ref_height, DEFAULT_CH_WIDTH)
-            .max(1.0)
-            .round() as u32;
-
-        let size = target
-            .size
-            .unwrap_or(glam::UVec2::new(layout_width, layout_height));
-        sizes.insert(camera_id, glam::UVec2::new(size.x.max(1), size.y.max(1)));
-    }
-    sizes
+    let targets = universal
+        .targets
+        .entries
+        .iter()
+        .map(|(target_id, target)| (*target_id, (target.window_id, target.size)))
+        .collect();
+    vulfram_render::collect_window_camera_target_sizes(
+        &universal.target_layers.entries,
+        &targets,
+        realm_id,
+        window_id,
+        window_size,
+    )
 }
 
 pub(super) fn build_soft_cut_diagnostic(
@@ -294,95 +232,23 @@ pub(super) fn build_soft_cut_diagnostic(
 
 #[cfg(test)]
 mod tests {
-    use super::collect_window_camera_target_sizes;
-    use crate::core::realm::RealmId;
-    use crate::core::target::{
-        DimensionValue, TargetId, TargetKind, TargetLayerLayout, TargetLayerState, TargetState,
-    };
+    use super::build_soft_cut_diagnostic;
 
     #[test]
-    fn camera_target_size_uses_layer_layout_when_target_has_no_fixed_size() {
-        let mut universal = crate::core::realm::UniversalState::default();
-        let target_id = TargetId(100);
-        universal.targets.entries.insert(
-            target_id,
-            TargetState {
-                kind: TargetKind::Window,
-                window_id: Some(9),
-                size: None,
-                format_policy: None,
-                alpha_policy: None,
-                msaa_samples: None,
-            },
-        );
-        universal.target_layers.entries.insert(
-            (77, target_id),
-            TargetLayerState {
-                realm_id: 77,
-                target_id,
-                layout: TargetLayerLayout {
-                    left: DimensionValue::Percent(0.0),
-                    top: DimensionValue::Percent(0.0),
-                    width: DimensionValue::Percent(50.0),
-                    height: DimensionValue::Percent(25.0),
-                    z_index: 0,
-                    blend_mode: 0,
-                    clip: None,
-                },
-                camera_id: Some(501),
-                environment_id: None,
-            },
-        );
+    fn build_soft_cut_diagnostic_reports_new_cut_set() {
+        let frame_report = crate::core::realm::FrameReport {
+            cut_edges: vec![crate::core::realm::FrameCutEdge {
+                from: 1,
+                to: 2,
+                connector_id: Some(9),
+            }],
+            ..Default::default()
+        };
 
-        let sizes = collect_window_camera_target_sizes(
-            &universal,
-            RealmId(77),
-            9,
-            glam::UVec2::new(1920, 1080),
+        let diagnostic = build_soft_cut_diagnostic(&frame_report, 0, 42);
+        assert_eq!(
+            diagnostic.as_deref(),
+            Some("frame=42 cut_edges=1 connectors=9")
         );
-        assert_eq!(sizes.get(&501), Some(&glam::UVec2::new(960, 270)));
-    }
-
-    #[test]
-    fn camera_target_size_prefers_explicit_target_size() {
-        let mut universal = crate::core::realm::UniversalState::default();
-        let target_id = TargetId(101);
-        universal.targets.entries.insert(
-            target_id,
-            TargetState {
-                kind: TargetKind::Window,
-                window_id: Some(9),
-                size: Some(glam::UVec2::new(333, 222)),
-                format_policy: None,
-                alpha_policy: None,
-                msaa_samples: None,
-            },
-        );
-        universal.target_layers.entries.insert(
-            (77, target_id),
-            TargetLayerState {
-                realm_id: 77,
-                target_id,
-                layout: TargetLayerLayout {
-                    left: DimensionValue::Percent(0.0),
-                    top: DimensionValue::Percent(0.0),
-                    width: DimensionValue::Percent(50.0),
-                    height: DimensionValue::Percent(25.0),
-                    z_index: 0,
-                    blend_mode: 0,
-                    clip: None,
-                },
-                camera_id: Some(777),
-                environment_id: None,
-            },
-        );
-
-        let sizes = collect_window_camera_target_sizes(
-            &universal,
-            RealmId(77),
-            9,
-            glam::UVec2::new(1920, 1080),
-        );
-        assert_eq!(sizes.get(&777), Some(&glam::UVec2::new(333, 222)));
     }
 }

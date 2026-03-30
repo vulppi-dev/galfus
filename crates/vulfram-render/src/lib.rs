@@ -7,8 +7,9 @@ mod ui_actions;
 mod validation;
 
 pub use realm_planner::{
-    collect_connectors_by_realm, collect_cut_connectors, map_realms_to_windows,
-    resolve_realm_surface, update_present_size_cache, update_surface_cache,
+    build_target_surface_map, collect_connectors_by_realm, collect_cut_connectors,
+    collect_window_camera_target_sizes, map_realms_to_windows, resolve_realm_surface,
+    should_render_realm, update_present_size_cache, update_surface_cache,
 };
 pub use ui_actions::{UiPlatformAction, collect_platform_actions};
 
