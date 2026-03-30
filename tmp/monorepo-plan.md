@@ -491,6 +491,11 @@ Critério de aceite:
 
 ### Fase 4 — Criação de `vulfram-input`
 
+Status:
+- concluída
+- `vulfram-input` já concentra eventos normalizados, listeners, estado/cache de input e a semântica pura de roteamento
+- o que permaneceu no core é adaptador de runtime e integração com raycast/cena/plataforma
+
 Objetivo:
 - isolar o modelo normalizado de input antes de integrar plataforma e UI
 
