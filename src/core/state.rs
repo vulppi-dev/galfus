@@ -297,7 +297,10 @@ impl EngineState {
                     self.universal_state
                         .input_routing
                         .captures
-                        .retain(|_, capture| !removed_set.contains(&capture.connector_id));
+                        .retain(|_, capture| {
+                            !removed_set
+                                .contains(&crate::core::realm::ConnectorId(capture.connector_id))
+                        });
                 }
                 self.universal_state
                     .surface_cache

@@ -102,11 +102,7 @@ pub struct UniversalState {
     pub universal_resources: UniversalResources,
 }
 
-#[derive(Debug, Clone, Copy)]
-pub struct InputCapture {
-    pub connector_id: ConnectorId,
-    pub target_id: Option<crate::core::target::TargetId>,
-}
+pub use vulfram_input::InputCapture;
 
 #[derive(Debug, Clone)]
 pub struct InputRoutingConnectorHit {

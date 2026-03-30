@@ -342,7 +342,7 @@ fn remove_auto_link(universal: &mut UniversalState, key: (u32, TargetId)) {
         universal
             .input_routing
             .captures
-            .retain(|_, capture| capture.connector_id != connector_id);
+            .retain(|_, capture| capture.connector_id != connector_id.0);
         universal.surface_cache.last_good.remove(&connector_id);
         universal.surface_cache.fallback.remove(&connector_id);
     }

@@ -358,6 +358,13 @@ pub struct InputTargetListenerConfig {
     pub sample_percent: u8,
 }
 
+#[derive(Debug, Clone, Copy, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InputCapture {
+    pub connector_id: u32,
+    pub target_id: Option<u64>,
+}
+
 #[derive(Debug, Default, Clone, Deserialize, Serialize)]
 #[serde(default, rename_all = "camelCase")]
 pub struct CmdResultInputTargetListenerList {
@@ -458,6 +465,361 @@ fn to_snapshot(config: &InputTargetListenerConfig) -> InputTargetListenerSnapsho
         events: config.events.clone(),
         sample_percent: config.sample_percent,
     }
+}
+
+pub fn pointer_window_id(event: &PointerEvent) -> u32 {
+    match event {
+        PointerEvent::OnMove { window_id, .. }
+        | PointerEvent::OnEnter { window_id, .. }
+        | PointerEvent::OnLeave { window_id, .. }
+        | PointerEvent::OnButton { window_id, .. }
+        | PointerEvent::OnScroll { window_id, .. }
+        | PointerEvent::OnTouch { window_id, .. }
+        | PointerEvent::OnPinchGesture { window_id, .. }
+        | PointerEvent::OnPanGesture { window_id, .. }
+        | PointerEvent::OnRotationGesture { window_id, .. }
+        | PointerEvent::OnDoubleTapGesture { window_id, .. } => *window_id,
+    }
+}
+
+pub fn pointer_id(event: &PointerEvent) -> Option<u64> {
+    match event {
+        PointerEvent::OnMove { pointer_id, .. }
+        | PointerEvent::OnEnter { pointer_id, .. }
+        | PointerEvent::OnLeave { pointer_id, .. }
+        | PointerEvent::OnButton { pointer_id, .. }
+        | PointerEvent::OnTouch { pointer_id, .. } => Some(*pointer_id),
+        PointerEvent::OnScroll { .. }
+        | PointerEvent::OnPinchGesture { .. }
+        | PointerEvent::OnPanGesture { .. }
+        | PointerEvent::OnRotationGesture { .. }
+        | PointerEvent::OnDoubleTapGesture { .. } => None,
+    }
+}
+
+pub fn pointer_position(event: &PointerEvent) -> Option<Vec2> {
+    match event {
+        PointerEvent::OnMove { position, .. }
+        | PointerEvent::OnButton { position, .. }
+        | PointerEvent::OnTouch { position, .. } => Some(*position),
+        PointerEvent::OnEnter { .. }
+        | PointerEvent::OnLeave { .. }
+        | PointerEvent::OnScroll { .. }
+        | PointerEvent::OnPinchGesture { .. }
+        | PointerEvent::OnPanGesture { .. }
+        | PointerEvent::OnRotationGesture { .. }
+        | PointerEvent::OnDoubleTapGesture { .. } => None,
+    }
+}
+
+pub fn apply_trace(event: &mut PointerEvent, trace: Option<PointerEventTrace>) {
+    match event {
+        PointerEvent::OnMove { trace: slot, .. }
+        | PointerEvent::OnEnter { trace: slot, .. }
+        | PointerEvent::OnLeave { trace: slot, .. }
+        | PointerEvent::OnButton { trace: slot, .. }
+        | PointerEvent::OnScroll { trace: slot, .. }
+        | PointerEvent::OnTouch { trace: slot, .. }
+        | PointerEvent::OnPinchGesture { trace: slot, .. }
+        | PointerEvent::OnPanGesture { trace: slot, .. }
+        | PointerEvent::OnRotationGesture { trace: slot, .. }
+        | PointerEvent::OnDoubleTapGesture { trace: slot, .. } => {
+            *slot = trace;
+        }
+    }
+}
+
+pub fn apply_target_position(event: &mut PointerEvent, position_target: Option<Vec2>) {
+    match event {
+        PointerEvent::OnMove {
+            position_target: slot,
+            ..
+        }
+        | PointerEvent::OnButton {
+            position_target: slot,
+            ..
+        }
+        | PointerEvent::OnTouch {
+            position_target: slot,
+            ..
+        } => {
+            *slot = position_target;
+        }
+        PointerEvent::OnEnter { .. }
+        | PointerEvent::OnLeave { .. }
+        | PointerEvent::OnScroll { .. }
+        | PointerEvent::OnPinchGesture { .. }
+        | PointerEvent::OnPanGesture { .. }
+        | PointerEvent::OnRotationGesture { .. }
+        | PointerEvent::OnDoubleTapGesture { .. } => {}
+    }
+}
+
+pub fn apply_target_size(
+    event: &mut PointerEvent,
+    target_width: Option<u32>,
+    target_height: Option<u32>,
+) {
+    match event {
+        PointerEvent::OnMove {
+            target_width: width,
+            target_height: height,
+            ..
+        }
+        | PointerEvent::OnEnter {
+            target_width: width,
+            target_height: height,
+            ..
+        }
+        | PointerEvent::OnLeave {
+            target_width: width,
+            target_height: height,
+            ..
+        }
+        | PointerEvent::OnButton {
+            target_width: width,
+            target_height: height,
+            ..
+        }
+        | PointerEvent::OnScroll {
+            target_width: width,
+            target_height: height,
+            ..
+        }
+        | PointerEvent::OnTouch {
+            target_width: width,
+            target_height: height,
+            ..
+        }
+        | PointerEvent::OnPinchGesture {
+            target_width: width,
+            target_height: height,
+            ..
+        }
+        | PointerEvent::OnPanGesture {
+            target_width: width,
+            target_height: height,
+            ..
+        }
+        | PointerEvent::OnRotationGesture {
+            target_width: width,
+            target_height: height,
+            ..
+        }
+        | PointerEvent::OnDoubleTapGesture {
+            target_width: width,
+            target_height: height,
+            ..
+        } => {
+            *width = target_width;
+            *height = target_height;
+        }
+    }
+}
+
+pub fn apply_window_size(
+    event: &mut PointerEvent,
+    window_width: Option<u32>,
+    window_height: Option<u32>,
+) {
+    match event {
+        PointerEvent::OnMove {
+            window_width: width,
+            window_height: height,
+            ..
+        }
+        | PointerEvent::OnEnter {
+            window_width: width,
+            window_height: height,
+            ..
+        }
+        | PointerEvent::OnLeave {
+            window_width: width,
+            window_height: height,
+            ..
+        }
+        | PointerEvent::OnButton {
+            window_width: width,
+            window_height: height,
+            ..
+        }
+        | PointerEvent::OnScroll {
+            window_width: width,
+            window_height: height,
+            ..
+        }
+        | PointerEvent::OnTouch {
+            window_width: width,
+            window_height: height,
+            ..
+        }
+        | PointerEvent::OnPinchGesture {
+            window_width: width,
+            window_height: height,
+            ..
+        }
+        | PointerEvent::OnPanGesture {
+            window_width: width,
+            window_height: height,
+            ..
+        }
+        | PointerEvent::OnRotationGesture {
+            window_width: width,
+            window_height: height,
+            ..
+        }
+        | PointerEvent::OnDoubleTapGesture {
+            window_width: width,
+            window_height: height,
+            ..
+        } => {
+            *width = window_width;
+            *height = window_height;
+        }
+    }
+}
+
+pub fn select_trace_payload(
+    config: PointerTraceConfig,
+    frame_index: u64,
+    window_id: u32,
+    pointer_id: Option<u64>,
+    full: PointerEventTrace,
+) -> Option<PointerEventTrace> {
+    if !trace_is_sampled(config, frame_index, window_id, pointer_id) {
+        return None;
+    }
+    match config.level {
+        PointerTraceLevel::Off => None,
+        PointerTraceLevel::Errors => trace_contains_error(&full).then_some(full),
+        PointerTraceLevel::Basic => Some(PointerEventTrace {
+            window_id: full.window_id,
+            realm_id: full.realm_id,
+            target_id: full.target_id,
+            connector_id: None,
+            source_realm_id: None,
+            uv: None,
+            hops: Vec::new(),
+        }),
+        PointerTraceLevel::Full => Some(full),
+    }
+}
+
+pub fn update_capture_state(
+    captures: &mut HashMap<(u32, u64), InputCapture>,
+    window_id: u32,
+    pointer_id: u64,
+    connector_id: Option<u32>,
+    target_id: Option<u64>,
+    event: &PointerEvent,
+) {
+    match event {
+        PointerEvent::OnButton {
+            state: ElementState::Pressed,
+            ..
+        } => {
+            if let Some(connector_id) = connector_id {
+                captures.insert(
+                    (window_id, pointer_id),
+                    InputCapture {
+                        connector_id,
+                        target_id,
+                    },
+                );
+            }
+        }
+        PointerEvent::OnButton {
+            state: ElementState::Released,
+            ..
+        } => {
+            captures.remove(&(window_id, pointer_id));
+        }
+        PointerEvent::OnTouch { phase, .. } => match phase {
+            TouchPhase::Started | TouchPhase::Moved => {
+                if let Some(connector_id) = connector_id {
+                    captures.insert(
+                        (window_id, pointer_id),
+                        InputCapture {
+                            connector_id,
+                            target_id,
+                        },
+                    );
+                }
+            }
+            TouchPhase::Ended | TouchPhase::Cancelled => {
+                captures.remove(&(window_id, pointer_id));
+            }
+        },
+        _ => {}
+    }
+}
+
+pub fn update_focus_state(
+    focus_targets: &mut HashMap<u32, u64>,
+    window_id: u32,
+    target_id: Option<u64>,
+    event: &PointerEvent,
+) {
+    match event {
+        PointerEvent::OnButton {
+            state: ElementState::Pressed,
+            ..
+        }
+        | PointerEvent::OnTouch {
+            phase: TouchPhase::Started,
+            ..
+        } => {
+            if let Some(target_id) = target_id {
+                focus_targets.insert(window_id, target_id);
+            }
+        }
+        PointerEvent::OnButton {
+            state: ElementState::Released,
+            ..
+        }
+        | PointerEvent::OnTouch {
+            phase: TouchPhase::Ended | TouchPhase::Cancelled,
+            ..
+        } => {
+            focus_targets.remove(&window_id);
+        }
+        _ => {}
+    }
+}
+
+pub fn quantize_uv(value: f32) -> u16 {
+    let clamped = value.clamp(0.0, 1.0);
+    (clamped * 1024.0).round() as u16
+}
+
+fn trace_contains_error(trace: &PointerEventTrace) -> bool {
+    trace.hops.iter().any(|hop| {
+        matches!(
+            hop.stage,
+            PointerTraceStage::StopStepBudget | PointerTraceStage::StopCycle
+        )
+    })
+}
+
+fn trace_is_sampled(
+    config: PointerTraceConfig,
+    frame_index: u64,
+    window_id: u32,
+    pointer_id: Option<u64>,
+) -> bool {
+    let percent = config.sampling_percent.min(100);
+    if percent == 0 {
+        return false;
+    }
+    if percent == 100 {
+        return true;
+    }
+    let seed = frame_index
+        ^ window_id as u64
+        ^ pointer_id
+            .unwrap_or_default()
+            .wrapping_mul(11400714819323198485);
+    seed % 100 < percent as u64
 }
 
 #[cfg(test)]
@@ -580,5 +942,86 @@ mod tests {
         assert_eq!(store.list(None).len(), 1);
         assert_eq!(store.listeners_for_target(10).len(), 0);
         assert_eq!(store.listeners_for_target(11).len(), 1);
+    }
+
+    #[test]
+    fn select_trace_payload_basic_strips_detailed_fields() {
+        let full = PointerEventTrace {
+            window_id: 1,
+            realm_id: 2,
+            target_id: Some(3),
+            connector_id: Some(4),
+            source_realm_id: Some(5),
+            uv: Some(Vec2::new(0.25, 0.75)),
+            hops: vec![PointerTraceHop {
+                stage: PointerTraceStage::ConnectorHit,
+                realm_id: Some(2),
+                target_id: Some(3),
+                layer_realm_id: Some(2),
+                connector_id: Some(4),
+                surface_id: Some(6),
+                camera_id: Some(7),
+                uv: Some(Vec2::new(0.25, 0.75)),
+            }],
+        };
+
+        let trace = select_trace_payload(
+            PointerTraceConfig {
+                level: PointerTraceLevel::Basic,
+                sampling_percent: 100,
+            },
+            0,
+            1,
+            Some(9),
+            full,
+        )
+        .expect("basic trace should be present");
+
+        assert_eq!(trace.window_id, 1);
+        assert_eq!(trace.realm_id, 2);
+        assert_eq!(trace.target_id, Some(3));
+        assert!(trace.connector_id.is_none());
+        assert!(trace.source_realm_id.is_none());
+        assert!(trace.uv.is_none());
+        assert!(trace.hops.is_empty());
+    }
+
+    #[test]
+    fn update_focus_state_tracks_press_and_release() {
+        let mut focus_targets = HashMap::new();
+        let event = PointerEvent::OnButton {
+            window_id: 1,
+            window_width: None,
+            window_height: None,
+            pointer_type: 0,
+            pointer_id: 10,
+            button: 0,
+            state: ElementState::Pressed,
+            position: Vec2::new(0.0, 0.0),
+            position_target: None,
+            target_width: None,
+            target_height: None,
+            trace: None,
+        };
+
+        update_focus_state(&mut focus_targets, 1, Some(42), &event);
+        assert_eq!(focus_targets.get(&1), Some(&42));
+
+        let release = PointerEvent::OnButton {
+            window_id: 1,
+            window_width: None,
+            window_height: None,
+            pointer_type: 0,
+            pointer_id: 10,
+            button: 0,
+            state: ElementState::Released,
+            position: Vec2::new(0.0, 0.0),
+            position_target: None,
+            target_width: None,
+            target_height: None,
+            trace: None,
+        };
+        update_focus_state(&mut focus_targets, 1, Some(42), &release);
+        assert!(focus_targets.is_empty());
     }
 }

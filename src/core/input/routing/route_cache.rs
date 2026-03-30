@@ -9,6 +9,12 @@ use crate::core::realm::{
 };
 use crate::core::target::TargetId;
 
+#[derive(Debug, Clone, Copy)]
+pub(super) struct ResolvedInputCapture {
+    pub(super) connector_id: ConnectorId,
+    pub(super) target_id: Option<TargetId>,
+}
+
 pub(super) fn rebuild_input_routing_cache(universal: &mut UniversalState) {
     let topology_hash = compute_input_topology_hash(universal);
     if universal.input_routing.cache.topology_hash == topology_hash {
@@ -161,8 +167,13 @@ pub(super) fn resolve_captured_connector(
     captures: &HashMap<(u32, u64), InputCapture>,
     window_id: u32,
     pointer_id: u64,
-) -> Option<InputCapture> {
-    captures.get(&(window_id, pointer_id)).copied()
+) -> Option<ResolvedInputCapture> {
+    captures
+        .get(&(window_id, pointer_id))
+        .map(|capture| ResolvedInputCapture {
+            connector_id: ConnectorId(capture.connector_id),
+            target_id: capture.target_id.map(TargetId),
+        })
 }
 
 pub(super) fn resolve_focus_target(
