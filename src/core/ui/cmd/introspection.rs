@@ -110,13 +110,12 @@ pub fn engine_cmd_ui_focus_set(
 
     let node_id = args.node_id.unwrap_or(0);
     let ui_state = &mut engine.universal_state.ui;
-    ui_state.focus_by_window.insert(args.window_id, realm_id);
-    ui_state
-        .focus_document_by_window
-        .insert(args.window_id, args.document_id);
-    ui_state
-        .focus_node_by_window
-        .insert(args.window_id, node_id);
+    ui_state.focus.set_focus(vulfram_realm_ui::UiFocusUpdate {
+        window_id: args.window_id,
+        realm_id,
+        document_id: args.document_id,
+        node_id,
+    });
 
     CmdResultUiFocusSet {
         success: true,
@@ -130,20 +129,15 @@ pub fn engine_cmd_ui_focus_get(
 ) -> CmdResultUiFocusGet {
     let ui_state = &engine.universal_state.ui;
     let mut entries = Vec::new();
-    for (window_id, realm_id) in &ui_state.focus_by_window {
+    for (window_id, realm_id) in &ui_state.focus.realm_by_window {
         if args.window_id.is_some() && args.window_id != Some(*window_id) {
             continue;
         }
         let document_id = ui_state
-            .focus_document_by_window
-            .get(window_id)
-            .copied()
+            .focus
+            .focus_document(*window_id)
             .unwrap_or_default();
-        let node_id = ui_state
-            .focus_node_by_window
-            .get(window_id)
-            .copied()
-            .unwrap_or_default();
+        let node_id = ui_state.focus.focus_node(*window_id).unwrap_or_default();
         entries.push(UiFocusEntry {
             window_id: *window_id,
             realm_id: realm_id.0,

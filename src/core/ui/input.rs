@@ -35,9 +35,8 @@ pub fn process_ui_input(engine: &mut EngineState) {
                 let focused_realm_id = engine
                     .universal_state
                     .ui
-                    .focus_by_window
-                    .get(&pointer_event_window_id(pointer_event))
-                    .copied();
+                    .focus
+                    .focus_realm(pointer_event_window_id(pointer_event));
                 let dispatch = resolve_pointer_realm(engine, pointer_event);
                 if let Some(dispatch) = dispatch {
                     let realm_id = dispatch.realm_id;
@@ -76,6 +75,7 @@ pub fn process_ui_input(engine: &mut EngineState) {
                         engine
                             .universal_state
                             .ui
+                            .focus
                             .capture_by_window
                             .insert(window_id, capture);
                     }
@@ -83,6 +83,7 @@ pub fn process_ui_input(engine: &mut EngineState) {
                         engine
                             .universal_state
                             .ui
+                            .focus
                             .capture_by_window
                             .remove(&window_id);
                     }
@@ -111,12 +112,8 @@ pub fn process_ui_input(engine: &mut EngineState) {
                     for realm_id in realms {
                         pointer_updates.push((*realm_id, egui::Event::WindowFocused(*focused)));
                     }
-                } else if let Some(realm_id) = engine
-                    .universal_state
-                    .ui
-                    .focus_by_window
-                    .get(window_id)
-                    .copied()
+                } else if let Some(realm_id) =
+                    engine.universal_state.ui.focus.focus_realm(*window_id)
                 {
                     pointer_updates.push((realm_id, egui::Event::WindowFocused(*focused)));
                 }
@@ -134,12 +131,8 @@ pub fn process_ui_input(engine: &mut EngineState) {
                             realm.pixels_per_point = next_ppp;
                         }
                     }
-                } else if let Some(realm_id) = engine
-                    .universal_state
-                    .ui
-                    .focus_by_window
-                    .get(window_id)
-                    .copied()
+                } else if let Some(realm_id) =
+                    engine.universal_state.ui.focus.focus_realm(*window_id)
                     && let Some(realm) = ensure_realm(&mut engine.universal_state.ui, realm_id)
                 {
                     realm.pixels_per_point = next_ppp;
@@ -153,18 +146,13 @@ pub fn process_ui_input(engine: &mut EngineState) {
         engine
             .universal_state
             .ui
-            .focus_by_window
-            .insert(window_id, realm_id);
-        engine
-            .universal_state
-            .ui
-            .focus_document_by_window
-            .insert(window_id, document_id);
-        engine
-            .universal_state
-            .ui
-            .focus_node_by_window
-            .insert(window_id, 0);
+            .focus
+            .set_focus(vulfram_realm_ui::UiFocusUpdate {
+                window_id,
+                realm_id,
+                document_id,
+                node_id: 0,
+            });
     }
 
     for (realm_id, modifiers) in modifier_updates.drain(..) {
@@ -354,9 +342,8 @@ fn build_keyboard_event(
     let realm_id = engine
         .universal_state
         .ui
-        .focus_by_window
-        .get(&window_id)
-        .copied()
+        .focus
+        .focus_realm(window_id)
         .or_else(|| {
             realms_by_window
                 .get(&window_id)

@@ -173,13 +173,13 @@ fn prune_removed_nodes(
     ui_state
         .scene_state
         .retain(|(entry_doc, node_id), _| *entry_doc != document_id || !removed.contains(node_id));
-    ui_state.focus_node_by_window.retain(|window_id, node_id| {
+    ui_state.focus.node_by_window.retain(|window_id, node_id| {
         if *node_id == 0 || !removed.contains(node_id) {
             return true;
         }
-        ui_state.focus_document_by_window.get(window_id) != Some(&document_id)
+        ui_state.focus.document_by_window.get(window_id) != Some(&document_id)
     });
-    ui_state.capture_by_window.retain(|_, capture| {
+    ui_state.focus.capture_by_window.retain(|_, capture| {
         capture.document_id != document_id || !removed.contains(&capture.node_id)
     });
 }

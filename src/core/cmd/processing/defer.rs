@@ -323,7 +323,8 @@ fn command_has_pending_dependencies(engine: &EngineState, cmd: &EngineCmd) -> bo
         EngineCmd::CmdUiClipboardPaste(args) => !engine
             .universal_state
             .ui
-            .focus_by_window
+            .focus
+            .realm_by_window
             .contains_key(&args.window_id),
         EngineCmd::CmdUiScreenshotReply(args) => {
             if let Some(realm_id) = args.realm_id {
@@ -336,7 +337,8 @@ fn command_has_pending_dependencies(engine: &EngineState, cmd: &EngineCmd) -> bo
                 !engine
                     .universal_state
                     .ui
-                    .focus_by_window
+                    .focus
+                    .realm_by_window
                     .contains_key(&args.window_id)
             }
         }

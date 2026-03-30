@@ -15,6 +15,36 @@ pub struct UiFocusUpdate {
     pub node_id: UiNodeId,
 }
 
+#[derive(Debug, Default, Clone, Deserialize, Serialize)]
+#[serde(default, rename_all = "camelCase")]
+pub struct UiFocusState {
+    pub realm_by_window: HashMap<u32, RealmId>,
+    pub document_by_window: HashMap<u32, UiDocumentId>,
+    pub node_by_window: HashMap<u32, UiNodeId>,
+    pub capture_by_window: HashMap<u32, UiCaptureEntry>,
+}
+
+impl UiFocusState {
+    pub fn set_focus(&mut self, focus: UiFocusUpdate) {
+        self.realm_by_window.insert(focus.window_id, focus.realm_id);
+        self.document_by_window
+            .insert(focus.window_id, focus.document_id);
+        self.node_by_window.insert(focus.window_id, focus.node_id);
+    }
+
+    pub fn focus_realm(&self, window_id: u32) -> Option<RealmId> {
+        self.realm_by_window.get(&window_id).copied()
+    }
+
+    pub fn focus_document(&self, window_id: u32) -> Option<UiDocumentId> {
+        self.document_by_window.get(&window_id).copied()
+    }
+
+    pub fn focus_node(&self, window_id: u32) -> Option<UiNodeId> {
+        self.node_by_window.get(&window_id).copied()
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UiCaptureEntry {
@@ -142,33 +172,33 @@ pub fn pointer_event_window_id(event: &PointerEvent) -> u32 {
     }
 }
 
-pub fn prune_document_focus_links(
-    focus_document_by_window: &mut HashMap<u32, UiDocumentId>,
-    focus_node_by_window: &mut HashMap<u32, UiNodeId>,
-    capture_by_window: &mut HashMap<u32, UiCaptureEntry>,
-    document_id: UiDocumentId,
-) {
-    focus_document_by_window.retain(|_, focus_document_id| *focus_document_id != document_id);
-    focus_node_by_window.retain(|window_id, _| focus_document_by_window.contains_key(window_id));
-    capture_by_window.retain(|_, capture| capture.document_id != document_id);
+pub fn prune_document_focus_links(focus_state: &mut UiFocusState, document_id: UiDocumentId) {
+    focus_state
+        .document_by_window
+        .retain(|_, focus_document_id| *focus_document_id != document_id);
+    focus_state
+        .node_by_window
+        .retain(|window_id, _| focus_state.document_by_window.contains_key(window_id));
+    focus_state
+        .capture_by_window
+        .retain(|_, capture| capture.document_id != document_id);
 }
 
-pub fn prune_realm_focus_links(
-    focus_by_window: &mut HashMap<u32, RealmId>,
-    capture_by_window: &mut HashMap<u32, UiCaptureEntry>,
-    realm_id: RealmId,
-) {
-    focus_by_window.retain(|_, focus_realm_id| *focus_realm_id != realm_id);
-    capture_by_window.retain(|_, capture| capture.realm_id != realm_id);
+pub fn prune_realm_focus_links(focus_state: &mut UiFocusState, realm_id: RealmId) {
+    focus_state
+        .realm_by_window
+        .retain(|_, focus_realm_id| *focus_realm_id != realm_id);
+    focus_state
+        .capture_by_window
+        .retain(|_, capture| capture.realm_id != realm_id);
 }
 
 pub fn retain_valid_focus_nodes(
-    focus_document_by_window: &HashMap<u32, UiDocumentId>,
-    focus_node_by_window: &mut HashMap<u32, UiNodeId>,
+    focus_state: &mut UiFocusState,
     documents: &HashMap<UiDocumentId, UiDocument>,
 ) {
-    focus_node_by_window.retain(|window_id, node_id| {
-        let Some(document_id) = focus_document_by_window.get(window_id) else {
+    focus_state.node_by_window.retain(|window_id, node_id| {
+        let Some(document_id) = focus_state.document_by_window.get(window_id) else {
             return false;
         };
         documents
@@ -179,10 +209,10 @@ pub fn retain_valid_focus_nodes(
 }
 
 pub fn retain_valid_capture_entries(
-    capture_by_window: &mut HashMap<u32, UiCaptureEntry>,
+    focus_state: &mut UiFocusState,
     documents: &HashMap<UiDocumentId, UiDocument>,
 ) {
-    capture_by_window.retain(|_, capture| {
+    focus_state.capture_by_window.retain(|_, capture| {
         documents
             .get(&capture.document_id)
             .map(|document| document.nodes.contains_key(&capture.node_id))
@@ -279,38 +309,36 @@ mod tests {
 
     #[test]
     fn prune_document_focus_links_removes_focus_and_capture_for_document() {
-        let mut focus_document_by_window = HashMap::from([(1, 10), (2, 20)]);
-        let mut focus_node_by_window = HashMap::from([(1, 100), (2, 200)]);
-        let mut capture_by_window = HashMap::from([
-            (
-                1,
-                UiCaptureEntry {
-                    realm_id: RealmId(7),
-                    document_id: 10,
-                    node_id: 100,
-                },
-            ),
-            (
-                2,
-                UiCaptureEntry {
-                    realm_id: RealmId(8),
-                    document_id: 20,
-                    node_id: 200,
-                },
-            ),
-        ]);
+        let mut focus_state = UiFocusState {
+            realm_by_window: HashMap::new(),
+            document_by_window: HashMap::from([(1, 10), (2, 20)]),
+            node_by_window: HashMap::from([(1, 100), (2, 200)]),
+            capture_by_window: HashMap::from([
+                (
+                    1,
+                    UiCaptureEntry {
+                        realm_id: RealmId(7),
+                        document_id: 10,
+                        node_id: 100,
+                    },
+                ),
+                (
+                    2,
+                    UiCaptureEntry {
+                        realm_id: RealmId(8),
+                        document_id: 20,
+                        node_id: 200,
+                    },
+                ),
+            ]),
+        };
 
-        prune_document_focus_links(
-            &mut focus_document_by_window,
-            &mut focus_node_by_window,
-            &mut capture_by_window,
-            10,
-        );
+        prune_document_focus_links(&mut focus_state, 10);
 
-        assert_eq!(focus_document_by_window, HashMap::from([(2, 20)]));
-        assert_eq!(focus_node_by_window, HashMap::from([(2, 200)]));
+        assert_eq!(focus_state.document_by_window, HashMap::from([(2, 20)]));
+        assert_eq!(focus_state.node_by_window, HashMap::from([(2, 200)]));
         assert_eq!(
-            capture_by_window,
+            focus_state.capture_by_window,
             HashMap::from([(
                 2,
                 UiCaptureEntry {

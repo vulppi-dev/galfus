@@ -11,13 +11,7 @@ pub fn engine_cmd_ui_clipboard_paste(
     engine: &mut EngineState,
     args: &CmdUiClipboardPasteArgs,
 ) -> CmdResultUiInputEvent {
-    let Some(realm_id) = engine
-        .universal_state
-        .ui
-        .focus_by_window
-        .get(&args.window_id)
-        .copied()
-    else {
+    let Some(realm_id) = engine.universal_state.ui.focus.focus_realm(args.window_id) else {
         return CmdResultUiInputEvent {
             success: false,
             message: format!("No focused UI realm for window {}", args.window_id),
@@ -43,13 +37,7 @@ pub fn engine_cmd_ui_screenshot_reply(
     let realm_id = if let Some(realm_id) = args.realm_id {
         crate::core::realm::RealmId(realm_id)
     } else {
-        match engine
-            .universal_state
-            .ui
-            .focus_by_window
-            .get(&args.window_id)
-            .copied()
-        {
+        match engine.universal_state.ui.focus.focus_realm(args.window_id) {
             Some(realm_id) => realm_id,
             None => {
                 return CmdResultUiInputEvent {
