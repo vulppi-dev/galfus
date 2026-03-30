@@ -4,7 +4,7 @@ use crate::core::realm::{RealmId, RealmTable};
 use crate::core::target::graph_hash::{hash_entries, hash_targets_layers_and_realms};
 use crate::core::target::{TargetId, TargetLayerState, TargetState};
 #[allow(unused_imports)]
-pub use vulfram_scene_core::{TargetEdge, TargetGraphDiff, TargetGraphPlan};
+pub use vulfram_realm_core::{TargetEdge, TargetGraphDiff, TargetGraphPlan};
 
 #[derive(Debug, Default)]
 pub struct TargetGraphPlanner;
@@ -21,7 +21,7 @@ impl TargetGraphPlanner {
             .map(|(target_id, target)| (*target_id, (target.kind, target.window_id)))
             .collect();
         let realm_ids = realms.entries.keys().copied().collect();
-        vulfram_scene_core::TargetGraphPlanner.build_plan(&target_semantics, layers, &realm_ids)
+        vulfram_realm_core::TargetGraphPlanner.build_plan(&target_semantics, layers, &realm_ids)
     }
 }
 

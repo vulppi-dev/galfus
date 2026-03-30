@@ -1,5 +1,5 @@
 [package]
-name = "vulfram-scene-core"
+name = "vulfram-realm-core"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

@@ -1,4 +1,4 @@
-pub use vulfram_scene_core::{
+pub use vulfram_realm_core::{
     FrameCutEdge, FrameReport, SurfaceCacheEntry, TargetAutoLinkFailure, TargetLayerReportKey,
 };
 

@@ -1,5 +1,5 @@
 use super::UniversalState;
-pub use vulfram_scene_core::{RealmGraphEdge, RealmGraphPlan};
+pub use vulfram_realm_core::{RealmGraphEdge, RealmGraphPlan};
 
 #[derive(Debug, Default)]
 pub struct RealmGraphPlanner;
@@ -31,7 +31,7 @@ impl RealmGraphPlanner {
             })
             .collect::<Vec<_>>();
 
-        vulfram_scene_core::RealmGraphPlanner.build_plan(
+        vulfram_realm_core::RealmGraphPlanner.build_plan(
             &realm_output_surfaces,
             &presents,
             &connectors,

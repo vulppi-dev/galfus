@@ -3961,9 +3961,11 @@ dependencies = [
  "smallvec",
  "vulfram-input",
  "vulfram-protocol",
+ "vulfram-realm-2d",
+ "vulfram-realm-3d",
+ "vulfram-realm-core",
  "vulfram-realm-ui",
  "vulfram-render",
- "vulfram-scene-core",
  "vulfram-types",
  "wasm-bindgen",
  "wasm-bindgen-futures",
@@ -3981,7 +3983,7 @@ dependencies = [
  "rmp-serde",
  "serde",
  "serde_json",
- "vulfram-scene-core",
+ "vulfram-realm-core",
  "vulfram-types",
 ]
 
@@ -3994,6 +3996,23 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_path_to_error",
+ "vulfram-types",
+]
+
+[[package]]
+name = "vulfram-realm-2d"
+version = "0.21.2-alpha"
+
+[[package]]
+name = "vulfram-realm-3d"
+version = "0.21.2-alpha"
+
+[[package]]
+name = "vulfram-realm-core"
+version = "0.21.2-alpha"
+dependencies = [
+ "glam 0.30.10",
+ "serde",
  "vulfram-types",
 ]
 
@@ -4017,16 +4036,9 @@ dependencies = [
  "rmp-serde",
  "serde",
  "vulfram-protocol",
- "vulfram-scene-core",
-]
-
-[[package]]
-name = "vulfram-scene-core"
-version = "0.21.2-alpha"
-dependencies = [
- "glam 0.30.10",
- "serde",
- "vulfram-types",
+ "vulfram-realm-2d",
+ "vulfram-realm-3d",
+ "vulfram-realm-core",
 ]
 
 [[package]]

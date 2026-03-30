@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
-pub use vulfram_scene_core::{
+pub use vulfram_realm_core::{
     DimensionValue, TargetId, TargetKind, TargetLayerLayout, TargetLayerState,
 };
 

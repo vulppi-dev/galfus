@@ -87,11 +87,11 @@ fn graph_is_compatible_with_realm_kind(
     plan: &crate::core::render::graph::RenderGraphPlan,
     realm_kind: RealmKind,
 ) -> bool {
-    if realm_kind == RealmKind::ThreeD {
-        return true;
+    let pass_ids = plan.nodes.iter().map(|node| node.pass_id.as_str());
+    match realm_kind {
+        RealmKind::ThreeD => vulfram_realm_3d::graph_is_compatible(pass_ids),
+        RealmKind::TwoD => vulfram_realm_2d::graph_is_compatible(pass_ids),
     }
-
-    plan.nodes.iter().all(|node| node.pass_id == "ui")
 }
 
 fn emit_render_graph_error(

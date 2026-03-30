@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use std::hash::Hasher;
 
-use vulfram_scene_core::{
+use vulfram_realm_core::{
     AutoLink, ConnectorId, RealmGraphPlan, RealmId, RealmState, SurfaceCache, SurfaceId, TargetId,
     TargetKind, TargetLayerState,
 };
@@ -243,7 +243,7 @@ mod tests {
         should_render_realm, update_present_size_cache, update_surface_cache,
     };
     use std::collections::{HashMap, HashSet};
-    use vulfram_scene_core::{
+    use vulfram_realm_core::{
         AutoLink, ConnectorId, DimensionValue, RealmGraphEdge, RealmGraphPlan, RealmId, RealmState,
         SurfaceCache, SurfaceId, TargetId, TargetKind, TargetLayerLayout, TargetLayerState,
     };
@@ -355,7 +355,7 @@ mod tests {
     #[test]
     fn should_render_realm_tracks_interval_and_updates_frame() {
         let mut realm = RealmState {
-            kind: vulfram_scene_core::RealmKind::ThreeD,
+            kind: vulfram_realm_core::RealmKind::ThreeD,
             output_surface: None,
             render_graph_id: None,
             importance: 2,

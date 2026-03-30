@@ -349,20 +349,8 @@ fn topo_sort(nodes: &[RenderGraphNode], edges: &[RenderGraphEdge]) -> Result<Vec
 }
 
 fn is_known_pass(pass_id: &str) -> bool {
-    matches!(
-        pass_id,
-        "shadow"
-            | "light-cull"
-            | "skybox"
-            | "forward"
-            | "outline"
-            | "ssao"
-            | "ssao-blur"
-            | "bloom"
-            | "post"
-            | "compose"
-            | "ui"
-    )
+    vulfram_realm_3d::supports_render_pass(pass_id)
+        || vulfram_realm_2d::supports_render_pass(pass_id)
 }
 
 pub fn ui_fallback_graph() -> RenderGraphDesc {

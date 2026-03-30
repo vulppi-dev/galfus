@@ -71,7 +71,7 @@ vulfram/
 ├── crates/
 │   ├── vulfram-types/
 │   ├── vulfram-protocol/
-│   ├── vulfram-scene-core/
+│   ├── vulfram-realm-core/
 │   ├── vulfram-input/
 │   ├── vulfram-realm-ui/
 │   ├── vulfram-render/
@@ -138,7 +138,7 @@ Não deve conter:
 - `winit`
 - `web-sys`
 
-### `vulfram-scene-core`
+### `vulfram-realm-core`
 
 Responsabilidade:
 - composição semântica de realms, surfaces e targets

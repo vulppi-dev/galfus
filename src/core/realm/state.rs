@@ -7,7 +7,7 @@ use crate::core::resources::{
 };
 use crate::core::target::{TargetGraphCache, TargetLayerTable, TargetTable};
 use crate::core::ui::UiState;
-pub use vulfram_scene_core::{
+pub use vulfram_realm_core::{
     AutoLink, ConnectorState, ConnectorTable, PresentState, PresentTable, RealmState, RealmTable,
     SurfaceCache, TableEntry,
 };

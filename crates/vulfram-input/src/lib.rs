@@ -5,7 +5,7 @@ use std::hash::{Hash, Hasher};
 
 use glam::Vec2;
 use serde::{Deserialize, Serialize};
-use vulfram_scene_core::ConnectorState;
+use vulfram_realm_core::ConnectorState;
 use vulfram_types::{ConnectorId, RealmId, SurfaceId};
 
 pub use cache::{InputCacheManager, InputState};
@@ -377,7 +377,7 @@ pub struct InputCapture {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ResolvedInputCapture {
     pub connector_id: ConnectorId,
-    pub target_id: Option<vulfram_scene_core::TargetId>,
+    pub target_id: Option<vulfram_realm_core::TargetId>,
 }
 
 #[derive(Debug, Clone)]
@@ -385,7 +385,7 @@ pub struct InputRoutingConnectorHit {
     pub id: ConnectorId,
     pub state: ConnectorState,
     pub source_size: glam::UVec2,
-    pub target_id: Option<vulfram_scene_core::TargetId>,
+    pub target_id: Option<vulfram_realm_core::TargetId>,
     pub target_rank: i32,
 }
 
@@ -394,15 +394,15 @@ pub struct InputRoutingCache {
     pub topology_hash: u64,
     pub realm_by_surface: HashMap<SurfaceId, RealmId>,
     pub realm_by_window: HashMap<u32, (RealmId, SurfaceId)>,
-    pub connector_targets: HashMap<ConnectorId, vulfram_scene_core::TargetId>,
-    pub layer_camera_by_key: HashMap<(u32, vulfram_scene_core::TargetId), Option<u32>>,
+    pub connector_targets: HashMap<ConnectorId, vulfram_realm_core::TargetId>,
+    pub layer_camera_by_key: HashMap<(u32, vulfram_realm_core::TargetId), Option<u32>>,
     pub connectors_by_realm: HashMap<RealmId, Vec<InputRoutingConnectorHit>>,
 }
 
 #[derive(Debug, Default)]
 pub struct InputRoutingState {
     pub captures: HashMap<(u32, u64), InputCapture>,
-    pub focus_targets: HashMap<u32, vulfram_scene_core::TargetId>,
+    pub focus_targets: HashMap<u32, vulfram_realm_core::TargetId>,
     pub trace: PointerTraceConfig,
     pub cache: InputRoutingCache,
 }
@@ -427,20 +427,20 @@ pub struct InputRoutingPresentBinding {
 
 #[derive(Debug, Clone, Copy)]
 pub struct InputRoutingTargetRank {
-    pub target_id: vulfram_scene_core::TargetId,
+    pub target_id: vulfram_realm_core::TargetId,
     pub rank: i32,
 }
 
 #[derive(Debug, Clone, Copy)]
 pub struct InputRoutingAutoLinkRecord {
-    pub target_id: vulfram_scene_core::TargetId,
+    pub target_id: vulfram_realm_core::TargetId,
     pub connector_id: ConnectorId,
 }
 
 #[derive(Debug, Clone, Copy)]
 pub struct InputRoutingLayerCameraRecord {
     pub realm_id: u32,
-    pub target_id: vulfram_scene_core::TargetId,
+    pub target_id: vulfram_realm_core::TargetId,
     pub camera_id: Option<u32>,
 }
 
@@ -960,20 +960,20 @@ pub fn resolve_captured_connector(
         .get(&(window_id, pointer_id))
         .map(|capture| ResolvedInputCapture {
             connector_id: ConnectorId(capture.connector_id),
-            target_id: capture.target_id.map(vulfram_scene_core::TargetId),
+            target_id: capture.target_id.map(vulfram_realm_core::TargetId),
         })
 }
 
 pub fn resolve_focus_target(
-    focus_targets: &HashMap<u32, vulfram_scene_core::TargetId>,
+    focus_targets: &HashMap<u32, vulfram_realm_core::TargetId>,
     window_id: u32,
-) -> Option<vulfram_scene_core::TargetId> {
+) -> Option<vulfram_realm_core::TargetId> {
     focus_targets.get(&window_id).copied()
 }
 
 pub fn resolve_connector_for_target(
     connectors: Option<&Vec<InputRoutingConnectorHit>>,
-    target_id: vulfram_scene_core::TargetId,
+    target_id: vulfram_realm_core::TargetId,
 ) -> Option<ConnectorId> {
     let connectors = connectors?;
     for connector in connectors {
@@ -1269,7 +1269,7 @@ fn intersect_rect(a: glam::Vec4, b: glam::Vec4) -> glam::Vec4 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use vulfram_scene_core::ConnectorState;
+    use vulfram_realm_core::ConnectorState;
     use vulfram_types::ConnectorId;
 
     #[test]
@@ -1526,7 +1526,7 @@ mod tests {
         let resolved = resolve_captured_connector(&captures, 1, 2).expect("capture should resolve");
 
         assert_eq!(resolved.connector_id, ConnectorId(9));
-        assert_eq!(resolved.target_id, Some(vulfram_scene_core::TargetId(11)));
+        assert_eq!(resolved.target_id, Some(vulfram_realm_core::TargetId(11)));
     }
 
     #[test]
@@ -1543,12 +1543,12 @@ mod tests {
                 input_flags: 0,
             },
             source_size: glam::UVec2::new(100, 100),
-            target_id: Some(vulfram_scene_core::TargetId(42)),
+            target_id: Some(vulfram_realm_core::TargetId(42)),
             target_rank: 0,
         }];
 
         let connector_id =
-            resolve_connector_for_target(Some(&connectors), vulfram_scene_core::TargetId(42));
+            resolve_connector_for_target(Some(&connectors), vulfram_realm_core::TargetId(42));
 
         assert_eq!(connector_id, Some(ConnectorId(7)));
     }
@@ -1566,21 +1566,21 @@ mod tests {
             }],
             target_order: vec![
                 InputRoutingTargetRank {
-                    target_id: vulfram_scene_core::TargetId(100),
+                    target_id: vulfram_realm_core::TargetId(100),
                     rank: 0,
                 },
                 InputRoutingTargetRank {
-                    target_id: vulfram_scene_core::TargetId(200),
+                    target_id: vulfram_realm_core::TargetId(200),
                     rank: 1,
                 },
             ],
             auto_links: vec![
                 InputRoutingAutoLinkRecord {
-                    target_id: vulfram_scene_core::TargetId(100),
+                    target_id: vulfram_realm_core::TargetId(100),
                     connector_id: ConnectorId(1),
                 },
                 InputRoutingAutoLinkRecord {
-                    target_id: vulfram_scene_core::TargetId(200),
+                    target_id: vulfram_realm_core::TargetId(200),
                     connector_id: ConnectorId(2),
                 },
             ],
