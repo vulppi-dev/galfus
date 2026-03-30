@@ -1,5 +1,4 @@
 use std::collections::{HashMap, HashSet};
-use std::hash::Hasher;
 
 use crate::core::realm::{ConnectorId, RealmGraphPlan, RealmId, SurfaceId, UniversalState};
 use crate::core::render::{RenderState, passes};
@@ -13,62 +12,51 @@ pub(crate) struct SurfaceSnapshot {
 }
 
 pub(crate) fn collect_cut_connectors(plan: &RealmGraphPlan) -> HashSet<ConnectorId> {
-    plan.cut_edges
-        .iter()
-        .filter_map(|edge| edge.connector_id)
-        .collect()
+    vulfram_render::collect_cut_connectors(plan)
 }
 
 pub(crate) fn update_surface_cache(
     universal: &mut UniversalState,
-    cut_connectors: &HashSet<ConnectorId>,
+    _cut_connectors: &HashSet<ConnectorId>,
 ) {
-    for (connector_id, connector) in universal.connectors.entries.iter() {
-        universal
-            .surface_cache
-            .last_good
-            .insert(*connector_id, connector.value.source_surface);
-        universal
-            .surface_cache
-            .fallback
-            .entry(*connector_id)
-            .or_insert(connector.value.source_surface);
-        if cut_connectors.contains(connector_id) {
-            continue;
-        }
-    }
+    let connectors: Vec<_> = universal
+        .connectors
+        .entries
+        .iter()
+        .map(|(connector_id, connector)| (*connector_id, connector.value.source_surface))
+        .collect();
+    vulfram_render::update_surface_cache(&mut universal.surface_cache, &connectors);
 }
 
 pub(crate) fn map_realms_to_windows(universal: &UniversalState) -> HashMap<RealmId, u32> {
-    let mut map = HashMap::new();
-    for layer in universal.target_layers.entries.values() {
-        let realm_id = RealmId(layer.realm_id);
-        if !universal.realms.entries.contains_key(&realm_id) {
-            continue;
-        }
-        let Some(target) = universal.targets.entries.get(&layer.target_id) else {
-            continue;
-        };
-        let Some(window_id) = target.window_id else {
-            continue;
-        };
-        match map.get_mut(&realm_id) {
-            Some(existing_window_id) => {
-                if window_id < *existing_window_id {
-                    *existing_window_id = window_id;
-                }
-            }
-            None => {
-                map.insert(realm_id, window_id);
-            }
-        }
-    }
-    for present in universal.presents.entries.values() {
-        if let Some(realm_id) = find_realm_by_surface(universal, present.value.surface) {
-            map.entry(realm_id).or_insert(present.value.window_id);
-        }
-    }
-    map
+    let existing_realms = universal.realms.entries.keys().copied().collect();
+    let layer_windows: Vec<_> = universal
+        .target_layers
+        .entries
+        .values()
+        .filter_map(|layer| {
+            let target = universal.targets.entries.get(&layer.target_id)?;
+            Some((RealmId(layer.realm_id), target.window_id?))
+        })
+        .collect();
+    let presents: Vec<_> = universal
+        .presents
+        .entries
+        .values()
+        .map(|entry| (entry.value.surface, entry.value.window_id))
+        .collect();
+    let realm_output_surfaces: HashMap<_, _> = universal
+        .realms
+        .entries
+        .iter()
+        .map(|(realm_id, entry)| (*realm_id, entry.value.output_surface))
+        .collect();
+    vulfram_render::map_realms_to_windows(
+        &existing_realms,
+        &layer_windows,
+        &presents,
+        &realm_output_surfaces,
+    )
 }
 
 pub(crate) fn collect_present_sizes(
@@ -77,62 +65,29 @@ pub(crate) fn collect_present_sizes(
     cache: &mut HashMap<SurfaceId, glam::UVec2>,
     cache_hash: &mut u64,
 ) {
-    let mut chosen_windows: HashMap<SurfaceId, u32> = HashMap::new();
-    for entry in universal.presents.entries.values() {
-        chosen_windows
-            .entry(entry.value.surface)
-            .and_modify(|window_id| {
-                if entry.value.window_id < *window_id {
-                    *window_id = entry.value.window_id;
-                }
-            })
-            .or_insert(entry.value.window_id);
-    }
-
-    let mut aggregate_hash = 0_u64;
-    let mut hasher = std::collections::hash_map::DefaultHasher::new();
-    let mut changed = false;
-    for (surface_id, window_id) in &chosen_windows {
-        let size = windows
-            .get(window_id)
-            .map(|window| window.inner_size)
-            .unwrap_or_else(|| glam::UVec2::new(0, 0));
-        if cache.get(surface_id).copied() != Some(size) {
-            cache.insert(*surface_id, size);
-            changed = true;
-        }
-        hasher.write_u32(surface_id.0);
-        hasher.write_u32(*window_id);
-        hasher.write_u32(size.x);
-        hasher.write_u32(size.y);
-        aggregate_hash ^= hasher.finish();
-        hasher = std::collections::hash_map::DefaultHasher::new();
-    }
-    let previous_len = cache.len();
-    cache.retain(|surface_id, _| chosen_windows.contains_key(surface_id));
-    if cache.len() != previous_len {
-        changed = true;
-    }
-
-    if !changed && aggregate_hash == *cache_hash {
-        return;
-    }
-    *cache_hash = aggregate_hash;
+    let presents: Vec<_> = universal
+        .presents
+        .entries
+        .values()
+        .map(|entry| (entry.value.surface, entry.value.window_id))
+        .collect();
+    let window_sizes = windows
+        .iter()
+        .map(|(window_id, window)| (*window_id, window.inner_size))
+        .collect();
+    let _ = vulfram_render::update_present_size_cache(&presents, &window_sizes, cache, cache_hash);
 }
 
 pub(crate) fn collect_connectors_by_realm(
     universal: &UniversalState,
 ) -> HashMap<RealmId, Vec<ConnectorId>> {
-    let mut map: HashMap<RealmId, Vec<ConnectorId>> = HashMap::new();
-    for (connector_id, entry) in universal.connectors.entries.iter() {
-        map.entry(entry.value.target_realm)
-            .or_default()
-            .push(*connector_id);
-    }
-    for connectors in map.values_mut() {
-        connectors.sort_by_key(|id| id.0);
-    }
-    map
+    let connectors: Vec<_> = universal
+        .connectors
+        .entries
+        .iter()
+        .map(|(connector_id, entry)| (*connector_id, entry.value.target_realm))
+        .collect();
+    vulfram_render::collect_connectors_by_realm(&connectors)
 }
 
 pub(crate) fn collect_surface_views(
@@ -181,11 +136,13 @@ pub(crate) fn resolve_realm_surface(
     universal: &UniversalState,
     realm_id: RealmId,
 ) -> Option<SurfaceId> {
-    universal
+    let realm_output_surfaces: HashMap<_, _> = universal
         .realms
         .entries
-        .get(&realm_id)
-        .and_then(|entry| entry.value.output_surface)
+        .iter()
+        .map(|(realm_id, entry)| (*realm_id, entry.value.output_surface))
+        .collect();
+    vulfram_render::resolve_realm_surface(&realm_output_surfaces, realm_id)
 }
 
 pub(crate) fn ensure_surface_target<'a>(
@@ -341,18 +298,4 @@ fn blend_state_for_mode(mode: u32) -> Option<wgpu::BlendState> {
         2 => None,
         _ => Some(wgpu::BlendState::ALPHA_BLENDING),
     }
-}
-
-fn find_realm_by_surface(universal: &UniversalState, surface: SurfaceId) -> Option<RealmId> {
-    universal
-        .realms
-        .entries
-        .iter()
-        .find_map(|(realm_id, entry)| {
-            if entry.value.output_surface == Some(surface) {
-                Some(*realm_id)
-            } else {
-                None
-            }
-        })
 }

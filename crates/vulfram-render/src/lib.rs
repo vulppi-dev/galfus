@@ -2,9 +2,14 @@ use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::hash::{DefaultHasher, Hash, Hasher};
 
+mod realm_planner;
 mod ui_actions;
 mod validation;
 
+pub use realm_planner::{
+    collect_connectors_by_realm, collect_cut_connectors, map_realms_to_windows,
+    resolve_realm_surface, update_present_size_cache, update_surface_cache,
+};
 pub use ui_actions::{UiPlatformAction, collect_platform_actions};
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, Deserialize, Serialize)]

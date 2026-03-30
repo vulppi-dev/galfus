@@ -4013,9 +4013,11 @@ name = "vulfram-render"
 version = "0.21.2-alpha"
 dependencies = [
  "egui",
+ "glam 0.30.10",
  "rmp-serde",
  "serde",
  "vulfram-protocol",
+ "vulfram-scene-core",
 ]
 
 [[package]]
