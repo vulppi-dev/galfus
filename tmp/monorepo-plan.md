@@ -516,6 +516,9 @@ Critério de aceite:
 
 ### Fase 5 — Criação de `vulfram-realm-ui`
 
+Status:
+- concluída no escopo semântico
+
 Objetivo:
 - reconstruir UI como subsistema semântico, separado de render e runtime
 
@@ -534,6 +537,11 @@ Testes obrigatórios:
 Critério de aceite:
 - sem backend gráfico concreto
 - sem conhecimento do runtime global
+
+Resultado alcançado:
+- `vulfram-realm-ui` já concentra contratos, documentos, árvore, estado semântico leve, foco/captura por janela, dispatch de ponteiro traçado e planejamento puro de bombeamento de eventos
+- o que permanece em `src/core/ui` agora é backend concreto e integração:
+  `egui`, tesselação, renderer, decode de imagens, caches gráficos e cola com runtime/janela
 
 ### Fase 6 — Criação de `vulfram-render`
 
