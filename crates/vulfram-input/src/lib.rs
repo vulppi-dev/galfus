@@ -367,6 +367,12 @@ pub struct InputCapture {
     pub target_id: Option<u64>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ResolvedInputCapture {
+    pub connector_id: ConnectorId,
+    pub target_id: Option<vulfram_scene_core::TargetId>,
+}
+
 #[derive(Debug, Clone)]
 pub struct InputRoutingConnectorHit {
     pub id: ConnectorId,
@@ -875,6 +881,39 @@ pub fn resolve_hit_connector(
     None
 }
 
+pub fn resolve_captured_connector(
+    captures: &HashMap<(u32, u64), InputCapture>,
+    window_id: u32,
+    pointer_id: u64,
+) -> Option<ResolvedInputCapture> {
+    captures
+        .get(&(window_id, pointer_id))
+        .map(|capture| ResolvedInputCapture {
+            connector_id: ConnectorId(capture.connector_id),
+            target_id: capture.target_id.map(vulfram_scene_core::TargetId),
+        })
+}
+
+pub fn resolve_focus_target(
+    focus_targets: &HashMap<u32, vulfram_scene_core::TargetId>,
+    window_id: u32,
+) -> Option<vulfram_scene_core::TargetId> {
+    focus_targets.get(&window_id).copied()
+}
+
+pub fn resolve_connector_for_target(
+    connectors: Option<&Vec<InputRoutingConnectorHit>>,
+    target_id: vulfram_scene_core::TargetId,
+) -> Option<ConnectorId> {
+    let connectors = connectors?;
+    for connector in connectors {
+        if connector.target_id == Some(target_id) {
+            return Some(connector.id);
+        }
+    }
+    None
+}
+
 pub fn resolve_connector_uv_from_sizes(
     rect: glam::Vec4,
     clip: Option<glam::Vec4>,
@@ -1242,5 +1281,46 @@ mod tests {
 
         assert_eq!(hit.connector_id, ConnectorId(7));
         assert_eq!(hit.uv, Some(Vec2::new(0.5, 0.5)));
+    }
+
+    #[test]
+    fn resolve_captured_connector_maps_primitives_to_ids() {
+        let mut captures = HashMap::new();
+        captures.insert(
+            (1, 2),
+            InputCapture {
+                connector_id: 9,
+                target_id: Some(11),
+            },
+        );
+
+        let resolved = resolve_captured_connector(&captures, 1, 2).expect("capture should resolve");
+
+        assert_eq!(resolved.connector_id, ConnectorId(9));
+        assert_eq!(resolved.target_id, Some(vulfram_scene_core::TargetId(11)));
+    }
+
+    #[test]
+    fn resolve_connector_for_target_finds_matching_entry() {
+        let connectors = vec![InputRoutingConnectorHit {
+            id: ConnectorId(7),
+            state: ConnectorState {
+                source_surface: SurfaceId(1),
+                target_realm: RealmId(2),
+                rect: glam::Vec4::new(0.0, 0.0, 100.0, 100.0),
+                clip: None,
+                z_index: 0,
+                blend_mode: 0,
+                input_flags: 0,
+            },
+            source_size: glam::UVec2::new(100, 100),
+            target_id: Some(vulfram_scene_core::TargetId(42)),
+            target_rank: 0,
+        }];
+
+        let connector_id =
+            resolve_connector_for_target(Some(&connectors), vulfram_scene_core::TargetId(42));
+
+        assert_eq!(connector_id, Some(ConnectorId(7)));
     }
 }

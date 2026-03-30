@@ -4,16 +4,8 @@ use std::hash::{Hash, Hasher};
 
 use glam::UVec2;
 
-use crate::core::realm::{
-    ConnectorId, InputCapture, InputRoutingConnectorHit, RealmId, UniversalState,
-};
+use crate::core::realm::{ConnectorId, InputRoutingConnectorHit, RealmId, UniversalState};
 use crate::core::target::TargetId;
-
-#[derive(Debug, Clone, Copy)]
-pub(super) struct ResolvedInputCapture {
-    pub(super) connector_id: ConnectorId,
-    pub(super) target_id: Option<TargetId>,
-}
 
 pub(super) fn rebuild_input_routing_cache(universal: &mut UniversalState) {
     let topology_hash = compute_input_topology_hash(universal);
@@ -163,38 +155,9 @@ fn compute_input_topology_hash(universal: &UniversalState) -> u64 {
     hasher.finish()
 }
 
-pub(super) fn resolve_captured_connector(
-    captures: &HashMap<(u32, u64), InputCapture>,
-    window_id: u32,
-    pointer_id: u64,
-) -> Option<ResolvedInputCapture> {
-    captures
-        .get(&(window_id, pointer_id))
-        .map(|capture| ResolvedInputCapture {
-            connector_id: ConnectorId(capture.connector_id),
-            target_id: capture.target_id.map(TargetId),
-        })
-}
-
-pub(super) fn resolve_focus_target(
-    focus_targets: &HashMap<u32, TargetId>,
-    window_id: u32,
-) -> Option<TargetId> {
-    focus_targets.get(&window_id).copied()
-}
-
-pub(super) fn resolve_connector_for_target(
-    connectors: Option<&Vec<InputRoutingConnectorHit>>,
-    target_id: TargetId,
-) -> Option<ConnectorId> {
-    let connectors = connectors?;
-    for connector in connectors {
-        if connector.target_id == Some(target_id) {
-            return Some(connector.id);
-        }
-    }
-    None
-}
+pub(super) use vulfram_input::{
+    resolve_captured_connector, resolve_connector_for_target, resolve_focus_target,
+};
 
 pub(super) fn realm_surface_size(universal: &UniversalState, realm_id: RealmId) -> Option<UVec2> {
     let realm = universal.realms.entries.get(&realm_id)?;
