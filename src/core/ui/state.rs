@@ -8,8 +8,9 @@ use crate::core::ui::renderer::ExternalTextureInput;
 use crate::core::ui::types::{UiDocumentId, UiImageId, UiNodeId, UiThemeId};
 use egui::Context;
 pub use vulfram_realm_ui::{
-    UiAnimKey, UiAnimProperty, UiAnimState, UiDebugState, UiDocument, UiFrameProfile, UiNodeEntry,
-    UiSceneState, UiThemeState,
+    UiAnimKey, UiAnimProperty, UiAnimState, UiCaptureEntry, UiDebugState, UiDocument,
+    UiFrameProfile, UiNodeEntry, UiSceneState, UiThemeState, prune_document_focus_links,
+    prune_realm_focus_links, retain_valid_capture_entries, retain_valid_focus_nodes,
 };
 
 #[allow(dead_code)]
@@ -90,7 +91,7 @@ pub struct UiState {
     pub focus_by_window: HashMap<u32, RealmId>,
     pub focus_document_by_window: HashMap<u32, UiDocumentId>,
     pub focus_node_by_window: HashMap<u32, UiNodeId>,
-    pub capture_by_window: HashMap<u32, (RealmId, UiDocumentId, UiNodeId)>,
+    pub capture_by_window: HashMap<u32, UiCaptureEntry>,
     pub input_scratch: UiInputScratch,
     pub external_input_cache: HashMap<RealmId, UiExternalInputCache>,
 }
@@ -132,12 +133,12 @@ impl UiState {
             .retain(|(entry_document_id, _), _| *entry_document_id != document_id);
         self.scene_state
             .retain(|(entry_document_id, _), _| *entry_document_id != document_id);
-        self.focus_document_by_window
-            .retain(|_, focus_document_id| *focus_document_id != document_id);
-        self.focus_node_by_window
-            .retain(|window_id, _| self.focus_document_by_window.contains_key(window_id));
-        self.capture_by_window
-            .retain(|_, (_, capture_document_id, _)| *capture_document_id != document_id);
+        prune_document_focus_links(
+            &mut self.focus_document_by_window,
+            &mut self.focus_node_by_window,
+            &mut self.capture_by_window,
+            document_id,
+        );
 
         true
     }
@@ -145,10 +146,11 @@ impl UiState {
     pub fn remove_realm(&mut self, realm_id: RealmId) {
         self.realms.remove(&realm_id);
         self.external_input_cache.remove(&realm_id);
-        self.focus_by_window
-            .retain(|_, focus_realm_id| *focus_realm_id != realm_id);
-        self.capture_by_window
-            .retain(|_, (capture_realm_id, _, _)| *capture_realm_id != realm_id);
+        prune_realm_focus_links(
+            &mut self.focus_by_window,
+            &mut self.capture_by_window,
+            realm_id,
+        );
 
         let mut docs_to_remove = Vec::new();
         for (document_id, document) in &self.documents {
@@ -161,22 +163,12 @@ impl UiState {
         }
         self.focus_document_by_window
             .retain(|_, document_id| self.documents.contains_key(document_id));
-        self.focus_node_by_window.retain(|window_id, node_id| {
-            let Some(document_id) = self.focus_document_by_window.get(window_id) else {
-                return false;
-            };
-            self.documents
-                .get(document_id)
-                .map(|document| document.nodes.contains_key(node_id))
-                .unwrap_or(false)
-        });
-        self.capture_by_window
-            .retain(|_, (_, document_id, node_id)| {
-                self.documents
-                    .get(document_id)
-                    .map(|document| document.nodes.contains_key(node_id))
-                    .unwrap_or(false)
-            });
+        retain_valid_focus_nodes(
+            &self.focus_document_by_window,
+            &mut self.focus_node_by_window,
+            &self.documents,
+        );
+        retain_valid_capture_entries(&mut self.capture_by_window, &self.documents);
     }
 }
 

@@ -179,9 +179,7 @@ fn prune_removed_nodes(
         }
         ui_state.focus_document_by_window.get(window_id) != Some(&document_id)
     });
-    ui_state
-        .capture_by_window
-        .retain(|_, (_, capture_doc, node_id)| {
-            *capture_doc != document_id || !removed.contains(node_id)
-        });
+    ui_state.capture_by_window.retain(|_, capture| {
+        capture.document_id != document_id || !removed.contains(&capture.node_id)
+    });
 }

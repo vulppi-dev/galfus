@@ -1,8 +1,10 @@
+use std::collections::HashMap;
+
 use serde::{Deserialize, Serialize};
 use vulfram_input::{ElementState, PointerEvent, TouchPhase};
 use vulfram_types::{RealmId, UiNodeId};
 
-use crate::{UiDocumentId, UiTracedPointerDispatch};
+use crate::{UiDocument, UiDocumentId, UiTracedPointerDispatch};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -140,6 +142,54 @@ pub fn pointer_event_window_id(event: &PointerEvent) -> u32 {
     }
 }
 
+pub fn prune_document_focus_links(
+    focus_document_by_window: &mut HashMap<u32, UiDocumentId>,
+    focus_node_by_window: &mut HashMap<u32, UiNodeId>,
+    capture_by_window: &mut HashMap<u32, UiCaptureEntry>,
+    document_id: UiDocumentId,
+) {
+    focus_document_by_window.retain(|_, focus_document_id| *focus_document_id != document_id);
+    focus_node_by_window.retain(|window_id, _| focus_document_by_window.contains_key(window_id));
+    capture_by_window.retain(|_, capture| capture.document_id != document_id);
+}
+
+pub fn prune_realm_focus_links(
+    focus_by_window: &mut HashMap<u32, RealmId>,
+    capture_by_window: &mut HashMap<u32, UiCaptureEntry>,
+    realm_id: RealmId,
+) {
+    focus_by_window.retain(|_, focus_realm_id| *focus_realm_id != realm_id);
+    capture_by_window.retain(|_, capture| capture.realm_id != realm_id);
+}
+
+pub fn retain_valid_focus_nodes(
+    focus_document_by_window: &HashMap<u32, UiDocumentId>,
+    focus_node_by_window: &mut HashMap<u32, UiNodeId>,
+    documents: &HashMap<UiDocumentId, UiDocument>,
+) {
+    focus_node_by_window.retain(|window_id, node_id| {
+        let Some(document_id) = focus_document_by_window.get(window_id) else {
+            return false;
+        };
+        documents
+            .get(document_id)
+            .map(|document| document.nodes.contains_key(node_id))
+            .unwrap_or(false)
+    });
+}
+
+pub fn retain_valid_capture_entries(
+    capture_by_window: &mut HashMap<u32, UiCaptureEntry>,
+    documents: &HashMap<UiDocumentId, UiDocument>,
+) {
+    capture_by_window.retain(|_, capture| {
+        documents
+            .get(&capture.document_id)
+            .map(|document| document.nodes.contains_key(&capture.node_id))
+            .unwrap_or(false)
+    });
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -224,6 +274,51 @@ mod tests {
                 realm_id: RealmId(11),
                 pos: None,
             })
+        );
+    }
+
+    #[test]
+    fn prune_document_focus_links_removes_focus_and_capture_for_document() {
+        let mut focus_document_by_window = HashMap::from([(1, 10), (2, 20)]);
+        let mut focus_node_by_window = HashMap::from([(1, 100), (2, 200)]);
+        let mut capture_by_window = HashMap::from([
+            (
+                1,
+                UiCaptureEntry {
+                    realm_id: RealmId(7),
+                    document_id: 10,
+                    node_id: 100,
+                },
+            ),
+            (
+                2,
+                UiCaptureEntry {
+                    realm_id: RealmId(8),
+                    document_id: 20,
+                    node_id: 200,
+                },
+            ),
+        ]);
+
+        prune_document_focus_links(
+            &mut focus_document_by_window,
+            &mut focus_node_by_window,
+            &mut capture_by_window,
+            10,
+        );
+
+        assert_eq!(focus_document_by_window, HashMap::from([(2, 20)]));
+        assert_eq!(focus_node_by_window, HashMap::from([(2, 200)]));
+        assert_eq!(
+            capture_by_window,
+            HashMap::from([(
+                2,
+                UiCaptureEntry {
+                    realm_id: RealmId(8),
+                    document_id: 20,
+                    node_id: 200,
+                },
+            )])
         );
     }
 }

@@ -73,10 +73,11 @@ pub fn process_ui_input(engine: &mut EngineState) {
                 match pump_plan.capture_update {
                     UiCaptureUpdate::None => {}
                     UiCaptureUpdate::Set { window_id, capture } => {
-                        engine.universal_state.ui.capture_by_window.insert(
-                            window_id,
-                            (capture.realm_id, capture.document_id, capture.node_id),
-                        );
+                        engine
+                            .universal_state
+                            .ui
+                            .capture_by_window
+                            .insert(window_id, capture);
                     }
                     UiCaptureUpdate::Clear { window_id } => {
                         engine
