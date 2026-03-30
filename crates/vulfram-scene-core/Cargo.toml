@@ -1,0 +1,9 @@
+[package]
+name = "vulfram-scene-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+glam = "0.30"
+vulfram-types = { path = "../vulfram-types" }

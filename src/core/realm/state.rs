@@ -7,17 +7,10 @@ use crate::core::resources::{
 };
 use crate::core::target::{TargetGraphCache, TargetLayerTable, TargetTable};
 use crate::core::ui::UiState;
+pub use vulfram_scene_core::{
+    ConnectorState, ConnectorTable, PresentState, PresentTable, RealmState, RealmTable, TableEntry,
+};
 pub use vulfram_types::{ConnectorId, PresentId, RealmId, RealmKind, SurfaceId, SurfaceKind};
-
-#[derive(Debug, Clone)]
-pub struct RealmState {
-    pub kind: RealmKind,
-    pub output_surface: Option<SurfaceId>,
-    pub render_graph_id: Option<u32>,
-    pub importance: u8,
-    pub cache_policy: u8,
-    pub last_render_frame: u64,
-}
 
 #[derive(Debug, Clone)]
 pub struct SurfaceState {
@@ -26,57 +19,6 @@ pub struct SurfaceState {
     pub format_policy: Option<wgpu::TextureFormat>,
     pub alpha_policy: Option<wgpu::CompositeAlphaMode>,
     pub msaa_samples: Option<u32>,
-}
-
-#[derive(Debug, Clone)]
-pub struct ConnectorState {
-    pub target_realm: RealmId,
-    pub source_surface: SurfaceId,
-    pub rect: glam::Vec4,
-    pub z_index: i32,
-    pub blend_mode: u32,
-    pub clip: Option<glam::Vec4>,
-    pub input_flags: u32,
-}
-
-#[derive(Debug, Clone)]
-pub struct PresentState {
-    pub window_id: u32,
-    pub surface: SurfaceId,
-}
-
-#[derive(Debug, Clone)]
-pub struct TableEntry<T> {
-    pub value: T,
-}
-
-impl<T> TableEntry<T> {
-    pub fn new(value: T) -> Self {
-        Self { value }
-    }
-}
-
-#[derive(Debug, Default)]
-pub struct RealmTable {
-    pub next_id: u32,
-    pub entries: HashMap<RealmId, TableEntry<RealmState>>,
-}
-
-impl RealmTable {
-    pub fn alloc(&mut self, state: RealmState) -> RealmId {
-        let id = RealmId(self.next_id);
-        self.next_id = self.next_id.saturating_add(1);
-        self.entries.insert(id, TableEntry::new(state));
-        id
-    }
-
-    pub fn get(&self, id: RealmId) -> Option<&TableEntry<RealmState>> {
-        self.entries.get(&id)
-    }
-
-    pub fn remove(&mut self, id: RealmId) -> Option<TableEntry<RealmState>> {
-        self.entries.remove(&id)
-    }
 }
 
 #[derive(Debug, Default)]
@@ -99,53 +41,6 @@ impl SurfaceTable {
 
     pub fn remove(&mut self, id: SurfaceId) -> Option<TableEntry<SurfaceState>> {
         self.entries.remove(&id)
-    }
-}
-
-#[derive(Debug, Default)]
-pub struct ConnectorTable {
-    pub next_id: u32,
-    pub entries: HashMap<ConnectorId, TableEntry<ConnectorState>>,
-}
-
-impl ConnectorTable {
-    pub fn alloc(&mut self, state: ConnectorState) -> ConnectorId {
-        let id = ConnectorId(self.next_id);
-        self.next_id = self.next_id.saturating_add(1);
-        self.entries.insert(id, TableEntry::new(state));
-        id
-    }
-
-    pub fn get_mut(&mut self, id: ConnectorId) -> Option<&mut TableEntry<ConnectorState>> {
-        self.entries.get_mut(&id)
-    }
-
-    pub fn remove(&mut self, id: ConnectorId) -> Option<TableEntry<ConnectorState>> {
-        self.entries.remove(&id)
-    }
-}
-
-#[derive(Debug, Default)]
-pub struct PresentTable {
-    pub next_id: u32,
-    pub entries: HashMap<PresentId, TableEntry<PresentState>>,
-}
-
-impl PresentTable {
-    pub fn alloc(&mut self, state: PresentState) -> PresentId {
-        let id = PresentId(self.next_id);
-        self.next_id = self.next_id.saturating_add(1);
-        self.entries.insert(id, TableEntry::new(state));
-        id
-    }
-
-    pub fn remove(&mut self, id: PresentId) -> Option<TableEntry<PresentState>> {
-        self.entries.remove(&id)
-    }
-
-    pub fn remove_by_window(&mut self, window_id: u32) {
-        self.entries
-            .retain(|_, entry| entry.value.window_id != window_id);
     }
 }
 
