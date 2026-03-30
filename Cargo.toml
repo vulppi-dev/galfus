@@ -4,6 +4,7 @@ members = [
     "crates/vulfram-protocol",
     "crates/vulfram-scene-core",
     "crates/vulfram-types",
+    "crates/vulfram-ui",
 ]
 resolver = "3"
 
@@ -37,6 +38,7 @@ vulfram-input = { path = "crates/vulfram-input" }
 vulfram-protocol = { path = "crates/vulfram-protocol" }
 vulfram-scene-core = { path = "crates/vulfram-scene-core" }
 vulfram-types = { path = "crates/vulfram-types" }
+vulfram-ui = { path = "crates/vulfram-ui" }
 
 # Math
 glam = { version = "0.30", features = ["serde", "bytemuck", "encase"] }
