@@ -8,7 +8,9 @@ pub use cmd::*;
 #[allow(unused_imports)]
 pub use graph::{RealmGraphEdge, RealmGraphPlan, RealmGraphPlanner};
 #[allow(unused_imports)]
-pub use report::{FrameCutEdge, FrameReport, SurfaceCacheEntry, TargetAutoLinkFailure};
+pub use report::{
+    FrameCutEdge, FrameReport, SurfaceCacheEntry, TargetAutoLinkFailure, apply_target_graph_stats,
+};
 #[allow(unused_imports)]
 pub use state::{
     AudioState, AutoLink, ConnectorId, ConnectorState, ConnectorTable, InputCapture,

@@ -9,7 +9,7 @@ pub mod runtime;
 mod scene_sync;
 pub mod state;
 mod ui_platform_actions;
-use crate::core::realm::{FrameReport, RealmGraphPlanner};
+use crate::core::realm::{FrameReport, RealmGraphPlanner, apply_target_graph_stats};
 use crate::core::render::passes::UiPlatformAction;
 use crate::core::state::EngineState;
 use crate::core::system::push_error_event;
@@ -128,7 +128,7 @@ pub fn render_frames(engine_state: &mut EngineState) {
     let previous_cut_edges = engine_state.universal_state.frame_report.cut_edges.len();
     let mut frame_report =
         FrameReport::from_plan(&realm_plan, &engine_state.universal_state.surface_cache);
-    frame_report.apply_target_graph_stats(&target_plan, target_diff.as_ref());
+    apply_target_graph_stats(&mut frame_report, &target_plan, target_diff.as_ref());
     frame_report.target_autolink_failures = engine_state
         .universal_state
         .target_autolink_failures

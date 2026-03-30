@@ -6,4 +6,5 @@ license.workspace = true
 
 [dependencies]
 glam = "0.30"
+serde = { version = "1.0", features = ["derive"] }
 vulfram-types = { path = "../vulfram-types" }
