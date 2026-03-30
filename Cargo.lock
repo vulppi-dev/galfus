@@ -3979,6 +3979,8 @@ dependencies = [
  "rmp-serde",
  "serde",
  "serde_json",
+ "vulfram-scene-core",
+ "vulfram-types",
 ]
 
 [[package]]

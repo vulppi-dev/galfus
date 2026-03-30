@@ -7,6 +7,8 @@ license.workspace = true
 [dependencies]
 glam = { version = "0.30", features = ["serde"] }
 serde = { version = "1.0", features = ["derive"] }
+vulfram-scene-core = { path = "../vulfram-scene-core" }
+vulfram-types = { path = "../vulfram-types" }
 
 [dev-dependencies]
 rmp-serde = "1.3"

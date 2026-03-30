@@ -13,6 +13,7 @@ pub use converters::{
 };
 pub use keyboard::KeyboardEvent;
 pub use pointer::ScrollDelta;
+#[allow(unused_imports)]
 pub use pointer::{
     PointerEvent, PointerEventTrace, PointerTraceConfig, PointerTraceHop, PointerTraceLevel,
     PointerTraceStage,

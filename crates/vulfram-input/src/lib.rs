@@ -2,6 +2,8 @@ use std::collections::HashMap;
 
 use glam::Vec2;
 use serde::{Deserialize, Serialize};
+use vulfram_scene_core::ConnectorState;
+use vulfram_types::{ConnectorId, RealmId, SurfaceId};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "kebab-case")]
@@ -363,6 +365,39 @@ pub struct InputTargetListenerConfig {
 pub struct InputCapture {
     pub connector_id: u32,
     pub target_id: Option<u64>,
+}
+
+#[derive(Debug, Clone)]
+pub struct InputRoutingConnectorHit {
+    pub id: ConnectorId,
+    pub state: ConnectorState,
+    pub source_size: glam::UVec2,
+    pub target_id: Option<vulfram_scene_core::TargetId>,
+    pub target_rank: i32,
+}
+
+#[derive(Debug, Default)]
+pub struct InputRoutingCache {
+    pub topology_hash: u64,
+    pub realm_by_surface: HashMap<SurfaceId, RealmId>,
+    pub realm_by_window: HashMap<u32, (RealmId, SurfaceId)>,
+    pub connector_targets: HashMap<ConnectorId, vulfram_scene_core::TargetId>,
+    pub layer_camera_by_key: HashMap<(u32, vulfram_scene_core::TargetId), Option<u32>>,
+    pub connectors_by_realm: HashMap<RealmId, Vec<InputRoutingConnectorHit>>,
+}
+
+#[derive(Debug, Default)]
+pub struct InputRoutingState {
+    pub captures: HashMap<(u32, u64), InputCapture>,
+    pub focus_targets: HashMap<u32, vulfram_scene_core::TargetId>,
+    pub trace: PointerTraceConfig,
+    pub cache: InputRoutingCache,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct HitResult {
+    pub connector_id: ConnectorId,
+    pub uv: Option<Vec2>,
 }
 
 #[derive(Debug, Default, Clone, Deserialize, Serialize)]
@@ -792,6 +827,67 @@ pub fn quantize_uv(value: f32) -> u16 {
     (clamped * 1024.0).round() as u16
 }
 
+pub fn resolve_hit_connector(
+    connectors: Option<&Vec<InputRoutingConnectorHit>>,
+    position: Vec2,
+    window_size: Option<glam::UVec2>,
+) -> Option<HitResult> {
+    const INPUT_FLAG_RAYCAST: u32 = 1 << 0;
+
+    let connectors = connectors?;
+    let target_size = window_size.unwrap_or_else(|| glam::UVec2::new(1, 1));
+    for connector in connectors {
+        if connector.state.input_flags & INPUT_FLAG_RAYCAST != 0 {
+            if hit_test_connector(
+                position,
+                connector.state.rect,
+                connector.state.clip,
+                connector.source_size,
+                target_size,
+            ) {
+                let uv = resolve_connector_uv_from_sizes(
+                    connector.state.rect,
+                    connector.state.clip,
+                    position,
+                    connector.source_size,
+                    target_size,
+                );
+                return Some(HitResult {
+                    connector_id: connector.id,
+                    uv,
+                });
+            }
+            continue;
+        }
+        if hit_test_connector(
+            position,
+            connector.state.rect,
+            connector.state.clip,
+            connector.source_size,
+            target_size,
+        ) {
+            return Some(HitResult {
+                connector_id: connector.id,
+                uv: None,
+            });
+        }
+    }
+    None
+}
+
+pub fn resolve_connector_uv_from_sizes(
+    rect: glam::Vec4,
+    clip: Option<glam::Vec4>,
+    position: Vec2,
+    source_size: glam::UVec2,
+    target_size: glam::UVec2,
+) -> Option<Vec2> {
+    let (viewport, _) = resolve_overlay_geometry(rect, clip, source_size, target_size)?;
+    let u = ((position.x - viewport.x) / viewport.z.max(1.0)).clamp(0.0, 1.0);
+    let v = ((position.y - viewport.y) / viewport.w.max(1.0)).clamp(0.0, 1.0);
+    Some(Vec2::new(u, v))
+}
+
 fn trace_contains_error(trace: &PointerEventTrace) -> bool {
     trace.hops.iter().any(|hop| {
         matches!(
@@ -822,9 +918,91 @@ fn trace_is_sampled(
     seed % 100 < percent as u64
 }
 
+fn hit_test_connector(
+    position: Vec2,
+    rect: glam::Vec4,
+    clip: Option<glam::Vec4>,
+    source_size: glam::UVec2,
+    target_size: glam::UVec2,
+) -> bool {
+    let Some((viewport, clip_rect)) =
+        resolve_overlay_geometry(rect, clip, source_size, target_size)
+    else {
+        return false;
+    };
+
+    let inside_viewport = position.x >= viewport.x
+        && position.y >= viewport.y
+        && position.x <= viewport.x + viewport.z
+        && position.y <= viewport.y + viewport.w;
+    let inside_clip = position.x >= clip_rect.x
+        && position.y >= clip_rect.y
+        && position.x <= clip_rect.x + clip_rect.z
+        && position.y <= clip_rect.y + clip_rect.w;
+    inside_viewport && inside_clip
+}
+
+fn resolve_overlay_geometry(
+    rect: glam::Vec4,
+    clip: Option<glam::Vec4>,
+    source_size: glam::UVec2,
+    target_size: glam::UVec2,
+) -> Option<(glam::Vec4, glam::Vec4)> {
+    if rect.z <= 0.0 || rect.w <= 0.0 {
+        return None;
+    }
+
+    let source_width = source_size.x.max(1) as f32;
+    let source_height = source_size.y.max(1) as f32;
+    let scale = rect.w / source_height;
+    let draw_width = (source_width * scale).max(1.0);
+
+    let mut viewport_x = rect.x + (rect.z - draw_width) * 0.5;
+    let mut viewport_y = rect.y;
+    let mut viewport_width = draw_width;
+    let mut viewport_height = rect.w.max(1.0);
+
+    if viewport_x < 0.0 {
+        viewport_width = (viewport_width + viewport_x).max(0.0);
+        viewport_x = 0.0;
+    }
+    if viewport_y < 0.0 {
+        viewport_height = (viewport_height + viewport_y).max(0.0);
+        viewport_y = 0.0;
+    }
+
+    let max_width = target_size.x as f32 - viewport_x;
+    let max_height = target_size.y as f32 - viewport_y;
+    if max_width <= 0.0 || max_height <= 0.0 {
+        return None;
+    }
+    viewport_width = viewport_width.min(max_width);
+    viewport_height = viewport_height.min(max_height);
+    if viewport_width <= 0.0 || viewport_height <= 0.0 {
+        return None;
+    }
+
+    let viewport = glam::Vec4::new(viewport_x, viewport_y, viewport_width, viewport_height);
+    let mut clip_rect = rect;
+    if let Some(clip) = clip {
+        clip_rect = intersect_rect(clip_rect, clip);
+    }
+    Some((viewport, clip_rect))
+}
+
+fn intersect_rect(a: glam::Vec4, b: glam::Vec4) -> glam::Vec4 {
+    let x1 = a.x.max(b.x);
+    let y1 = a.y.max(b.y);
+    let x2 = (a.x + a.z).min(b.x + b.z);
+    let y2 = (a.y + a.w).min(b.y + b.w);
+    glam::Vec4::new(x1, y1, (x2 - x1).max(0.0), (y2 - y1).max(0.0))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use vulfram_scene_core::ConnectorState;
+    use vulfram_types::ConnectorId;
 
     #[test]
     fn modifiers_default_to_all_false() {
@@ -1023,5 +1201,46 @@ mod tests {
         };
         update_focus_state(&mut focus_targets, 1, Some(42), &release);
         assert!(focus_targets.is_empty());
+    }
+
+    #[test]
+    fn input_routing_state_defaults_to_empty_maps_and_full_trace() {
+        let routing = InputRoutingState::default();
+
+        assert!(routing.captures.is_empty());
+        assert!(routing.focus_targets.is_empty());
+        assert_eq!(routing.trace.level, PointerTraceLevel::Full);
+        assert_eq!(routing.trace.sampling_percent, 100);
+        assert_eq!(routing.cache.topology_hash, 0);
+        assert!(routing.cache.connectors_by_realm.is_empty());
+    }
+
+    #[test]
+    fn resolve_hit_connector_returns_uv_for_raycast_connectors() {
+        let connectors = vec![InputRoutingConnectorHit {
+            id: ConnectorId(7),
+            state: ConnectorState {
+                source_surface: SurfaceId(1),
+                target_realm: RealmId(2),
+                rect: glam::Vec4::new(0.0, 0.0, 100.0, 100.0),
+                clip: None,
+                z_index: 0,
+                blend_mode: 0,
+                input_flags: 1,
+            },
+            source_size: glam::UVec2::new(100, 100),
+            target_id: None,
+            target_rank: 0,
+        }];
+
+        let hit = resolve_hit_connector(
+            Some(&connectors),
+            Vec2::new(50.0, 50.0),
+            Some(glam::UVec2::new(100, 100)),
+        )
+        .expect("connector should hit");
+
+        assert_eq!(hit.connector_id, ConnectorId(7));
+        assert_eq!(hit.uv, Some(Vec2::new(0.5, 0.5)));
     }
 }

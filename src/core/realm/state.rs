@@ -102,31 +102,6 @@ pub struct UniversalState {
     pub universal_resources: UniversalResources,
 }
 
-pub use vulfram_input::InputCapture;
-
-#[derive(Debug, Clone)]
-pub struct InputRoutingConnectorHit {
-    pub id: ConnectorId,
-    pub state: ConnectorState,
-    pub source_size: glam::UVec2,
-    pub target_id: Option<crate::core::target::TargetId>,
-    pub target_rank: i32,
-}
-
-#[derive(Debug, Default)]
-pub struct InputRoutingCache {
-    pub topology_hash: u64,
-    pub realm_by_surface: HashMap<SurfaceId, RealmId>,
-    pub realm_by_window: HashMap<u32, (RealmId, SurfaceId)>,
-    pub connector_targets: HashMap<ConnectorId, crate::core::target::TargetId>,
-    pub layer_camera_by_key: HashMap<(u32, crate::core::target::TargetId), Option<u32>>,
-    pub connectors_by_realm: HashMap<RealmId, Vec<InputRoutingConnectorHit>>,
-}
-
-#[derive(Debug, Default)]
-pub struct InputRoutingState {
-    pub captures: HashMap<(u32, u64), InputCapture>,
-    pub focus_targets: HashMap<u32, crate::core::target::TargetId>,
-    pub trace: crate::core::input::events::PointerTraceConfig,
-    pub cache: InputRoutingCache,
-}
+pub use vulfram_input::{
+    InputCapture, InputRoutingCache, InputRoutingConnectorHit, InputRoutingState,
+};
