@@ -1,84 +1,13 @@
-use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
 use crate::core::state::EngineState;
 use crate::core::ui::state::{UiDocument, UiState};
-use crate::core::ui::types::{UiDocumentId, UiNodeId, UiOp, UiThemeId};
-
-#[derive(Debug, Deserialize, Serialize, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct CmdUiDocumentCreateArgs {
-    pub document_id: UiDocumentId,
-    pub realm_id: u32,
-    pub rect: glam::Vec4,
-    #[serde(default)]
-    pub theme_id: Option<UiThemeId>,
-}
-
-#[derive(Debug, Default, Deserialize, Serialize, Clone)]
-#[serde(default, rename_all = "camelCase")]
-pub struct CmdResultUiDocumentCreate {
-    pub success: bool,
-    pub message: String,
-    pub document_id: Option<UiDocumentId>,
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct CmdUiDocumentDisposeArgs {
-    pub document_id: UiDocumentId,
-}
-
-#[derive(Debug, Default, Deserialize, Serialize, Clone)]
-#[serde(default, rename_all = "camelCase")]
-pub struct CmdResultUiDocumentDispose {
-    pub success: bool,
-    pub message: String,
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct CmdUiDocumentSetRectArgs {
-    pub document_id: UiDocumentId,
-    pub rect: glam::Vec4,
-}
-
-#[derive(Debug, Default, Deserialize, Serialize, Clone)]
-#[serde(default, rename_all = "camelCase")]
-pub struct CmdResultUiDocumentSetRect {
-    pub success: bool,
-    pub message: String,
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct CmdUiDocumentSetThemeArgs {
-    pub document_id: UiDocumentId,
-    pub theme_id: Option<UiThemeId>,
-}
-
-#[derive(Debug, Default, Deserialize, Serialize, Clone)]
-#[serde(default, rename_all = "camelCase")]
-pub struct CmdResultUiDocumentSetTheme {
-    pub success: bool,
-    pub message: String,
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct CmdUiApplyOpsArgs {
-    pub document_id: UiDocumentId,
-    pub version: u64,
-    pub ops: Vec<UiOp>,
-}
-
-#[derive(Debug, Default, Deserialize, Serialize, Clone)]
-#[serde(default, rename_all = "camelCase")]
-pub struct CmdResultUiApplyOps {
-    pub success: bool,
-    pub message: String,
-    pub version: Option<u64>,
-}
+pub use vulfram_ui::{
+    CmdResultUiApplyOps, CmdResultUiDocumentCreate, CmdResultUiDocumentDispose,
+    CmdResultUiDocumentSetRect, CmdResultUiDocumentSetTheme, CmdUiApplyOpsArgs,
+    CmdUiDocumentCreateArgs, CmdUiDocumentDisposeArgs, CmdUiDocumentSetRectArgs,
+    CmdUiDocumentSetThemeArgs, UiDocumentId, UiNodeId,
+};
 
 pub fn engine_cmd_ui_document_create(
     engine: &mut EngineState,

@@ -4021,6 +4021,7 @@ dependencies = [
  "glam 0.30.10",
  "serde",
  "serde_json",
+ "vulfram-input",
  "vulfram-types",
 ]
 

@@ -1,116 +1,11 @@
-use serde::{Deserialize, Serialize};
-
-use crate::core::input::events::PointerTraceLevel;
 use crate::core::realm::RealmId;
 use crate::core::state::EngineState;
-use crate::core::ui::types::{UiDocumentId, UiNodeId};
-
-#[derive(Debug, Deserialize, Serialize, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct CmdUiDocumentGetTreeArgs {
-    pub document_id: UiDocumentId,
-}
-
-#[derive(Debug, Default, Deserialize, Serialize, Clone)]
-#[serde(default, rename_all = "camelCase")]
-pub struct CmdResultUiDocumentGetTree {
-    pub success: bool,
-    pub message: String,
-    pub document_id: Option<UiDocumentId>,
-    pub version: Option<u64>,
-    pub root_nodes: Vec<UiDocumentTreeNode>,
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct UiDocumentTreeNode {
-    pub node_id: UiNodeId,
-    pub kind: crate::core::ui::types::UiNodeKind,
-    pub z_index: i32,
-    pub children: Vec<UiDocumentTreeNode>,
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct CmdUiDocumentGetLayoutRectsArgs {
-    pub document_id: UiDocumentId,
-}
-
-#[derive(Debug, Default, Deserialize, Serialize, Clone)]
-#[serde(default, rename_all = "camelCase")]
-pub struct CmdResultUiDocumentGetLayoutRects {
-    pub success: bool,
-    pub message: String,
-    pub document_id: Option<UiDocumentId>,
-    pub version: Option<u64>,
-    pub rects: Vec<UiNodeLayoutRect>,
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct UiNodeLayoutRect {
-    pub node_id: UiNodeId,
-    pub rect: glam::Vec4,
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct CmdUiFocusSetArgs {
-    pub window_id: u32,
-    pub realm_id: u32,
-    pub document_id: UiDocumentId,
-    #[serde(default)]
-    pub node_id: Option<UiNodeId>,
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct CmdUiFocusGetArgs {
-    #[serde(default)]
-    pub window_id: Option<u32>,
-}
-
-#[derive(Debug, Default, Deserialize, Serialize, Clone)]
-#[serde(default, rename_all = "camelCase")]
-pub struct CmdResultUiFocusSet {
-    pub success: bool,
-    pub message: String,
-}
-
-#[derive(Debug, Default, Deserialize, Serialize, Clone)]
-#[serde(default, rename_all = "camelCase")]
-pub struct CmdResultUiFocusGet {
-    pub success: bool,
-    pub message: String,
-    pub entries: Vec<UiFocusEntry>,
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct UiFocusEntry {
-    pub window_id: u32,
-    pub realm_id: u32,
-    pub document_id: UiDocumentId,
-    pub node_id: UiNodeId,
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct CmdUiEventTraceSetArgs {
-    #[serde(default)]
-    pub level: Option<PointerTraceLevel>,
-    #[serde(default)]
-    pub sampling_percent: Option<u8>,
-}
-
-#[derive(Debug, Default, Deserialize, Serialize, Clone)]
-#[serde(default, rename_all = "camelCase")]
-pub struct CmdResultUiEventTraceSet {
-    pub success: bool,
-    pub message: String,
-    pub level: Option<PointerTraceLevel>,
-    pub sampling_percent: Option<u8>,
-}
+pub use vulfram_ui::{
+    CmdResultUiDocumentGetLayoutRects, CmdResultUiDocumentGetTree, CmdResultUiEventTraceSet,
+    CmdResultUiFocusGet, CmdResultUiFocusSet, CmdUiDocumentGetLayoutRectsArgs,
+    CmdUiDocumentGetTreeArgs, CmdUiEventTraceSetArgs, CmdUiFocusGetArgs, CmdUiFocusSetArgs,
+    UiFocusEntry, UiNodeLayoutRect, build_tree_node,
+};
 
 pub fn engine_cmd_ui_document_get_tree(
     engine: &mut EngineState,
@@ -282,28 +177,4 @@ pub fn engine_cmd_ui_event_trace_set(
         level: Some(trace.level),
         sampling_percent: Some(trace.sampling_percent),
     }
-}
-
-fn build_tree_node(
-    doc: &crate::core::ui::state::UiDocument,
-    node_id: UiNodeId,
-) -> Option<UiDocumentTreeNode> {
-    let entry = doc.nodes.get(&node_id)?;
-    let mut children = Vec::new();
-    let ordered_children = doc
-        .ordered_children
-        .get(&node_id)
-        .cloned()
-        .unwrap_or_else(|| entry.children.clone());
-    for child_id in ordered_children {
-        if let Some(child) = build_tree_node(doc, child_id) {
-            children.push(child);
-        }
-    }
-    Some(UiDocumentTreeNode {
-        node_id,
-        kind: entry.node.kind.clone(),
-        z_index: entry.node.z_index.unwrap_or(0),
-        children,
-    })
 }
