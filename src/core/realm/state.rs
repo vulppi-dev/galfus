@@ -8,7 +8,8 @@ use crate::core::resources::{
 use crate::core::target::{TargetGraphCache, TargetLayerTable, TargetTable};
 use crate::core::ui::UiState;
 pub use vulfram_scene_core::{
-    ConnectorState, ConnectorTable, PresentState, PresentTable, RealmState, RealmTable, TableEntry,
+    AutoLink, ConnectorState, ConnectorTable, PresentState, PresentTable, RealmState, RealmTable,
+    SurfaceCache, TableEntry,
 };
 pub use vulfram_types::{ConnectorId, PresentId, RealmId, RealmKind, SurfaceId, SurfaceKind};
 
@@ -99,19 +100,6 @@ pub struct UniversalState {
     pub render_graphs: HashMap<u32, crate::core::render::graph::RenderGraphRecord>,
     pub render_graph_plan_cache: HashMap<u64, crate::core::render::graph::RenderGraphState>,
     pub universal_resources: UniversalResources,
-}
-
-#[derive(Debug, Clone)]
-pub struct AutoLink {
-    pub surface_id: SurfaceId,
-    pub connector_id: Option<ConnectorId>,
-    pub present_id: Option<PresentId>,
-}
-
-#[derive(Debug, Default)]
-pub struct SurfaceCache {
-    pub last_good: HashMap<ConnectorId, SurfaceId>,
-    pub fallback: HashMap<ConnectorId, SurfaceId>,
 }
 
 #[derive(Debug, Clone, Copy)]
