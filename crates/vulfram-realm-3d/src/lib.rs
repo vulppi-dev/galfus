@@ -190,13 +190,29 @@ pub fn plan_target_texture_bind_sync(
     }
 }
 
+pub fn plan_geometry_registry_sync(current_ids: &[u32], next_ids: &[u32]) -> SyncPlan {
+    let current_ids: std::collections::HashSet<u32> = current_ids.iter().copied().collect();
+    let next_ids: std::collections::HashSet<u32> = next_ids.iter().copied().collect();
+
+    let mut stale_ids: Vec<u32> = current_ids.difference(&next_ids).copied().collect();
+    stale_ids.sort_unstable();
+
+    let mut replace_ids: Vec<u32> = next_ids.difference(&current_ids).copied().collect();
+    replace_ids.sort_unstable();
+
+    SyncPlan {
+        stale_ids,
+        replace_ids,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
         ForwardAtlasEntryMeta, SyncPlan, TargetTextureBindingMeta, TextureRecordMeta,
         graph_is_compatible, hash_forward_atlas_entries, hash_target_texture_binds,
-        hash_texture_records, plan_forward_atlas_sync, plan_target_texture_bind_sync,
-        plan_texture_record_sync, supports_render_pass,
+        hash_texture_records, plan_forward_atlas_sync, plan_geometry_registry_sync,
+        plan_target_texture_bind_sync, plan_texture_record_sync, supports_render_pass,
     };
 
     #[test]
@@ -354,6 +370,17 @@ mod tests {
             SyncPlan {
                 stale_ids: vec![7],
                 replace_ids: vec![5],
+            }
+        );
+    }
+
+    #[test]
+    fn geometry_registry_sync_plan_marks_missing_and_stale_ids() {
+        assert_eq!(
+            plan_geometry_registry_sync(&[1, 2, 3], &[2, 3, 4]),
+            SyncPlan {
+                stale_ids: vec![1],
+                replace_ids: vec![4],
             }
         );
     }

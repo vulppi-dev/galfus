@@ -381,20 +381,18 @@ pub(super) fn sync_window_geometry_registry(
     let Some(vertex) = render_state.vertex.as_mut() else {
         return;
     };
-    for (geometry_id, record) in geometries {
-        if vertex.records().contains_key(geometry_id) {
+    let current_ids: Vec<u32> = vertex.records().keys().copied().collect();
+    let next_ids: Vec<u32> = geometries.keys().copied().collect();
+    let plan = vulfram_realm_3d::plan_geometry_registry_sync(&current_ids, &next_ids);
+
+    for geometry_id in plan.replace_ids {
+        let Some(record) = geometries.get(&geometry_id) else {
             continue;
-        }
-        let _ = vertex.create_geometry(*geometry_id, record.label.clone(), record.entries.clone());
+        };
+        let _ = vertex.create_geometry(geometry_id, record.label.clone(), record.entries.clone());
     }
 
-    let stale_ids: Vec<u32> = vertex
-        .records()
-        .keys()
-        .filter(|geometry_id| !geometries.contains_key(geometry_id))
-        .copied()
-        .collect();
-    for geometry_id in stale_ids {
+    for geometry_id in plan.stale_ids {
         let _ = vertex.destroy_geometry(geometry_id);
     }
 }
