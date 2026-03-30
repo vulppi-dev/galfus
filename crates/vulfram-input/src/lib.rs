@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::hash::{Hash, Hasher};
 
 use glam::Vec2;
 use serde::{Deserialize, Serialize};
@@ -404,6 +405,61 @@ pub struct InputRoutingState {
 pub struct HitResult {
     pub connector_id: ConnectorId,
     pub uv: Option<Vec2>,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct InputRoutingRealmOutput {
+    pub realm_id: RealmId,
+    pub output_surface: Option<SurfaceId>,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct InputRoutingPresentBinding {
+    pub window_id: u32,
+    pub surface_id: SurfaceId,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct InputRoutingTargetRank {
+    pub target_id: vulfram_scene_core::TargetId,
+    pub rank: i32,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct InputRoutingAutoLinkRecord {
+    pub target_id: vulfram_scene_core::TargetId,
+    pub connector_id: ConnectorId,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct InputRoutingLayerCameraRecord {
+    pub realm_id: u32,
+    pub target_id: vulfram_scene_core::TargetId,
+    pub camera_id: Option<u32>,
+}
+
+#[derive(Debug, Clone)]
+pub struct InputRoutingConnectorRecord {
+    pub connector_id: ConnectorId,
+    pub state: ConnectorState,
+    pub source_size: glam::UVec2,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct InputRoutingSurfaceSizeRecord {
+    pub surface_id: SurfaceId,
+    pub size: glam::UVec2,
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct InputRoutingTopologySnapshot {
+    pub realms: Vec<InputRoutingRealmOutput>,
+    pub presents: Vec<InputRoutingPresentBinding>,
+    pub target_order: Vec<InputRoutingTargetRank>,
+    pub auto_links: Vec<InputRoutingAutoLinkRecord>,
+    pub layer_cameras: Vec<InputRoutingLayerCameraRecord>,
+    pub connectors: Vec<InputRoutingConnectorRecord>,
+    pub surfaces: Vec<InputRoutingSurfaceSizeRecord>,
 }
 
 #[derive(Debug, Default, Clone, Deserialize, Serialize)]
@@ -914,6 +970,145 @@ pub fn resolve_connector_for_target(
     None
 }
 
+pub fn build_input_routing_cache(snapshot: &InputRoutingTopologySnapshot) -> InputRoutingCache {
+    let realm_by_surface = snapshot
+        .realms
+        .iter()
+        .filter_map(|realm| {
+            realm
+                .output_surface
+                .map(|surface_id| (surface_id, realm.realm_id))
+        })
+        .collect::<HashMap<_, _>>();
+
+    let mut realm_by_window = HashMap::new();
+    for present in &snapshot.presents {
+        if let Some(realm_id) = realm_by_surface.get(&present.surface_id).copied() {
+            realm_by_window.insert(present.window_id, (realm_id, present.surface_id));
+        }
+    }
+
+    let target_rank = snapshot
+        .target_order
+        .iter()
+        .map(|entry| (entry.target_id, entry.rank))
+        .collect::<HashMap<_, _>>();
+
+    let connector_targets = snapshot
+        .auto_links
+        .iter()
+        .map(|entry| (entry.connector_id, entry.target_id))
+        .collect::<HashMap<_, _>>();
+
+    let layer_camera_by_key = snapshot
+        .layer_cameras
+        .iter()
+        .map(|entry| ((entry.realm_id, entry.target_id), entry.camera_id))
+        .collect::<HashMap<_, _>>();
+
+    let mut connectors_by_realm: HashMap<RealmId, Vec<InputRoutingConnectorHit>> = HashMap::new();
+    for connector in &snapshot.connectors {
+        let target_id = connector_targets.get(&connector.connector_id).copied();
+        let rank = target_id
+            .and_then(|id| target_rank.get(&id).copied())
+            .unwrap_or(-1);
+        connectors_by_realm
+            .entry(connector.state.target_realm)
+            .or_default()
+            .push(InputRoutingConnectorHit {
+                id: connector.connector_id,
+                state: connector.state.clone(),
+                source_size: connector.source_size,
+                target_id,
+                target_rank: rank,
+            });
+    }
+
+    for connectors in connectors_by_realm.values_mut() {
+        connectors.sort_by(|a, b| {
+            let z_cmp = b.state.z_index.cmp(&a.state.z_index);
+            if z_cmp == std::cmp::Ordering::Equal {
+                let rank_cmp = b.target_rank.cmp(&a.target_rank);
+                if rank_cmp == std::cmp::Ordering::Equal {
+                    b.id.0.cmp(&a.id.0)
+                } else {
+                    rank_cmp
+                }
+            } else {
+                z_cmp
+            }
+        });
+    }
+
+    InputRoutingCache {
+        topology_hash: compute_input_topology_hash(snapshot),
+        realm_by_surface,
+        realm_by_window,
+        connector_targets,
+        layer_camera_by_key,
+        connectors_by_realm,
+    }
+}
+
+pub fn compute_input_topology_hash(snapshot: &InputRoutingTopologySnapshot) -> u64 {
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+
+    snapshot.realms.len().hash(&mut hasher);
+    for realm in &snapshot.realms {
+        realm.realm_id.hash(&mut hasher);
+        realm.output_surface.hash(&mut hasher);
+    }
+
+    snapshot.presents.len().hash(&mut hasher);
+    for present in &snapshot.presents {
+        present.window_id.hash(&mut hasher);
+        present.surface_id.hash(&mut hasher);
+    }
+
+    for target in &snapshot.target_order {
+        target.target_id.hash(&mut hasher);
+        target.rank.hash(&mut hasher);
+    }
+
+    for link in &snapshot.auto_links {
+        link.target_id.hash(&mut hasher);
+        link.connector_id.hash(&mut hasher);
+    }
+
+    for layer in &snapshot.layer_cameras {
+        layer.realm_id.hash(&mut hasher);
+        layer.target_id.hash(&mut hasher);
+        layer.camera_id.hash(&mut hasher);
+    }
+
+    for connector in &snapshot.connectors {
+        connector.connector_id.hash(&mut hasher);
+        connector.state.target_realm.hash(&mut hasher);
+        connector.state.source_surface.hash(&mut hasher);
+        connector.state.z_index.hash(&mut hasher);
+        connector.state.blend_mode.hash(&mut hasher);
+        connector.state.input_flags.hash(&mut hasher);
+        connector.state.rect.x.to_bits().hash(&mut hasher);
+        connector.state.rect.y.to_bits().hash(&mut hasher);
+        connector.state.rect.z.to_bits().hash(&mut hasher);
+        connector.state.rect.w.to_bits().hash(&mut hasher);
+        if let Some(clip) = connector.state.clip {
+            clip.x.to_bits().hash(&mut hasher);
+            clip.y.to_bits().hash(&mut hasher);
+            clip.z.to_bits().hash(&mut hasher);
+            clip.w.to_bits().hash(&mut hasher);
+        }
+    }
+
+    for surface in &snapshot.surfaces {
+        surface.surface_id.hash(&mut hasher);
+        surface.size.x.hash(&mut hasher);
+        surface.size.y.hash(&mut hasher);
+    }
+
+    hasher.finish()
+}
+
 pub fn resolve_connector_uv_from_sizes(
     rect: glam::Vec4,
     clip: Option<glam::Vec4>,
@@ -1322,5 +1517,95 @@ mod tests {
             resolve_connector_for_target(Some(&connectors), vulfram_scene_core::TargetId(42));
 
         assert_eq!(connector_id, Some(ConnectorId(7)));
+    }
+
+    #[test]
+    fn build_input_routing_cache_sorts_connectors_by_z_then_rank() {
+        let snapshot = InputRoutingTopologySnapshot {
+            realms: vec![InputRoutingRealmOutput {
+                realm_id: RealmId(1),
+                output_surface: Some(SurfaceId(5)),
+            }],
+            presents: vec![InputRoutingPresentBinding {
+                window_id: 9,
+                surface_id: SurfaceId(5),
+            }],
+            target_order: vec![
+                InputRoutingTargetRank {
+                    target_id: vulfram_scene_core::TargetId(100),
+                    rank: 0,
+                },
+                InputRoutingTargetRank {
+                    target_id: vulfram_scene_core::TargetId(200),
+                    rank: 1,
+                },
+            ],
+            auto_links: vec![
+                InputRoutingAutoLinkRecord {
+                    target_id: vulfram_scene_core::TargetId(100),
+                    connector_id: ConnectorId(1),
+                },
+                InputRoutingAutoLinkRecord {
+                    target_id: vulfram_scene_core::TargetId(200),
+                    connector_id: ConnectorId(2),
+                },
+            ],
+            layer_cameras: Vec::new(),
+            connectors: vec![
+                InputRoutingConnectorRecord {
+                    connector_id: ConnectorId(1),
+                    state: ConnectorState {
+                        source_surface: SurfaceId(7),
+                        target_realm: RealmId(1),
+                        rect: glam::Vec4::new(0.0, 0.0, 10.0, 10.0),
+                        z_index: 2,
+                        blend_mode: 0,
+                        clip: None,
+                        input_flags: 0,
+                    },
+                    source_size: glam::UVec2::new(10, 10),
+                },
+                InputRoutingConnectorRecord {
+                    connector_id: ConnectorId(2),
+                    state: ConnectorState {
+                        source_surface: SurfaceId(8),
+                        target_realm: RealmId(1),
+                        rect: glam::Vec4::new(0.0, 0.0, 10.0, 10.0),
+                        z_index: 2,
+                        blend_mode: 0,
+                        clip: None,
+                        input_flags: 0,
+                    },
+                    source_size: glam::UVec2::new(10, 10),
+                },
+            ],
+            surfaces: vec![
+                InputRoutingSurfaceSizeRecord {
+                    surface_id: SurfaceId(5),
+                    size: glam::UVec2::new(100, 100),
+                },
+                InputRoutingSurfaceSizeRecord {
+                    surface_id: SurfaceId(7),
+                    size: glam::UVec2::new(10, 10),
+                },
+                InputRoutingSurfaceSizeRecord {
+                    surface_id: SurfaceId(8),
+                    size: glam::UVec2::new(10, 10),
+                },
+            ],
+        };
+
+        let cache = build_input_routing_cache(&snapshot);
+        let connectors = cache
+            .connectors_by_realm
+            .get(&RealmId(1))
+            .expect("realm connectors should exist");
+
+        assert_eq!(
+            cache.realm_by_window.get(&9),
+            Some(&(RealmId(1), SurfaceId(5)))
+        );
+        assert_eq!(connectors[0].id, ConnectorId(2));
+        assert_eq!(connectors[1].id, ConnectorId(1));
     }
 }
