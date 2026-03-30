@@ -3,19 +3,7 @@ use std::collections::{HashMap, HashSet, VecDeque};
 use crate::core::realm::{RealmId, RealmTable};
 use crate::core::target::graph_hash::{hash_entries, hash_targets_layers_and_realms};
 use crate::core::target::{TargetId, TargetKind, TargetLayerState, TargetState};
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct TargetEdge {
-    pub parent: TargetId,
-    pub child: TargetId,
-}
-
-#[derive(Debug, Clone, Default)]
-pub struct TargetGraphPlan {
-    pub edges: Vec<TargetEdge>,
-    pub order: Vec<TargetId>,
-    pub cut_edges: Vec<TargetEdge>,
-}
+pub use vulfram_scene_core::{TargetEdge, TargetGraphDiff, TargetGraphPlan};
 
 #[derive(Debug, Default)]
 pub struct TargetGraphPlanner;
@@ -62,18 +50,6 @@ impl TargetGraphPlanner {
             cut_edges,
         }
     }
-}
-
-#[derive(Debug, Clone, Default)]
-pub struct TargetGraphDiff {
-    pub added_targets: Vec<TargetId>,
-    pub removed_targets: Vec<TargetId>,
-    pub updated_targets: Vec<TargetId>,
-    pub added_layers: Vec<(u32, TargetId)>,
-    pub removed_layers: Vec<(u32, TargetId)>,
-    pub updated_layers: Vec<(u32, TargetId)>,
-    pub dirty_targets: Vec<TargetId>,
-    pub plan_dirty: bool,
 }
 
 #[derive(Debug, Clone, Default)]
