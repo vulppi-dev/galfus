@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::hash::{Hash, Hasher};
 use std::sync::Arc;
 
 use crate::core::image::ImageBuffer;
@@ -8,7 +7,10 @@ use crate::core::ui::image_async::UiImageAsyncManager;
 use crate::core::ui::renderer::ExternalTextureInput;
 use crate::core::ui::types::{UiDocumentId, UiImageId, UiNodeId, UiThemeId};
 use egui::Context;
-pub use vulfram_ui::{UiDocument, UiNodeEntry, UiThemeState};
+pub use vulfram_ui::{
+    UiAnimKey, UiAnimProperty, UiAnimState, UiDebugState, UiDocument, UiFrameProfile, UiNodeEntry,
+    UiSceneState, UiThemeState,
+};
 
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
@@ -207,60 +209,6 @@ impl Default for UiState {
             external_input_cache: HashMap::new(),
         }
     }
-}
-
-#[derive(Debug, Default, Clone, Copy)]
-pub struct UiFrameProfile {
-    pub layout_ms: f32,
-    pub tessellate_ms: f32,
-    pub upload_ms: f32,
-    pub draw_ms: f32,
-    pub input_routing_ms: f32,
-}
-
-#[derive(Debug, Default, Clone, Copy)]
-pub struct UiDebugState {
-    pub enabled: bool,
-    pub show_bounds: bool,
-    pub show_ids: bool,
-    pub show_profile: bool,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum UiAnimProperty {
-    Opacity,
-    TranslateY,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct UiAnimKey {
-    pub document_id: UiDocumentId,
-    pub node_id: UiNodeId,
-    pub property: UiAnimProperty,
-}
-
-impl Hash for UiAnimKey {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.document_id.hash(state);
-        self.node_id.hash(state);
-        self.property.hash(state);
-    }
-}
-
-#[derive(Debug, Clone, Copy)]
-pub struct UiAnimState {
-    pub start_time: f64,
-    pub from: f32,
-    pub to: f32,
-    pub duration: f32,
-    pub finished: bool,
-    pub last_value: f32,
-}
-
-#[derive(Debug, Clone, Copy, Default)]
-pub struct UiSceneState {
-    pub pan: glam::Vec2,
-    pub zoom: f32,
 }
 
 #[derive(Debug, Clone)]

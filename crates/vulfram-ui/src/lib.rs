@@ -2,6 +2,7 @@ mod contracts;
 mod document;
 mod events;
 mod node_props;
+mod state;
 mod types;
 
 pub use contracts::{
@@ -18,6 +19,9 @@ pub use contracts::{
 pub use document::{UiDocument, UiNodeEntry, UiThemeState};
 pub use events::{UiEvent, UiEventKind};
 pub use node_props::{UiImageSource, UiNodeProps, UiPaintOp, UiPaintStroke};
+pub use state::{
+    UiAnimKey, UiAnimProperty, UiAnimState, UiDebugState, UiFrameProfile, UiSceneState,
+};
 pub use types::{
     UiAlign, UiAnim, UiAnimEasing, UiAnimSpec, UiColor, UiDocumentId, UiFontId, UiImageId,
     UiLayout, UiLayoutDirection, UiLength, UiNode, UiNodeId, UiNodeKind, UiOp, UiPadding,
