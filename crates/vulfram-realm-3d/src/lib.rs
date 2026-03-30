@@ -45,6 +45,12 @@ pub struct TargetTextureBindingMeta {
     pub label: Option<String>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SyncPlan {
+    pub stale_ids: Vec<u32>,
+    pub replace_ids: Vec<u32>,
+}
+
 pub fn hash_texture_records(records: &[TextureRecordMeta]) -> u64 {
     use std::hash::{Hash, Hasher};
 
@@ -88,12 +94,109 @@ pub fn hash_target_texture_binds(binds: &[TargetTextureBindingMeta]) -> u64 {
     hasher.finish()
 }
 
+pub fn plan_texture_record_sync(
+    current: &[TextureRecordMeta],
+    next: &[TextureRecordMeta],
+) -> SyncPlan {
+    let current_by_id: std::collections::HashMap<_, _> =
+        current.iter().map(|record| (record.id, record)).collect();
+    let next_by_id: std::collections::HashMap<_, _> =
+        next.iter().map(|record| (record.id, record)).collect();
+
+    let mut stale_ids: Vec<u32> = current_by_id
+        .keys()
+        .filter(|id| !next_by_id.contains_key(id))
+        .copied()
+        .collect();
+    stale_ids.sort_unstable();
+
+    let mut replace_ids: Vec<u32> = next
+        .iter()
+        .filter(|record| match current_by_id.get(&record.id) {
+            Some(current) => *current != *record,
+            None => true,
+        })
+        .map(|record| record.id)
+        .collect();
+    replace_ids.sort_unstable();
+
+    SyncPlan {
+        stale_ids,
+        replace_ids,
+    }
+}
+
+pub fn plan_forward_atlas_sync(
+    current: &[ForwardAtlasEntryMeta],
+    next: &[ForwardAtlasEntryMeta],
+) -> SyncPlan {
+    let current_by_id: std::collections::HashMap<_, _> =
+        current.iter().map(|entry| (entry.id, entry)).collect();
+    let next_by_id: std::collections::HashMap<_, _> =
+        next.iter().map(|entry| (entry.id, entry)).collect();
+
+    let mut stale_ids: Vec<u32> = current_by_id
+        .keys()
+        .filter(|id| !next_by_id.contains_key(id))
+        .copied()
+        .collect();
+    stale_ids.sort_unstable();
+
+    let mut replace_ids: Vec<u32> = next
+        .iter()
+        .filter(|entry| match current_by_id.get(&entry.id) {
+            Some(current) => *current != *entry,
+            None => true,
+        })
+        .map(|entry| entry.id)
+        .collect();
+    replace_ids.sort_unstable();
+
+    SyncPlan {
+        stale_ids,
+        replace_ids,
+    }
+}
+
+pub fn plan_target_texture_bind_sync(
+    current: &[TargetTextureBindingMeta],
+    next: &[TargetTextureBindingMeta],
+) -> SyncPlan {
+    let current_by_id: std::collections::HashMap<_, _> =
+        current.iter().map(|bind| (bind.texture_id, bind)).collect();
+    let next_by_id: std::collections::HashMap<_, _> =
+        next.iter().map(|bind| (bind.texture_id, bind)).collect();
+
+    let mut stale_ids: Vec<u32> = current_by_id
+        .keys()
+        .filter(|id| !next_by_id.contains_key(id))
+        .copied()
+        .collect();
+    stale_ids.sort_unstable();
+
+    let mut replace_ids: Vec<u32> = next
+        .iter()
+        .filter(|bind| match current_by_id.get(&bind.texture_id) {
+            Some(current) => *current != *bind,
+            None => true,
+        })
+        .map(|bind| bind.texture_id)
+        .collect();
+    replace_ids.sort_unstable();
+
+    SyncPlan {
+        stale_ids,
+        replace_ids,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
-        ForwardAtlasEntryMeta, TargetTextureBindingMeta, TextureRecordMeta, graph_is_compatible,
-        hash_forward_atlas_entries, hash_target_texture_binds, hash_texture_records,
-        supports_render_pass,
+        ForwardAtlasEntryMeta, SyncPlan, TargetTextureBindingMeta, TextureRecordMeta,
+        graph_is_compatible, hash_forward_atlas_entries, hash_target_texture_binds,
+        hash_texture_records, plan_forward_atlas_sync, plan_target_texture_bind_sync,
+        plan_texture_record_sync, supports_render_pass,
     };
 
     #[test]
@@ -152,5 +255,106 @@ mod tests {
             ..a[0].clone()
         }];
         assert_ne!(hash_target_texture_binds(&a), hash_target_texture_binds(&b));
+    }
+
+    #[test]
+    fn texture_sync_plan_marks_stale_and_changed_records() {
+        let current = vec![
+            TextureRecordMeta {
+                id: 1,
+                label: Some("a".into()),
+                width: 64,
+                height: 64,
+                depth_or_array_layers: 1,
+                format: "rgba16float".into(),
+            },
+            TextureRecordMeta {
+                id: 2,
+                label: Some("b".into()),
+                width: 32,
+                height: 32,
+                depth_or_array_layers: 1,
+                format: "rgba16float".into(),
+            },
+        ];
+        let next = vec![
+            TextureRecordMeta {
+                id: 1,
+                label: Some("a2".into()),
+                width: 64,
+                height: 64,
+                depth_or_array_layers: 1,
+                format: "rgba16float".into(),
+            },
+            TextureRecordMeta {
+                id: 3,
+                label: Some("c".into()),
+                width: 16,
+                height: 16,
+                depth_or_array_layers: 1,
+                format: "rgba16float".into(),
+            },
+        ];
+
+        assert_eq!(
+            plan_texture_record_sync(&current, &next),
+            SyncPlan {
+                stale_ids: vec![2],
+                replace_ids: vec![1, 3],
+            }
+        );
+    }
+
+    #[test]
+    fn atlas_sync_plan_marks_changed_entries() {
+        let current = vec![ForwardAtlasEntryMeta {
+            id: 1,
+            label: Some("atlas".into()),
+            layer: 0,
+            uv_scale_bias: [1.0, 1.0, 0.0, 0.0],
+        }];
+        let next = vec![ForwardAtlasEntryMeta {
+            id: 1,
+            label: Some("atlas".into()),
+            layer: 1,
+            uv_scale_bias: [1.0, 1.0, 0.0, 0.0],
+        }];
+
+        assert_eq!(
+            plan_forward_atlas_sync(&current, &next),
+            SyncPlan {
+                stale_ids: vec![],
+                replace_ids: vec![1],
+            }
+        );
+    }
+
+    #[test]
+    fn target_bind_sync_plan_marks_removed_and_changed_binds() {
+        let current = vec![
+            TargetTextureBindingMeta {
+                texture_id: 5,
+                target_id: vulfram_realm_core::TargetId(10),
+                label: Some("bind".into()),
+            },
+            TargetTextureBindingMeta {
+                texture_id: 7,
+                target_id: vulfram_realm_core::TargetId(20),
+                label: Some("old".into()),
+            },
+        ];
+        let next = vec![TargetTextureBindingMeta {
+            texture_id: 5,
+            target_id: vulfram_realm_core::TargetId(11),
+            label: Some("bind".into()),
+        }];
+
+        assert_eq!(
+            plan_target_texture_bind_sync(&current, &next),
+            SyncPlan {
+                stale_ids: vec![7],
+                replace_ids: vec![5],
+            }
+        );
     }
 }

@@ -264,18 +264,42 @@ fn sync_texture_records(
     current: &mut std::collections::HashMap<u32, crate::core::resources::TextureRecord>,
     next: &std::collections::HashMap<u32, crate::core::resources::TextureRecord>,
 ) {
-    current.retain(|id, _| next.contains_key(id));
-    for (id, record) in next {
-        let needs_replace = match current.get(id) {
-            Some(existing) => {
-                existing.label != record.label
-                    || existing._texture.size() != record._texture.size()
-                    || existing._texture.format() != record._texture.format()
+    let current_meta: Vec<_> = current
+        .iter()
+        .map(|(id, record)| {
+            let size = record._texture.size();
+            vulfram_realm_3d::TextureRecordMeta {
+                id: *id,
+                label: record.label.clone(),
+                width: size.width,
+                height: size.height,
+                depth_or_array_layers: size.depth_or_array_layers,
+                format: format!("{:?}", record._texture.format()),
             }
-            None => true,
-        };
-        if needs_replace {
-            current.insert(*id, record.clone());
+        })
+        .collect();
+    let next_meta: Vec<_> = next
+        .iter()
+        .map(|(id, record)| {
+            let size = record._texture.size();
+            vulfram_realm_3d::TextureRecordMeta {
+                id: *id,
+                label: record.label.clone(),
+                width: size.width,
+                height: size.height,
+                depth_or_array_layers: size.depth_or_array_layers,
+                format: format!("{:?}", record._texture.format()),
+            }
+        })
+        .collect();
+    let plan = vulfram_realm_3d::plan_texture_record_sync(&current_meta, &next_meta);
+
+    for stale_id in plan.stale_ids {
+        current.remove(&stale_id);
+    }
+    for replace_id in plan.replace_ids {
+        if let Some(record) = next.get(&replace_id) {
+            current.insert(replace_id, record.clone());
         }
     }
 }
@@ -284,18 +308,32 @@ fn sync_forward_atlas_entries(
     current: &mut std::collections::HashMap<u32, crate::core::resources::ForwardAtlasEntry>,
     next: &std::collections::HashMap<u32, crate::core::resources::ForwardAtlasEntry>,
 ) {
-    current.retain(|id, _| next.contains_key(id));
-    for (id, entry) in next {
-        let needs_replace = match current.get(id) {
-            Some(existing) => {
-                existing.label != entry.label
-                    || existing.layer != entry.layer
-                    || existing.uv_scale_bias != entry.uv_scale_bias
-            }
-            None => true,
-        };
-        if needs_replace {
-            current.insert(*id, entry.clone());
+    let current_meta: Vec<_> = current
+        .iter()
+        .map(|(id, entry)| vulfram_realm_3d::ForwardAtlasEntryMeta {
+            id: *id,
+            label: entry.label.clone(),
+            layer: entry.layer,
+            uv_scale_bias: entry.uv_scale_bias.to_array(),
+        })
+        .collect();
+    let next_meta: Vec<_> = next
+        .iter()
+        .map(|(id, entry)| vulfram_realm_3d::ForwardAtlasEntryMeta {
+            id: *id,
+            label: entry.label.clone(),
+            layer: entry.layer,
+            uv_scale_bias: entry.uv_scale_bias.to_array(),
+        })
+        .collect();
+    let plan = vulfram_realm_3d::plan_forward_atlas_sync(&current_meta, &next_meta);
+
+    for stale_id in plan.stale_ids {
+        current.remove(&stale_id);
+    }
+    for replace_id in plan.replace_ids {
+        if let Some(entry) = next.get(&replace_id) {
+            current.insert(replace_id, entry.clone());
         }
     }
 }
@@ -304,14 +342,34 @@ fn sync_target_texture_binds(
     current: &mut std::collections::HashMap<u32, crate::core::resources::TargetTextureBinding>,
     next: &std::collections::HashMap<u32, crate::core::resources::TargetTextureBinding>,
 ) {
-    current.retain(|id, _| next.contains_key(id));
-    for (id, bind) in next {
-        let needs_replace = match current.get(id) {
-            Some(existing) => existing.target_id != bind.target_id || existing.label != bind.label,
-            None => true,
-        };
-        if needs_replace {
-            current.insert(*id, bind.clone());
+    let current_meta: Vec<_> = current
+        .iter()
+        .map(
+            |(texture_id, bind)| vulfram_realm_3d::TargetTextureBindingMeta {
+                texture_id: *texture_id,
+                target_id: bind.target_id,
+                label: bind.label.clone(),
+            },
+        )
+        .collect();
+    let next_meta: Vec<_> = next
+        .iter()
+        .map(
+            |(texture_id, bind)| vulfram_realm_3d::TargetTextureBindingMeta {
+                texture_id: *texture_id,
+                target_id: bind.target_id,
+                label: bind.label.clone(),
+            },
+        )
+        .collect();
+    let plan = vulfram_realm_3d::plan_target_texture_bind_sync(&current_meta, &next_meta);
+
+    for stale_id in plan.stale_ids {
+        current.remove(&stale_id);
+    }
+    for replace_id in plan.replace_ids {
+        if let Some(bind) = next.get(&replace_id) {
+            current.insert(replace_id, bind.clone());
         }
     }
 }
