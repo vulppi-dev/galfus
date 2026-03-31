@@ -1,7 +1,8 @@
 use super::super::*;
 use crate::core::VulframResult;
 use crate::core::platforms::PlatformProxy;
-use crate::core::state::{DeferredCommandMeta, EngineState};
+use crate::core::state::EngineState;
+use vulfram_runtime::DeferredCommandMeta;
 
 pub(crate) fn engine_process_batch(
     engine: &mut EngineState,

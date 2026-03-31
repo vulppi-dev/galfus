@@ -18,20 +18,7 @@ use crate::core::resources::{
 };
 use crate::core::window::WindowManager;
 use std::collections::HashMap;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct DeferredCommandKey {
-    pub command_id: u64,
-    pub command_signature: u64,
-}
-
-#[derive(Debug, Clone, Default)]
-pub struct DeferredCommandMeta {
-    pub first_frame: u64,
-    pub attempts: u32,
-    pub next_retry_frame: u64,
-    pub last_reason: String,
-}
+pub use vulfram_runtime::{DeferredCommandKey, DeferredCommandMeta};
 
 /// Main engine state holding all runtime data
 pub struct EngineState {

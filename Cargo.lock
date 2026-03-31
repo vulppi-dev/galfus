@@ -3966,6 +3966,7 @@ dependencies = [
  "vulfram-realm-core",
  "vulfram-realm-ui",
  "vulfram-render",
+ "vulfram-runtime",
  "vulfram-types",
  "wasm-bindgen",
  "wasm-bindgen-futures",
@@ -4044,6 +4045,10 @@ dependencies = [
  "vulfram-realm-3d",
  "vulfram-realm-core",
 ]
+
+[[package]]
+name = "vulfram-runtime"
+version = "0.21.2-alpha"
 
 [[package]]
 name = "vulfram-types"

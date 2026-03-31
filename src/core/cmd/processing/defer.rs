@@ -1,11 +1,8 @@
 use super::super::*;
-use crate::core::state::{DeferredCommandKey, EngineState};
+use crate::core::state::EngineState;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::Hasher;
-
-const DEFER_MAX_ATTEMPTS: u32 = 120;
-const DEFER_MAX_AGE_FRAMES: u64 = 1200;
-const DEFER_BACKOFF_MAX_EXP: u32 = 6; // 1..64 frames
+use vulfram_runtime::DeferredCommandKey;
 
 #[derive(PartialEq, Eq)]
 pub(super) enum DeferredFailureKind {
@@ -13,10 +10,7 @@ pub(super) enum DeferredFailureKind {
     Permanent,
 }
 
-pub(super) fn defer_backoff_frames(attempts: u32) -> u64 {
-    let exp = attempts.saturating_sub(1).min(DEFER_BACKOFF_MAX_EXP);
-    1_u64 << exp
-}
+pub(super) use vulfram_runtime::defer_backoff_frames;
 
 pub(super) fn command_signature(cmd: &EngineCmd) -> u64 {
     let mut hasher = DefaultHasher::new();
@@ -368,6 +362,4 @@ pub(super) fn classify_failed_response(
     Some((kind, message))
 }
 
-pub(super) fn should_drop_deferred(attempts: u32, age_frames: u64) -> bool {
-    attempts >= DEFER_MAX_ATTEMPTS || age_frames >= DEFER_MAX_AGE_FRAMES
-}
+pub(super) use vulfram_runtime::should_drop_deferred;
