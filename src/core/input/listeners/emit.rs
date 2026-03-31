@@ -257,7 +257,7 @@ fn emit_pointer_listener_events(engine: &mut EngineState, event: &PointerEvent) 
         .target_listeners
         .listeners_for_target(target_id);
     for listener in listeners {
-        if !listener_matches(&listener, event_type, engine.frame_index) {
+        if !listener_matches(&listener, event_type, engine.frame.frame_index) {
             continue;
         }
         engine
@@ -328,7 +328,7 @@ fn emit_keyboard_listener_events(engine: &mut EngineState, event: &KeyboardEvent
         .target_listeners
         .listeners_for_target(target_id.0);
     for listener in listeners {
-        if !listener_matches(&listener, event_type, engine.frame_index) {
+        if !listener_matches(&listener, event_type, engine.frame.frame_index) {
             continue;
         }
         engine

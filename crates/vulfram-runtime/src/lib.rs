@@ -12,6 +12,27 @@ pub struct DeferredCommandMeta {
     pub last_reason: String,
 }
 
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct RuntimeFrameState {
+    pub time: u64,
+    pub delta_time: u32,
+    pub frame_index: u64,
+    pub had_commands_this_frame: bool,
+}
+
+impl RuntimeFrameState {
+    pub fn begin_tick(&mut self, time: u64, delta_time: u32) {
+        self.time = time;
+        self.delta_time = delta_time;
+        self.had_commands_this_frame = false;
+    }
+
+    pub fn advance_frame(&mut self) -> u64 {
+        self.frame_index = self.frame_index.wrapping_add(1);
+        self.frame_index
+    }
+}
+
 pub const DEFER_MAX_ATTEMPTS: u32 = 120;
 pub const DEFER_MAX_AGE_FRAMES: u64 = 1200;
 pub const DEFER_BACKOFF_MAX_EXP: u32 = 6;
@@ -28,7 +49,8 @@ pub fn should_drop_deferred(attempts: u32, age_frames: u64) -> bool {
 #[cfg(test)]
 mod tests {
     use super::{
-        DEFER_MAX_AGE_FRAMES, DEFER_MAX_ATTEMPTS, defer_backoff_frames, should_drop_deferred,
+        DEFER_MAX_AGE_FRAMES, DEFER_MAX_ATTEMPTS, RuntimeFrameState, defer_backoff_frames,
+        should_drop_deferred,
     };
 
     #[test]
@@ -48,5 +70,15 @@ mod tests {
             DEFER_MAX_ATTEMPTS - 1,
             DEFER_MAX_AGE_FRAMES - 1
         ));
+    }
+
+    #[test]
+    fn runtime_frame_state_tracks_tick_and_wraps_frame_index() {
+        let mut state = RuntimeFrameState::default();
+        state.begin_tick(100, 16);
+        assert_eq!(state.time, 100);
+        assert_eq!(state.delta_time, 16);
+        assert!(!state.had_commands_this_frame);
+        assert_eq!(state.advance_frame(), 1);
     }
 }

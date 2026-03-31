@@ -35,18 +35,18 @@ pub(crate) fn engine_process_batch(
                         .deferred_cmd_meta
                         .entry(deferred_key)
                         .or_insert_with(|| DeferredCommandMeta {
-                            first_frame: engine.frame_index,
+                            first_frame: engine.frame.frame_index,
                             attempts: 0,
-                            next_retry_frame: engine.frame_index,
+                            next_retry_frame: engine.frame.frame_index,
                             last_reason: String::new(),
                         });
                     meta.attempts = meta.attempts.saturating_add(1);
                     meta.last_reason = reason.clone();
                     let backoff = super::defer::defer_backoff_frames(meta.attempts);
-                    meta.next_retry_frame = engine.frame_index.saturating_add(backoff);
+                    meta.next_retry_frame = engine.frame.frame_index.saturating_add(backoff);
                     (
                         meta.attempts,
-                        engine.frame_index.saturating_sub(meta.first_frame),
+                        engine.frame.frame_index.saturating_sub(meta.first_frame),
                         meta.next_retry_frame,
                     )
                 };

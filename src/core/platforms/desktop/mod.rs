@@ -80,7 +80,7 @@ impl PlatformProxy for DesktopProxy {
 
     fn render(&mut self, state: &mut EngineState) -> u64 {
         let start = Instant::now();
-        let now_ms = state.time;
+        let now_ms = state.frame.time;
         let input_windows = active_windows_from_events(&state.event_queue);
         let pending_ui_image_windows = windows_with_pending_ui_images(state);
         let has_ui_animations = !state.universal_state.ui.animations.is_empty();
@@ -101,7 +101,7 @@ impl PlatformProxy for DesktopProxy {
         for (window_id, window_state) in state.window.states.iter_mut() {
             let has_recent_input = now_ms <= window_state.redraw_force_until_ms;
             let should_redraw = window_state.is_dirty
-                || state.had_commands_this_frame
+                || state.frame.had_commands_this_frame
                 || has_recent_input
                 || has_ui_animations
                 || has_ui_repaint_request

@@ -13,16 +13,14 @@ use super::singleton::with_engine_singleton;
 /// Main engine tick - processes events and updates state
 pub fn vulfram_tick(time: u64, delta_time: u32) -> VulframResult {
     match with_engine_singleton(|engine| {
-        engine.state.time = time;
-        engine.state.delta_time = delta_time;
-        engine.state.had_commands_this_frame = false;
+        engine.state.frame.begin_tick(time, delta_time);
         engine.state.event_queue.clear();
 
         // Reset profiling counters
         engine
             .state
             .profiling
-            .begin_frame(delta_time, engine.state.frame_index);
+            .begin_frame(delta_time, engine.state.frame.frame_index);
 
         if !engine.state.deferred_cmd_queue.is_empty() || !engine.state.cmd_queue.is_empty() {
             // MARK: Command Processing
@@ -40,7 +38,7 @@ pub fn vulfram_tick(time: u64, delta_time: u32) -> VulframResult {
                     .state
                     .deferred_cmd_meta
                     .get(&key)
-                    .map(|meta| meta.next_retry_frame <= engine.state.frame_index)
+                    .map(|meta| meta.next_retry_frame <= engine.state.frame.frame_index)
                     .unwrap_or(true);
                 if ready {
                     batch.push(envelope);
@@ -49,7 +47,7 @@ pub fn vulfram_tick(time: u64, delta_time: u32) -> VulframResult {
                 }
             }
             engine.state.deferred_cmd_queue = still_deferred;
-            engine.state.had_commands_this_frame = !batch.is_empty();
+            engine.state.frame.had_commands_this_frame = !batch.is_empty();
             let result = engine_process_batch(&mut engine.state, &mut engine.platform, batch);
             #[cfg(not(feature = "wasm"))]
             {
@@ -120,8 +118,7 @@ pub fn vulfram_tick(time: u64, delta_time: u32) -> VulframResult {
         engine.state.profiling.input.total_events_dispatched = events_after - events_before;
 
         // MARK: Render Frame Lifecycle
-        engine.state.frame_index = engine.state.frame_index.wrapping_add(1);
-        let frame_index = engine.state.frame_index;
+        let frame_index = engine.state.frame.advance_frame();
         for render_state in engine.state.render.states.values_mut() {
             render_state.begin_frame(frame_index);
         }

@@ -18,7 +18,7 @@ use crate::core::resources::{
 };
 use crate::core::window::WindowManager;
 use std::collections::HashMap;
-pub use vulfram_runtime::{DeferredCommandKey, DeferredCommandMeta};
+pub use vulfram_runtime::{DeferredCommandKey, DeferredCommandMeta, RuntimeFrameState};
 
 /// Main engine state holding all runtime data
 pub struct EngineState {
@@ -50,10 +50,7 @@ pub struct EngineState {
     pub response_queue: EngineBatchResponses,
     pub pending_texture_decode_results: Vec<TextureDecodeResult>,
 
-    pub(crate) time: u64,
-    pub(crate) delta_time: u32,
-    pub(crate) frame_index: u64,
-    pub(crate) had_commands_this_frame: bool,
+    pub(crate) frame: RuntimeFrameState,
 
     #[cfg(not(feature = "wasm"))]
     pub input: InputState,
@@ -130,10 +127,7 @@ impl EngineState {
             event_queue: Vec::new(),
             response_queue: Vec::new(),
             pending_texture_decode_results: Vec::new(),
-            time: 0,
-            delta_time: 0,
-            frame_index: 0,
-            had_commands_this_frame: false,
+            frame: RuntimeFrameState::default(),
             #[cfg(not(feature = "wasm"))]
             input: InputState::new(),
             gamepad: GamepadState::new(),

@@ -97,9 +97,9 @@ pub fn render_frames(engine_state: &mut EngineState) {
         gpu_profiler.ensure_capacity(device, queue, engine_state.window.states.len());
     }
 
-    let time = engine_state.time as f32 / 1000.0;
-    let delta_time = engine_state.delta_time as f32 / 1000.0;
-    let frame_index = engine_state.frame_index as u32;
+    let time = engine_state.frame.time as f32 / 1000.0;
+    let delta_time = engine_state.frame.delta_time as f32 / 1000.0;
+    let frame_index = engine_state.frame.frame_index as u32;
     let frame_spec = crate::core::resources::FrameComponent::new(time, delta_time, frame_index);
     let mut gpu_written = false;
 
@@ -179,7 +179,7 @@ pub fn render_frames(engine_state: &mut EngineState) {
                 .realms
                 .entries
                 .get_mut(realm_id)
-                .map(|realm_entry| should_render_realm(realm_entry, engine_state.frame_index))
+                .map(|realm_entry| should_render_realm(realm_entry, engine_state.frame.frame_index))
                 .unwrap_or(false);
             if !should_render {
                 FrameReport::push_unique(&mut frame_report.throttled_realms, realm_id.0);
@@ -354,7 +354,7 @@ pub fn render_frames(engine_state: &mut EngineState) {
                 &target_view,
                 target_format,
                 target_size,
-                engine_state.frame_index,
+                engine_state.frame.frame_index,
                 time as f64,
                 *window_id,
                 window_focused,
@@ -376,7 +376,7 @@ pub fn render_frames(engine_state: &mut EngineState) {
                 &target_view,
                 target_format,
                 target_size,
-                engine_state.frame_index,
+                engine_state.frame.frame_index,
                 &mut frame_report,
             );
 
@@ -439,7 +439,7 @@ pub fn render_frames(engine_state: &mut EngineState) {
                     surface_target.texture.size().width,
                     surface_target.texture.size().height,
                 ),
-                engine_state.frame_index,
+                engine_state.frame.frame_index,
             );
 
             queue.submit(Some(encoder.finish()));
@@ -483,8 +483,11 @@ pub fn render_frames(engine_state: &mut EngineState) {
         }
     }
 
-    let soft_cut_diagnostic =
-        build_soft_cut_diagnostic(&frame_report, previous_cut_edges, engine_state.frame_index);
+    let soft_cut_diagnostic = build_soft_cut_diagnostic(
+        &frame_report,
+        previous_cut_edges,
+        engine_state.frame.frame_index,
+    );
 
     engine_state.universal_state.frame_report = frame_report;
     for event in ui_events {
