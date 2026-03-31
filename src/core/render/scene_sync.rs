@@ -29,21 +29,22 @@ pub(super) fn sync_scene_from_realm_and_universal_resources(
                 .remove(camera_id)
                 .unwrap_or_else(|| node.to_render_record());
             let previous_data = record.data;
-            let previous_projection_size = record.last_projection_size;
-            let previous_ortho_scale = record.ortho_scale;
-            let projection_params_changed = previous_data.kind_flags != node.data.kind_flags
-                || previous_data.near_far != node.data.near_far
-                || (previous_ortho_scale - node.ortho_scale).abs() > f32::EPSILON;
+            let projection_plan = vulfram_realm_3d::plan_camera_projection_update(
+                previous_data.kind_flags.to_array(),
+                previous_data.near_far.to_array(),
+                record.ortho_scale,
+                node.data.kind_flags.to_array(),
+                node.data.near_far.to_array(),
+                node.ortho_scale,
+                [record.last_projection_size.x, record.last_projection_size.y],
+            );
             record.label = node.label.clone();
             record.data = node.data;
-            if previous_projection_size.x > 0
-                && previous_projection_size.y > 0
-                && !projection_params_changed
-            {
+            if projection_plan.preserve_runtime_projection {
                 // Keep runtime projection/aspect from the resolved target size.
                 record.data.projection = previous_data.projection;
                 record.data.view_projection = record.data.projection * record.data.view;
-            } else if projection_params_changed {
+            } else if projection_plan.reset_projection_size {
                 // Force projection rebuild on this frame with the current target size.
                 record.last_projection_size = glam::UVec2::ZERO;
             }
@@ -56,18 +57,34 @@ pub(super) fn sync_scene_from_realm_and_universal_resources(
         }
         for (model_id, node) in &entities.models {
             if let Some(mut record) = previous_models.remove(model_id) {
-                let data_changed = record.data.transform != node.data.transform
-                    || record.data.translation != node.data.translation
-                    || record.data.rotation != node.data.rotation
-                    || record.data.scale != node.data.scale
-                    || record.data.flags != node.data.flags
-                    || record.data.outline_color != node.data.outline_color;
-                let metadata_changed = record.geometry_id != node.geometry_id
-                    || record.material_id != node.material_id
-                    || record.layer_mask != node.layer_mask
-                    || record.cast_shadow != node.cast_shadow
-                    || record.receive_shadow != node.receive_shadow
-                    || record.cast_outline != node.cast_outline;
+                let current_meta = vulfram_realm_3d::ModelRecordMeta {
+                    transform: record.data.transform.to_cols_array(),
+                    translation: record.data.translation.to_array(),
+                    rotation: record.data.rotation.to_array(),
+                    scale: record.data.scale.to_array(),
+                    flags: record.data.flags.to_array(),
+                    outline_color: record.data.outline_color.to_array(),
+                    geometry_id: record.geometry_id,
+                    material_id: record.material_id,
+                    layer_mask: record.layer_mask,
+                    cast_shadow: record.cast_shadow,
+                    receive_shadow: record.receive_shadow,
+                    cast_outline: record.cast_outline,
+                };
+                let next_meta = vulfram_realm_3d::ModelRecordMeta {
+                    transform: node.data.transform.to_cols_array(),
+                    translation: node.data.translation.to_array(),
+                    rotation: node.data.rotation.to_array(),
+                    scale: node.data.scale.to_array(),
+                    flags: node.data.flags.to_array(),
+                    outline_color: node.data.outline_color.to_array(),
+                    geometry_id: node.geometry_id,
+                    material_id: node.material_id,
+                    layer_mask: node.layer_mask,
+                    cast_shadow: node.cast_shadow,
+                    receive_shadow: node.receive_shadow,
+                    cast_outline: node.cast_outline,
+                };
                 record.label = node.label.clone();
                 record.data = node.data;
                 record.geometry_id = node.geometry_id;
@@ -76,7 +93,7 @@ pub(super) fn sync_scene_from_realm_and_universal_resources(
                 record.cast_shadow = node.cast_shadow;
                 record.receive_shadow = node.receive_shadow;
                 record.cast_outline = node.cast_outline;
-                if data_changed || metadata_changed {
+                if vulfram_realm_3d::model_record_changed(&current_meta, &next_meta) {
                     record.mark_dirty();
                 }
                 render_state.scene.models.insert(*model_id, record);
@@ -86,23 +103,39 @@ pub(super) fn sync_scene_from_realm_and_universal_resources(
         }
         for (light_id, node) in &entities.lights {
             if let Some(mut record) = previous_lights.remove(light_id) {
-                let changed = record.data.position != node.data.position
-                    || record.data.direction != node.data.direction
-                    || record.data.color != node.data.color
-                    || record.data.ground_color != node.data.ground_color
-                    || record.data.view != node.data.view
-                    || record.data.projection != node.data.projection
-                    || record.data.view_projection != node.data.view_projection
-                    || record.data.intensity_range != node.data.intensity_range
-                    || record.data.spot_inner_outer != node.data.spot_inner_outer
-                    || record.data.kind_flags != node.data.kind_flags
-                    || record.layer_mask != node.layer_mask
-                    || record.cast_shadow != node.cast_shadow;
+                let current_meta = vulfram_realm_3d::LightRecordMeta {
+                    position: record.data.position.to_array(),
+                    direction: record.data.direction.to_array(),
+                    color: record.data.color.to_array(),
+                    ground_color: record.data.ground_color.to_array(),
+                    view: record.data.view.to_cols_array(),
+                    projection: record.data.projection.to_cols_array(),
+                    view_projection: record.data.view_projection.to_cols_array(),
+                    intensity_range: record.data.intensity_range.to_array(),
+                    spot_inner_outer: record.data.spot_inner_outer.to_array(),
+                    kind_flags: record.data.kind_flags.to_array(),
+                    layer_mask: record.layer_mask,
+                    cast_shadow: record.cast_shadow,
+                };
+                let next_meta = vulfram_realm_3d::LightRecordMeta {
+                    position: node.data.position.to_array(),
+                    direction: node.data.direction.to_array(),
+                    color: node.data.color.to_array(),
+                    ground_color: node.data.ground_color.to_array(),
+                    view: node.data.view.to_cols_array(),
+                    projection: node.data.projection.to_cols_array(),
+                    view_projection: node.data.view_projection.to_cols_array(),
+                    intensity_range: node.data.intensity_range.to_array(),
+                    spot_inner_outer: node.data.spot_inner_outer.to_array(),
+                    kind_flags: node.data.kind_flags.to_array(),
+                    layer_mask: node.layer_mask,
+                    cast_shadow: node.cast_shadow,
+                };
                 record.label = node.label.clone();
                 record.data = node.data;
                 record.layer_mask = node.layer_mask;
                 record.cast_shadow = node.cast_shadow;
-                if changed {
+                if vulfram_realm_3d::light_record_changed(&current_meta, &next_meta) {
                     record.mark_dirty();
                 }
                 render_state.scene.lights.insert(*light_id, record);
@@ -120,13 +153,24 @@ pub(super) fn sync_scene_from_realm_and_universal_resources(
     render_state.scene.materials_standard.clear();
     for (material_id, node) in &universal.universal_resources.materials_standard {
         if let Some(mut record) = previous_materials_standard.remove(material_id) {
-            let changed = record.label != node.label
-                || bytemuck::bytes_of(&record.data) != bytemuck::bytes_of(&node.data)
-                || record.inputs != node.inputs
-                || record.texture_ids != node.texture_ids
-                || record.surface_type != node.surface_type
-                || record.topology != node.topology
-                || record.polygon_mode != node.polygon_mode;
+            let current_meta = vulfram_realm_3d::MaterialRecordMeta {
+                label: record.label.clone(),
+                data_bytes: bytemuck::bytes_of(&record.data).to_vec(),
+                inputs_bytes: bytemuck::cast_slice(record.inputs.as_slice()).to_vec(),
+                texture_ids: record.texture_ids.to_vec(),
+                surface_type: record.surface_type as u32,
+                topology: record.topology as u32,
+                polygon_mode: record.polygon_mode as u32,
+            };
+            let next_meta = vulfram_realm_3d::MaterialRecordMeta {
+                label: node.label.clone(),
+                data_bytes: bytemuck::bytes_of(&node.data).to_vec(),
+                inputs_bytes: bytemuck::cast_slice(node.inputs.as_slice()).to_vec(),
+                texture_ids: node.texture_ids.to_vec(),
+                surface_type: node.surface_type as u32,
+                topology: node.topology as u32,
+                polygon_mode: node.polygon_mode as u32,
+            };
             record.label = node.label.clone();
             record.data = node.data;
             record.inputs = node.inputs.clone();
@@ -134,7 +178,7 @@ pub(super) fn sync_scene_from_realm_and_universal_resources(
             record.surface_type = node.surface_type;
             record.topology = node.topology;
             record.polygon_mode = node.polygon_mode;
-            if changed {
+            if vulfram_realm_3d::material_record_changed(&current_meta, &next_meta) {
                 record.mark_dirty();
                 record.bind_group = None;
             }
@@ -153,13 +197,24 @@ pub(super) fn sync_scene_from_realm_and_universal_resources(
     render_state.scene.materials_pbr.clear();
     for (material_id, node) in &universal.universal_resources.materials_pbr {
         if let Some(mut record) = previous_materials_pbr.remove(material_id) {
-            let changed = record.label != node.label
-                || bytemuck::bytes_of(&record.data) != bytemuck::bytes_of(&node.data)
-                || record.inputs != node.inputs
-                || record.texture_ids != node.texture_ids
-                || record.surface_type != node.surface_type
-                || record.topology != node.topology
-                || record.polygon_mode != node.polygon_mode;
+            let current_meta = vulfram_realm_3d::MaterialRecordMeta {
+                label: record.label.clone(),
+                data_bytes: bytemuck::bytes_of(&record.data).to_vec(),
+                inputs_bytes: bytemuck::cast_slice(record.inputs.as_slice()).to_vec(),
+                texture_ids: record.texture_ids.to_vec(),
+                surface_type: record.surface_type as u32,
+                topology: record.topology as u32,
+                polygon_mode: record.polygon_mode as u32,
+            };
+            let next_meta = vulfram_realm_3d::MaterialRecordMeta {
+                label: node.label.clone(),
+                data_bytes: bytemuck::bytes_of(&node.data).to_vec(),
+                inputs_bytes: bytemuck::cast_slice(node.inputs.as_slice()).to_vec(),
+                texture_ids: node.texture_ids.to_vec(),
+                surface_type: node.surface_type as u32,
+                topology: node.topology as u32,
+                polygon_mode: node.polygon_mode as u32,
+            };
             record.label = node.label.clone();
             record.data = node.data;
             record.inputs = node.inputs.clone();
@@ -167,7 +222,7 @@ pub(super) fn sync_scene_from_realm_and_universal_resources(
             record.surface_type = node.surface_type;
             record.topology = node.topology;
             record.polygon_mode = node.polygon_mode;
-            if changed {
+            if vulfram_realm_3d::material_record_changed(&current_meta, &next_meta) {
                 record.mark_dirty();
                 record.bind_group = None;
             }

@@ -51,6 +51,55 @@ pub struct SyncPlan {
     pub replace_ids: Vec<u32>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct CameraProjectionPlan {
+    pub preserve_runtime_projection: bool,
+    pub reset_projection_size: bool,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ModelRecordMeta {
+    pub transform: [f32; 16],
+    pub translation: [f32; 4],
+    pub rotation: [f32; 4],
+    pub scale: [f32; 4],
+    pub flags: [u32; 4],
+    pub outline_color: [f32; 4],
+    pub geometry_id: u32,
+    pub material_id: Option<u32>,
+    pub layer_mask: u32,
+    pub cast_shadow: bool,
+    pub receive_shadow: bool,
+    pub cast_outline: bool,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct LightRecordMeta {
+    pub position: [f32; 4],
+    pub direction: [f32; 4],
+    pub color: [f32; 4],
+    pub ground_color: [f32; 4],
+    pub view: [f32; 16],
+    pub projection: [f32; 16],
+    pub view_projection: [f32; 16],
+    pub intensity_range: [f32; 2],
+    pub spot_inner_outer: [f32; 2],
+    pub kind_flags: [u32; 2],
+    pub layer_mask: u32,
+    pub cast_shadow: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MaterialRecordMeta {
+    pub label: Option<String>,
+    pub data_bytes: Vec<u8>,
+    pub inputs_bytes: Vec<u8>,
+    pub texture_ids: Vec<u32>,
+    pub surface_type: u32,
+    pub topology: u32,
+    pub polygon_mode: u32,
+}
+
 pub fn hash_texture_records(records: &[TextureRecordMeta]) -> u64 {
     use std::hash::{Hash, Hasher};
 
@@ -92,6 +141,39 @@ pub fn hash_target_texture_binds(binds: &[TargetTextureBindingMeta]) -> u64 {
         bind.label.hash(&mut hasher);
     }
     hasher.finish()
+}
+
+pub fn plan_camera_projection_update(
+    previous_kind_flags: [u32; 2],
+    previous_near_far: [f32; 2],
+    previous_ortho_scale: f32,
+    next_kind_flags: [u32; 2],
+    next_near_far: [f32; 2],
+    next_ortho_scale: f32,
+    previous_projection_size: [u32; 2],
+) -> CameraProjectionPlan {
+    let projection_params_changed = previous_kind_flags != next_kind_flags
+        || previous_near_far != next_near_far
+        || (previous_ortho_scale - next_ortho_scale).abs() > f32::EPSILON;
+    let has_previous_projection =
+        previous_projection_size[0] > 0 && previous_projection_size[1] > 0;
+
+    CameraProjectionPlan {
+        preserve_runtime_projection: has_previous_projection && !projection_params_changed,
+        reset_projection_size: projection_params_changed,
+    }
+}
+
+pub fn model_record_changed(current: &ModelRecordMeta, next: &ModelRecordMeta) -> bool {
+    current != next
+}
+
+pub fn light_record_changed(current: &LightRecordMeta, next: &LightRecordMeta) -> bool {
+    current != next
+}
+
+pub fn material_record_changed(current: &MaterialRecordMeta, next: &MaterialRecordMeta) -> bool {
+    current != next
 }
 
 pub fn plan_texture_record_sync(
@@ -209,9 +291,11 @@ pub fn plan_geometry_registry_sync(current_ids: &[u32], next_ids: &[u32]) -> Syn
 #[cfg(test)]
 mod tests {
     use super::{
-        ForwardAtlasEntryMeta, SyncPlan, TargetTextureBindingMeta, TextureRecordMeta,
+        CameraProjectionPlan, ForwardAtlasEntryMeta, LightRecordMeta, MaterialRecordMeta,
+        ModelRecordMeta, SyncPlan, TargetTextureBindingMeta, TextureRecordMeta,
         graph_is_compatible, hash_forward_atlas_entries, hash_target_texture_binds,
-        hash_texture_records, plan_forward_atlas_sync, plan_geometry_registry_sync,
+        hash_texture_records, light_record_changed, material_record_changed, model_record_changed,
+        plan_camera_projection_update, plan_forward_atlas_sync, plan_geometry_registry_sync,
         plan_target_texture_bind_sync, plan_texture_record_sync, supports_render_pass,
     };
 
@@ -383,5 +467,100 @@ mod tests {
                 replace_ids: vec![4],
             }
         );
+    }
+
+    #[test]
+    fn camera_projection_plan_detects_preserve_vs_reset() {
+        assert_eq!(
+            plan_camera_projection_update(
+                [1, 0],
+                [0.1, 100.0],
+                1.0,
+                [1, 0],
+                [0.1, 100.0],
+                1.0,
+                [1280, 720],
+            ),
+            CameraProjectionPlan {
+                preserve_runtime_projection: true,
+                reset_projection_size: false,
+            }
+        );
+        assert_eq!(
+            plan_camera_projection_update(
+                [1, 0],
+                [0.1, 100.0],
+                1.0,
+                [2, 0],
+                [0.1, 100.0],
+                1.0,
+                [1280, 720],
+            ),
+            CameraProjectionPlan {
+                preserve_runtime_projection: false,
+                reset_projection_size: true,
+            }
+        );
+    }
+
+    #[test]
+    fn entity_and_material_change_detectors_compare_semantic_fields() {
+        let model = ModelRecordMeta {
+            transform: [0.0; 16],
+            translation: [0.0; 4],
+            rotation: [0.0; 4],
+            scale: [1.0, 1.0, 1.0, 0.0],
+            flags: [0; 4],
+            outline_color: [1.0, 0.0, 0.0, 1.0],
+            geometry_id: 1,
+            material_id: Some(2),
+            layer_mask: 3,
+            cast_shadow: true,
+            receive_shadow: true,
+            cast_outline: false,
+        };
+        let changed_model = ModelRecordMeta {
+            geometry_id: 9,
+            ..model.clone()
+        };
+        assert!(!model_record_changed(&model, &model));
+        assert!(model_record_changed(&model, &changed_model));
+
+        let light = LightRecordMeta {
+            position: [0.0; 4],
+            direction: [0.0; 4],
+            color: [1.0; 4],
+            ground_color: [0.0; 4],
+            view: [0.0; 16],
+            projection: [0.0; 16],
+            view_projection: [0.0; 16],
+            intensity_range: [1.0, 10.0],
+            spot_inner_outer: [0.0, 0.0],
+            kind_flags: [0, 0],
+            layer_mask: 1,
+            cast_shadow: false,
+        };
+        let changed_light = LightRecordMeta {
+            cast_shadow: true,
+            ..light.clone()
+        };
+        assert!(!light_record_changed(&light, &light));
+        assert!(light_record_changed(&light, &changed_light));
+
+        let material = MaterialRecordMeta {
+            label: Some("mat".into()),
+            data_bytes: vec![1, 2, 3],
+            inputs_bytes: vec![4, 5, 6],
+            texture_ids: vec![1, 2],
+            surface_type: 0,
+            topology: 2,
+            polygon_mode: 0,
+        };
+        let changed_material = MaterialRecordMeta {
+            texture_ids: vec![1, 3],
+            ..material.clone()
+        };
+        assert!(!material_record_changed(&material, &material));
+        assert!(material_record_changed(&material, &changed_material));
     }
 }
