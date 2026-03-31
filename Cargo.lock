@@ -4000,6 +4000,9 @@ dependencies = [
 [[package]]
 name = "vulfram-platform"
 version = "0.21.2-alpha"
+dependencies = [
+ "glam 0.30.10",
+]
 
 [[package]]
 name = "vulfram-protocol"

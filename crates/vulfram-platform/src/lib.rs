@@ -1,4 +1,11 @@
+pub mod browser;
+
 use std::collections::HashSet;
+
+pub use browser::{
+    BrowserPointerMotionInput, PlatformCursorGrabMode, map_browser_pointer_type,
+    normalize_browser_key_text, resolve_browser_pointer_position, resolve_canvas_surface_size,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PlatformActivityEvent {

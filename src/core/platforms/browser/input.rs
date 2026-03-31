@@ -1,6 +1,10 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
+use vulfram_platform::{
+    BrowserPointerMotionInput, PlatformCursorGrabMode, map_browser_pointer_type,
+    normalize_browser_key_text, resolve_browser_pointer_position, resolve_canvas_surface_size,
+};
 use wasm_bindgen::JsCast;
 use wasm_bindgen::closure::Closure;
 use web_sys::{
@@ -210,16 +214,7 @@ pub fn attach_canvas_listeners(
         };
         let key_code = map_web_key_code(&event.code());
         let is_composing = event.is_composing();
-        let text = if is_composing {
-            None
-        } else {
-            event
-                .key()
-                .chars()
-                .next()
-                .filter(|_| event.key().len() == 1)
-                .map(|_| event.key())
-        };
+        let text = normalize_browser_key_text(&event.key(), is_composing);
 
         with_live_window(window_id, |engine| {
             let mut current_modifiers = modifiers_state_for_keydown.borrow_mut();
@@ -261,16 +256,7 @@ pub fn attach_canvas_listeners(
         };
         let key_code = map_web_key_code(&event.code());
         let is_composing = event.is_composing();
-        let text = if is_composing {
-            None
-        } else {
-            event
-                .key()
-                .chars()
-                .next()
-                .filter(|_| event.key().len() == 1)
-                .map(|_| event.key())
-        };
+        let text = normalize_browser_key_text(&event.key(), is_composing);
 
         with_live_window(window_id, |engine| {
             let mut current_modifiers = modifiers_state_for_keyup.borrow_mut();
@@ -376,31 +362,21 @@ pub fn attach_canvas_listeners(
         let movement = glam::Vec2::new(event.movement_x() as f32, event.movement_y() as f32);
 
         with_live_window(window_id, |engine| {
-            let mode = engine.window.cursor_grab_mode(window_id);
-            let use_relative = match mode {
-                CursorGrabMode::None => false,
-                CursorGrabMode::Confined => true,
-                CursorGrabMode::Locked => engine.window.pointer_capture_active(window_id),
-            };
-            let position = if use_relative {
-                let fallback = if let Some(window_state) = engine.window.states.get(&window_id) {
-                    glam::Vec2::new(
-                        window_state.inner_size.x as f32 * 0.5,
-                        window_state.inner_size.y as f32 * 0.5,
-                    )
-                } else {
-                    absolute_position
-                };
-                let base = engine
-                    .window
-                    .cursor_positions
-                    .get(&window_id)
-                    .copied()
-                    .unwrap_or(fallback);
-                base + movement
-            } else {
-                absolute_position
-            };
+            let mode = map_platform_cursor_grab_mode(engine.window.cursor_grab_mode(window_id));
+            let window_size = engine.window.states.get(&window_id).map(|window_state| {
+                glam::Vec2::new(
+                    window_state.inner_size.x as f32,
+                    window_state.inner_size.y as f32,
+                )
+            });
+            let position = resolve_browser_pointer_position(BrowserPointerMotionInput {
+                cursor_grab_mode: mode,
+                pointer_capture_active: engine.window.pointer_capture_active(window_id),
+                absolute_position,
+                movement,
+                last_position: engine.window.cursor_positions.get(&window_id).copied(),
+                window_size,
+            });
             engine.window.cursor_positions.insert(window_id, position);
             engine
                 .event_queue
@@ -590,10 +566,7 @@ fn canvas_surface_size_from_rect(canvas: &HtmlCanvasElement) -> (u32, u32) {
     let dpr = web_sys::window()
         .map(|window| window.device_pixel_ratio())
         .unwrap_or(1.0);
-    let safe_dpr = dpr.max(1.0);
-    let width = (rect.width() * safe_dpr).round().max(1.0) as u32;
-    let height = (rect.height() * safe_dpr).round().max(1.0) as u32;
-    (width, height)
+    resolve_canvas_surface_size(rect.width(), rect.height(), dpr)
 }
 
 fn with_live_window(window_id: u32, apply: impl FnOnce(&mut EngineState)) -> bool {
@@ -680,11 +653,10 @@ fn register_listener(
     });
 }
 
-fn map_pointer_type(pointer_type: &str) -> u32 {
-    match pointer_type {
-        "mouse" => 0,
-        "touch" => 1,
-        "pen" => 2,
-        _ => 0,
+fn map_platform_cursor_grab_mode(mode: CursorGrabMode) -> PlatformCursorGrabMode {
+    match mode {
+        CursorGrabMode::None => PlatformCursorGrabMode::None,
+        CursorGrabMode::Confined => PlatformCursorGrabMode::Confined,
+        CursorGrabMode::Locked => PlatformCursorGrabMode::Locked,
     }
 }
