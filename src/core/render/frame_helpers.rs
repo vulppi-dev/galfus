@@ -19,7 +19,7 @@ pub(super) fn apply_realm_environment_bindings(
     render_state.environment = default_environment;
     render_state.environment_is_configured = true;
 
-    let mut layers: Vec<_> = universal
+    let layers: Vec<_> = universal
         .target_layers
         .entries
         .values()
@@ -32,23 +32,28 @@ pub(super) fn apply_realm_environment_bindings(
             };
             target.window_id == Some(window_id)
         })
+        .map(|layer| vulfram_render::EnvironmentLayerBinding {
+            target_id: layer.target_id,
+            camera_id: layer.camera_id,
+            environment_id: layer.environment_id,
+            z_index: layer.layout.z_index,
+        })
         .collect();
-    layers.sort_by_key(|layer| (layer.layout.z_index, layer.target_id.0));
 
-    for layer in layers {
-        let Some(environment_id) = layer.environment_id else {
-            continue;
-        };
+    let plan = vulfram_render::plan_realm_environment_bindings(&layers);
+
+    if let Some(environment_id) = plan.realm_environment_id {
+        if let Some(profile) = universal.environment_profiles.get(&environment_id).cloned() {
+            render_state.environment = profile;
+        }
+    }
+    for (camera_id, environment_id) in plan.camera_environment_ids {
         let Some(profile) = universal.environment_profiles.get(&environment_id).cloned() else {
             continue;
         };
-        if let Some(camera_id) = layer.camera_id {
-            render_state
-                .camera_environment_overrides
-                .insert(camera_id, profile);
-        } else {
-            render_state.environment = profile;
-        }
+        render_state
+            .camera_environment_overrides
+            .insert(camera_id, profile);
     }
 }
 
@@ -204,30 +209,11 @@ pub(super) fn build_soft_cut_diagnostic(
     previous_cut_edges: usize,
     frame_index: u64,
 ) -> Option<String> {
-    if frame_report.cut_edges.is_empty()
-        || !(previous_cut_edges == 0 || previous_cut_edges != frame_report.cut_edges.len())
-    {
-        return None;
-    }
-    let cut_count = frame_report.cut_edges.len();
-    let connectors: Vec<u32> = frame_report
-        .cut_edges
-        .iter()
-        .filter_map(|edge| edge.connector_id)
-        .collect();
-    let connector_text = if connectors.is_empty() {
-        "none".to_string()
-    } else {
-        connectors
-            .iter()
-            .map(u32::to_string)
-            .collect::<Vec<_>>()
-            .join(",")
-    };
-    Some(format!(
-        "frame={} cut_edges={} connectors={}",
-        frame_index, cut_count, connector_text
-    ))
+    vulfram_render::build_soft_cut_diagnostic(
+        &frame_report.cut_edges,
+        previous_cut_edges,
+        frame_index,
+    )
 }
 
 #[cfg(test)]

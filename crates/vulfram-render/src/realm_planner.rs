@@ -2,9 +2,23 @@ use std::collections::{HashMap, HashSet};
 use std::hash::Hasher;
 
 use vulfram_realm_core::{
-    AutoLink, ConnectorId, RealmGraphPlan, RealmId, RealmState, SurfaceCache, SurfaceId, TargetId,
-    TargetKind, TargetLayerState,
+    AutoLink, ConnectorId, FrameCutEdge, RealmGraphPlan, RealmId, RealmState, SurfaceCache,
+    SurfaceId, TargetId, TargetKind, TargetLayerState,
 };
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct EnvironmentLayerBinding {
+    pub target_id: TargetId,
+    pub camera_id: Option<u32>,
+    pub environment_id: Option<u32>,
+    pub z_index: i32,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RealmEnvironmentBindingPlan {
+    pub realm_environment_id: Option<u32>,
+    pub camera_environment_ids: HashMap<u32, u32>,
+}
 
 pub fn collect_cut_connectors(plan: &RealmGraphPlan) -> HashSet<ConnectorId> {
     plan.cut_edges
@@ -235,17 +249,76 @@ pub fn collect_window_camera_target_sizes(
     sizes
 }
 
+pub fn plan_realm_environment_bindings(
+    layers: &[EnvironmentLayerBinding],
+) -> RealmEnvironmentBindingPlan {
+    let mut ordered_layers = layers.to_vec();
+    ordered_layers.sort_by_key(|layer| (layer.z_index, layer.target_id.0));
+
+    let mut realm_environment_id = None;
+    let mut camera_environment_ids = HashMap::new();
+    for layer in ordered_layers {
+        let Some(environment_id) = layer.environment_id else {
+            continue;
+        };
+        if let Some(camera_id) = layer.camera_id {
+            camera_environment_ids.insert(camera_id, environment_id);
+        } else {
+            realm_environment_id = Some(environment_id);
+        }
+    }
+
+    RealmEnvironmentBindingPlan {
+        realm_environment_id,
+        camera_environment_ids,
+    }
+}
+
+pub fn build_soft_cut_diagnostic(
+    cut_edges: &[FrameCutEdge],
+    previous_cut_edges: usize,
+    frame_index: u64,
+) -> Option<String> {
+    if cut_edges.is_empty() || !(previous_cut_edges == 0 || previous_cut_edges != cut_edges.len()) {
+        return None;
+    }
+
+    let connectors: Vec<_> = cut_edges
+        .iter()
+        .filter_map(|edge| edge.connector_id)
+        .collect();
+    let connector_text = if connectors.is_empty() {
+        "none".to_string()
+    } else {
+        connectors
+            .iter()
+            .map(u32::to_string)
+            .collect::<Vec<_>>()
+            .join(",")
+    };
+
+    Some(format!(
+        "frame={} cut_edges={} connectors={}",
+        frame_index,
+        cut_edges.len(),
+        connector_text
+    ))
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
+        EnvironmentLayerBinding, RealmEnvironmentBindingPlan, build_soft_cut_diagnostic,
         build_target_surface_map, collect_connectors_by_realm, collect_cut_connectors,
-        collect_window_camera_target_sizes, map_realms_to_windows, resolve_realm_surface,
-        should_render_realm, update_present_size_cache, update_surface_cache,
+        collect_window_camera_target_sizes, map_realms_to_windows, plan_realm_environment_bindings,
+        resolve_realm_surface, should_render_realm, update_present_size_cache,
+        update_surface_cache,
     };
     use std::collections::{HashMap, HashSet};
     use vulfram_realm_core::{
-        AutoLink, ConnectorId, DimensionValue, RealmGraphEdge, RealmGraphPlan, RealmId, RealmState,
-        SurfaceCache, SurfaceId, TargetId, TargetKind, TargetLayerLayout, TargetLayerState,
+        AutoLink, ConnectorId, DimensionValue, FrameCutEdge, RealmGraphEdge, RealmGraphPlan,
+        RealmId, RealmState, SurfaceCache, SurfaceId, TargetId, TargetKind, TargetLayerLayout,
+        TargetLayerState,
     };
 
     #[test]
@@ -452,5 +525,55 @@ mod tests {
         );
         assert_eq!(sizes.get(&501), Some(&glam::UVec2::new(960, 270)));
         assert_eq!(sizes.get(&777), Some(&glam::UVec2::new(333, 222)));
+    }
+
+    #[test]
+    fn plans_realm_environment_bindings_in_z_order() {
+        let plan = plan_realm_environment_bindings(&[
+            EnvironmentLayerBinding {
+                target_id: TargetId(9),
+                camera_id: Some(7),
+                environment_id: Some(30),
+                z_index: 5,
+            },
+            EnvironmentLayerBinding {
+                target_id: TargetId(2),
+                camera_id: None,
+                environment_id: Some(11),
+                z_index: 0,
+            },
+            EnvironmentLayerBinding {
+                target_id: TargetId(3),
+                camera_id: None,
+                environment_id: Some(12),
+                z_index: 10,
+            },
+        ]);
+
+        assert_eq!(
+            plan,
+            RealmEnvironmentBindingPlan {
+                realm_environment_id: Some(12),
+                camera_environment_ids: HashMap::from([(7, 30)]),
+            }
+        );
+    }
+
+    #[test]
+    fn soft_cut_diagnostic_reports_connector_summary() {
+        let diagnostic = build_soft_cut_diagnostic(
+            &[FrameCutEdge {
+                from: 1,
+                to: 2,
+                connector_id: Some(9),
+            }],
+            0,
+            42,
+        );
+
+        assert_eq!(
+            diagnostic.as_deref(),
+            Some("frame=42 cut_edges=1 connectors=9")
+        );
     }
 }

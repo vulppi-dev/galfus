@@ -7,9 +7,10 @@ mod ui_actions;
 mod validation;
 
 pub use realm_planner::{
+    EnvironmentLayerBinding, RealmEnvironmentBindingPlan, build_soft_cut_diagnostic,
     build_target_surface_map, collect_connectors_by_realm, collect_cut_connectors,
-    collect_window_camera_target_sizes, map_realms_to_windows, resolve_realm_surface,
-    should_render_realm, update_present_size_cache, update_surface_cache,
+    collect_window_camera_target_sizes, map_realms_to_windows, plan_realm_environment_bindings,
+    resolve_realm_surface, should_render_realm, update_present_size_cache, update_surface_cache,
 };
 pub use ui_actions::{UiPlatformAction, collect_platform_actions};
 
