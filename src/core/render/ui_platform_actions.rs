@@ -332,21 +332,19 @@ pub(super) fn apply_ui_platform_actions(
 fn current_window_state_for_ui(
     window_state: &crate::core::window::WindowState,
 ) -> crate::core::window::EngineWindowState {
-    if window_state.window.is_minimized().unwrap_or(false) {
-        crate::core::window::EngineWindowState::Minimized
-    } else if window_state.window.is_maximized() {
-        crate::core::window::EngineWindowState::Maximized
-    } else if window_state.window.fullscreen().is_some() {
-        match window_state.window.fullscreen() {
-            Some(crate::core::platform::winit::window::Fullscreen::Exclusive(_)) => {
-                crate::core::window::EngineWindowState::Fullscreen
-            }
-            Some(crate::core::platform::winit::window::Fullscreen::Borderless(_)) => {
-                crate::core::window::EngineWindowState::WindowedFullscreen
-            }
-            None => crate::core::window::EngineWindowState::Windowed,
+    let fullscreen = match window_state.window.fullscreen() {
+        Some(crate::core::platform::winit::window::Fullscreen::Exclusive(_)) => {
+            Some(vulfram_render::WindowFullscreenMode::Exclusive)
         }
-    } else {
-        crate::core::window::EngineWindowState::Windowed
-    }
+        Some(crate::core::platform::winit::window::Fullscreen::Borderless(_)) => {
+            Some(vulfram_render::WindowFullscreenMode::Borderless)
+        }
+        None => None,
+    };
+
+    vulfram_render::resolve_window_state(
+        window_state.window.is_minimized().unwrap_or(false),
+        window_state.window.is_maximized(),
+        fullscreen,
+    )
 }
