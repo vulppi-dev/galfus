@@ -148,9 +148,114 @@ pub struct AudioState {
     pub streams: HashMap<u32, AudioStreamState>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct AudioListenerBindingSnapshot {
+    pub realm_id: u32,
+    pub model_id: u32,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct AudioSourceSnapshot {
+    pub source_id: u32,
+    pub realm_id: Option<u32>,
+    pub model_id: Option<u32>,
+    pub position: Vec3,
+    pub velocity: Vec3,
+    pub orientation: Quat,
+    pub gain: f32,
+    pub pitch: f32,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct AudioStreamSnapshot {
+    pub resource_id: u32,
+    pub received_bytes: u64,
+    pub total_bytes: u64,
+    pub complete: bool,
+}
+
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct AudioStateSnapshot {
+    pub listener: Option<AudioListenerBindingSnapshot>,
+    pub sources: Vec<AudioSourceSnapshot>,
+    pub streams: Vec<AudioStreamSnapshot>,
+}
+
+pub fn snapshot_audio_state(
+    state: &AudioState,
+    include_listener: bool,
+    include_sources: bool,
+    include_streams: bool,
+) -> AudioStateSnapshot {
+    let listener = include_listener
+        .then(|| {
+            state
+                .listener_binding
+                .map(|binding| AudioListenerBindingSnapshot {
+                    realm_id: binding.realm_id,
+                    model_id: binding.model_id,
+                })
+        })
+        .flatten();
+
+    let mut sources = if include_sources {
+        let mut entries: Vec<_> = state
+            .source_params
+            .iter()
+            .map(|(&source_id, params)| {
+                let (realm_id, model_id) = state
+                    .source_bindings
+                    .get(&source_id)
+                    .map(|binding| (Some(binding.realm_id), Some(binding.model_id)))
+                    .unwrap_or((None, None));
+                AudioSourceSnapshot {
+                    source_id,
+                    realm_id,
+                    model_id,
+                    position: params.position,
+                    velocity: params.velocity,
+                    orientation: params.orientation,
+                    gain: params.gain,
+                    pitch: params.pitch,
+                }
+            })
+            .collect();
+        entries.sort_by_key(|entry| entry.source_id);
+        entries
+    } else {
+        Vec::new()
+    };
+
+    let mut streams = if include_streams {
+        let mut entries: Vec<_> = state
+            .streams
+            .iter()
+            .map(|(&resource_id, stream)| AudioStreamSnapshot {
+                resource_id,
+                received_bytes: stream.received_bytes,
+                total_bytes: stream.total_bytes,
+                complete: stream.complete(),
+            })
+            .collect();
+        entries.sort_by_key(|entry| entry.resource_id);
+        entries
+    } else {
+        Vec::new()
+    };
+
+    AudioStateSnapshot {
+        listener,
+        sources: std::mem::take(&mut sources),
+        streams: std::mem::take(&mut streams),
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use super::AudioStreamState;
+    use super::{
+        AudioListenerBinding, AudioSourceParams, AudioState, AudioStreamState, snapshot_audio_state,
+    };
+    use glam::Vec3;
 
     #[test]
     fn audio_stream_merges_overlapping_chunks_without_double_counting() {
@@ -170,5 +275,44 @@ mod tests {
         assert!(!stream.complete());
         let _ = stream.apply_chunk(0, &[1, 2, 3, 4]).expect("full chunk");
         assert!(stream.complete());
+    }
+
+    #[test]
+    fn snapshot_audio_state_sorts_sources_and_streams() {
+        let mut state = AudioState {
+            listener_binding: Some(AudioListenerBinding {
+                realm_id: 9,
+                model_id: 7,
+            }),
+            ..Default::default()
+        };
+        state.source_params.insert(
+            20,
+            AudioSourceParams {
+                position: Vec3::new(1.0, 2.0, 3.0),
+                ..Default::default()
+            },
+        );
+        state.source_bindings.insert(
+            20,
+            AudioListenerBinding {
+                realm_id: 5,
+                model_id: 4,
+            },
+        );
+        state.source_params.insert(10, AudioSourceParams::default());
+        let mut stream = AudioStreamState::new(2).expect("stream");
+        let _ = stream.apply_chunk(0, &[1, 2]).expect("chunk");
+        state.streams.insert(3, stream);
+
+        let snapshot = snapshot_audio_state(&state, true, true, true);
+
+        assert_eq!(snapshot.listener.expect("listener").realm_id, 9);
+        assert_eq!(snapshot.sources.len(), 2);
+        assert_eq!(snapshot.sources[0].source_id, 10);
+        assert_eq!(snapshot.sources[1].source_id, 20);
+        assert_eq!(snapshot.sources[1].realm_id, Some(5));
+        assert_eq!(snapshot.streams[0].resource_id, 3);
+        assert!(snapshot.streams[0].complete);
     }
 }

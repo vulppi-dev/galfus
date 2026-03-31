@@ -1,4 +1,5 @@
 use crate::core::state::EngineState;
+use vulfram_audio::snapshot_audio_state;
 
 use super::types::{
     AudioListenerBindingState, AudioSourceStateEntry, AudioStreamStateEntry, CmdAudioStateGetArgs,
@@ -17,71 +18,43 @@ pub fn engine_cmd_audio_state_get(
         };
     }
 
-    let listener = if args.include_listener {
-        engine
-            .audio_state
-            .listener_binding
-            .map(|binding| AudioListenerBindingState {
-                realm_id: binding.realm_id,
-                model_id: binding.model_id,
-            })
-    } else {
-        None
-    };
-
-    let mut sources = if args.include_sources {
-        let mut entries: Vec<_> = engine
-            .audio_state
-            .source_params
-            .iter()
-            .map(|(&source_id, params)| {
-                let (realm_id, model_id) = engine
-                    .audio_state
-                    .source_bindings
-                    .get(&source_id)
-                    .map(|binding| (Some(binding.realm_id), Some(binding.model_id)))
-                    .unwrap_or((None, None));
-                AudioSourceStateEntry {
-                    source_id,
-                    realm_id,
-                    model_id,
-                    position: params.position,
-                    velocity: params.velocity,
-                    orientation: params.orientation,
-                    gain: params.gain,
-                    pitch: params.pitch,
-                }
-            })
-            .collect();
-        entries.sort_by_key(|entry| entry.source_id);
-        entries
-    } else {
-        Vec::new()
-    };
-
-    let mut streams = if args.include_streams {
-        let mut entries: Vec<_> = engine
-            .audio_state
-            .streams
-            .iter()
-            .map(|(&resource_id, stream)| AudioStreamStateEntry {
-                resource_id,
-                received_bytes: stream.received_bytes,
-                total_bytes: stream.total_bytes,
-                complete: stream.complete(),
-            })
-            .collect();
-        entries.sort_by_key(|entry| entry.resource_id);
-        entries
-    } else {
-        Vec::new()
-    };
+    let snapshot = snapshot_audio_state(
+        &engine.audio_state,
+        args.include_listener,
+        args.include_sources,
+        args.include_streams,
+    );
 
     CmdResultAudioStateGet {
         success: true,
         message: "Audio state listed".into(),
-        listener,
-        sources: std::mem::take(&mut sources),
-        streams: std::mem::take(&mut streams),
+        listener: snapshot.listener.map(|binding| AudioListenerBindingState {
+            realm_id: binding.realm_id,
+            model_id: binding.model_id,
+        }),
+        sources: snapshot
+            .sources
+            .into_iter()
+            .map(|entry| AudioSourceStateEntry {
+                source_id: entry.source_id,
+                realm_id: entry.realm_id,
+                model_id: entry.model_id,
+                position: entry.position,
+                velocity: entry.velocity,
+                orientation: entry.orientation,
+                gain: entry.gain,
+                pitch: entry.pitch,
+            })
+            .collect(),
+        streams: snapshot
+            .streams
+            .into_iter()
+            .map(|entry| AudioStreamStateEntry {
+                resource_id: entry.resource_id,
+                received_bytes: entry.received_bytes,
+                total_bytes: entry.total_bytes,
+                complete: entry.complete,
+            })
+            .collect(),
     }
 }
