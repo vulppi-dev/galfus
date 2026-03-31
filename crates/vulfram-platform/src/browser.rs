@@ -19,6 +19,21 @@ pub struct BrowserPointerCaptureUpdate {
     pub reason: &'static str,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct BrowserSurfaceResizePlan {
+    pub width: u32,
+    pub height: u32,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct BrowserCursorCommandPlan {
+    pub active: bool,
+    pub reason: &'static str,
+    pub message: &'static str,
+    pub request_pointer_lock: bool,
+    pub exit_pointer_lock: bool,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct BrowserPointerMotionInput {
     pub cursor_grab_mode: PlatformCursorGrabMode,
@@ -69,6 +84,20 @@ pub fn resolve_canvas_surface_size(
     (width, height)
 }
 
+pub fn plan_browser_surface_resize(
+    current_width: u32,
+    current_height: u32,
+    next_width: u32,
+    next_height: u32,
+) -> Option<BrowserSurfaceResizePlan> {
+    let width = next_width.max(1);
+    let height = next_height.max(1);
+    if current_width.max(1) == width && current_height.max(1) == height {
+        return None;
+    }
+    Some(BrowserSurfaceResizePlan { width, height })
+}
+
 pub fn resolve_browser_pointer_position(input: BrowserPointerMotionInput) -> Vec2 {
     let use_relative = match input.cursor_grab_mode {
         PlatformCursorGrabMode::None => false,
@@ -111,13 +140,41 @@ pub fn resolve_pointer_lock_error(
     })
 }
 
+pub fn plan_browser_cursor_mode_change(mode: PlatformCursorGrabMode) -> BrowserCursorCommandPlan {
+    match mode {
+        PlatformCursorGrabMode::None => BrowserCursorCommandPlan {
+            active: false,
+            reason: "command",
+            message: "Pointer capture disabled",
+            request_pointer_lock: false,
+            exit_pointer_lock: true,
+        },
+        PlatformCursorGrabMode::Confined => BrowserCursorCommandPlan {
+            active: true,
+            reason: "command-polyfill",
+            message: "Pointer confined mode enabled (polyfill)",
+            request_pointer_lock: false,
+            exit_pointer_lock: false,
+        },
+        PlatformCursorGrabMode::Locked => BrowserCursorCommandPlan {
+            active: false,
+            reason: "command-requested",
+            message: "Pointer lock requested",
+            request_pointer_lock: true,
+            exit_pointer_lock: false,
+        },
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
-        BrowserPointerCaptureUpdate, BrowserPointerMotionInput, PlatformCursorGrabMode,
-        PlatformWindowState, map_browser_pointer_type, normalize_browser_key_text,
-        resolve_browser_pointer_position, resolve_browser_window_state,
-        resolve_canvas_surface_size, resolve_pointer_lock_change, resolve_pointer_lock_error,
+        BrowserCursorCommandPlan, BrowserPointerCaptureUpdate, BrowserPointerMotionInput,
+        BrowserSurfaceResizePlan, PlatformCursorGrabMode, PlatformWindowState,
+        map_browser_pointer_type, normalize_browser_key_text, plan_browser_cursor_mode_change,
+        plan_browser_surface_resize, resolve_browser_pointer_position,
+        resolve_browser_window_state, resolve_canvas_surface_size, resolve_pointer_lock_change,
+        resolve_pointer_lock_error,
     };
     use glam::vec2;
 
@@ -207,6 +264,42 @@ mod tests {
                 active: false,
                 reason: "pointer-lock-error",
             })
+        );
+    }
+
+    #[test]
+    fn plan_browser_surface_resize_skips_unchanged_values() {
+        assert_eq!(plan_browser_surface_resize(10, 20, 10, 20), None);
+        assert_eq!(
+            plan_browser_surface_resize(10, 20, 0, 30),
+            Some(BrowserSurfaceResizePlan {
+                width: 1,
+                height: 30,
+            })
+        );
+    }
+
+    #[test]
+    fn plan_browser_cursor_mode_change_matches_expected_behavior() {
+        assert_eq!(
+            plan_browser_cursor_mode_change(PlatformCursorGrabMode::Locked),
+            BrowserCursorCommandPlan {
+                active: false,
+                reason: "command-requested",
+                message: "Pointer lock requested",
+                request_pointer_lock: true,
+                exit_pointer_lock: false,
+            }
+        );
+        assert_eq!(
+            plan_browser_cursor_mode_change(PlatformCursorGrabMode::None),
+            BrowserCursorCommandPlan {
+                active: false,
+                reason: "command",
+                message: "Pointer capture disabled",
+                request_pointer_lock: false,
+                exit_pointer_lock: true,
+            }
         );
     }
 }

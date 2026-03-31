@@ -3,6 +3,8 @@ use crate::core::cmd::EngineEvent;
 use crate::core::platform::winit;
 use crate::core::state::EngineState;
 use crate::core::window::{WindowEvent, WindowPointerCaptureState};
+#[cfg(feature = "wasm")]
+use vulfram_platform::{PlatformCursorGrabMode, plan_browser_cursor_mode_change};
 pub use vulfram_protocol::{
     CmdResultWindowCursor, CmdWindowCursorArgs, CursorGrabMode, CursorIcon,
 };
@@ -175,76 +177,36 @@ pub fn engine_cmd_window_cursor(
         let window_ref = window_state.window.clone();
         let canvas = window_ref.canvas();
         _engine.window.set_cursor_grab_mode(args.window_id, mode);
+        let plan = plan_browser_cursor_mode_change(map_platform_cursor_grab_mode(mode));
 
-        match mode {
-            CursorGrabMode::None => {
-                if let Some(window) = web_sys::window()
-                    && let Some(document) = window.document()
-                {
-                    document.exit_pointer_lock();
-                }
-                _engine
-                    .window
-                    .set_pointer_capture_active(args.window_id, false);
-                _engine
-                    .runtime
-                    .runtime
-                    .event_queue
-                    .push(EngineEvent::Window(WindowEvent::OnPointerCaptureChange {
-                        window_id: args.window_id,
-                        capture: WindowPointerCaptureState {
-                            mode,
-                            active: false,
-                            reason: Some("command".into()),
-                        },
-                    }));
-            }
-            CursorGrabMode::Confined => {
-                // Browser has no native confined mode; we emulate it logically in pointer input.
-                _engine
-                    .window
-                    .set_pointer_capture_active(args.window_id, true);
-                _engine
-                    .runtime
-                    .runtime
-                    .event_queue
-                    .push(EngineEvent::Window(WindowEvent::OnPointerCaptureChange {
-                        window_id: args.window_id,
-                        capture: WindowPointerCaptureState {
-                            mode,
-                            active: true,
-                            reason: Some("command-polyfill".into()),
-                        },
-                    }));
-            }
-            CursorGrabMode::Locked => {
-                let element: &web_sys::Element = canvas.unchecked_ref();
-                element.request_pointer_lock();
-                _engine
-                    .window
-                    .set_pointer_capture_active(args.window_id, false);
-                _engine
-                    .runtime
-                    .runtime
-                    .event_queue
-                    .push(EngineEvent::Window(WindowEvent::OnPointerCaptureChange {
-                        window_id: args.window_id,
-                        capture: WindowPointerCaptureState {
-                            mode,
-                            active: false,
-                            reason: Some("command-requested".into()),
-                        },
-                    }));
+        if plan.exit_pointer_lock {
+            if let Some(window) = web_sys::window()
+                && let Some(document) = window.document()
+            {
+                document.exit_pointer_lock();
             }
         }
+        if plan.request_pointer_lock {
+            let element: &web_sys::Element = canvas.unchecked_ref();
+            element.request_pointer_lock();
+        }
+        _engine
+            .window
+            .set_pointer_capture_active(args.window_id, plan.active);
+        _engine.runtime.event_queue.push(EngineEvent::Window(
+            WindowEvent::OnPointerCaptureChange {
+                window_id: args.window_id,
+                capture: WindowPointerCaptureState {
+                    mode,
+                    active: plan.active,
+                    reason: Some(plan.reason.into()),
+                },
+            },
+        ));
 
         return CmdResultWindowCursor {
             success: true,
-            message: match mode {
-                CursorGrabMode::None => "Pointer capture disabled".into(),
-                CursorGrabMode::Confined => "Pointer confined mode enabled (polyfill)".into(),
-                CursorGrabMode::Locked => "Pointer lock requested".into(),
-            },
+            message: plan.message.into(),
         };
     }
 
@@ -264,4 +226,13 @@ pub fn engine_cmd_window_cursor_from_ui(
     args: &CmdWindowCursorArgs,
 ) -> CmdResultWindowCursor {
     engine_cmd_window_cursor(_engine, args)
+}
+
+#[cfg(feature = "wasm")]
+fn map_platform_cursor_grab_mode(mode: CursorGrabMode) -> PlatformCursorGrabMode {
+    match mode {
+        CursorGrabMode::None => PlatformCursorGrabMode::None,
+        CursorGrabMode::Confined => PlatformCursorGrabMode::Confined,
+        CursorGrabMode::Locked => PlatformCursorGrabMode::Locked,
+    }
 }

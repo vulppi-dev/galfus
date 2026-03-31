@@ -3,10 +3,11 @@ pub mod browser;
 use std::collections::HashSet;
 
 pub use browser::{
-    BrowserPointerCaptureUpdate, BrowserPointerMotionInput, PlatformCursorGrabMode,
-    PlatformWindowState, map_browser_pointer_type, normalize_browser_key_text,
-    resolve_browser_pointer_position, resolve_browser_window_state, resolve_canvas_surface_size,
-    resolve_pointer_lock_change, resolve_pointer_lock_error,
+    BrowserCursorCommandPlan, BrowserPointerCaptureUpdate, BrowserPointerMotionInput,
+    BrowserSurfaceResizePlan, PlatformCursorGrabMode, PlatformWindowState,
+    map_browser_pointer_type, normalize_browser_key_text, plan_browser_cursor_mode_change,
+    plan_browser_surface_resize, resolve_browser_pointer_position, resolve_browser_window_state,
+    resolve_canvas_surface_size, resolve_pointer_lock_change, resolve_pointer_lock_error,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

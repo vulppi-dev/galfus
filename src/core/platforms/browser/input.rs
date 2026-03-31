@@ -3,9 +3,9 @@ use std::rc::Rc;
 
 use vulfram_platform::{
     BrowserPointerMotionInput, PlatformCursorGrabMode, PlatformWindowState,
-    map_browser_pointer_type, normalize_browser_key_text, resolve_browser_pointer_position,
-    resolve_browser_window_state, resolve_canvas_surface_size, resolve_pointer_lock_change,
-    resolve_pointer_lock_error,
+    map_browser_pointer_type, normalize_browser_key_text, plan_browser_surface_resize,
+    resolve_browser_pointer_position, resolve_browser_window_state, resolve_canvas_surface_size,
+    resolve_pointer_lock_change, resolve_pointer_lock_error,
 };
 use wasm_bindgen::JsCast;
 use wasm_bindgen::closure::Closure;
@@ -594,26 +594,28 @@ fn sync_canvas_surface_size(window_id: u32, width: u32, height: u32) -> bool {
         if let Some(window_state) = engine.window.states.get_mut(&window_id) {
             let current_width = window_state.config.width.max(1);
             let current_height = window_state.config.height.max(1);
-            window_changed = current_width != width || current_height != height;
-            if window_changed {
-                window_state.config.width = width;
-                window_state.config.height = height;
+            let resize_plan =
+                plan_browser_surface_resize(current_width, current_height, width, height);
+            window_changed = resize_plan.is_some();
+            if let Some(resize_plan) = resize_plan {
+                window_state.config.width = resize_plan.width;
+                window_state.config.height = resize_plan.height;
                 if let Some(device) = engine.device.as_ref() {
                     window_state.surface.configure(device, &window_state.config);
                     #[cfg(any(not(feature = "wasm"), target_arch = "wasm32"))]
                     if let Some(render_state) = engine.render.get_mut(&window_id) {
-                        render_state.on_resize(device, width, height);
+                        render_state.on_resize(device, resize_plan.width, resize_plan.height);
                     }
                     crate::core::resources::ensure_render_target(
                         device,
                         &mut window_state.surface_target,
-                        width.max(1),
-                        height.max(1),
+                        resize_plan.width,
+                        resize_plan.height,
                         wgpu::TextureFormat::Rgba16Float,
                     );
                 }
-                window_state.inner_size = glam::UVec2::new(width, height);
-                window_state.outer_size = glam::UVec2::new(width, height);
+                window_state.inner_size = glam::UVec2::new(resize_plan.width, resize_plan.height);
+                window_state.outer_size = glam::UVec2::new(resize_plan.width, resize_plan.height);
                 window_state.is_dirty = true;
             }
         }

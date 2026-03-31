@@ -638,6 +638,7 @@ Tarefas:
   - desktop já consome `vulfram-platform` para decidir redraw
   - helpers puros de browser para sizing de canvas, texto de teclado e ponteiro extraídos
   - helpers de lifecycle web para fullscreen e pointer-lock extraídos
+  - planner puro de resize de surface e comando de cursor web extraídos
   - integração browser ainda pendente
 
 Testes obrigatórios:
