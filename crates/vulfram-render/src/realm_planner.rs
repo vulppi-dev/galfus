@@ -88,6 +88,18 @@ pub struct TargetSizeUpdatePlanEntry {
     pub window_id: Option<u32>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ExternalTextureSource {
+    pub texture_id: u32,
+    pub source_key: usize,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ExternalTextureRefreshPlan {
+    pub stale_ids: Vec<u32>,
+    pub replace_ids: Vec<u32>,
+}
+
 pub fn collect_cut_connectors(plan: &RealmGraphPlan) -> HashSet<ConnectorId> {
     plan.cut_edges
         .iter()
@@ -506,15 +518,47 @@ pub fn plan_target_size_updates(
         .collect()
 }
 
+pub fn plan_external_texture_refresh(
+    current_sources: &HashMap<u32, usize>,
+    next_sources: &[ExternalTextureSource],
+) -> ExternalTextureRefreshPlan {
+    let next_by_id: HashMap<_, _> = next_sources
+        .iter()
+        .map(|source| (source.texture_id, source.source_key))
+        .collect();
+
+    let mut stale_ids: Vec<u32> = current_sources
+        .keys()
+        .filter(|texture_id| !next_by_id.contains_key(texture_id))
+        .copied()
+        .collect();
+    stale_ids.sort_unstable();
+
+    let mut replace_ids: Vec<u32> = next_sources
+        .iter()
+        .filter(|source| {
+            current_sources.get(&source.texture_id).copied() != Some(source.source_key)
+        })
+        .map(|source| source.texture_id)
+        .collect();
+    replace_ids.sort_unstable();
+
+    ExternalTextureRefreshPlan {
+        stale_ids,
+        replace_ids,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
         ComposeBlendMode, ComposeConnectorCandidate, ComposeOverlayPlan, ComposeOverlayPlanEntry,
-        EnvironmentLayerBinding, RealmEnvironmentBindingPlan, ResolvedSurfaceTarget,
-        SurfaceTargetRequest, TargetSizeUpdatePlanEntry, TargetSizeUpdateRequest,
-        build_soft_cut_diagnostic, build_target_surface_map, collect_connectors_by_realm,
-        collect_cut_connectors, collect_window_camera_target_sizes, map_realms_to_windows,
-        plan_compose_overlays, plan_realm_environment_bindings, plan_surface_targets,
+        EnvironmentLayerBinding, ExternalTextureRefreshPlan, ExternalTextureSource,
+        RealmEnvironmentBindingPlan, ResolvedSurfaceTarget, SurfaceTargetRequest,
+        TargetSizeUpdatePlanEntry, TargetSizeUpdateRequest, build_soft_cut_diagnostic,
+        build_target_surface_map, collect_connectors_by_realm, collect_cut_connectors,
+        collect_window_camera_target_sizes, map_realms_to_windows, plan_compose_overlays,
+        plan_external_texture_refresh, plan_realm_environment_bindings, plan_surface_targets,
         plan_target_size_updates, resolve_connector_surface, resolve_realm_surface,
         should_render_realm, update_present_size_cache, update_surface_cache,
     };
@@ -940,6 +984,31 @@ mod tests {
                 needs_msaa_init: true,
                 window_id: Some(7),
             }]
+        );
+    }
+
+    #[test]
+    fn plans_external_texture_refresh_from_source_keys() {
+        let plan = plan_external_texture_refresh(
+            &HashMap::from([(1, 100_usize), (2, 200_usize)]),
+            &[
+                ExternalTextureSource {
+                    texture_id: 1,
+                    source_key: 100,
+                },
+                ExternalTextureSource {
+                    texture_id: 3,
+                    source_key: 300,
+                },
+            ],
+        );
+
+        assert_eq!(
+            plan,
+            ExternalTextureRefreshPlan {
+                stale_ids: vec![2],
+                replace_ids: vec![3],
+            }
         );
     }
 }

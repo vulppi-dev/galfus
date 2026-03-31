@@ -165,36 +165,45 @@ pub(super) fn refresh_window_target_textures(
     >,
 ) {
     for render_state in render_states.values_mut() {
-        let mut alive_ids = std::collections::HashSet::with_capacity(target_texture_binds.len());
-        for (texture_id, binding) in target_texture_binds {
+        let next_sources: Vec<_> = target_texture_binds
+            .iter()
+            .filter_map(|(texture_id, binding)| {
+                let surface_id = target_surfaces.get(&binding.target_id)?;
+                let surface_target = surface_targets.get(surface_id)?;
+                Some(vulfram_render::ExternalTextureSource {
+                    texture_id: *texture_id,
+                    source_key: surface_target as *const crate::core::resources::RenderTarget
+                        as usize,
+                })
+            })
+            .collect();
+        let plan = vulfram_render::plan_external_texture_refresh(
+            &render_state.external_texture_sources,
+            &next_sources,
+        );
+
+        for texture_id in plan.replace_ids {
+            let Some(binding) = target_texture_binds.get(&texture_id) else {
+                continue;
+            };
             let Some(surface_id) = target_surfaces.get(&binding.target_id) else {
                 continue;
             };
             let Some(surface_target) = surface_targets.get(surface_id) else {
                 continue;
             };
-            let source_ptr = surface_target as *const crate::core::resources::RenderTarget as usize;
-            alive_ids.insert(*texture_id);
-            let needs_replace = render_state
+            let source_key = surface_target as *const crate::core::resources::RenderTarget as usize;
+            render_state
+                .external_textures
+                .insert(texture_id, surface_target.view.clone());
+            render_state
                 .external_texture_sources
-                .get(texture_id)
-                .copied()
-                != Some(source_ptr);
-            if needs_replace {
-                render_state
-                    .external_textures
-                    .insert(*texture_id, surface_target.view.clone());
-                render_state
-                    .external_texture_sources
-                    .insert(*texture_id, source_ptr);
-            }
+                .insert(texture_id, source_key);
         }
-        render_state
-            .external_textures
-            .retain(|texture_id, _| alive_ids.contains(texture_id));
-        render_state
-            .external_texture_sources
-            .retain(|texture_id, _| alive_ids.contains(texture_id));
+        for texture_id in plan.stale_ids {
+            render_state.external_textures.remove(&texture_id);
+            render_state.external_texture_sources.remove(&texture_id);
+        }
     }
 }
 
