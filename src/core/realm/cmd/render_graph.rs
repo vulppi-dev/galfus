@@ -69,8 +69,7 @@ pub struct CmdResultRealmRenderGraphBind {
 }
 
 fn is_reserved_graph_id(render_graph_id: u32) -> bool {
-    render_graph_id == crate::core::render::graph::DEFAULT_3D_RENDER_GRAPH_ID
-        || render_graph_id == crate::core::render::graph::DEFAULT_2D_RENDER_GRAPH_ID
+    vulfram_render::is_reserved_render_graph_id(render_graph_id)
 }
 
 fn realms_using_graph(engine: &EngineState, render_graph_id: u32) -> Vec<RealmId> {

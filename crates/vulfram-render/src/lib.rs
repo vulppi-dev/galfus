@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::hash::{DefaultHasher, Hash, Hasher};
+use vulfram_realm_core::RealmKind;
 
 mod realm_planner;
 mod ui_actions;
@@ -205,6 +206,24 @@ impl RenderGraphState {
 
 pub const DEFAULT_3D_RENDER_GRAPH_ID: u32 = 1;
 pub const DEFAULT_2D_RENDER_GRAPH_ID: u32 = 2;
+
+pub fn fallback_render_graph_id(realm_kind: RealmKind) -> u32 {
+    match realm_kind {
+        RealmKind::ThreeD => DEFAULT_3D_RENDER_GRAPH_ID,
+        RealmKind::TwoD => DEFAULT_2D_RENDER_GRAPH_ID,
+    }
+}
+
+pub fn resolve_render_graph_id(
+    explicit_render_graph_id: Option<u32>,
+    realm_kind: RealmKind,
+) -> u32 {
+    explicit_render_graph_id.unwrap_or_else(|| fallback_render_graph_id(realm_kind))
+}
+
+pub fn is_reserved_render_graph_id(render_graph_id: u32) -> bool {
+    render_graph_id == DEFAULT_3D_RENDER_GRAPH_ID || render_graph_id == DEFAULT_2D_RENDER_GRAPH_ID
+}
 
 pub fn render_graph_desc_hash(desc: &RenderGraphDesc) -> u64 {
     let mut hasher = DefaultHasher::new();
@@ -597,5 +616,36 @@ pub fn fallback_graph() -> RenderGraphDesc {
             },
         ],
         fallback: true,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        DEFAULT_2D_RENDER_GRAPH_ID, DEFAULT_3D_RENDER_GRAPH_ID, fallback_render_graph_id,
+        is_reserved_render_graph_id, resolve_render_graph_id,
+    };
+
+    #[test]
+    fn render_graph_id_helpers_follow_realm_kind_defaults() {
+        assert_eq!(
+            fallback_render_graph_id(vulfram_realm_core::RealmKind::ThreeD),
+            DEFAULT_3D_RENDER_GRAPH_ID
+        );
+        assert_eq!(
+            fallback_render_graph_id(vulfram_realm_core::RealmKind::TwoD),
+            DEFAULT_2D_RENDER_GRAPH_ID
+        );
+        assert_eq!(
+            resolve_render_graph_id(None, vulfram_realm_core::RealmKind::ThreeD),
+            DEFAULT_3D_RENDER_GRAPH_ID
+        );
+        assert_eq!(
+            resolve_render_graph_id(Some(77), vulfram_realm_core::RealmKind::TwoD),
+            77
+        );
+        assert!(is_reserved_render_graph_id(DEFAULT_3D_RENDER_GRAPH_ID));
+        assert!(is_reserved_render_graph_id(DEFAULT_2D_RENDER_GRAPH_ID));
+        assert!(!is_reserved_render_graph_id(77));
     }
 }
