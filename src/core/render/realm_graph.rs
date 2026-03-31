@@ -99,14 +99,22 @@ pub(crate) fn collect_surface_views(
     surface_targets.retain(|surface_id, _| universal.surfaces.entries.contains_key(surface_id));
 
     let mut views = HashMap::new();
+    let surface_requests: Vec<_> = universal
+        .surfaces
+        .entries
+        .iter()
+        .map(|(surface_id, entry)| vulfram_render::SurfaceTargetRequest {
+            surface_id: *surface_id,
+            declared_size: entry.value.size,
+            is_onscreen: entry.value.kind == crate::core::realm::SurfaceKind::Onscreen,
+        })
+        .collect();
+    let resolved_targets = vulfram_render::plan_surface_targets(&surface_requests, present_sizes);
 
-    for (surface_id, entry) in universal.surfaces.entries.iter() {
-        let mut target_size = entry.value.size;
-        if entry.value.kind == crate::core::realm::SurfaceKind::Onscreen {
-            if let Some(present_size) = present_sizes.get(surface_id) {
-                target_size = *present_size;
-            }
-        }
+    for resolved in resolved_targets {
+        let Some(entry) = universal.surfaces.entries.get(&resolved.surface_id) else {
+            continue;
+        };
         let target_format = entry
             .value
             .format_policy
@@ -115,16 +123,16 @@ pub(crate) fn collect_surface_views(
         let surface_target = ensure_surface_target(
             device,
             surface_targets,
-            *surface_id,
-            target_size,
+            resolved.surface_id,
+            resolved.target_size,
             target_format,
         );
 
         views.insert(
-            *surface_id,
+            resolved.surface_id,
             SurfaceSnapshot {
                 view: surface_target.view.clone(),
-                size: target_size,
+                size: resolved.target_size,
             },
         );
     }

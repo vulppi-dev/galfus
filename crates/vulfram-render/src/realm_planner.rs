@@ -56,6 +56,19 @@ pub struct ComposeOverlayPlan {
     pub overlays: Vec<ComposeOverlayPlanEntry>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SurfaceTargetRequest {
+    pub surface_id: SurfaceId,
+    pub declared_size: glam::UVec2,
+    pub is_onscreen: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ResolvedSurfaceTarget {
+    pub surface_id: SurfaceId,
+    pub target_size: glam::UVec2,
+}
+
 pub fn collect_cut_connectors(plan: &RealmGraphPlan) -> HashSet<ConnectorId> {
     plan.cut_edges
         .iter()
@@ -429,14 +442,38 @@ pub fn plan_compose_overlays(
     }
 }
 
+pub fn plan_surface_targets(
+    requests: &[SurfaceTargetRequest],
+    present_sizes: &HashMap<SurfaceId, glam::UVec2>,
+) -> Vec<ResolvedSurfaceTarget> {
+    requests
+        .iter()
+        .map(|request| {
+            let target_size = if request.is_onscreen {
+                present_sizes
+                    .get(&request.surface_id)
+                    .copied()
+                    .unwrap_or(request.declared_size)
+            } else {
+                request.declared_size
+            };
+            ResolvedSurfaceTarget {
+                surface_id: request.surface_id,
+                target_size,
+            }
+        })
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
         ComposeBlendMode, ComposeConnectorCandidate, ComposeOverlayPlan, ComposeOverlayPlanEntry,
-        EnvironmentLayerBinding, RealmEnvironmentBindingPlan, build_soft_cut_diagnostic,
-        build_target_surface_map, collect_connectors_by_realm, collect_cut_connectors,
-        collect_window_camera_target_sizes, map_realms_to_windows, plan_compose_overlays,
-        plan_realm_environment_bindings, resolve_connector_surface, resolve_realm_surface,
+        EnvironmentLayerBinding, RealmEnvironmentBindingPlan, ResolvedSurfaceTarget,
+        SurfaceTargetRequest, build_soft_cut_diagnostic, build_target_surface_map,
+        collect_connectors_by_realm, collect_cut_connectors, collect_window_camera_target_sizes,
+        map_realms_to_windows, plan_compose_overlays, plan_realm_environment_bindings,
+        plan_surface_targets, resolve_connector_surface, resolve_realm_surface,
         should_render_realm, update_present_size_cache, update_surface_cache,
     };
     use std::collections::{HashMap, HashSet};
@@ -795,6 +832,39 @@ mod tests {
                     },
                 ],
             }
+        );
+    }
+
+    #[test]
+    fn plans_surface_targets_with_present_override_for_onscreen() {
+        let targets = plan_surface_targets(
+            &[
+                SurfaceTargetRequest {
+                    surface_id: SurfaceId(1),
+                    declared_size: glam::UVec2::new(100, 50),
+                    is_onscreen: true,
+                },
+                SurfaceTargetRequest {
+                    surface_id: SurfaceId(2),
+                    declared_size: glam::UVec2::new(64, 64),
+                    is_onscreen: false,
+                },
+            ],
+            &HashMap::from([(SurfaceId(1), glam::UVec2::new(800, 600))]),
+        );
+
+        assert_eq!(
+            targets,
+            vec![
+                ResolvedSurfaceTarget {
+                    surface_id: SurfaceId(1),
+                    target_size: glam::UVec2::new(800, 600),
+                },
+                ResolvedSurfaceTarget {
+                    surface_id: SurfaceId(2),
+                    target_size: glam::UVec2::new(64, 64),
+                },
+            ]
         );
     }
 }
