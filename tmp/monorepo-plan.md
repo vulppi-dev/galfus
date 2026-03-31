@@ -632,6 +632,11 @@ Tarefas:
 - portar integrações desktop/browser
 - converter eventos brutos em `vulfram-input`
 - lidar com window/canvas/event loop, resize, DPR, fullscreen e cursor
+- etapa atual:
+  - crate criado
+  - planner puro de redraw por janela extraído
+  - desktop já consome `vulfram-platform` para decidir redraw
+  - integração browser ainda pendente
 
 Testes obrigatórios:
 - testes puros para adaptadores e conversões

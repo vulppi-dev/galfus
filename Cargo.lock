@@ -3968,6 +3968,7 @@ dependencies = [
  "smallvec",
  "vulfram-audio",
  "vulfram-input",
+ "vulfram-platform",
  "vulfram-protocol",
  "vulfram-realm-2d",
  "vulfram-realm-3d",
@@ -3995,6 +3996,10 @@ dependencies = [
  "vulfram-realm-core",
  "vulfram-types",
 ]
+
+[[package]]
+name = "vulfram-platform"
+version = "0.21.2-alpha"
 
 [[package]]
 name = "vulfram-protocol"

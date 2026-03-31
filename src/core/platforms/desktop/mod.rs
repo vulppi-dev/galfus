@@ -9,6 +9,9 @@ use crate::core::state::EngineState;
 use crate::core::ui::types::{UiImageSource, UiNodeProps};
 use crate::core::window::WindowEvent;
 use crate::core::window::{CmdResultWindowCreate, CmdWindowCreateArgs};
+use vulfram_platform::{
+    PlatformActivityEvent, RedrawContext, WindowRedrawInput, plan_window_redraws,
+};
 
 use super::PlatformProxy;
 
@@ -81,7 +84,7 @@ impl PlatformProxy for DesktopProxy {
     fn render(&mut self, state: &mut EngineState) -> u64 {
         let start = Instant::now();
         let now_ms = state.runtime.frame.time;
-        let input_windows = active_windows_from_events(&state.runtime.event_queue);
+        let activity_events = collect_platform_activity_events(&state.runtime.event_queue);
         let pending_ui_image_windows = windows_with_pending_ui_images(state);
         let has_ui_animations = !state.universal_state.ui.animations.is_empty();
         let has_ui_repaint_request = state
@@ -92,23 +95,35 @@ impl PlatformProxy for DesktopProxy {
             .any(|realm| realm.needs_repaint);
         let has_unbound_ui_async_loading = state.universal_state.ui.image_async.has_pending()
             && pending_ui_image_windows.is_empty();
-
-        for window_id in &input_windows {
-            if let Some(window_state) = state.window.states.get_mut(window_id) {
-                window_state.redraw_force_until_ms = now_ms.saturating_add(250);
-            }
-        }
-        for (window_id, window_state) in state.window.states.iter_mut() {
-            let has_recent_input = now_ms <= window_state.redraw_force_until_ms;
-            let should_redraw = window_state.is_dirty
-                || state.runtime.frame.had_commands_this_frame
-                || has_recent_input
-                || has_ui_animations
-                || has_ui_repaint_request
-                || state.texture_async.has_pending()
-                || pending_ui_image_windows.contains(window_id)
-                || has_unbound_ui_async_loading;
-            if should_redraw {
+        let redraw_inputs: Vec<_> = state
+            .window
+            .states
+            .iter()
+            .map(|(&window_id, window_state)| WindowRedrawInput {
+                window_id,
+                redraw_force_until_ms: window_state.redraw_force_until_ms,
+                is_dirty: window_state.is_dirty,
+            })
+            .collect();
+        let redraw_plans = plan_window_redraws(
+            &activity_events,
+            &pending_ui_image_windows,
+            &redraw_inputs,
+            RedrawContext {
+                now_ms,
+                had_commands_this_frame: state.runtime.frame.had_commands_this_frame,
+                has_ui_animations,
+                has_ui_repaint_request,
+                has_pending_texture_work: state.texture_async.has_pending(),
+                has_unbound_ui_async_loading,
+            },
+        );
+        for plan in redraw_plans {
+            let Some(window_state) = state.window.states.get_mut(&plan.window_id) else {
+                continue;
+            };
+            window_state.redraw_force_until_ms = plan.redraw_force_until_ms;
+            if plan.should_request_redraw {
                 window_state.is_dirty = true;
                 window_state.window.request_redraw();
             }
@@ -117,12 +132,12 @@ impl PlatformProxy for DesktopProxy {
     }
 }
 
-fn active_windows_from_events(events: &[EngineEvent]) -> std::collections::HashSet<u32> {
-    let mut windows = std::collections::HashSet::new();
-    for event in events {
-        match event {
-            EngineEvent::Pointer(pointer) => {
-                let window_id = match pointer {
+fn collect_platform_activity_events(events: &[EngineEvent]) -> Vec<PlatformActivityEvent> {
+    events
+        .iter()
+        .filter_map(|event| match event {
+            EngineEvent::Pointer(pointer) => Some(PlatformActivityEvent::Pointer {
+                window_id: match pointer {
                     PointerEvent::OnMove { window_id, .. }
                     | PointerEvent::OnEnter { window_id, .. }
                     | PointerEvent::OnLeave { window_id, .. }
@@ -133,26 +148,30 @@ fn active_windows_from_events(events: &[EngineEvent]) -> std::collections::HashS
                     | PointerEvent::OnPanGesture { window_id, .. }
                     | PointerEvent::OnRotationGesture { window_id, .. }
                     | PointerEvent::OnDoubleTapGesture { window_id, .. } => *window_id,
-                };
-                windows.insert(window_id);
-            }
+                },
+            }),
             EngineEvent::Keyboard(KeyboardEvent::OnInput { window_id, .. })
             | EngineEvent::Keyboard(KeyboardEvent::OnModifiersChange { window_id, .. })
             | EngineEvent::Keyboard(KeyboardEvent::OnImeEnable { window_id, .. })
             | EngineEvent::Keyboard(KeyboardEvent::OnImePreedit { window_id, .. })
             | EngineEvent::Keyboard(KeyboardEvent::OnImeCommit { window_id, .. })
-            | EngineEvent::Keyboard(KeyboardEvent::OnImeDisable { window_id, .. })
-            | EngineEvent::Window(WindowEvent::OnFocus { window_id, .. })
+            | EngineEvent::Keyboard(KeyboardEvent::OnImeDisable { window_id, .. }) => {
+                Some(PlatformActivityEvent::Keyboard {
+                    window_id: *window_id,
+                })
+            }
+            EngineEvent::Window(WindowEvent::OnFocus { window_id, .. })
             | EngineEvent::Window(WindowEvent::OnScaleFactorChange { window_id, .. })
             | EngineEvent::Window(WindowEvent::OnResize { window_id, .. })
             | EngineEvent::Window(WindowEvent::OnStateChange { window_id, .. })
             | EngineEvent::Window(WindowEvent::OnPointerCaptureChange { window_id, .. }) => {
-                windows.insert(*window_id);
+                Some(PlatformActivityEvent::Window {
+                    window_id: *window_id,
+                })
             }
-            _ => {}
-        }
-    }
-    windows
+            _ => None,
+        })
+        .collect()
 }
 
 fn windows_with_pending_ui_images(state: &EngineState) -> std::collections::HashSet<u32> {
