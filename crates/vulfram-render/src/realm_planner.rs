@@ -20,6 +20,42 @@ pub struct RealmEnvironmentBindingPlan {
     pub camera_environment_ids: HashMap<u32, u32>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ComposeBlendMode {
+    Alpha,
+    PremultipliedAlpha,
+    Replace,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ComposeConnectorCandidate {
+    pub connector_id: ConnectorId,
+    pub source_surface: SurfaceId,
+    pub rect: glam::Vec4,
+    pub clip: Option<glam::Vec4>,
+    pub z_index: i32,
+    pub blend_mode: u32,
+    pub widget_view: bool,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ComposeOverlayPlanEntry {
+    pub connector_id: ConnectorId,
+    pub source_surface: SurfaceId,
+    pub rect: glam::Vec4,
+    pub clip: Option<glam::Vec4>,
+    pub z_index: i32,
+    pub blend_mode: ComposeBlendMode,
+}
+
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct ComposeOverlayPlan {
+    pub blocked_connectors: Vec<ConnectorId>,
+    pub self_sampled_connectors: Vec<ConnectorId>,
+    pub no_progress_realms: Vec<RealmId>,
+    pub overlays: Vec<ComposeOverlayPlanEntry>,
+}
+
 pub fn collect_cut_connectors(plan: &RealmGraphPlan) -> HashSet<ConnectorId> {
     plan.cut_edges
         .iter()
@@ -305,14 +341,103 @@ pub fn build_soft_cut_diagnostic(
     ))
 }
 
+pub fn resolve_connector_surface(
+    cut_connectors: &HashSet<ConnectorId>,
+    last_good: &HashMap<ConnectorId, SurfaceId>,
+    fallback: &HashMap<ConnectorId, SurfaceId>,
+    connector_id: ConnectorId,
+    default_surface: SurfaceId,
+) -> SurfaceId {
+    if !cut_connectors.contains(&connector_id) {
+        return default_surface;
+    }
+
+    last_good
+        .get(&connector_id)
+        .copied()
+        .or_else(|| fallback.get(&connector_id).copied())
+        .unwrap_or(default_surface)
+}
+
+fn push_unique_id(list: &mut Vec<u32>, value: u32) {
+    if !list.contains(&value) {
+        list.push(value);
+    }
+}
+
+pub fn plan_compose_overlays(
+    connector_candidates: &[ComposeConnectorCandidate],
+    target_surface: SurfaceId,
+    cut_connectors: &HashSet<ConnectorId>,
+    last_good: &HashMap<ConnectorId, SurfaceId>,
+    fallback: &HashMap<ConnectorId, SurfaceId>,
+    available_surfaces: &HashSet<SurfaceId>,
+    realm_id: RealmId,
+) -> ComposeOverlayPlan {
+    let mut blocked_connectors = Vec::new();
+    let mut self_sampled_connectors = Vec::new();
+    let mut no_progress_realms = Vec::new();
+    let mut overlays = Vec::new();
+
+    for candidate in connector_candidates {
+        if candidate.widget_view {
+            continue;
+        }
+        if candidate.source_surface == target_surface {
+            push_unique_id(&mut self_sampled_connectors, candidate.connector_id.0);
+            push_unique_id(&mut no_progress_realms, realm_id.0);
+            continue;
+        }
+
+        let source_surface = resolve_connector_surface(
+            cut_connectors,
+            last_good,
+            fallback,
+            candidate.connector_id,
+            candidate.source_surface,
+        );
+        if !available_surfaces.contains(&source_surface) {
+            push_unique_id(&mut blocked_connectors, candidate.connector_id.0);
+            push_unique_id(&mut no_progress_realms, realm_id.0);
+            continue;
+        }
+
+        overlays.push(ComposeOverlayPlanEntry {
+            connector_id: candidate.connector_id,
+            source_surface,
+            rect: candidate.rect,
+            clip: candidate.clip,
+            z_index: candidate.z_index,
+            blend_mode: match candidate.blend_mode {
+                1 => ComposeBlendMode::PremultipliedAlpha,
+                2 => ComposeBlendMode::Replace,
+                _ => ComposeBlendMode::Alpha,
+            },
+        });
+    }
+
+    overlays.sort_by_key(|entry| entry.z_index);
+
+    ComposeOverlayPlan {
+        blocked_connectors: blocked_connectors.into_iter().map(ConnectorId).collect(),
+        self_sampled_connectors: self_sampled_connectors
+            .into_iter()
+            .map(ConnectorId)
+            .collect(),
+        no_progress_realms: no_progress_realms.into_iter().map(RealmId).collect(),
+        overlays,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
+        ComposeBlendMode, ComposeConnectorCandidate, ComposeOverlayPlan, ComposeOverlayPlanEntry,
         EnvironmentLayerBinding, RealmEnvironmentBindingPlan, build_soft_cut_diagnostic,
         build_target_surface_map, collect_connectors_by_realm, collect_cut_connectors,
-        collect_window_camera_target_sizes, map_realms_to_windows, plan_realm_environment_bindings,
-        resolve_realm_surface, should_render_realm, update_present_size_cache,
-        update_surface_cache,
+        collect_window_camera_target_sizes, map_realms_to_windows, plan_compose_overlays,
+        plan_realm_environment_bindings, resolve_connector_surface, resolve_realm_surface,
+        should_render_realm, update_present_size_cache, update_surface_cache,
     };
     use std::collections::{HashMap, HashSet};
     use vulfram_realm_core::{
@@ -574,6 +699,102 @@ mod tests {
         assert_eq!(
             diagnostic.as_deref(),
             Some("frame=42 cut_edges=1 connectors=9")
+        );
+    }
+
+    #[test]
+    fn resolves_connector_surface_with_cut_fallbacks() {
+        let cut_connectors = HashSet::from([ConnectorId(4)]);
+        let last_good = HashMap::from([(ConnectorId(4), SurfaceId(10))]);
+        let fallback = HashMap::from([(ConnectorId(7), SurfaceId(20))]);
+
+        assert_eq!(
+            resolve_connector_surface(
+                &cut_connectors,
+                &last_good,
+                &fallback,
+                ConnectorId(4),
+                SurfaceId(1),
+            ),
+            SurfaceId(10)
+        );
+        assert_eq!(
+            resolve_connector_surface(
+                &cut_connectors,
+                &last_good,
+                &fallback,
+                ConnectorId(7),
+                SurfaceId(2),
+            ),
+            SurfaceId(2)
+        );
+    }
+
+    #[test]
+    fn plans_compose_overlays_and_reports_blockers() {
+        let plan = plan_compose_overlays(
+            &[
+                ComposeConnectorCandidate {
+                    connector_id: ConnectorId(1),
+                    source_surface: SurfaceId(8),
+                    rect: glam::Vec4::ONE,
+                    clip: None,
+                    z_index: 5,
+                    blend_mode: 1,
+                    widget_view: false,
+                },
+                ComposeConnectorCandidate {
+                    connector_id: ConnectorId(2),
+                    source_surface: SurfaceId(9),
+                    rect: glam::Vec4::ZERO,
+                    clip: None,
+                    z_index: 1,
+                    blend_mode: 0,
+                    widget_view: false,
+                },
+                ComposeConnectorCandidate {
+                    connector_id: ConnectorId(3),
+                    source_surface: SurfaceId(3),
+                    rect: glam::Vec4::ZERO,
+                    clip: None,
+                    z_index: 0,
+                    blend_mode: 2,
+                    widget_view: false,
+                },
+            ],
+            SurfaceId(3),
+            &HashSet::from([ConnectorId(2)]),
+            &HashMap::new(),
+            &HashMap::from([(ConnectorId(2), SurfaceId(11))]),
+            &HashSet::from([SurfaceId(8), SurfaceId(11)]),
+            RealmId(77),
+        );
+
+        assert_eq!(
+            plan,
+            ComposeOverlayPlan {
+                blocked_connectors: vec![],
+                self_sampled_connectors: vec![ConnectorId(3)],
+                no_progress_realms: vec![RealmId(77)],
+                overlays: vec![
+                    ComposeOverlayPlanEntry {
+                        connector_id: ConnectorId(2),
+                        source_surface: SurfaceId(11),
+                        rect: glam::Vec4::ZERO,
+                        clip: None,
+                        z_index: 1,
+                        blend_mode: ComposeBlendMode::Alpha,
+                    },
+                    ComposeOverlayPlanEntry {
+                        connector_id: ConnectorId(1),
+                        source_surface: SurfaceId(8),
+                        rect: glam::Vec4::ONE,
+                        clip: None,
+                        z_index: 5,
+                        blend_mode: ComposeBlendMode::PremultipliedAlpha,
+                    },
+                ],
+            }
         );
     }
 }

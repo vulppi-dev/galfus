@@ -191,73 +191,71 @@ pub(crate) fn compose_realm_connectors(
     frame_index: u64,
     frame_report: &mut crate::core::realm::FrameReport,
 ) {
-    let mut overlays = Vec::new();
-
     let Some(connector_ids) = connectors_by_realm.get(&realm_id) else {
         return;
     };
 
-    for connector_id in connector_ids {
-        let Some(connector) = universal.connectors.entries.get(connector_id) else {
-            continue;
-        };
-        if (connector.value.input_flags & crate::core::target::resolve::INPUT_FLAG_WIDGET_VIEW) != 0
-        {
-            continue;
-        }
-        if connector.value.source_surface == target_surface {
-            crate::core::realm::FrameReport::push_unique(
-                &mut frame_report.self_sampled_connectors,
-                connector_id.0,
-            );
-            crate::core::realm::FrameReport::push_unique(
-                &mut frame_report.no_progress_realms,
-                realm_id.0,
-            );
-            continue;
-        }
-        let source_surface = resolve_connector_surface(
-            universal,
-            *connector_id,
-            cut_connectors,
-            connector.value.source_surface,
-        );
-        let Some(source_surface) = source_surface else {
-            crate::core::realm::FrameReport::push_unique(
-                &mut frame_report.blocked_connectors,
-                connector_id.0,
-            );
-            crate::core::realm::FrameReport::push_unique(
-                &mut frame_report.no_progress_realms,
-                realm_id.0,
-            );
-            continue;
-        };
-        let Some(snapshot) = surface_views.get(&source_surface) else {
-            crate::core::realm::FrameReport::push_unique(
-                &mut frame_report.blocked_connectors,
-                connector_id.0,
-            );
-            crate::core::realm::FrameReport::push_unique(
-                &mut frame_report.no_progress_realms,
-                realm_id.0,
-            );
-            continue;
-        };
-        overlays.push((
-            connector.value.z_index,
-            passes::ComposeOverlay {
-                source_view: &snapshot.view,
-                source_size: snapshot.size,
+    let connector_candidates: Vec<_> = connector_ids
+        .iter()
+        .filter_map(|connector_id| {
+            let connector = universal.connectors.entries.get(connector_id)?;
+            Some(vulfram_render::ComposeConnectorCandidate {
+                connector_id: *connector_id,
+                source_surface: connector.value.source_surface,
                 rect: connector.value.rect,
                 clip: connector.value.clip,
-                blend: blend_state_for_mode(connector.value.blend_mode),
-            },
-        ));
+                z_index: connector.value.z_index,
+                blend_mode: connector.value.blend_mode,
+                widget_view: (connector.value.input_flags
+                    & crate::core::target::resolve::INPUT_FLAG_WIDGET_VIEW)
+                    != 0,
+            })
+        })
+        .collect();
+    let available_surfaces: HashSet<_> = surface_views.keys().copied().collect();
+    let overlay_plan = vulfram_render::plan_compose_overlays(
+        &connector_candidates,
+        target_surface,
+        cut_connectors,
+        &universal.surface_cache.last_good,
+        &universal.surface_cache.fallback,
+        &available_surfaces,
+        realm_id,
+    );
+
+    for connector_id in overlay_plan.blocked_connectors {
+        crate::core::realm::FrameReport::push_unique(
+            &mut frame_report.blocked_connectors,
+            connector_id.0,
+        );
+    }
+    for connector_id in overlay_plan.self_sampled_connectors {
+        crate::core::realm::FrameReport::push_unique(
+            &mut frame_report.self_sampled_connectors,
+            connector_id.0,
+        );
+    }
+    for _realm_id in overlay_plan.no_progress_realms {
+        crate::core::realm::FrameReport::push_unique(
+            &mut frame_report.no_progress_realms,
+            _realm_id.0,
+        );
     }
 
-    overlays.sort_by_key(|(z_index, _)| *z_index);
-    let ordered: Vec<_> = overlays.into_iter().map(|(_, overlay)| overlay).collect();
+    let ordered: Vec<_> = overlay_plan
+        .overlays
+        .iter()
+        .filter_map(|overlay| {
+            let snapshot = surface_views.get(&overlay.source_surface)?;
+            Some(passes::ComposeOverlay {
+                source_view: &snapshot.view,
+                source_size: snapshot.size,
+                rect: overlay.rect,
+                clip: overlay.clip,
+                blend: blend_state_for_mode(overlay.blend_mode),
+            })
+        })
+        .collect();
 
     passes::pass_compose_overlays(
         render_state,
@@ -271,31 +269,12 @@ pub(crate) fn compose_realm_connectors(
     );
 }
 
-fn resolve_connector_surface(
-    universal: &UniversalState,
-    connector_id: ConnectorId,
-    cut_connectors: &HashSet<ConnectorId>,
-    default_surface: SurfaceId,
-) -> Option<SurfaceId> {
-    if !cut_connectors.contains(&connector_id) {
-        return Some(default_surface);
-    }
-    Some(
-        universal
-            .surface_cache
-            .last_good
-            .get(&connector_id)
-            .copied()
-            .or_else(|| universal.surface_cache.fallback.get(&connector_id).copied())
-            .unwrap_or(default_surface),
-    )
-}
-
-fn blend_state_for_mode(mode: u32) -> Option<wgpu::BlendState> {
+fn blend_state_for_mode(mode: vulfram_render::ComposeBlendMode) -> Option<wgpu::BlendState> {
     match mode {
-        0 => Some(wgpu::BlendState::ALPHA_BLENDING),
-        1 => Some(wgpu::BlendState::PREMULTIPLIED_ALPHA_BLENDING),
-        2 => None,
-        _ => Some(wgpu::BlendState::ALPHA_BLENDING),
+        vulfram_render::ComposeBlendMode::Alpha => Some(wgpu::BlendState::ALPHA_BLENDING),
+        vulfram_render::ComposeBlendMode::PremultipliedAlpha => {
+            Some(wgpu::BlendState::PREMULTIPLIED_ALPHA_BLENDING)
+        }
+        vulfram_render::ComposeBlendMode::Replace => None,
     }
 }
