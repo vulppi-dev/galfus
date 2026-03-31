@@ -1,7 +1,4 @@
-pub use vulfram_audio::{
-    AudioListenerBinding, AudioListenerState, AudioPlayMode, AudioReadyEvent, AudioSourceParams,
-    AudioSpatialParams,
-};
+use vulfram_audio::{AudioListenerState, AudioPlayMode, AudioReadyEvent, AudioSourceParams};
 
 pub trait AudioProxy: Send {
     fn init(&mut self) -> Result<(), String>;

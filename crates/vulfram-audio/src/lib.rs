@@ -181,6 +181,134 @@ pub struct AudioStateSnapshot {
     pub streams: Vec<AudioStreamSnapshot>,
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub struct AudioStreamUpsertResult {
+    pub received_bytes: u64,
+    pub total_bytes: u64,
+    pub complete: bool,
+    pub completed_data: Option<Vec<u8>>,
+}
+
+pub fn bind_listener(state: &mut AudioState, realm_id: u32, model_id: u32) {
+    state.listener_binding = Some(AudioListenerBinding { realm_id, model_id });
+}
+
+pub fn dispose_listener_for_realm(state: &mut AudioState, realm_id: u32) -> bool {
+    let should_clear = matches!(
+        state.listener_binding,
+        Some(binding) if binding.realm_id == realm_id
+    );
+    if should_clear {
+        state.listener_binding = None;
+    }
+    should_clear
+}
+
+pub fn insert_source(
+    state: &mut AudioState,
+    source_id: u32,
+    realm_id: u32,
+    model_id: u32,
+    params: AudioSourceParams,
+) {
+    state.source_params.insert(source_id, params);
+    state
+        .source_bindings
+        .insert(source_id, AudioListenerBinding { realm_id, model_id });
+}
+
+pub fn update_source(
+    state: &mut AudioState,
+    source_id: u32,
+    realm_id: Option<u32>,
+    model_id: Option<u32>,
+    position: Option<Vec3>,
+    velocity: Option<Vec3>,
+    orientation: Option<Quat>,
+    gain: Option<f32>,
+    pitch: Option<f32>,
+    spatial: Option<AudioSpatialParams>,
+) -> Result<AudioSourceParams, String> {
+    let Some(mut params) = state.source_params.get(&source_id).copied() else {
+        return Err(format!("Source {} not found", source_id));
+    };
+    if let Some(position) = position {
+        params.position = position;
+    }
+    if let Some(velocity) = velocity {
+        params.velocity = velocity;
+    }
+    if let Some(orientation) = orientation {
+        params.orientation = orientation;
+    }
+    if let Some(gain) = gain {
+        params.gain = gain;
+    }
+    if let Some(pitch) = pitch {
+        params.pitch = pitch;
+    }
+    if let Some(spatial) = spatial {
+        params.spatial = spatial;
+    }
+    state.source_params.insert(source_id, params);
+    if realm_id.is_some() || model_id.is_some() {
+        let Some(binding) = state.source_bindings.get_mut(&source_id) else {
+            return Err(format!("Source binding {} not found", source_id));
+        };
+        if let Some(realm_id) = realm_id {
+            binding.realm_id = realm_id;
+        }
+        if let Some(model_id) = model_id {
+            binding.model_id = model_id;
+        }
+    }
+    Ok(params)
+}
+
+pub fn dispose_source(state: &mut AudioState, source_id: u32) {
+    state.source_bindings.remove(&source_id);
+    state.source_params.remove(&source_id);
+}
+
+pub fn upsert_stream_chunk(
+    state: &mut AudioState,
+    resource_id: u32,
+    total_bytes: Option<u64>,
+    offset: u64,
+    data: &[u8],
+) -> Result<AudioStreamUpsertResult, String> {
+    let resolved_total_bytes = total_bytes
+        .or_else(|| {
+            state
+                .streams
+                .get(&resource_id)
+                .map(|stream| stream.total_bytes)
+        })
+        .unwrap_or(0);
+    let stream = match state.streams.entry(resource_id) {
+        std::collections::hash_map::Entry::Vacant(entry) => {
+            let stream = AudioStreamState::new(resolved_total_bytes)?;
+            entry.insert(stream)
+        }
+        std::collections::hash_map::Entry::Occupied(entry) => entry.into_mut(),
+    };
+    stream.apply_chunk(offset, data)?;
+    let complete = stream.complete();
+    let received_bytes = stream.received_bytes;
+    let total_bytes = stream.total_bytes;
+    let completed_data = if complete {
+        state.streams.remove(&resource_id).map(|stream| stream.data)
+    } else {
+        None
+    };
+    Ok(AudioStreamUpsertResult {
+        received_bytes,
+        total_bytes,
+        complete,
+        completed_data,
+    })
+}
+
 pub fn snapshot_audio_state(
     state: &AudioState,
     include_listener: bool,
@@ -253,9 +381,11 @@ pub fn snapshot_audio_state(
 #[cfg(test)]
 mod tests {
     use super::{
-        AudioListenerBinding, AudioSourceParams, AudioState, AudioStreamState, snapshot_audio_state,
+        AudioListenerBinding, AudioSourceParams, AudioState, AudioStreamState, bind_listener,
+        dispose_listener_for_realm, dispose_source, insert_source, snapshot_audio_state,
+        update_source, upsert_stream_chunk,
     };
-    use glam::Vec3;
+    use glam::{Quat, Vec3};
 
     #[test]
     fn audio_stream_merges_overlapping_chunks_without_double_counting() {
@@ -314,5 +444,57 @@ mod tests {
         assert_eq!(snapshot.sources[1].realm_id, Some(5));
         assert_eq!(snapshot.streams[0].resource_id, 3);
         assert!(snapshot.streams[0].complete);
+    }
+
+    #[test]
+    fn update_source_mutates_params_and_binding() {
+        let mut state = AudioState::default();
+        insert_source(&mut state, 1, 10, 20, AudioSourceParams::default());
+
+        let params = update_source(
+            &mut state,
+            1,
+            Some(30),
+            Some(40),
+            Some(Vec3::new(1.0, 2.0, 3.0)),
+            None,
+            Some(Quat::IDENTITY),
+            Some(0.5),
+            Some(1.5),
+            None,
+        )
+        .expect("updated");
+
+        assert_eq!(params.position, Vec3::new(1.0, 2.0, 3.0));
+        assert_eq!(params.gain, 0.5);
+        assert_eq!(params.pitch, 1.5);
+        assert_eq!(state.source_bindings.get(&1).expect("binding").realm_id, 30);
+        dispose_source(&mut state, 1);
+        assert!(!state.source_params.contains_key(&1));
+    }
+
+    #[test]
+    fn listener_binding_helpers_replace_and_dispose() {
+        let mut state = AudioState::default();
+        bind_listener(&mut state, 7, 9);
+        assert_eq!(state.listener_binding.expect("listener").realm_id, 7);
+        assert!(dispose_listener_for_realm(&mut state, 7));
+        assert!(state.listener_binding.is_none());
+    }
+
+    #[test]
+    fn upsert_stream_chunk_returns_completed_payload_once() {
+        let mut state = AudioState::default();
+        let first = upsert_stream_chunk(&mut state, 5, Some(4), 0, &[1, 2]).expect("first chunk");
+        assert!(!first.complete);
+        assert!(first.completed_data.is_none());
+
+        let second = upsert_stream_chunk(&mut state, 5, None, 2, &[3, 4]).expect("second chunk");
+        assert!(second.complete);
+        assert_eq!(
+            second.completed_data.expect("completed data"),
+            vec![1, 2, 3, 4]
+        );
+        assert!(!state.streams.contains_key(&5));
     }
 }

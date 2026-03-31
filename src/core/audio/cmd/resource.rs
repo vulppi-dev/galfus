@@ -1,11 +1,10 @@
-use crate::core::buffers::state::UploadType;
-use crate::core::state::EngineState;
-
-use super::stream::AudioStreamState;
 use super::types::{
     CmdAudioResourceDisposeArgs, CmdAudioResourceUpsertArgs, CmdResultAudioResourceDispose,
     CmdResultAudioResourceUpsert, audio_disabled_message,
 };
+use crate::core::buffers::state::UploadType;
+use crate::core::state::EngineState;
+use vulfram_audio::upsert_stream_chunk;
 
 pub fn engine_cmd_audio_resource_upsert(
     engine: &mut EngineState,
@@ -86,59 +85,51 @@ fn upsert_stream_resource(
     offset: u64,
     data: Vec<u8>,
 ) -> CmdResultAudioResourceUpsert {
-    let total_bytes = if let Some(total_bytes) = args.total_bytes {
-        total_bytes
-    } else {
-        match engine.audio_state.streams.get(&args.resource_id) {
-            Some(stream) => stream.total_bytes,
-            None => 0,
+    let stream_update = match upsert_stream_chunk(
+        &mut engine.audio_state,
+        args.resource_id,
+        args.total_bytes,
+        offset,
+        &data,
+    ) {
+        Ok(result) => result,
+        Err(message) => {
+            let (received_bytes, total_bytes, complete) = engine
+                .audio_state
+                .streams
+                .get(&args.resource_id)
+                .map(|stream| (stream.received_bytes, stream.total_bytes, stream.complete()))
+                .unwrap_or((0, 0, false));
+            return CmdResultAudioResourceUpsert {
+                success: false,
+                message,
+                pending: false,
+                received_bytes,
+                total_bytes,
+                complete,
+            };
         }
     };
-    let stream = match engine.audio_state.streams.entry(args.resource_id) {
-        std::collections::hash_map::Entry::Vacant(entry) => {
-            match AudioStreamState::new(total_bytes) {
-                Ok(state) => entry.insert(state),
-                Err(message) => {
-                    return CmdResultAudioResourceUpsert {
-                        success: false,
-                        message,
-                        pending: false,
-                        received_bytes: 0,
-                        total_bytes: 0,
-                        complete: false,
-                    };
-                }
-            }
-        }
-        std::collections::hash_map::Entry::Occupied(entry) => entry.into_mut(),
-    };
-    if let Err(message) = stream.apply_chunk(offset, &data) {
-        return CmdResultAudioResourceUpsert {
-            success: false,
-            message,
-            pending: false,
-            received_bytes: stream.received_bytes,
-            total_bytes: stream.total_bytes,
-            complete: stream.complete(),
-        };
-    }
-    let complete = stream.complete();
+    let complete = stream_update.complete;
     engine
         .runtime
         .event_queue
         .push(crate::core::cmd::EngineEvent::System(
             crate::core::system::events::SystemEvent::AudioStreamProgress {
                 resource_id: args.resource_id,
-                received_bytes: stream.received_bytes,
-                total_bytes: stream.total_bytes,
+                received_bytes: stream_update.received_bytes,
+                total_bytes: stream_update.total_bytes,
                 complete,
             },
         ));
     if complete {
-        let Some(stream) = engine.audio_state.streams.remove(&args.resource_id) else {
+        let Some(completed_data) = stream_update.completed_data else {
             return CmdResultAudioResourceUpsert {
                 success: false,
-                message: format!("Audio stream {} not found", args.resource_id),
+                message: format!(
+                    "Audio stream {} completed without payload",
+                    args.resource_id
+                ),
                 pending: false,
                 received_bytes: 0,
                 total_bytes: 0,
@@ -147,22 +138,22 @@ fn upsert_stream_resource(
         };
         match engine
             .audio
-            .buffer_create_from_bytes(args.resource_id, stream.data)
+            .buffer_create_from_bytes(args.resource_id, completed_data)
         {
             Ok(()) => CmdResultAudioResourceUpsert {
                 success: true,
                 message: "Audio stream queued".into(),
                 pending: true,
-                received_bytes: stream.received_bytes,
-                total_bytes: stream.total_bytes,
+                received_bytes: stream_update.received_bytes,
+                total_bytes: stream_update.total_bytes,
                 complete: true,
             },
             Err(message) => CmdResultAudioResourceUpsert {
                 success: false,
                 message,
                 pending: false,
-                received_bytes: stream.received_bytes,
-                total_bytes: stream.total_bytes,
+                received_bytes: stream_update.received_bytes,
+                total_bytes: stream_update.total_bytes,
                 complete: true,
             },
         }
@@ -171,8 +162,8 @@ fn upsert_stream_resource(
             success: true,
             message: "Audio stream chunk queued".into(),
             pending: true,
-            received_bytes: stream.received_bytes,
-            total_bytes: stream.total_bytes,
+            received_bytes: stream_update.received_bytes,
+            total_bytes: stream_update.total_bytes,
             complete: false,
         }
     }

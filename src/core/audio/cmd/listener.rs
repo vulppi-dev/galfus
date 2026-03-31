@@ -2,6 +2,7 @@ use glam::Vec3;
 
 use crate::core::audio::AudioListenerState;
 use crate::core::state::EngineState;
+use vulfram_audio::{bind_listener, dispose_listener_for_realm};
 
 use super::types::{
     CmdAudioListenerCreateArgs, CmdAudioListenerDisposeArgs, CmdAudioListenerUpdateArgs,
@@ -47,10 +48,7 @@ pub fn engine_cmd_audio_listener_create(
             message: audio_disabled_message(),
         };
     }
-    engine.audio_state.listener_binding = Some(crate::core::audio::AudioListenerBinding {
-        realm_id: args.realm_id,
-        model_id: args.model_id,
-    });
+    bind_listener(&mut engine.audio_state, args.realm_id, args.model_id);
     CmdResultAudioListenerCreate {
         success: true,
         message: "Listener bound to model".into(),
@@ -67,12 +65,8 @@ pub fn engine_cmd_audio_listener_dispose(
             message: audio_disabled_message(),
         };
     }
-    let should_clear = match engine.audio_state.listener_binding {
-        Some(binding) => binding.realm_id == args.realm_id,
-        None => false,
-    };
+    let should_clear = dispose_listener_for_realm(&mut engine.audio_state, args.realm_id);
     if should_clear {
-        engine.audio_state.listener_binding = None;
         CmdResultAudioListenerDispose {
             success: true,
             message: "Listener disposed".into(),

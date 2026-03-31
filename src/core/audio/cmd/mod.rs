@@ -2,7 +2,6 @@ mod listener;
 mod resource;
 mod source;
 mod state;
-mod stream;
 mod types;
 
 pub use listener::{

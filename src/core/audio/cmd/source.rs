@@ -1,5 +1,6 @@
 use crate::core::audio::AudioSourceParams;
 use crate::core::state::EngineState;
+use vulfram_audio::{dispose_source, insert_source, update_source};
 
 use super::types::{
     AudioPlayModeDto, AudioSourceTransportActionDto, CmdAudioSourceCreateArgs,
@@ -27,16 +28,12 @@ pub fn engine_cmd_audio_source_create(
         spatial: args.spatial.clone().into(),
     };
 
-    engine
-        .audio_state
-        .source_params
-        .insert(args.source_id, params);
-    engine.audio_state.source_bindings.insert(
+    insert_source(
+        &mut engine.audio_state,
         args.source_id,
-        crate::core::audio::AudioListenerBinding {
-            realm_id: args.realm_id,
-            model_id: args.model_id,
-        },
+        args.realm_id,
+        args.model_id,
+        params,
     );
     match engine.audio.source_create(args.source_id, params) {
         Ok(()) => CmdResultAudioSourceCreate {
@@ -60,56 +57,26 @@ pub fn engine_cmd_audio_source_update(
             message: audio_disabled_message(),
         };
     }
-    let mut params = match engine
-        .audio_state
-        .source_params
-        .get(&args.source_id)
-        .copied()
-    {
-        Some(params) => params,
-        None => {
+    let params = match update_source(
+        &mut engine.audio_state,
+        args.source_id,
+        args.realm_id,
+        args.model_id,
+        args.position,
+        args.velocity,
+        args.orientation,
+        args.gain,
+        args.pitch,
+        args.spatial.clone().map(Into::into),
+    ) {
+        Ok(params) => params,
+        Err(message) => {
             return CmdResultAudioSourceUpdate {
                 success: false,
-                message: format!("Source {} not found", args.source_id),
+                message,
             };
         }
     };
-    if let Some(position) = args.position {
-        params.position = position;
-    }
-    if let Some(velocity) = args.velocity {
-        params.velocity = velocity;
-    }
-    if let Some(orientation) = args.orientation {
-        params.orientation = orientation;
-    }
-    if let Some(gain) = args.gain {
-        params.gain = gain;
-    }
-    if let Some(pitch) = args.pitch {
-        params.pitch = pitch;
-    }
-    if let Some(spatial) = args.spatial.clone() {
-        params.spatial = spatial.into();
-    }
-    engine
-        .audio_state
-        .source_params
-        .insert(args.source_id, params);
-    if args.realm_id.is_some() || args.model_id.is_some() {
-        let Some(binding) = engine.audio_state.source_bindings.get_mut(&args.source_id) else {
-            return CmdResultAudioSourceUpdate {
-                success: false,
-                message: format!("Source binding {} not found", args.source_id),
-            };
-        };
-        if let Some(realm_id) = args.realm_id {
-            binding.realm_id = realm_id;
-        }
-        if let Some(model_id) = args.model_id {
-            binding.model_id = model_id;
-        }
-    }
     match engine.audio.source_update(args.source_id, params) {
         Ok(()) => CmdResultAudioSourceUpdate {
             success: true,
@@ -198,8 +165,7 @@ pub fn engine_cmd_audio_source_dispose(
             message: audio_disabled_message(),
         };
     }
-    engine.audio_state.source_bindings.remove(&args.source_id);
-    engine.audio_state.source_params.remove(&args.source_id);
+    dispose_source(&mut engine.audio_state, args.source_id);
     match engine.audio.source_dispose(args.source_id) {
         Ok(()) => CmdResultAudioSourceDispose {
             success: true,
