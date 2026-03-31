@@ -16,5 +16,4 @@ pub use source::{
     process_audio_source_bindings,
 };
 pub use state::engine_cmd_audio_state_get;
-pub use stream::AudioStreamState;
 pub use types::*;

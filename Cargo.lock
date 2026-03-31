@@ -3928,6 +3928,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 
 [[package]]
+name = "vulfram-audio"
+version = "0.21.2-alpha"
+dependencies = [
+ "glam 0.30.10",
+]
+
+[[package]]
 name = "vulfram-core"
 version = "0.21.2-alpha"
 dependencies = [
@@ -3959,6 +3966,7 @@ dependencies = [
  "serde",
  "serde_path_to_error",
  "smallvec",
+ "vulfram-audio",
  "vulfram-input",
  "vulfram-protocol",
  "vulfram-realm-2d",

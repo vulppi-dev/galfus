@@ -585,6 +585,12 @@ Tarefas:
 - portar backends web/desktop
 - garantir política correta de lifecycle e descarte
 
+Status atual:
+- crate criado
+- `AudioState`, `AudioListenerBinding`, `AudioSourceParams`, `AudioSpatialParams`, `AudioPlayMode`, `AudioReadyEvent` e `AudioStreamState` já vivem no crate novo
+- o core já consome esses tipos a partir de `vulfram-audio`
+- backends e fluxo de comandos ainda permanecem no core nesta fase intermediária
+
 Testes obrigatórios:
 - regras de estado
 - transporte e atualização

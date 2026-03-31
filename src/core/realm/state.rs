@@ -1,12 +1,12 @@
 use std::collections::HashMap;
 
-use crate::core::audio::{AudioListenerBinding, AudioSourceParams, AudioStreamState};
 use crate::core::resources::{
     CameraNode, EnvironmentConfig, ForwardAtlasEntry, GeometryPrimitiveType, LightRecord,
     MaterialPbrRecord, MaterialStandardRecord, ModelRecord, TargetTextureBinding, TextureRecord,
 };
 use crate::core::target::{TargetGraphCache, TargetLayerTable, TargetTable};
 use crate::core::ui::UiState;
+pub use vulfram_audio::AudioState;
 pub use vulfram_realm_core::{
     AutoLink, ConnectorState, ConnectorTable, PresentState, PresentTable, RealmState, RealmTable,
     SurfaceCache, TableEntry,
@@ -43,14 +43,6 @@ impl SurfaceTable {
     pub fn remove(&mut self, id: SurfaceId) -> Option<TableEntry<SurfaceState>> {
         self.entries.remove(&id)
     }
-}
-
-#[derive(Debug, Default)]
-pub struct AudioState {
-    pub listener_binding: Option<AudioListenerBinding>,
-    pub source_bindings: HashMap<u32, AudioListenerBinding>,
-    pub source_params: HashMap<u32, AudioSourceParams>,
-    pub streams: HashMap<u32, AudioStreamState>,
 }
 
 #[derive(Debug, Default)]
