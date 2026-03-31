@@ -2,8 +2,10 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use vulfram_platform::{
-    BrowserPointerMotionInput, PlatformCursorGrabMode, map_browser_pointer_type,
-    normalize_browser_key_text, resolve_browser_pointer_position, resolve_canvas_surface_size,
+    BrowserPointerMotionInput, PlatformCursorGrabMode, PlatformWindowState,
+    map_browser_pointer_type, normalize_browser_key_text, resolve_browser_pointer_position,
+    resolve_browser_window_state, resolve_canvas_surface_size, resolve_pointer_lock_change,
+    resolve_pointer_lock_error,
 };
 use wasm_bindgen::JsCast;
 use wasm_bindgen::closure::Closure;
@@ -112,10 +114,9 @@ pub fn attach_canvas_listeners(
             let state = web_sys::window()
                 .and_then(|window| window.document())
                 .map(|document| {
-                    if document.fullscreen_element().is_some() {
-                        EngineWindowState::Fullscreen
-                    } else {
-                        EngineWindowState::Windowed
+                    match resolve_browser_window_state(document.fullscreen_element().is_some()) {
+                        PlatformWindowState::Windowed => EngineWindowState::Windowed,
+                        PlatformWindowState::Fullscreen => EngineWindowState::Fullscreen,
                     }
                 })
                 .unwrap_or(EngineWindowState::Windowed);
@@ -139,10 +140,7 @@ pub fn attach_canvas_listeners(
     let canvas_lock_id = canvas.id();
     let pointer_lock_change = Closure::wrap(Box::new(move |_event: Event| {
         with_live_window(window_id, |engine| {
-            let mode = engine.window.cursor_grab_mode(window_id);
-            if mode != CursorGrabMode::Locked {
-                return;
-            }
+            let mode = map_platform_cursor_grab_mode(engine.window.cursor_grab_mode(window_id));
             let active = web_sys::window()
                 .and_then(|window| window.document())
                 .and_then(|document| document.pointer_lock_element())
@@ -154,15 +152,21 @@ pub fn attach_canvas_listeners(
                     }
                 })
                 .unwrap_or(false);
-            if engine.window.set_pointer_capture_active(window_id, active) {
+            let Some(capture_update) = resolve_pointer_lock_change(mode, active) else {
+                return;
+            };
+            if engine
+                .window
+                .set_pointer_capture_active(window_id, capture_update.active)
+            {
                 engine
                     .event_queue
                     .push(EngineEvent::Window(WindowEvent::OnPointerCaptureChange {
                         window_id,
                         capture: WindowPointerCaptureState {
-                            mode,
-                            active,
-                            reason: Some("pointer-lock-change".into()),
+                            mode: CursorGrabMode::Locked,
+                            active: capture_update.active,
+                            reason: Some(capture_update.reason.into()),
                         },
                     }));
             }
@@ -177,18 +181,21 @@ pub fn attach_canvas_listeners(
 
     let pointer_lock_error = Closure::wrap(Box::new(move |_event: Event| {
         with_live_window(window_id, |engine| {
-            if engine.window.cursor_grab_mode(window_id) != CursorGrabMode::Locked {
+            let mode = map_platform_cursor_grab_mode(engine.window.cursor_grab_mode(window_id));
+            let Some(capture_update) = resolve_pointer_lock_error(mode) else {
                 return;
-            }
-            engine.window.set_pointer_capture_active(window_id, false);
+            };
+            engine
+                .window
+                .set_pointer_capture_active(window_id, capture_update.active);
             engine
                 .event_queue
                 .push(EngineEvent::Window(WindowEvent::OnPointerCaptureChange {
                     window_id,
                     capture: WindowPointerCaptureState {
                         mode: CursorGrabMode::Locked,
-                        active: false,
-                        reason: Some("pointer-lock-error".into()),
+                        active: capture_update.active,
+                        reason: Some(capture_update.reason.into()),
                     },
                 }));
         });

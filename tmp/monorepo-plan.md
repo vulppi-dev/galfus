@@ -637,6 +637,7 @@ Tarefas:
   - planner puro de redraw por janela extraído
   - desktop já consome `vulfram-platform` para decidir redraw
   - helpers puros de browser para sizing de canvas, texto de teclado e ponteiro extraídos
+  - helpers de lifecycle web para fullscreen e pointer-lock extraídos
   - integração browser ainda pendente
 
 Testes obrigatórios:

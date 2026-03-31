@@ -7,6 +7,18 @@ pub enum PlatformCursorGrabMode {
     Locked,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PlatformWindowState {
+    Windowed,
+    Fullscreen,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct BrowserPointerCaptureUpdate {
+    pub active: bool,
+    pub reason: &'static str,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct BrowserPointerMotionInput {
     pub cursor_grab_mode: PlatformCursorGrabMode,
@@ -23,6 +35,14 @@ pub fn map_browser_pointer_type(pointer_type: &str) -> u32 {
         "touch" => 1,
         "pen" => 2,
         _ => 0,
+    }
+}
+
+pub fn resolve_browser_window_state(is_fullscreen: bool) -> PlatformWindowState {
+    if is_fullscreen {
+        PlatformWindowState::Fullscreen
+    } else {
+        PlatformWindowState::Windowed
     }
 }
 
@@ -66,11 +86,38 @@ pub fn resolve_browser_pointer_position(input: BrowserPointerMotionInput) -> Vec
     base + input.movement
 }
 
+pub fn resolve_pointer_lock_change(
+    cursor_grab_mode: PlatformCursorGrabMode,
+    canvas_has_pointer_lock: bool,
+) -> Option<BrowserPointerCaptureUpdate> {
+    if cursor_grab_mode != PlatformCursorGrabMode::Locked {
+        return None;
+    }
+    Some(BrowserPointerCaptureUpdate {
+        active: canvas_has_pointer_lock,
+        reason: "pointer-lock-change",
+    })
+}
+
+pub fn resolve_pointer_lock_error(
+    cursor_grab_mode: PlatformCursorGrabMode,
+) -> Option<BrowserPointerCaptureUpdate> {
+    if cursor_grab_mode != PlatformCursorGrabMode::Locked {
+        return None;
+    }
+    Some(BrowserPointerCaptureUpdate {
+        active: false,
+        reason: "pointer-lock-error",
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
-        BrowserPointerMotionInput, PlatformCursorGrabMode, map_browser_pointer_type,
-        normalize_browser_key_text, resolve_browser_pointer_position, resolve_canvas_surface_size,
+        BrowserPointerCaptureUpdate, BrowserPointerMotionInput, PlatformCursorGrabMode,
+        PlatformWindowState, map_browser_pointer_type, normalize_browser_key_text,
+        resolve_browser_pointer_position, resolve_browser_window_state,
+        resolve_canvas_surface_size, resolve_pointer_lock_change, resolve_pointer_lock_error,
     };
     use glam::vec2;
 
@@ -119,5 +166,47 @@ mod tests {
         assert_eq!(map_browser_pointer_type("touch"), 1);
         assert_eq!(map_browser_pointer_type("pen"), 2);
         assert_eq!(map_browser_pointer_type("unknown"), 0);
+    }
+
+    #[test]
+    fn resolve_browser_window_state_maps_fullscreen_flag() {
+        assert_eq!(
+            resolve_browser_window_state(false),
+            PlatformWindowState::Windowed
+        );
+        assert_eq!(
+            resolve_browser_window_state(true),
+            PlatformWindowState::Fullscreen
+        );
+    }
+
+    #[test]
+    fn resolve_pointer_lock_change_only_emits_for_locked_mode() {
+        assert_eq!(
+            resolve_pointer_lock_change(PlatformCursorGrabMode::None, true),
+            None
+        );
+        assert_eq!(
+            resolve_pointer_lock_change(PlatformCursorGrabMode::Locked, true),
+            Some(BrowserPointerCaptureUpdate {
+                active: true,
+                reason: "pointer-lock-change",
+            })
+        );
+    }
+
+    #[test]
+    fn resolve_pointer_lock_error_only_emits_for_locked_mode() {
+        assert_eq!(
+            resolve_pointer_lock_error(PlatformCursorGrabMode::Confined),
+            None
+        );
+        assert_eq!(
+            resolve_pointer_lock_error(PlatformCursorGrabMode::Locked),
+            Some(BrowserPointerCaptureUpdate {
+                active: false,
+                reason: "pointer-lock-error",
+            })
+        );
     }
 }
