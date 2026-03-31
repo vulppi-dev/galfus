@@ -10,6 +10,10 @@ use crate::core::state::EngineState;
 #[cfg(not(feature = "wasm"))]
 use crate::core::system::push_error_event;
 use crate::core::window::WindowEvent;
+#[cfg(not(feature = "wasm"))]
+use vulfram_platform::{
+    PlatformFullscreenMode, PlatformWindowLifecycleState, resolve_platform_window_state,
+};
 
 use super::EngineWindowState;
 pub use vulfram_protocol::{
@@ -59,18 +63,21 @@ fn set_window_icon(engine: &mut EngineState, window_id: u32, buffer_id: u64) -> 
 
 #[cfg(not(feature = "wasm"))]
 fn read_window_state(window_state: &crate::core::window::WindowState) -> EngineWindowState {
-    if window_state.window.is_minimized().unwrap_or(false) {
-        EngineWindowState::Minimized
-    } else if window_state.window.is_maximized() {
-        EngineWindowState::Maximized
-    } else if window_state.window.fullscreen().is_some() {
-        match window_state.window.fullscreen() {
-            Some(winit::window::Fullscreen::Exclusive(_)) => EngineWindowState::Fullscreen,
-            Some(winit::window::Fullscreen::Borderless(_)) => EngineWindowState::WindowedFullscreen,
-            None => EngineWindowState::Windowed,
-        }
-    } else {
-        EngineWindowState::Windowed
+    let fullscreen = match window_state.window.fullscreen() {
+        Some(winit::window::Fullscreen::Exclusive(_)) => Some(PlatformFullscreenMode::Exclusive),
+        Some(winit::window::Fullscreen::Borderless(_)) => Some(PlatformFullscreenMode::Borderless),
+        None => None,
+    };
+    match resolve_platform_window_state(
+        window_state.window.is_minimized().unwrap_or(false),
+        window_state.window.is_maximized(),
+        fullscreen,
+    ) {
+        PlatformWindowLifecycleState::Windowed => EngineWindowState::Windowed,
+        PlatformWindowLifecycleState::Fullscreen => EngineWindowState::Fullscreen,
+        PlatformWindowLifecycleState::WindowedFullscreen => EngineWindowState::WindowedFullscreen,
+        PlatformWindowLifecycleState::Maximized => EngineWindowState::Maximized,
+        PlatformWindowLifecycleState::Minimized => EngineWindowState::Minimized,
     }
 }
 

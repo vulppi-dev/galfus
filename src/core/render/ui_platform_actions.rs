@@ -343,17 +343,33 @@ fn current_window_state_for_ui(
 ) -> crate::core::window::EngineWindowState {
     let fullscreen = match window_state.window.fullscreen() {
         Some(crate::core::platform::winit::window::Fullscreen::Exclusive(_)) => {
-            Some(vulfram_render::WindowFullscreenMode::Exclusive)
+            Some(vulfram_platform::PlatformFullscreenMode::Exclusive)
         }
         Some(crate::core::platform::winit::window::Fullscreen::Borderless(_)) => {
-            Some(vulfram_render::WindowFullscreenMode::Borderless)
+            Some(vulfram_platform::PlatformFullscreenMode::Borderless)
         }
         None => None,
     };
 
-    vulfram_render::resolve_window_state(
+    match vulfram_platform::resolve_platform_window_state(
         window_state.window.is_minimized().unwrap_or(false),
         window_state.window.is_maximized(),
         fullscreen,
-    )
+    ) {
+        vulfram_platform::PlatformWindowLifecycleState::Windowed => {
+            crate::core::window::EngineWindowState::Windowed
+        }
+        vulfram_platform::PlatformWindowLifecycleState::Fullscreen => {
+            crate::core::window::EngineWindowState::Fullscreen
+        }
+        vulfram_platform::PlatformWindowLifecycleState::WindowedFullscreen => {
+            crate::core::window::EngineWindowState::WindowedFullscreen
+        }
+        vulfram_platform::PlatformWindowLifecycleState::Maximized => {
+            crate::core::window::EngineWindowState::Maximized
+        }
+        vulfram_platform::PlatformWindowLifecycleState::Minimized => {
+            crate::core::window::EngineWindowState::Minimized
+        }
+    }
 }

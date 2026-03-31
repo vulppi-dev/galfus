@@ -639,6 +639,7 @@ Tarefas:
   - helpers puros de browser para sizing de canvas, texto de teclado e ponteiro extraídos
   - helpers de lifecycle web para fullscreen e pointer-lock extraídos
   - planner puro de resize de surface e comando de cursor web extraídos
+  - resolução semântica de lifecycle de janela centralizada em `vulfram-platform`
   - integração browser ainda pendente
 
 Testes obrigatórios:

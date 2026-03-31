@@ -3,6 +3,9 @@ use crate::core::platform::winit::event::DeviceEvent as WinitDeviceEvent;
 use crate::core::platform::winit::event::WindowEvent as WinitWindowEvent;
 use crate::core::platform::{ActiveEventLoop, ApplicationHandler, WindowId};
 use glam::{IVec2, UVec2, Vec2};
+use vulfram_platform::{
+    PlatformFullscreenMode, PlatformWindowLifecycleState, resolve_platform_window_state,
+};
 
 use crate::core::input::{
     ElementState, KeyboardEvent, ModifiersState, PointerEvent, ScrollDelta, convert_key_code,
@@ -22,18 +25,21 @@ use crate::core::state::EngineState;
 fn read_window_lifecycle_state(
     window_state: &crate::core::window::WindowState,
 ) -> EngineWindowState {
-    if window_state.window.is_minimized().unwrap_or(false) {
-        EngineWindowState::Minimized
-    } else if window_state.window.is_maximized() {
-        EngineWindowState::Maximized
-    } else if window_state.window.fullscreen().is_some() {
-        match window_state.window.fullscreen() {
-            Some(winit::window::Fullscreen::Exclusive(_)) => EngineWindowState::Fullscreen,
-            Some(winit::window::Fullscreen::Borderless(_)) => EngineWindowState::WindowedFullscreen,
-            None => EngineWindowState::Windowed,
-        }
-    } else {
-        EngineWindowState::Windowed
+    let fullscreen = match window_state.window.fullscreen() {
+        Some(winit::window::Fullscreen::Exclusive(_)) => Some(PlatformFullscreenMode::Exclusive),
+        Some(winit::window::Fullscreen::Borderless(_)) => Some(PlatformFullscreenMode::Borderless),
+        None => None,
+    };
+    match resolve_platform_window_state(
+        window_state.window.is_minimized().unwrap_or(false),
+        window_state.window.is_maximized(),
+        fullscreen,
+    ) {
+        PlatformWindowLifecycleState::Windowed => EngineWindowState::Windowed,
+        PlatformWindowLifecycleState::Fullscreen => EngineWindowState::Fullscreen,
+        PlatformWindowLifecycleState::WindowedFullscreen => EngineWindowState::WindowedFullscreen,
+        PlatformWindowLifecycleState::Maximized => EngineWindowState::Maximized,
+        PlatformWindowLifecycleState::Minimized => EngineWindowState::Minimized,
     }
 }
 
