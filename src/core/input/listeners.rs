@@ -37,6 +37,7 @@ mod tests {
                 sample_percent: 100,
             });
         engine
+            .runtime
             .event_queue
             .push(EngineEvent::Pointer(PointerEvent::OnMove {
                 window_id: 1,
@@ -61,7 +62,7 @@ mod tests {
 
         emit_target_listener_events(&mut engine);
 
-        assert!(engine.event_queue.iter().any(|event| {
+        assert!(engine.runtime.event_queue.iter().any(|event| {
             matches!(
                 event,
                 EngineEvent::System(SystemEvent::InputTargetListenerEvent {

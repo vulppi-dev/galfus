@@ -122,16 +122,20 @@ pub fn engine_cmd_window_create_async(
                 Ok(surface) => surface,
                 Err(e) => {
                     let _ = with_engine_singleton(|engine| {
-                        engine.state.response_queue.push(CommandResponseEnvelope {
-                            id: cmd_id,
-                            response: CommandResponse::WindowCreate(CmdResultWindowCreate {
-                                success: false,
-                                message: format!("WGPU create surface error: {}", e),
-                                realm_id: None,
-                                surface_id: None,
-                                present_id: None,
-                            }),
-                        });
+                        engine
+                            .state
+                            .runtime
+                            .response_queue
+                            .push(CommandResponseEnvelope {
+                                id: cmd_id,
+                                response: CommandResponse::WindowCreate(CmdResultWindowCreate {
+                                    success: false,
+                                    message: format!("WGPU create surface error: {}", e),
+                                    realm_id: None,
+                                    surface_id: None,
+                                    present_id: None,
+                                }),
+                            });
                     });
                     return;
                 }
@@ -148,16 +152,20 @@ pub fn engine_cmd_window_create_async(
             Ok(adapter) => adapter,
             Err(_) => {
                 let _ = with_engine_singleton(|engine| {
-                    engine.state.response_queue.push(CommandResponseEnvelope {
-                        id: cmd_id,
-                        response: CommandResponse::WindowCreate(CmdResultWindowCreate {
-                            success: false,
-                            message: "WGPU adapter request error".into(),
-                            realm_id: None,
-                            surface_id: None,
-                            present_id: None,
-                        }),
-                    });
+                    engine
+                        .state
+                        .runtime
+                        .response_queue
+                        .push(CommandResponseEnvelope {
+                            id: cmd_id,
+                            response: CommandResponse::WindowCreate(CmdResultWindowCreate {
+                                success: false,
+                                message: "WGPU adapter request error".into(),
+                                realm_id: None,
+                                surface_id: None,
+                                present_id: None,
+                            }),
+                        });
                 });
                 return;
             }
@@ -198,16 +206,20 @@ pub fn engine_cmd_window_create_async(
             Ok((device, queue)) => (device, queue),
             Err(e) => {
                 let _ = with_engine_singleton(|engine| {
-                    engine.state.response_queue.push(CommandResponseEnvelope {
-                        id: cmd_id,
-                        response: CommandResponse::WindowCreate(CmdResultWindowCreate {
-                            success: false,
-                            message: format!("WGPU device request error: {}", e),
-                            realm_id: None,
-                            surface_id: None,
-                            present_id: None,
-                        }),
-                    });
+                    engine
+                        .state
+                        .runtime
+                        .response_queue
+                        .push(CommandResponseEnvelope {
+                            id: cmd_id,
+                            response: CommandResponse::WindowCreate(CmdResultWindowCreate {
+                                success: false,
+                                message: format!("WGPU device request error: {}", e),
+                                realm_id: None,
+                                surface_id: None,
+                                present_id: None,
+                            }),
+                        });
                 });
                 return;
             }
@@ -303,16 +315,20 @@ pub fn engine_cmd_window_create_async(
                 .push(EngineEvent::Window(WindowEvent::OnCreate {
                     window_id: win_id,
                 }));
-            engine.state.response_queue.push(CommandResponseEnvelope {
-                id: cmd_id,
-                response: CommandResponse::WindowCreate(CmdResultWindowCreate {
-                    success: true,
-                    message: "Canvas window created successfully".into(),
-                    realm_id: Some(binding.realm_id.0),
-                    surface_id: Some(binding.surface_id.0),
-                    present_id: Some(binding.present_id.0),
-                }),
-            });
+            engine
+                .state
+                .runtime
+                .response_queue
+                .push(CommandResponseEnvelope {
+                    id: cmd_id,
+                    response: CommandResponse::WindowCreate(CmdResultWindowCreate {
+                        success: true,
+                        message: "Canvas window created successfully".into(),
+                        realm_id: Some(binding.realm_id.0),
+                        surface_id: Some(binding.surface_id.0),
+                        present_id: Some(binding.present_id.0),
+                    }),
+                });
             if gpu_profiling_supported && engine.state.gpu_profiler.is_none() {
                 if let (Some(device), Some(queue)) =
                     (engine.state.device.as_ref(), engine.state.queue.as_ref())

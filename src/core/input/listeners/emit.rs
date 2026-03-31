@@ -9,7 +9,7 @@ use crate::core::system::SystemEvent;
 use super::model::InputTargetListenerConfig;
 
 pub fn emit_target_listener_events(engine: &mut EngineState) {
-    let source_events = engine.event_queue.clone();
+    let source_events = engine.runtime.event_queue.clone();
     for event in source_events {
         match event {
             EngineEvent::Pointer(pointer_event) => {
@@ -257,12 +257,11 @@ fn emit_pointer_listener_events(engine: &mut EngineState, event: &PointerEvent) 
         .target_listeners
         .listeners_for_target(target_id);
     for listener in listeners {
-        if !listener_matches(&listener, event_type, engine.frame.frame_index) {
+        if !listener_matches(&listener, event_type, engine.runtime.frame.frame_index) {
             continue;
         }
-        engine
-            .event_queue
-            .push(EngineEvent::System(SystemEvent::InputTargetListenerEvent {
+        engine.runtime.event_queue.push(EngineEvent::System(
+            SystemEvent::InputTargetListenerEvent {
                 listener_id: listener.listener_id,
                 target_id,
                 event_type: event_type.to_string(),
@@ -276,7 +275,8 @@ fn emit_pointer_listener_events(engine: &mut EngineState, event: &PointerEvent) 
                 target_height,
                 key_code: None,
                 key_state: None,
-            }));
+            },
+        ));
     }
 }
 
@@ -328,12 +328,11 @@ fn emit_keyboard_listener_events(engine: &mut EngineState, event: &KeyboardEvent
         .target_listeners
         .listeners_for_target(target_id.0);
     for listener in listeners {
-        if !listener_matches(&listener, event_type, engine.frame.frame_index) {
+        if !listener_matches(&listener, event_type, engine.runtime.frame.frame_index) {
             continue;
         }
-        engine
-            .event_queue
-            .push(EngineEvent::System(SystemEvent::InputTargetListenerEvent {
+        engine.runtime.event_queue.push(EngineEvent::System(
+            SystemEvent::InputTargetListenerEvent {
                 listener_id: listener.listener_id,
                 target_id: target_id.0,
                 event_type: event_type.to_string(),
@@ -347,7 +346,8 @@ fn emit_keyboard_listener_events(engine: &mut EngineState, event: &KeyboardEvent
                 target_height: None,
                 key_code,
                 key_state,
-            }));
+            },
+        ));
     }
 }
 

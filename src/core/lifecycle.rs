@@ -32,6 +32,7 @@ pub fn vulfram_init() -> VulframResult {
             if let Err(message) = state.audio.init() {
                 state.audio_available = false;
                 state
+                    .runtime
                     .event_queue
                     .push(EngineEvent::System(SystemEvent::Error {
                         scope: "audio-init".into(),

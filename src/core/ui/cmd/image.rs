@@ -94,6 +94,7 @@ pub fn process_async_ui_image_results(engine: &mut EngineState) {
                 total_bytes,
             } => {
                 engine
+                    .runtime
                     .event_queue
                     .push(crate::core::cmd::EngineEvent::System(
                         SystemEvent::UiImageProcessingStarted {
@@ -108,6 +109,7 @@ pub fn process_async_ui_image_results(engine: &mut EngineState) {
                 total_bytes,
             } => {
                 engine
+                    .runtime
                     .event_queue
                     .push(crate::core::cmd::EngineEvent::System(
                         SystemEvent::UiImageProcessingProgress {
@@ -124,6 +126,7 @@ pub fn process_async_ui_image_results(engine: &mut EngineState) {
                 total_bytes,
             } => {
                 engine
+                    .runtime
                     .event_queue
                     .push(crate::core::cmd::EngineEvent::System(
                         SystemEvent::UiImageProcessingFinished {
@@ -137,6 +140,7 @@ pub fn process_async_ui_image_results(engine: &mut EngineState) {
             UiImageAsyncEvent::Result(result) => {
                 if ui_state.image_async.was_canceled(result.image_id) {
                     engine
+                        .runtime
                         .event_queue
                         .push(crate::core::cmd::EngineEvent::System(
                             SystemEvent::UiImageReady {
@@ -160,6 +164,7 @@ pub fn process_async_ui_image_results(engine: &mut EngineState) {
                         },
                     );
                     engine
+                        .runtime
                         .event_queue
                         .push(crate::core::cmd::EngineEvent::System(
                             SystemEvent::UiImageReady {
@@ -170,6 +175,7 @@ pub fn process_async_ui_image_results(engine: &mut EngineState) {
                         ));
                 } else {
                     engine
+                        .runtime
                         .event_queue
                         .push(crate::core::cmd::EngineEvent::System(
                             SystemEvent::UiImageReady {

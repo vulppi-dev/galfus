@@ -261,10 +261,6 @@ pub type CommandResponseEnvelope = vulfram_protocol::ResponseEnvelope<CommandRes
 
 pub type EngineBatchCmds = Vec<EngineCmdEnvelope>;
 
-pub type EngineBatchEvents = Vec<EngineEvent>;
-
-pub type EngineBatchResponses = Vec<CommandResponseEnvelope>;
-
 mod processing;
 
 pub(crate) use processing::{deferred_command_key, engine_process_batch};

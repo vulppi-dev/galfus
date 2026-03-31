@@ -86,7 +86,7 @@ pub fn attach_canvas_listeners(
             let mut current_modifiers = modifiers_state_for_blur.borrow_mut();
             if *current_modifiers != next_modifiers {
                 *current_modifiers = next_modifiers;
-                engine.event_queue.push(EngineEvent::Keyboard(
+                engine.runtime.event_queue.push(EngineEvent::Keyboard(
                     CoreKeyboardEvent::OnModifiersChange {
                         window_id,
                         modifiers: next_modifiers,
@@ -225,7 +225,7 @@ pub fn attach_canvas_listeners(
             let mut current_modifiers = modifiers_state_for_keydown.borrow_mut();
             if *current_modifiers != modifiers {
                 *current_modifiers = modifiers;
-                engine.event_queue.push(EngineEvent::Keyboard(
+                engine.runtime.event_queue.push(EngineEvent::Keyboard(
                     CoreKeyboardEvent::OnModifiersChange {
                         window_id,
                         modifiers,
@@ -276,7 +276,7 @@ pub fn attach_canvas_listeners(
             let mut current_modifiers = modifiers_state_for_keyup.borrow_mut();
             if *current_modifiers != modifiers {
                 *current_modifiers = modifiers;
-                engine.event_queue.push(EngineEvent::Keyboard(
+                engine.runtime.event_queue.push(EngineEvent::Keyboard(
                     CoreKeyboardEvent::OnModifiersChange {
                         window_id,
                         modifiers,

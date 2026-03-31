@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct DeferredCommandKey {
     pub command_id: u64,
@@ -18,6 +20,29 @@ pub struct RuntimeFrameState {
     pub delta_time: u32,
     pub frame_index: u64,
     pub had_commands_this_frame: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RuntimeState<TCmd, TEvent, TResponse> {
+    pub frame: RuntimeFrameState,
+    pub cmd_queue: Vec<TCmd>,
+    pub deferred_cmd_queue: Vec<TCmd>,
+    pub deferred_cmd_meta: HashMap<DeferredCommandKey, DeferredCommandMeta>,
+    pub event_queue: Vec<TEvent>,
+    pub response_queue: Vec<TResponse>,
+}
+
+impl<TCmd, TEvent, TResponse> Default for RuntimeState<TCmd, TEvent, TResponse> {
+    fn default() -> Self {
+        Self {
+            frame: RuntimeFrameState::default(),
+            cmd_queue: Vec::new(),
+            deferred_cmd_queue: Vec::new(),
+            deferred_cmd_meta: HashMap::new(),
+            event_queue: Vec::new(),
+            response_queue: Vec::new(),
+        }
+    }
 }
 
 impl RuntimeFrameState {
@@ -49,8 +74,8 @@ pub fn should_drop_deferred(attempts: u32, age_frames: u64) -> bool {
 #[cfg(test)]
 mod tests {
     use super::{
-        DEFER_MAX_AGE_FRAMES, DEFER_MAX_ATTEMPTS, RuntimeFrameState, defer_backoff_frames,
-        should_drop_deferred,
+        DEFER_MAX_AGE_FRAMES, DEFER_MAX_ATTEMPTS, RuntimeFrameState, RuntimeState,
+        defer_backoff_frames, should_drop_deferred,
     };
 
     #[test]
@@ -80,5 +105,15 @@ mod tests {
         assert_eq!(state.delta_time, 16);
         assert!(!state.had_commands_this_frame);
         assert_eq!(state.advance_frame(), 1);
+    }
+
+    #[test]
+    fn runtime_state_starts_with_empty_queues() {
+        let state = RuntimeState::<u8, u16, u32>::default();
+        assert!(state.cmd_queue.is_empty());
+        assert!(state.deferred_cmd_queue.is_empty());
+        assert!(state.deferred_cmd_meta.is_empty());
+        assert!(state.event_queue.is_empty());
+        assert!(state.response_queue.is_empty());
     }
 }

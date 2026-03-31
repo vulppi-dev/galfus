@@ -24,6 +24,7 @@ pub(super) fn apply_ui_platform_actions(
                 new_tab,
             } => {
                 engine_state
+                    .runtime
                     .event_queue
                     .push(crate::core::cmd::EngineEvent::System(
                         crate::core::system::SystemEvent::UiOpenUrl {
@@ -40,6 +41,7 @@ pub(super) fn apply_ui_platform_actions(
                 text,
             } => {
                 engine_state
+                    .runtime
                     .event_queue
                     .push(crate::core::cmd::EngineEvent::System(
                         crate::core::system::SystemEvent::UiClipboardSetText {
@@ -54,6 +56,7 @@ pub(super) fn apply_ui_platform_actions(
                 realm_id,
             } => {
                 engine_state
+                    .runtime
                     .event_queue
                     .push(crate::core::cmd::EngineEvent::System(
                         crate::core::system::SystemEvent::UiClipboardRequestCopy {
@@ -67,6 +70,7 @@ pub(super) fn apply_ui_platform_actions(
                 realm_id,
             } => {
                 engine_state
+                    .runtime
                     .event_queue
                     .push(crate::core::cmd::EngineEvent::System(
                         crate::core::system::SystemEvent::UiClipboardRequestCut {
@@ -80,6 +84,7 @@ pub(super) fn apply_ui_platform_actions(
                 realm_id,
             } => {
                 engine_state
+                    .runtime
                     .event_queue
                     .push(crate::core::cmd::EngineEvent::System(
                         crate::core::system::SystemEvent::UiClipboardRequestPaste {
@@ -129,6 +134,7 @@ pub(super) fn apply_ui_platform_actions(
                 realm_id,
             } => {
                 engine_state
+                    .runtime
                     .event_queue
                     .push(crate::core::cmd::EngineEvent::System(
                         crate::core::system::SystemEvent::UiScreenshotRequest {
@@ -278,6 +284,7 @@ pub(super) fn apply_ui_platform_actions(
                 title,
             } => {
                 engine_state
+                    .runtime
                     .event_queue
                     .push(crate::core::cmd::EngineEvent::System(
                         crate::core::system::SystemEvent::UiViewportSync {
@@ -297,6 +304,7 @@ pub(super) fn apply_ui_platform_actions(
                 command,
             } => {
                 engine_state
+                    .runtime
                     .event_queue
                     .push(crate::core::cmd::EngineEvent::System(
                         crate::core::system::SystemEvent::UiViewportCommand {
@@ -314,6 +322,7 @@ pub(super) fn apply_ui_platform_actions(
                 parent_viewport_id,
             } => {
                 engine_state
+                    .runtime
                     .event_queue
                     .push(crate::core::cmd::EngineEvent::System(
                         crate::core::system::SystemEvent::UiViewportFallbackEmbedded {

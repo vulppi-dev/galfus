@@ -39,7 +39,7 @@ pub fn vulfram_send_queue(ptr: *const u8, length: usize) -> VulframResult {
     };
 
     match with_engine(|engine| {
-        engine.cmd_queue.extend(batch);
+        engine.runtime.cmd_queue.extend(batch);
         VulframResult::Success
     }) {
         Err(e) => return e,
@@ -50,7 +50,7 @@ pub fn vulfram_send_queue(ptr: *const u8, length: usize) -> VulframResult {
 /// Receive a batch of command responses from the engine
 pub fn vulfram_receive_queue(out_ptr: *mut *const u8, out_length: *mut usize) -> VulframResult {
     match with_engine(|engine| {
-        if engine.response_queue.is_empty() {
+        if engine.runtime.response_queue.is_empty() {
             unsafe {
                 *out_length = 0;
                 *out_ptr = std::ptr::null();
@@ -64,7 +64,7 @@ pub fn vulfram_receive_queue(out_ptr: *mut *const u8, out_length: *mut usize) ->
         let serialization_start = Instant::now();
         #[cfg(feature = "wasm")]
         let serialization_start = now_ns();
-        let serialized_data = match vulfram_protocol::encode_named(&engine.response_queue) {
+        let serialized_data = match vulfram_protocol::encode_named(&engine.runtime.response_queue) {
             Ok(data) => data,
             Err(_) => return VulframResult::UnknownError,
         };
@@ -89,7 +89,7 @@ pub fn vulfram_receive_queue(out_ptr: *mut *const u8, out_length: *mut usize) ->
             *out_length = data_length;
         }
 
-        engine.response_queue.clear();
+        engine.runtime.response_queue.clear();
         VulframResult::Success
     }) {
         Err(e) => e,
@@ -100,7 +100,7 @@ pub fn vulfram_receive_queue(out_ptr: *mut *const u8, out_length: *mut usize) ->
 /// Receive a batch of spontaneous events from the engine
 pub fn vulfram_receive_events(out_ptr: *mut *const u8, out_length: *mut usize) -> VulframResult {
     match with_engine(|engine| {
-        if engine.event_queue.is_empty() {
+        if engine.runtime.event_queue.is_empty() {
             unsafe {
                 *out_length = 0;
                 *out_ptr = std::ptr::null();
@@ -113,7 +113,7 @@ pub fn vulfram_receive_events(out_ptr: *mut *const u8, out_length: *mut usize) -
         let serialization_start = Instant::now();
         #[cfg(feature = "wasm")]
         let serialization_start = now_ns();
-        let serialized_data = match vulfram_protocol::encode_named(&engine.event_queue) {
+        let serialized_data = match vulfram_protocol::encode_named(&engine.runtime.event_queue) {
             Ok(data) => data,
             Err(_) => return VulframResult::UnknownError,
         };
@@ -141,7 +141,7 @@ pub fn vulfram_receive_events(out_ptr: *mut *const u8, out_length: *mut usize) -
             *out_length = data_length;
         }
 
-        engine.event_queue.clear();
+        engine.runtime.event_queue.clear();
         VulframResult::Success
     }) {
         Err(e) => e,

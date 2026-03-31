@@ -44,6 +44,7 @@ fn emit_window_state_change_if_needed(engine: &mut EngineState, window_id: u32) 
     let next_state = read_window_lifecycle_state(window_state);
     if engine.window.set_lifecycle_state(window_id, next_state) {
         engine
+            .runtime
             .event_queue
             .push(EngineEvent::Window(WindowEvent::OnStateChange {
                 window_id,
@@ -54,22 +55,26 @@ fn emit_window_state_change_if_needed(engine: &mut EngineState, window_id: u32) 
 
 impl ApplicationHandler<EngineCustomEvents> for EngineState {
     fn resumed(&mut self, _event_loop: &ActiveEventLoop) {
-        self.event_queue
+        self.runtime
+            .event_queue
             .push(EngineEvent::System(SystemEvent::OnResume));
     }
 
     fn suspended(&mut self, _event_loop: &ActiveEventLoop) {
-        self.event_queue
+        self.runtime
+            .event_queue
             .push(EngineEvent::System(SystemEvent::OnSuspend));
     }
 
     fn exiting(&mut self, _event_loop: &ActiveEventLoop) {
-        self.event_queue
+        self.runtime
+            .event_queue
             .push(EngineEvent::System(SystemEvent::OnExit));
     }
 
     fn memory_warning(&mut self, _event_loop: &ActiveEventLoop) {
-        self.event_queue
+        self.runtime
+            .event_queue
             .push(EngineEvent::System(SystemEvent::OnMemoryWarning));
     }
 
@@ -145,7 +150,8 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
                     }
                 }
 
-                self.event_queue
+                self.runtime
+                    .event_queue
                     .push(EngineEvent::Window(WindowEvent::OnResize {
                         window_id,
                         width: size.width,
@@ -176,7 +182,8 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
                     }
                 }
 
-                self.event_queue
+                self.runtime
+                    .event_queue
                     .push(EngineEvent::Window(WindowEvent::OnMove {
                         window_id,
                         position: new_pos,
@@ -184,7 +191,8 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
             }
 
             WinitWindowEvent::CloseRequested => {
-                self.event_queue
+                self.runtime
+                    .event_queue
                     .push(EngineEvent::Window(WindowEvent::OnCloseRequest {
                         window_id,
                     }));
@@ -194,7 +202,8 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
                 // Cleanup all window resources when destroyed by system
                 self.cleanup_window(window_id);
 
-                self.event_queue
+                self.runtime
+                    .event_queue
                     .push(EngineEvent::Window(WindowEvent::OnDestroy { window_id }));
             }
 
@@ -207,7 +216,8 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
                     .copied()
                     .unwrap_or(Vec2::new(0.0, 0.0));
 
-                self.event_queue
+                self.runtime
+                    .event_queue
                     .push(EngineEvent::Window(WindowEvent::OnFileDrop {
                         window_id,
                         path: path.to_string_lossy().into_owned(),
@@ -224,7 +234,8 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
                     .copied()
                     .unwrap_or(Vec2::new(0.0, 0.0));
 
-                self.event_queue
+                self.runtime
+                    .event_queue
                     .push(EngineEvent::Window(WindowEvent::OnFileHover {
                         window_id,
                         path: path.to_string_lossy().into_owned(),
@@ -233,10 +244,9 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
             }
 
             WinitWindowEvent::HoveredFileCancelled => {
-                self.event_queue
-                    .push(EngineEvent::Window(WindowEvent::OnFileHoverCancel {
-                        window_id,
-                    }));
+                self.runtime.event_queue.push(EngineEvent::Window(
+                    WindowEvent::OnFileHoverCancel { window_id },
+                ));
             }
 
             WinitWindowEvent::Focused(focused) => {
@@ -251,7 +261,8 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
                 // Update cache
                 cache.focused = focused;
 
-                self.event_queue
+                self.runtime
+                    .event_queue
                     .push(EngineEvent::Window(WindowEvent::OnFocus {
                         window_id,
                         focused,
@@ -260,7 +271,7 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
                 if mode != CursorGrabMode::None {
                     let active = focused;
                     if self.window.set_pointer_capture_active(window_id, active) {
-                        self.event_queue.push(EngineEvent::Window(
+                        self.runtime.event_queue.push(EngineEvent::Window(
                             WindowEvent::OnPointerCaptureChange {
                                 window_id,
                                 capture: WindowPointerCaptureState {
@@ -296,7 +307,8 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
                     ElementState::Released
                 };
 
-                self.event_queue
+                self.runtime
+                    .event_queue
                     .push(EngineEvent::Keyboard(KeyboardEvent::OnInput {
                         window_id,
                         key_code,
@@ -326,11 +338,12 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
                 self.input.cache.keyboard.modifiers = new_modifiers;
                 self.input.modifiers = new_modifiers;
 
-                self.event_queue
-                    .push(EngineEvent::Keyboard(KeyboardEvent::OnModifiersChange {
+                self.runtime.event_queue.push(EngineEvent::Keyboard(
+                    KeyboardEvent::OnModifiersChange {
                         window_id,
                         modifiers: new_modifiers,
-                    }));
+                    },
+                ));
             }
 
             WinitWindowEvent::Ime(ime) => {
@@ -346,7 +359,9 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
                     }
                     winit::event::Ime::Disabled => KeyboardEvent::OnImeDisable { window_id },
                 };
-                self.event_queue.push(EngineEvent::Keyboard(ime_event));
+                self.runtime
+                    .event_queue
+                    .push(EngineEvent::Keyboard(ime_event));
             }
 
             WinitWindowEvent::CursorMoved { position, .. } => {
@@ -362,7 +377,8 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
                 pointer_cache.position = cursor_pos;
                 self.window.cursor_positions.insert(window_id, cursor_pos);
 
-                self.event_queue
+                self.runtime
+                    .event_queue
                     .push(EngineEvent::Pointer(PointerEvent::OnMove {
                         window_id,
                         window_width: None,
@@ -378,7 +394,8 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
             }
 
             WinitWindowEvent::CursorEntered { .. } => {
-                self.event_queue
+                self.runtime
+                    .event_queue
                     .push(EngineEvent::Pointer(PointerEvent::OnEnter {
                         window_id,
                         window_width: None,
@@ -392,7 +409,8 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
             }
 
             WinitWindowEvent::CursorLeft { .. } => {
-                self.event_queue
+                self.runtime
+                    .event_queue
                     .push(EngineEvent::Pointer(PointerEvent::OnLeave {
                         window_id,
                         window_width: None,
@@ -416,7 +434,8 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
                 };
                 let touch_phase = convert_touch_phase(phase);
 
-                self.event_queue
+                self.runtime
+                    .event_queue
                     .push(EngineEvent::Pointer(PointerEvent::OnScroll {
                         window_id,
                         window_width: None,
@@ -445,7 +464,8 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
                     .copied()
                     .unwrap_or(Vec2::new(0.0, 0.0));
 
-                self.event_queue
+                self.runtime
+                    .event_queue
                     .push(EngineEvent::Pointer(PointerEvent::OnButton {
                         window_id,
                         window_width: None,
@@ -463,7 +483,8 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
             }
 
             WinitWindowEvent::PinchGesture { delta, phase, .. } => {
-                self.event_queue
+                self.runtime
+                    .event_queue
                     .push(EngineEvent::Pointer(PointerEvent::OnPinchGesture {
                         window_id,
                         window_width: None,
@@ -477,7 +498,8 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
             }
 
             WinitWindowEvent::PanGesture { delta, phase, .. } => {
-                self.event_queue
+                self.runtime
+                    .event_queue
                     .push(EngineEvent::Pointer(PointerEvent::OnPanGesture {
                         window_id,
                         window_width: None,
@@ -491,8 +513,8 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
             }
 
             WinitWindowEvent::RotationGesture { delta, phase, .. } => {
-                self.event_queue
-                    .push(EngineEvent::Pointer(PointerEvent::OnRotationGesture {
+                self.runtime.event_queue.push(EngineEvent::Pointer(
+                    PointerEvent::OnRotationGesture {
                         window_id,
                         window_width: None,
                         window_height: None,
@@ -501,26 +523,29 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
                         target_width: None,
                         target_height: None,
                         trace: None,
-                    }));
+                    },
+                ));
             }
 
             WinitWindowEvent::DoubleTapGesture { .. } => {
-                self.event_queue
-                    .push(EngineEvent::Pointer(PointerEvent::OnDoubleTapGesture {
+                self.runtime.event_queue.push(EngineEvent::Pointer(
+                    PointerEvent::OnDoubleTapGesture {
                         window_id,
                         window_width: None,
                         window_height: None,
                         target_width: None,
                         target_height: None,
                         trace: None,
-                    }));
+                    },
+                ));
             }
 
             WinitWindowEvent::Touch(touch) => {
                 let phase = convert_touch_phase(touch.phase);
                 let pressure = touch.force.map(|f| f.normalized() as f32);
 
-                self.event_queue
+                self.runtime
+                    .event_queue
                     .push(EngineEvent::Pointer(PointerEvent::OnTouch {
                         window_id,
                         window_width: None,
@@ -561,13 +586,14 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
                     })
                     .unwrap_or((0, 0));
 
-                self.event_queue
-                    .push(EngineEvent::Window(WindowEvent::OnScaleFactorChange {
+                self.runtime.event_queue.push(EngineEvent::Window(
+                    WindowEvent::OnScaleFactorChange {
                         window_id,
                         scale_factor,
                         new_width,
                         new_height,
-                    }));
+                    },
+                ));
             }
 
             WinitWindowEvent::ThemeChanged(theme) => {
@@ -582,7 +608,8 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
                 // Update cache
                 cache.dark_mode = dark_mode;
 
-                self.event_queue
+                self.runtime
+                    .event_queue
                     .push(EngineEvent::Window(WindowEvent::OnThemeChange {
                         window_id,
                         dark_mode,
@@ -600,7 +627,8 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
                 // Update cache
                 cache.occluded = occluded;
 
-                self.event_queue
+                self.runtime
+                    .event_queue
                     .push(EngineEvent::Window(WindowEvent::OnOcclude {
                         window_id,
                         occluded,
@@ -614,10 +642,9 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
                     if window_state.is_dirty && window_state.window.is_visible().unwrap_or(true) {
                         window_state.is_dirty = false;
 
-                        self.event_queue
-                            .push(EngineEvent::Window(WindowEvent::OnRedrawRequest {
-                                window_id,
-                            }));
+                        self.runtime.event_queue.push(EngineEvent::Window(
+                            WindowEvent::OnRedrawRequest { window_id },
+                        ));
 
                         render_frames(self);
                     }
@@ -685,7 +712,8 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
             .cursor_positions
             .insert(window_id, next_position);
 
-        self.event_queue
+        self.runtime
+            .event_queue
             .push(EngineEvent::Pointer(PointerEvent::OnMove {
                 window_id,
                 window_width: None,
@@ -707,14 +735,14 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
             EngineCustomEvents::CreateWindow(id, args) => {
                 let result = engine_cmd_window_create(self, event_loop, &args);
 
-                self.response_queue.push(CommandResponseEnvelope {
+                self.runtime.response_queue.push(CommandResponseEnvelope {
                     id,
                     response: CommandResponse::WindowCreate(result),
                 });
             }
 
             EngineCustomEvents::NotificationInteraction(event) => {
-                self.event_queue.push(EngineEvent::System(event));
+                self.runtime.event_queue.push(EngineEvent::System(event));
             }
         }
 

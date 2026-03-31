@@ -121,6 +121,7 @@ pub(super) fn emit_deferred_event(
     reason: String,
 ) {
     engine
+        .runtime
         .event_queue
         .push(EngineEvent::System(SystemEvent::CommandDeferred {
             command_id,
@@ -137,6 +138,7 @@ pub(super) fn emit_applied_event(
     attempts: u32,
 ) {
     engine
+        .runtime
         .event_queue
         .push(EngineEvent::System(SystemEvent::CommandApplied {
             command_id,
@@ -153,6 +155,7 @@ pub(super) fn emit_dropped_event(
     reason: String,
 ) {
     engine
+        .runtime
         .event_queue
         .push(EngineEvent::System(SystemEvent::CommandDropped {
             command_id,

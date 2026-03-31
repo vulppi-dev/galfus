@@ -4,7 +4,6 @@ use crate::core::audio::KiraAudioProxy;
 #[cfg(feature = "wasm")]
 use crate::core::audio::WebAudioProxy;
 use crate::core::buffers::state::BufferStorage;
-use crate::core::cmd::{EngineBatchCmds, EngineBatchEvents, EngineBatchResponses};
 use crate::core::gamepad::state::GamepadState;
 #[cfg(not(feature = "wasm"))]
 use crate::core::input::InputState;
@@ -18,7 +17,11 @@ use crate::core::resources::{
 };
 use crate::core::window::WindowManager;
 use std::collections::HashMap;
-pub use vulfram_runtime::{DeferredCommandKey, DeferredCommandMeta, RuntimeFrameState};
+pub type EngineRuntimeState = vulfram_runtime::RuntimeState<
+    crate::core::cmd::EngineCmdEnvelope,
+    crate::core::cmd::EngineEvent,
+    crate::core::cmd::CommandResponseEnvelope,
+>;
 
 /// Main engine state holding all runtime data
 pub struct EngineState {
@@ -43,14 +46,8 @@ pub struct EngineState {
     pub present_sizes_cache: HashMap<crate::core::realm::SurfaceId, glam::UVec2>,
     pub present_sizes_hash: u64,
 
-    pub cmd_queue: EngineBatchCmds,
-    pub deferred_cmd_queue: EngineBatchCmds,
-    pub deferred_cmd_meta: HashMap<DeferredCommandKey, DeferredCommandMeta>,
-    pub event_queue: EngineBatchEvents,
-    pub response_queue: EngineBatchResponses,
+    pub runtime: EngineRuntimeState,
     pub pending_texture_decode_results: Vec<TextureDecodeResult>,
-
-    pub(crate) frame: RuntimeFrameState,
 
     #[cfg(not(feature = "wasm"))]
     pub input: InputState,
@@ -118,13 +115,8 @@ impl EngineState {
             surface_targets: HashMap::new(),
             present_sizes_cache: HashMap::new(),
             present_sizes_hash: 0,
-            cmd_queue: Vec::new(),
-            deferred_cmd_queue: Vec::new(),
-            deferred_cmd_meta: HashMap::new(),
-            event_queue: Vec::new(),
-            response_queue: Vec::new(),
+            runtime: EngineRuntimeState::default(),
             pending_texture_decode_results: Vec::new(),
-            frame: RuntimeFrameState::default(),
             #[cfg(not(feature = "wasm"))]
             input: InputState::new(),
             gamepad: GamepadState::new(),

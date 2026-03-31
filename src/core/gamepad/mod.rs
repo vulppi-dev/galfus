@@ -33,6 +33,7 @@ pub fn process_gilrs_event(engine_state: &mut EngineState, event: GilrsEvent) {
             manager.add_gamepad(gamepad_id);
 
             engine_state
+                .runtime
                 .event_queue
                 .push(EngineEvent::Gamepad(GamepadEvent::OnConnect {
                     gamepad_id,
@@ -42,11 +43,9 @@ pub fn process_gilrs_event(engine_state: &mut EngineState, event: GilrsEvent) {
         GilrsEventType::Disconnected => {
             manager.remove_gamepad(gamepad_id);
 
-            engine_state
-                .event_queue
-                .push(EngineEvent::Gamepad(GamepadEvent::OnDisconnect {
-                    gamepad_id,
-                }));
+            engine_state.runtime.event_queue.push(EngineEvent::Gamepad(
+                GamepadEvent::OnDisconnect { gamepad_id },
+            ));
         }
         GilrsEventType::ButtonPressed(button, _code) => {
             let button_mapped = convert_gilrs_button(button);
@@ -61,6 +60,7 @@ pub fn process_gilrs_event(engine_state: &mut EngineState, event: GilrsEvent) {
             }
 
             engine_state
+                .runtime
                 .event_queue
                 .push(EngineEvent::Gamepad(GamepadEvent::OnButton {
                     gamepad_id,
@@ -82,6 +82,7 @@ pub fn process_gilrs_event(engine_state: &mut EngineState, event: GilrsEvent) {
             }
 
             engine_state
+                .runtime
                 .event_queue
                 .push(EngineEvent::Gamepad(GamepadEvent::OnButton {
                     gamepad_id,
@@ -106,6 +107,7 @@ pub fn process_gilrs_event(engine_state: &mut EngineState, event: GilrsEvent) {
             }
 
             engine_state
+                .runtime
                 .event_queue
                 .push(EngineEvent::Gamepad(GamepadEvent::OnButton {
                     gamepad_id,
@@ -125,6 +127,7 @@ pub fn process_gilrs_event(engine_state: &mut EngineState, event: GilrsEvent) {
                 let adjusted_value = cache.update_axis_and_get(axis_mapped, value);
 
                 engine_state
+                    .runtime
                     .event_queue
                     .push(EngineEvent::Gamepad(GamepadEvent::OnAxis {
                         gamepad_id,
@@ -166,6 +169,7 @@ pub fn process_web_gamepads(engine_state: &mut EngineState) {
         if manager.get_mut(gamepad_id).is_none() {
             manager.add_gamepad(gamepad_id);
             engine_state
+                .runtime
                 .event_queue
                 .push(EngineEvent::Gamepad(GamepadEvent::OnConnect {
                     gamepad_id,
@@ -193,14 +197,14 @@ pub fn process_web_gamepads(engine_state: &mut EngineState) {
                 }
                 cache.update_button(button_id, state, value);
 
-                engine_state
-                    .event_queue
-                    .push(EngineEvent::Gamepad(GamepadEvent::OnButton {
+                engine_state.runtime.event_queue.push(EngineEvent::Gamepad(
+                    GamepadEvent::OnButton {
                         gamepad_id,
                         button: button_id,
                         state,
                         value,
-                    }));
+                    },
+                ));
             }
 
             let axes = pad.axes();
@@ -212,6 +216,7 @@ pub fn process_web_gamepads(engine_state: &mut EngineState) {
                 }
                 let adjusted_value = cache.update_axis_and_get(axis_id, value);
                 engine_state
+                    .runtime
                     .event_queue
                     .push(EngineEvent::Gamepad(GamepadEvent::OnAxis {
                         gamepad_id,
@@ -239,11 +244,9 @@ pub fn process_web_gamepads(engine_state: &mut EngineState) {
     for gamepad_id in known_ids {
         if !connected_ids.contains(&gamepad_id) {
             manager.remove_gamepad(gamepad_id);
-            engine_state
-                .event_queue
-                .push(EngineEvent::Gamepad(GamepadEvent::OnDisconnect {
-                    gamepad_id,
-                }));
+            engine_state.runtime.event_queue.push(EngineEvent::Gamepad(
+                GamepadEvent::OnDisconnect { gamepad_id },
+            ));
         }
     }
 }

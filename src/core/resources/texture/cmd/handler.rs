@@ -191,6 +191,7 @@ fn create_texture_from_image(
 fn apply_decoded_texture_result(engine: &mut EngineState, result: TextureDecodeResult) -> bool {
     if engine.texture_async.was_canceled(result.texture_id) {
         engine
+            .runtime
             .event_queue
             .push(crate::core::cmd::EngineEvent::System(
                 SystemEvent::TextureReady {
@@ -221,6 +222,7 @@ fn apply_decoded_texture_result(engine: &mut EngineState, result: TextureDecodeR
     };
 
     engine
+        .runtime
         .event_queue
         .push(crate::core::cmd::EngineEvent::System(
             SystemEvent::TextureReady {
@@ -252,6 +254,7 @@ pub fn process_async_texture_results(engine: &mut EngineState) {
                 total_bytes,
             } => {
                 engine
+                    .runtime
                     .event_queue
                     .push(crate::core::cmd::EngineEvent::System(
                         SystemEvent::TextureProcessingStarted {
@@ -267,6 +270,7 @@ pub fn process_async_texture_results(engine: &mut EngineState) {
                 total_bytes,
             } => {
                 engine
+                    .runtime
                     .event_queue
                     .push(crate::core::cmd::EngineEvent::System(
                         SystemEvent::TextureProcessingProgress {
@@ -284,6 +288,7 @@ pub fn process_async_texture_results(engine: &mut EngineState) {
                 total_bytes,
             } => {
                 engine
+                    .runtime
                     .event_queue
                     .push(crate::core::cmd::EngineEvent::System(
                         SystemEvent::TextureProcessingFinished {

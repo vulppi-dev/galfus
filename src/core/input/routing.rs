@@ -29,9 +29,9 @@ use route_hit::{
 const MAX_ROUTE_STEPS: usize = 32;
 
 pub fn route_pointer_events(engine_state: &mut EngineState) {
-    let mut events = std::mem::take(&mut engine_state.event_queue);
+    let mut events = std::mem::take(&mut engine_state.runtime.event_queue);
     let trace_config = engine_state.universal_state.input_routing.trace;
-    let frame_index = engine_state.frame.frame_index;
+    let frame_index = engine_state.runtime.frame.frame_index;
     rebuild_input_routing_cache(&mut engine_state.universal_state);
     let mut captures = std::mem::take(&mut engine_state.universal_state.input_routing.captures);
     let mut focus_targets =
@@ -449,7 +449,7 @@ pub fn route_pointer_events(engine_state: &mut EngineState) {
         }
     }
 
-    engine_state.event_queue = events;
+    engine_state.runtime.event_queue = events;
     engine_state.universal_state.input_routing.captures = captures;
     engine_state.universal_state.input_routing.focus_targets = focus_targets;
 }

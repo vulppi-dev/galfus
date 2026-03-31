@@ -44,6 +44,7 @@ fn ui_input_converts_pointer_button_into_egui_pointer_event() {
         realm_entry.value.output_surface = Some(surface_id);
     }
     engine
+        .runtime
         .event_queue
         .push(crate::core::cmd::EngineEvent::Pointer(
             crate::core::input::events::PointerEvent::OnButton {
