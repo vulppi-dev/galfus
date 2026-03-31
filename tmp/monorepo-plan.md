@@ -304,22 +304,22 @@ Não deve conter:
 vulfram-types
 ├── vulfram-protocol
 ├── vulfram-input
-├── vulfram-scene-core
+├── vulfram-realm-core
 ├── vulfram-audio
 └── crates semânticos auxiliares
 
 vulfram-realm-ui   ──► vulfram-types
 vulfram-realm-ui   ──► vulfram-input
-vulfram-realm-ui   ──► vulfram-scene-core
+vulfram-realm-ui   ──► vulfram-realm-core
 
 vulfram-realm-3d   ──► vulfram-types
-vulfram-realm-3d   ──► vulfram-scene-core
+vulfram-realm-3d   ──► vulfram-realm-core
 
 vulfram-realm-2d   ──► vulfram-types
-vulfram-realm-2d   ──► vulfram-scene-core
+vulfram-realm-2d   ──► vulfram-realm-core
 
 vulfram-render     ──► vulfram-types
-vulfram-render     ──► vulfram-scene-core
+vulfram-render     ──► vulfram-realm-core
 vulfram-render     ──► vulfram-realm-3d
 vulfram-render     ──► vulfram-realm-2d
 vulfram-render     ──► vulfram-realm-ui
@@ -329,7 +329,7 @@ vulfram-platform   ──► vulfram-input
 
 vulfram-runtime    ──► vulfram-protocol
 vulfram-runtime    ──► vulfram-types
-vulfram-runtime    ──► vulfram-scene-core
+vulfram-runtime    ──► vulfram-realm-core
 vulfram-runtime    ──► vulfram-input
 vulfram-runtime    ──► vulfram-realm-ui
 vulfram-runtime    ──► vulfram-render
@@ -347,10 +347,10 @@ vulfram-demo       ──► vulfram-runtime
 1. `vulfram-types` não depende de ninguém
 2. `vulfram-protocol` depende apenas de `vulfram-types`
 3. `vulfram-input` depende apenas de `vulfram-types`
-4. `vulfram-scene-core` depende apenas de `vulfram-types`
+4. `vulfram-realm-core` depende apenas de `vulfram-types`
 5. `vulfram-audio` depende apenas de `vulfram-types` ou abstrações neutras estritamente necessárias
-6. `vulfram-realm-ui` depende de `vulfram-types`, `vulfram-input` e `vulfram-scene-core`
-7. `vulfram-realm-3d` e `vulfram-realm-2d` dependem de `vulfram-types` e `vulfram-scene-core`
+6. `vulfram-realm-ui` depende de `vulfram-types`, `vulfram-input` e `vulfram-realm-core`
+7. `vulfram-realm-3d` e `vulfram-realm-2d` dependem de `vulfram-types` e `vulfram-realm-core`
 8. `vulfram-render` pode depender de crates semânticos, mas nenhum crate semântico pode depender de `vulfram-render`
 9. `vulfram-platform` pode depender de `vulfram-input`, nunca o contrário
 10. `vulfram-runtime` é o orquestrador e pode depender dos demais
@@ -466,13 +466,13 @@ Critério de aceite:
 - `protocol` depende só de `types`
 - nenhum payload do protocolo depende de `wgpu`, `winit`, `web-sys` ou módulos internos do runtime
 
-### Fase 3 — Criação de `vulfram-scene-core`
+### Fase 3 — Criação de `vulfram-realm-core`
 
 Objetivo:
 - consolidar a semântica de composição de cena antes da reconstrução de render e runtime
 
 Tarefas:
-- criar `crates/vulfram-scene-core`
+- criar `crates/vulfram-realm-core`
 - definir realms, surfaces, targets, target layers, connectors e presents
 - definir regras determinísticas de resolução composicional
 - extrair caches e índices semânticos realmente pertencentes à composição
@@ -526,7 +526,7 @@ Tarefas:
 - criar `crates/vulfram-realm-ui`
 - definir documentos, árvore, layout e estado de interação
 - integrar com `vulfram-input`
-- integrar com `vulfram-scene-core` apenas onde a composição exigir
+- integrar com `vulfram-realm-core` apenas onde a composição exigir
 
 Testes obrigatórios:
 - árvore e operações estruturais
@@ -593,7 +593,7 @@ Tarefas:
 - criar `crates/vulfram-runtime`
 - integrar lifecycle
 - integrar filas de comandos, eventos e responses
-- coordenar `protocol`, `scene-core`, `input`, `ui`, `render` e `audio`
+- coordenar `protocol`, `realm-core`, `input`, `ui`, `render` e `audio`
 - manter `runtime` como casca de coordenação e sequencing
 
 Testes obrigatórios:
@@ -633,7 +633,7 @@ Objetivo:
 Tarefas:
 - criar `crates/vulfram-realm-3d`
 - definir câmera 3D, luzes, modelos e componentes 3D
-- integrar com `scene-core`
+- integrar com `vulfram-realm-core`
 - deixar `render` apenas consumir essas estruturas
 
 Testes obrigatórios:
@@ -652,7 +652,7 @@ Objetivo:
 Tarefas:
 - criar `crates/vulfram-realm-2d`
 - definir os tipos e estruturas 2D realmente necessários
-- integrar com `scene-core`
+- integrar com `vulfram-realm-core`
 
 Testes obrigatórios:
 - invariantes das estruturas introduzidas
@@ -730,7 +730,7 @@ Critério de aceite:
 
 - `types`: invariantes, serde e utilidades base
 - `protocol`: round-trip de codec e compatibilidade estrutural
-- `scene-core`: regras de composição e resolução
+- `realm-core`: regras de composição e resolução
 - `input`: transições e normalização
 - `ui`: árvore, foco, layout e interação
 - `render`: planejamento, caches e contratos puros; integração seletiva
