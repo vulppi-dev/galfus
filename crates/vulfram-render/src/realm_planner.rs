@@ -69,6 +69,25 @@ pub struct ResolvedSurfaceTarget {
     pub target_size: glam::UVec2,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct TargetSizeUpdateRequest {
+    pub target_id: TargetId,
+    pub kind: TargetKind,
+    pub current_size: Option<glam::UVec2>,
+    pub requested_size: glam::UVec2,
+    pub msaa_samples: Option<u32>,
+    pub window_id: Option<u32>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct TargetSizeUpdatePlanEntry {
+    pub target_id: TargetId,
+    pub desired_size: glam::UVec2,
+    pub needs_size_update: bool,
+    pub needs_msaa_init: bool,
+    pub window_id: Option<u32>,
+}
+
 pub fn collect_cut_connectors(plan: &RealmGraphPlan) -> HashSet<ConnectorId> {
     plan.cut_edges
         .iter()
@@ -465,15 +484,38 @@ pub fn plan_surface_targets(
         .collect()
 }
 
+pub fn plan_target_size_updates(
+    requests: &[TargetSizeUpdateRequest],
+) -> Vec<TargetSizeUpdatePlanEntry> {
+    requests
+        .iter()
+        .filter(|request| request.kind != TargetKind::Window)
+        .map(|request| {
+            let desired_size = glam::UVec2::new(
+                request.requested_size.x.max(1),
+                request.requested_size.y.max(1),
+            );
+            TargetSizeUpdatePlanEntry {
+                target_id: request.target_id,
+                desired_size,
+                needs_size_update: request.current_size != Some(desired_size),
+                needs_msaa_init: request.msaa_samples.is_none(),
+                window_id: request.window_id,
+            }
+        })
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
         ComposeBlendMode, ComposeConnectorCandidate, ComposeOverlayPlan, ComposeOverlayPlanEntry,
         EnvironmentLayerBinding, RealmEnvironmentBindingPlan, ResolvedSurfaceTarget,
-        SurfaceTargetRequest, build_soft_cut_diagnostic, build_target_surface_map,
-        collect_connectors_by_realm, collect_cut_connectors, collect_window_camera_target_sizes,
-        map_realms_to_windows, plan_compose_overlays, plan_realm_environment_bindings,
-        plan_surface_targets, resolve_connector_surface, resolve_realm_surface,
+        SurfaceTargetRequest, TargetSizeUpdatePlanEntry, TargetSizeUpdateRequest,
+        build_soft_cut_diagnostic, build_target_surface_map, collect_connectors_by_realm,
+        collect_cut_connectors, collect_window_camera_target_sizes, map_realms_to_windows,
+        plan_compose_overlays, plan_realm_environment_bindings, plan_surface_targets,
+        plan_target_size_updates, resolve_connector_surface, resolve_realm_surface,
         should_render_realm, update_present_size_cache, update_surface_cache,
     };
     use std::collections::{HashMap, HashSet};
@@ -865,6 +907,39 @@ mod tests {
                     target_size: glam::UVec2::new(64, 64),
                 },
             ]
+        );
+    }
+
+    #[test]
+    fn plans_target_size_updates_without_touching_window_targets() {
+        let plan = plan_target_size_updates(&[
+            TargetSizeUpdateRequest {
+                target_id: TargetId(1),
+                kind: TargetKind::Texture,
+                current_size: Some(glam::UVec2::new(10, 10)),
+                requested_size: glam::UVec2::new(20, 0),
+                msaa_samples: None,
+                window_id: Some(7),
+            },
+            TargetSizeUpdateRequest {
+                target_id: TargetId(2),
+                kind: TargetKind::Window,
+                current_size: Some(glam::UVec2::new(30, 30)),
+                requested_size: glam::UVec2::new(40, 40),
+                msaa_samples: None,
+                window_id: Some(8),
+            },
+        ]);
+
+        assert_eq!(
+            plan,
+            vec![TargetSizeUpdatePlanEntry {
+                target_id: TargetId(1),
+                desired_size: glam::UVec2::new(20, 1),
+                needs_size_update: true,
+                needs_msaa_init: true,
+                window_id: Some(7),
+            }]
         );
     }
 }

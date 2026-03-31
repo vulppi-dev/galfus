@@ -1,7 +1,7 @@
 use super::RenderState;
 use crate::core::realm::RealmId;
 use crate::core::state::EngineState;
-use crate::core::target::{TargetId, TargetKind, TargetTable};
+use crate::core::target::{TargetId, TargetTable};
 
 pub(super) fn apply_realm_environment_bindings(
     render_state: &mut RenderState,
@@ -84,27 +84,42 @@ pub(super) fn apply_target_size_requests(
         return;
     }
 
-    for (target_id, size) in requests {
-        let target_id = TargetId(*target_id);
+    let update_requests: Vec<_> = requests
+        .iter()
+        .filter_map(|(target_id, requested_size)| {
+            let target_id = TargetId(*target_id);
+            let target = engine_state
+                .universal_state
+                .targets
+                .entries
+                .get(&target_id)?;
+            Some(vulfram_render::TargetSizeUpdateRequest {
+                target_id,
+                kind: target.kind,
+                current_size: target.size,
+                requested_size: *requested_size,
+                msaa_samples: target.msaa_samples,
+                window_id: target.window_id,
+            })
+        })
+        .collect();
+
+    for update in vulfram_render::plan_target_size_updates(&update_requests) {
         let Some(target) = engine_state
             .universal_state
             .targets
             .entries
-            .get_mut(&target_id)
+            .get_mut(&update.target_id)
         else {
             continue;
         };
-        if target.kind == TargetKind::Window {
-            continue;
+
+        if update.needs_size_update {
+            target.size = Some(update.desired_size);
         }
 
-        let desired = glam::UVec2::new(size.x.max(1), size.y.max(1));
-        if target.size != Some(desired) {
-            target.size = Some(desired);
-        }
-
-        if target.msaa_samples.is_none() {
-            let msaa = target
+        if update.needs_msaa_init {
+            let msaa = update
                 .window_id
                 .and_then(|window_id| engine_state.render.get(&window_id))
                 .map(|state| {
