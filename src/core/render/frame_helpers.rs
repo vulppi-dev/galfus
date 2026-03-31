@@ -12,8 +12,9 @@ pub(super) fn apply_realm_environment_bindings(
     render_state.camera_environment_overrides.clear();
 
     let default_environment = universal
+        .realm3d
         .default_environment_id
-        .and_then(|environment_id| universal.environment_profiles.get(&environment_id))
+        .and_then(|environment_id| universal.realm3d.environment_profiles.get(&environment_id))
         .cloned()
         .unwrap_or_default();
     render_state.environment = default_environment;
@@ -43,12 +44,22 @@ pub(super) fn apply_realm_environment_bindings(
     let plan = vulfram_render::plan_realm_environment_bindings(&layers);
 
     if let Some(environment_id) = plan.realm_environment_id {
-        if let Some(profile) = universal.environment_profiles.get(&environment_id).cloned() {
+        if let Some(profile) = universal
+            .realm3d
+            .environment_profiles
+            .get(&environment_id)
+            .cloned()
+        {
             render_state.environment = profile;
         }
     }
     for (camera_id, environment_id) in plan.camera_environment_ids {
-        let Some(profile) = universal.environment_profiles.get(&environment_id).cloned() else {
+        let Some(profile) = universal
+            .realm3d
+            .environment_profiles
+            .get(&environment_id)
+            .cloned()
+        else {
             continue;
         };
         render_state

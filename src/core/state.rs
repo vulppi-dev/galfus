@@ -88,16 +88,13 @@ impl EngineState {
             &mut universal_state.render_graphs,
             &mut universal_state.render_graph_plan_cache,
         );
-        universal_state
-            .universal_resources
-            .materials_standard
-            .insert(
-                MATERIAL_FALLBACK_ID,
-                MaterialStandardRecord::new(
-                    Some("Fallback Material".into()),
-                    MaterialStandardParams::default(),
-                ),
-            );
+        universal_state.realm3d.materials_standard.insert(
+            MATERIAL_FALLBACK_ID,
+            MaterialStandardRecord::new(
+                Some("Fallback Material".into()),
+                MaterialStandardParams::default(),
+            ),
+        );
 
         Self {
             window: WindowManager::new(),
@@ -185,7 +182,7 @@ impl EngineState {
                     .entries
                     .retain(|target_id, _| !targets_to_remove.contains(target_id));
                 self.universal_state
-                    .universal_resources
+                    .render_resources
                     .target_texture_binds
                     .retain(|_, binding| !targets_to_remove.contains(&binding.target_id));
                 self.universal_state
@@ -247,7 +244,7 @@ impl EngineState {
                     realms_to_remove.iter().copied().collect();
                 for realm_id in realms_to_remove {
                     self.universal_state.realms.remove(realm_id);
-                    self.universal_state.realm_entities.remove(&realm_id);
+                    self.universal_state.realm3d.entities.remove(&realm_id);
                     self.universal_state.ui.remove_realm(realm_id);
                     self.universal_state
                         .host_realm_index

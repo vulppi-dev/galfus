@@ -188,11 +188,13 @@ fn command_has_pending_dependencies(engine: &EngineState, cmd: &EngineCmd) -> bo
             let realm_id = crate::core::realm::RealmId(args.realm_id);
             let has_realm = engine
                 .universal_state
-                .realm_entities
+                .realm3d
+                .entities
                 .contains_key(&realm_id);
             let has_model = engine
                 .universal_state
-                .realm_entities
+                .realm3d
+                .entities
                 .get(&realm_id)
                 .and_then(|entities| entities.models.get(&args.model_id))
                 .is_some();
@@ -213,7 +215,8 @@ fn command_has_pending_dependencies(engine: &EngineState, cmd: &EngineCmd) -> bo
                 let realm_id = crate::core::realm::RealmId(update.realm_id);
                 engine
                     .universal_state
-                    .realm_entities
+                    .realm3d
+                    .entities
                     .get(&realm_id)
                     .and_then(|entities| entities.cameras.get(&update.camera_id))
                     .is_none()
@@ -225,7 +228,8 @@ fn command_has_pending_dependencies(engine: &EngineState, cmd: &EngineCmd) -> bo
                 let realm_id = crate::core::realm::RealmId(update.realm_id);
                 engine
                     .universal_state
-                    .realm_entities
+                    .realm3d
+                    .entities
                     .get(&realm_id)
                     .and_then(|entities| entities.models.get(&update.model_id))
                     .is_none()
@@ -237,7 +241,8 @@ fn command_has_pending_dependencies(engine: &EngineState, cmd: &EngineCmd) -> bo
                 let realm_id = crate::core::realm::RealmId(update.realm_id);
                 engine
                     .universal_state
-                    .realm_entities
+                    .realm3d
+                    .entities
                     .get(&realm_id)
                     .and_then(|entities| entities.lights.get(&update.light_id))
                     .is_none()
@@ -246,18 +251,16 @@ fn command_has_pending_dependencies(engine: &EngineState, cmd: &EngineCmd) -> bo
         EngineCmd::CmdMaterialUpsert(args) => match args {
             CmdMaterialUpsertArgs::Create(_) => false,
             CmdMaterialUpsertArgs::Update(update) => {
-                let resources = &engine.universal_state.universal_resources;
-                !(resources
-                    .materials_standard
-                    .contains_key(&update.material_id)
-                    || resources.materials_pbr.contains_key(&update.material_id))
+                let realm3d = &engine.universal_state.realm3d;
+                !(realm3d.materials_standard.contains_key(&update.material_id)
+                    || realm3d.materials_pbr.contains_key(&update.material_id))
             }
         },
         EngineCmd::CmdGeometryUpsert(args) => match args {
             CmdGeometryUpsertArgs::Create(_) => false,
             CmdGeometryUpsertArgs::Update(update) => !engine
                 .universal_state
-                .universal_resources
+                .realm3d
                 .geometries
                 .contains_key(&update.geometry_id),
         },
@@ -265,6 +268,7 @@ fn command_has_pending_dependencies(engine: &EngineState, cmd: &EngineCmd) -> bo
             CmdEnvironmentUpsertArgs::Create(_) => false,
             CmdEnvironmentUpsertArgs::Update(update) => !engine
                 .universal_state
+                .realm3d
                 .environment_profiles
                 .contains_key(&update.environment_id),
         },

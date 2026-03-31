@@ -72,7 +72,8 @@ pub fn engine_cmd_realm_create(
     }
     engine
         .universal_state
-        .realm_entities
+        .realm3d
+        .entities
         .entry(realm_id)
         .or_default();
 
@@ -97,7 +98,7 @@ pub fn engine_cmd_realm_dispose(
     if entry.value.kind == RealmKind::TwoD {
         engine.universal_state.ui.remove_realm(realm_id);
     }
-    engine.universal_state.realm_entities.remove(&realm_id);
+    engine.universal_state.realm3d.entities.remove(&realm_id);
     engine
         .universal_state
         .host_realm_index

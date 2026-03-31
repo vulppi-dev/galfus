@@ -36,9 +36,10 @@ pub fn engine_cmd_environment_create(
 ) -> CmdResultEnvironment {
     engine
         .universal_state
+        .realm3d
         .environment_profiles
         .insert(args.environment_id, args.config.clone());
-    engine.universal_state.default_environment_id = Some(args.environment_id);
+    engine.universal_state.realm3d.default_environment_id = Some(args.environment_id);
 
     CmdResultEnvironment {
         success: true,
@@ -52,9 +53,10 @@ pub fn engine_cmd_environment_update(
 ) -> CmdResultEnvironment {
     engine
         .universal_state
+        .realm3d
         .environment_profiles
         .insert(args.environment_id, args.config.clone());
-    engine.universal_state.default_environment_id = Some(args.environment_id);
+    engine.universal_state.realm3d.default_environment_id = Some(args.environment_id);
 
     CmdResultEnvironment {
         success: true,
@@ -68,6 +70,7 @@ pub fn engine_cmd_environment_dispose(
 ) -> CmdResultEnvironment {
     if engine
         .universal_state
+        .realm3d
         .environment_profiles
         .remove(&args.environment_id)
         .is_none()
@@ -78,9 +81,10 @@ pub fn engine_cmd_environment_dispose(
         };
     }
 
-    if engine.universal_state.default_environment_id == Some(args.environment_id) {
-        engine.universal_state.default_environment_id = engine
+    if engine.universal_state.realm3d.default_environment_id == Some(args.environment_id) {
+        engine.universal_state.realm3d.default_environment_id = engine
             .universal_state
+            .realm3d
             .environment_profiles
             .keys()
             .copied()
@@ -137,10 +141,14 @@ mod tests {
         );
 
         assert!(second.success);
-        assert_eq!(engine.universal_state.default_environment_id, Some(id));
+        assert_eq!(
+            engine.universal_state.realm3d.default_environment_id,
+            Some(id)
+        );
         assert_eq!(
             engine
                 .universal_state
+                .realm3d
                 .environment_profiles
                 .get(&id)
                 .map(|env| env.skybox.mode),

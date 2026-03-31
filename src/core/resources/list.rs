@@ -42,7 +42,7 @@ pub fn engine_cmd_model_list(
             ..Default::default()
         };
     };
-    let Some(entities) = engine.universal_state.realm_entities.get(&realm_id) else {
+    let Some(entities) = engine.universal_state.realm3d.entities.get(&realm_id) else {
         return CmdResultModelList {
             success: false,
             message: format!("Realm {} not found", realm_id.0),
@@ -88,18 +88,18 @@ pub fn engine_cmd_material_list(
     args: &CmdMaterialListArgs,
 ) -> CmdResultMaterialList {
     let _ = args;
-    let resources = &engine.universal_state.universal_resources;
+    let realm3d = &engine.universal_state.realm3d;
 
     let mut materials = Vec::new();
 
-    for (&id, rec) in &resources.materials_standard {
+    for (&id, rec) in &realm3d.materials_standard {
         materials.push(ResourceEntry {
             id,
             label: rec.label.clone(),
         });
     }
 
-    for (&id, rec) in &resources.materials_pbr {
+    for (&id, rec) in &realm3d.materials_pbr {
         materials.push(ResourceEntry {
             id,
             label: rec.label.clone(),
@@ -136,25 +136,25 @@ pub fn engine_cmd_texture_list(
     args: &CmdTextureListArgs,
 ) -> CmdResultTextureList {
     let _ = args;
-    let resources = &engine.universal_state.universal_resources;
+    let render_resources = &engine.universal_state.render_resources;
 
     let mut textures = Vec::new();
 
-    for (&id, rec) in &resources.textures {
+    for (&id, rec) in &render_resources.textures {
         textures.push(ResourceEntry {
             id,
             label: rec.label.clone(),
         });
     }
 
-    for (&id, entry) in &resources.forward_atlas_entries {
+    for (&id, entry) in &render_resources.forward_atlas_entries {
         textures.push(ResourceEntry {
             id,
             label: entry.label.clone(),
         });
     }
 
-    for (&id, entry) in &resources.target_texture_binds {
+    for (&id, entry) in &render_resources.target_texture_binds {
         textures.push(ResourceEntry {
             id,
             label: entry.label.clone(),
@@ -193,7 +193,7 @@ pub fn engine_cmd_geometry_list(
     let _ = args;
     let geometries = engine
         .universal_state
-        .universal_resources
+        .realm3d
         .geometries
         .iter()
         .map(|(&id, rec)| ResourceEntry {
@@ -243,7 +243,7 @@ pub fn engine_cmd_light_list(
             ..Default::default()
         };
     };
-    let Some(entities) = engine.universal_state.realm_entities.get(&realm_id) else {
+    let Some(entities) = engine.universal_state.realm3d.entities.get(&realm_id) else {
         return CmdResultLightList {
             success: false,
             message: format!("Realm {} not found", realm_id.0),
@@ -300,7 +300,7 @@ pub fn engine_cmd_camera_list(
             ..Default::default()
         };
     };
-    let Some(entities) = engine.universal_state.realm_entities.get(&realm_id) else {
+    let Some(entities) = engine.universal_state.realm3d.entities.get(&realm_id) else {
         return CmdResultCameraList {
             success: false,
             message: format!("Realm {} not found", realm_id.0),

@@ -67,13 +67,20 @@ pub struct UniversalGeometryRecord {
 }
 
 #[derive(Debug, Default)]
-pub struct UniversalResources {
+pub struct Realm3dState {
+    pub entities: HashMap<RealmId, RealmEntities>,
     pub materials_standard: HashMap<u32, MaterialStandardRecord>,
     pub materials_pbr: HashMap<u32, MaterialPbrRecord>,
+    pub geometries: HashMap<u32, UniversalGeometryRecord>,
+    pub environment_profiles: HashMap<u32, EnvironmentConfig>,
+    pub default_environment_id: Option<u32>,
+}
+
+#[derive(Debug, Default)]
+pub struct RenderResourceState {
     pub textures: HashMap<u32, TextureRecord>,
     pub forward_atlas_entries: HashMap<u32, ForwardAtlasEntry>,
     pub target_texture_binds: HashMap<u32, TargetTextureBinding>,
-    pub geometries: HashMap<u32, UniversalGeometryRecord>,
 }
 
 #[derive(Debug, Default)]
@@ -90,16 +97,14 @@ pub struct UniversalState {
     pub host_realm_index: HashMap<u32, RealmId>,
     pub target_ui_realm_index: HashMap<crate::core::target::TargetId, RealmId>,
     pub target_autolink_failures: Vec<super::TargetAutoLinkFailure>,
-    pub environment_profiles: HashMap<u32, EnvironmentConfig>,
-    pub default_environment_id: Option<u32>,
     pub input_routing: InputRoutingState,
     pub target_listeners: crate::core::input::listeners::InputTargetListenerStore,
     pub surface_cache: SurfaceCache,
     pub frame_report: super::FrameReport,
-    pub realm_entities: HashMap<RealmId, RealmEntities>,
+    pub realm3d: Realm3dState,
+    pub render_resources: RenderResourceState,
     pub render_graphs: HashMap<u32, crate::core::render::graph::RenderGraphRecord>,
     pub render_graph_plan_cache: HashMap<u64, crate::core::render::graph::RenderGraphState>,
-    pub universal_resources: UniversalResources,
 }
 
 pub use vulfram_input::{

@@ -222,6 +222,16 @@ Responsabilidade:
 - coordenação entre crates
 - sequencing do frame/tick
 - integração sistêmica final
+- `RuntimeState` como orquestrador fino do sistema
+
+Regras de state:
+- cada crate define seu próprio `State` quando tiver ownership real de memória e lifecycle
+- `RuntimeState` não reimplementa campos internos dos outros domínios
+- recursos vivem no domínio que os consome e controla
+- exemplos atuais:
+- geometrias, materiais, entidades 3D e ambientes pertencem a `vulfram-realm-3d`
+- texturas globais e target texture binds pertencem a `vulfram-render`
+- `RuntimeState` fica com filas, deferreds, frame lifecycle e coordenação
 
 Não deve conter:
 - payloads do protocolo definidos internamente

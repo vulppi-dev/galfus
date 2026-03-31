@@ -1,5 +1,5 @@
 pub(crate) fn mark_global_materials_dirty(
-    resources: &mut crate::core::realm::UniversalResources,
+    resources: &mut crate::core::realm::Realm3dState,
     texture_id: u32,
 ) {
     for record in resources.materials_standard.values_mut() {

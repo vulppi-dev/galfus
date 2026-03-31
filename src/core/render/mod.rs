@@ -145,7 +145,7 @@ pub fn render_frames(engine_state: &mut EngineState) {
         &mut engine_state.render.states,
         &engine_state
             .universal_state
-            .universal_resources
+            .render_resources
             .target_texture_binds,
         &target_surface_map,
         &engine_state.surface_targets,
@@ -230,7 +230,7 @@ pub fn render_frames(engine_state: &mut EngineState) {
             if synced_windows.insert(*window_id) {
                 sync_window_geometry_registry(
                     render_state,
-                    &engine_state.universal_state.universal_resources.geometries,
+                    &engine_state.universal_state.realm3d.geometries,
                 );
             }
             let camera_target_sizes = collect_window_camera_target_sizes(

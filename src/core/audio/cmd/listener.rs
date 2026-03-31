@@ -94,7 +94,7 @@ pub fn process_audio_listener_binding(engine: &mut EngineState) {
         None => return,
     };
     let realm_id = crate::core::realm::RealmId(binding.realm_id);
-    let entities = match engine.universal_state.realm_entities.get(&realm_id) {
+    let entities = match engine.universal_state.realm3d.entities.get(&realm_id) {
         Some(entities) => entities,
         None => return,
     };

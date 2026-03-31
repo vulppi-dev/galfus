@@ -13,12 +13,12 @@ pub fn engine_cmd_texture_create_from_buffer(
     engine: &mut EngineState,
     args: &CmdTextureCreateFromBufferArgs,
 ) -> CmdResultTextureCreateFromBuffer {
-    let resources = &engine.universal_state.universal_resources;
-    if resources.textures.contains_key(&args.texture_id)
-        || resources
+    let render_resources = &engine.universal_state.render_resources;
+    if render_resources.textures.contains_key(&args.texture_id)
+        || render_resources
             .forward_atlas_entries
             .contains_key(&args.texture_id)
-        || resources
+        || render_resources
             .target_texture_binds
             .contains_key(&args.texture_id)
         || engine.texture_async.is_pending(args.texture_id)
@@ -82,12 +82,12 @@ fn create_texture_from_image(
     args: &CmdTextureCreateFromBufferArgs,
     image: ImageBuffer,
 ) -> CmdResultTextureCreateFromBuffer {
-    let resources = &mut engine.universal_state.universal_resources;
-    if resources.textures.contains_key(&args.texture_id)
-        || resources
+    let render_resources = &mut engine.universal_state.render_resources;
+    if render_resources.textures.contains_key(&args.texture_id)
+        || render_resources
             .forward_atlas_entries
             .contains_key(&args.texture_id)
-        || resources
+        || render_resources
             .target_texture_binds
             .contains_key(&args.texture_id)
     {
@@ -168,7 +168,7 @@ fn create_texture_from_image(
         size,
     );
     let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
-    resources.textures.insert(
+    render_resources.textures.insert(
         args.texture_id,
         TextureRecord {
             label: args.label.clone(),
@@ -176,7 +176,7 @@ fn create_texture_from_image(
             view,
         },
     );
-    mark_global_materials_dirty(resources, args.texture_id);
+    mark_global_materials_dirty(&mut engine.universal_state.realm3d, args.texture_id);
     for window_state in engine.window.states.values_mut() {
         window_state.is_dirty = true;
     }
@@ -310,12 +310,12 @@ pub fn engine_cmd_texture_create_solid_color(
     engine: &mut EngineState,
     args: &CmdTextureCreateSolidColorArgs,
 ) -> CmdResultTextureCreateSolidColor {
-    let resources = &mut engine.universal_state.universal_resources;
-    if resources.textures.contains_key(&args.texture_id)
-        || resources
+    let render_resources = &mut engine.universal_state.render_resources;
+    if render_resources.textures.contains_key(&args.texture_id)
+        || render_resources
             .forward_atlas_entries
             .contains_key(&args.texture_id)
-        || resources
+        || render_resources
             .target_texture_binds
             .contains_key(&args.texture_id)
     {
@@ -378,7 +378,7 @@ pub fn engine_cmd_texture_create_solid_color(
         size,
     );
     let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
-    resources.textures.insert(
+    render_resources.textures.insert(
         args.texture_id,
         TextureRecord {
             label: args.label.clone(),
@@ -386,7 +386,7 @@ pub fn engine_cmd_texture_create_solid_color(
             view,
         },
     );
-    mark_global_materials_dirty(resources, args.texture_id);
+    mark_global_materials_dirty(&mut engine.universal_state.realm3d, args.texture_id);
     for window_state in engine.window.states.values_mut() {
         window_state.is_dirty = true;
     }
@@ -404,19 +404,19 @@ pub fn engine_cmd_texture_dispose(
     engine
         .pending_texture_decode_results
         .retain(|pending| pending.texture_id != args.texture_id);
-    let resources = &mut engine.universal_state.universal_resources;
+    let render_resources = &mut engine.universal_state.render_resources;
     let mut removed = false;
-    removed |= resources.textures.remove(&args.texture_id).is_some();
-    removed |= resources
+    removed |= render_resources.textures.remove(&args.texture_id).is_some();
+    removed |= render_resources
         .forward_atlas_entries
         .remove(&args.texture_id)
         .is_some();
-    removed |= resources
+    removed |= render_resources
         .target_texture_binds
         .remove(&args.texture_id)
         .is_some();
     if removed {
-        mark_global_materials_dirty(resources, args.texture_id);
+        mark_global_materials_dirty(&mut engine.universal_state.realm3d, args.texture_id);
         for window_state in engine.window.states.values_mut() {
             window_state.is_dirty = true;
         }
@@ -436,9 +436,9 @@ pub fn engine_cmd_texture_bind_target(
     engine: &mut EngineState,
     args: &CmdTextureBindTargetArgs,
 ) -> CmdResultTextureBindTarget {
-    let resources = &mut engine.universal_state.universal_resources;
-    if resources.textures.contains_key(&args.texture_id)
-        || resources
+    let render_resources = &mut engine.universal_state.render_resources;
+    if render_resources.textures.contains_key(&args.texture_id)
+        || render_resources
             .forward_atlas_entries
             .contains_key(&args.texture_id)
         || engine.texture_async.is_pending(args.texture_id)
@@ -449,14 +449,14 @@ pub fn engine_cmd_texture_bind_target(
         };
     }
     let target_id = TargetId(args.target_id);
-    resources.target_texture_binds.insert(
+    render_resources.target_texture_binds.insert(
         args.texture_id,
         crate::core::resources::TargetTextureBinding {
             target_id,
             label: args.label.clone(),
         },
     );
-    mark_global_materials_dirty(resources, args.texture_id);
+    mark_global_materials_dirty(&mut engine.universal_state.realm3d, args.texture_id);
     for window_state in engine.window.states.values_mut() {
         window_state.is_dirty = true;
     }

@@ -15,7 +15,7 @@ pub use report::{
 pub use state::{
     AudioState, AutoLink, ConnectorId, ConnectorState, ConnectorTable, InputCapture,
     InputRoutingCache, InputRoutingConnectorHit, InputRoutingState, PresentId, PresentState,
-    PresentTable, RealmEntities, RealmId, RealmKind, RealmState, RealmTable, SurfaceCache,
-    SurfaceId, SurfaceKind, SurfaceState, SurfaceTable, TableEntry, UniversalGeometryRecord,
-    UniversalResources, UniversalState,
+    PresentTable, Realm3dState, RealmEntities, RealmId, RealmKind, RealmState, RealmTable,
+    RenderResourceState, SurfaceCache, SurfaceId, SurfaceKind, SurfaceState, SurfaceTable,
+    TableEntry, UniversalGeometryRecord, UniversalState,
 };

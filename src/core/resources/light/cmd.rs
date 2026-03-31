@@ -87,7 +87,8 @@ pub fn engine_cmd_light_create(
     let realm_id = crate::core::realm::RealmId(args.realm_id);
     let entities = engine
         .universal_state
-        .realm_entities
+        .realm3d
+        .entities
         .entry(realm_id)
         .or_default();
     if entities.lights.contains_key(&args.light_id) {
@@ -147,7 +148,7 @@ pub fn engine_cmd_light_update(
     args: &CmdLightUpdateArgs,
 ) -> CmdResultLightUpdate {
     let realm_id = crate::core::realm::RealmId(args.realm_id);
-    let Some(entities) = engine.universal_state.realm_entities.get_mut(&realm_id) else {
+    let Some(entities) = engine.universal_state.realm3d.entities.get_mut(&realm_id) else {
         let message = format!("Realm {} not found", args.realm_id);
         push_error_event(
             engine,
@@ -228,7 +229,7 @@ pub fn engine_cmd_light_dispose(
     args: &CmdLightDisposeArgs,
 ) -> CmdResultLightDispose {
     let realm_id = crate::core::realm::RealmId(args.realm_id);
-    let Some(entities) = engine.universal_state.realm_entities.get_mut(&realm_id) else {
+    let Some(entities) = engine.universal_state.realm3d.entities.get_mut(&realm_id) else {
         let message = format!("Realm {} not found", args.realm_id);
         push_error_event(
             engine,

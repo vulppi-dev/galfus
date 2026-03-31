@@ -254,17 +254,13 @@ pub fn engine_cmd_primitive_geometry_create(
             message,
         };
     }
-    engine
-        .universal_state
-        .universal_resources
-        .geometries
-        .insert(
-            args.geometry_id,
-            crate::core::realm::UniversalGeometryRecord {
-                label: args.label.clone(),
-                entries: geometry_data.clone(),
-            },
-        );
+    engine.universal_state.realm3d.geometries.insert(
+        args.geometry_id,
+        crate::core::realm::UniversalGeometryRecord {
+            label: args.label.clone(),
+            entries: geometry_data.clone(),
+        },
+    );
     for window_id in uploaded_windows {
         if let Some(window_state) = engine.window.states.get_mut(&window_id) {
             window_state.is_dirty = true;

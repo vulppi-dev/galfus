@@ -45,7 +45,8 @@ pub(super) fn resolve_realm_plane_hit(
     let render_state = engine_state.render.get(&window_id)?;
     let entities = engine_state
         .universal_state
-        .realm_entities
+        .realm3d
+        .entities
         .get(&target_realm)?;
     let camera = pick_camera_for_pointer(
         &entities.cameras,
@@ -223,14 +224,15 @@ fn resolve_ui_source_for_model(
     material_id: Option<u32>,
 ) -> Option<UiTextureSource> {
     let material_id = material_id?;
-    let resources = &engine_state.universal_state.universal_resources;
+    let realm3d = &engine_state.universal_state.realm3d;
+    let render_resources = &engine_state.universal_state.render_resources;
 
-    if let Some(standard) = resources.materials_standard.get(&material_id) {
+    if let Some(standard) = realm3d.materials_standard.get(&material_id) {
         for (slot_index, &texture_id) in standard.texture_ids.iter().enumerate() {
             if texture_id == STANDARD_INVALID_SLOT {
                 continue;
             }
-            if let Some(binding) = resources.target_texture_binds.get(&texture_id)
+            if let Some(binding) = render_resources.target_texture_binds.get(&texture_id)
                 && let Some(realm_id) = resolve_target_ui_realm(engine_state, binding.target_id)
             {
                 return Some(UiTextureSource {
@@ -242,12 +244,12 @@ fn resolve_ui_source_for_model(
         }
     }
 
-    if let Some(pbr) = resources.materials_pbr.get(&material_id) {
+    if let Some(pbr) = realm3d.materials_pbr.get(&material_id) {
         for (slot_index, &texture_id) in pbr.texture_ids.iter().enumerate() {
             if texture_id == PBR_INVALID_SLOT {
                 continue;
             }
-            if let Some(binding) = resources.target_texture_binds.get(&texture_id)
+            if let Some(binding) = render_resources.target_texture_binds.get(&texture_id)
                 && let Some(realm_id) = resolve_target_ui_realm(engine_state, binding.target_id)
             {
                 return Some(UiTextureSource {

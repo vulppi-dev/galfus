@@ -138,7 +138,8 @@ pub fn engine_cmd_camera_create(
     let projection_size = projection_size_for_realm(engine, realm_id);
     let entities = engine
         .universal_state
-        .realm_entities
+        .realm3d
+        .entities
         .entry(realm_id)
         .or_default();
     if entities.cameras.contains_key(&args.camera_id) {
@@ -182,7 +183,7 @@ pub fn engine_cmd_camera_update(
 ) -> CmdResultCameraUpdate {
     let realm_id = RealmId(args.realm_id);
     let projection_size = projection_size_for_realm(engine, realm_id);
-    let Some(entities) = engine.universal_state.realm_entities.get_mut(&realm_id) else {
+    let Some(entities) = engine.universal_state.realm3d.entities.get_mut(&realm_id) else {
         let message = format!("Realm {} not found", args.realm_id);
         push_error_event(
             engine,
@@ -247,7 +248,7 @@ pub fn engine_cmd_camera_dispose(
     args: &CmdCameraDisposeArgs,
 ) -> CmdResultCameraDispose {
     let realm_id = RealmId(args.realm_id);
-    let Some(entities) = engine.universal_state.realm_entities.get_mut(&realm_id) else {
+    let Some(entities) = engine.universal_state.realm3d.entities.get_mut(&realm_id) else {
         let message = format!("Realm {} not found", args.realm_id);
         push_error_event(
             engine,

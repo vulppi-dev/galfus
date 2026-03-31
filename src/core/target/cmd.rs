@@ -287,7 +287,7 @@ pub fn engine_cmd_target_dispose(
         .dispose_target(target_id.0);
     engine
         .universal_state
-        .universal_resources
+        .render_resources
         .target_texture_binds
         .retain(|_, binding| binding.target_id != target_id);
     engine

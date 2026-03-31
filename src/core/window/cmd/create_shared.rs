@@ -38,7 +38,8 @@ pub fn register_window_realm(
     });
     engine
         .universal_state
-        .realm_entities
+        .realm3d
+        .entities
         .entry(realm_id)
         .or_default();
     let present_id = engine.universal_state.presents.alloc(PresentState {

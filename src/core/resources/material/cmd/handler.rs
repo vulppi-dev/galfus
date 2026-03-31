@@ -10,7 +10,7 @@ pub fn engine_cmd_material_create(
     engine: &mut EngineState,
     args: &CmdMaterialCreateArgs,
 ) -> CmdResultMaterialCreate {
-    let resources = &mut engine.universal_state.universal_resources;
+    let resources = &mut engine.universal_state.realm3d;
 
     if resources.materials_standard.contains_key(&args.material_id)
         || resources.materials_pbr.contains_key(&args.material_id)
@@ -71,7 +71,7 @@ pub fn engine_cmd_material_update(
     engine: &mut EngineState,
     args: &CmdMaterialUpdateArgs,
 ) -> CmdResultMaterialUpdate {
-    let resources = &mut engine.universal_state.universal_resources;
+    let resources = &mut engine.universal_state.realm3d;
 
     let kind = args.kind.unwrap_or(MaterialKind::Standard); // Default to standard if not specified? Or check both?
 
@@ -134,7 +134,7 @@ pub fn engine_cmd_material_dispose(
     engine: &mut EngineState,
     args: &CmdMaterialDisposeArgs,
 ) -> CmdResultMaterialDispose {
-    let resources = &mut engine.universal_state.universal_resources;
+    let resources = &mut engine.universal_state.realm3d;
 
     if args.material_id == MATERIAL_FALLBACK_ID {
         return CmdResultMaterialDispose {
