@@ -9,7 +9,9 @@ mod profiler;
 mod realm_planner;
 mod realm_policy;
 mod render_bootstrap;
+mod resource_init;
 mod samplers;
+mod shaders;
 mod target;
 mod ui_actions;
 mod validation;
@@ -50,6 +52,8 @@ pub use render_bootstrap::{
     build_default_instance_descriptor, build_device_descriptor, create_default_instance,
     plan_device_features, plan_surface_config, resolve_rgba16f_msaa_supported_mask,
 };
+pub use resource_init::build_resource_library;
 pub use samplers::{SamplerSet, create_standard_samplers};
+pub use shaders::{ShaderModules, create_shader_modules};
 pub use target::{RenderTarget, ensure_render_target, ensure_surface_target};
 pub use ui_actions::{UiPlatformAction, collect_platform_actions};
