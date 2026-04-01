@@ -1,6 +1,7 @@
 mod graph;
 mod graph_fallbacks;
 mod realm_planner;
+mod realm_policy;
 mod render_bootstrap;
 mod ui_actions;
 mod validation;
@@ -23,6 +24,10 @@ pub use realm_planner::{
     plan_external_texture_refresh, plan_realm_environment_bindings, plan_surface_targets,
     plan_target_size_updates, resolve_connector_surface, resolve_realm_surface,
     should_render_realm, update_present_size_cache, update_surface_cache,
+};
+pub use realm_policy::{
+    clear_alpha_for_realm_kind, graph_is_compatible_with_realm_kind,
+    supports_render_pass_for_realm_kind,
 };
 pub use render_bootstrap::{
     RenderAdapterBootstrapInfo, RenderDeviceFeaturePlan, RenderSurfaceConfigPlan, analyze_adapter,

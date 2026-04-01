@@ -261,13 +261,7 @@ pub fn render_frames(engine_state: &mut EngineState) {
                 .realms
                 .entries
                 .get(realm_id)
-                .map(|entry| {
-                    if entry.value.kind == crate::core::realm::RealmKind::TwoD {
-                        0.0
-                    } else {
-                        1.0
-                    }
-                })
+                .map(|entry| vulfram_render::clear_alpha_for_realm_kind(entry.value.kind))
                 .unwrap_or(1.0);
             {
                 let _clear_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {

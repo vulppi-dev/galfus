@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::core::realm::{RealmId, RealmKind};
+use crate::core::realm::RealmId;
 use crate::core::resources::common::mark_realm_windows_dirty;
 use crate::core::state::EngineState;
 use crate::core::system::push_error_event;
@@ -80,17 +80,6 @@ fn realms_using_graph(engine: &EngineState, render_graph_id: u32) -> Vec<RealmId
         }
     }
     realms
-}
-
-fn graph_is_compatible_with_realm_kind(
-    plan: &crate::core::render::graph::RenderGraphPlan,
-    realm_kind: RealmKind,
-) -> bool {
-    let pass_ids = plan.nodes.iter().map(|node| node.pass_id.as_str());
-    match realm_kind {
-        RealmKind::ThreeD => vulfram_realm_3d::graph_is_compatible(pass_ids),
-        RealmKind::TwoD => vulfram_realm_2d::graph_is_compatible(pass_ids),
-    }
 }
 
 fn emit_render_graph_error(
@@ -174,7 +163,7 @@ pub fn engine_cmd_render_graph_upsert(
         else {
             continue;
         };
-        if !graph_is_compatible_with_realm_kind(graph_state.plan(), realm_kind) {
+        if !vulfram_render::graph_is_compatible_with_realm_kind(graph_state.plan(), realm_kind) {
             let result = emit_render_graph_error(
                 engine,
                 format!(
@@ -372,7 +361,7 @@ pub fn engine_cmd_realm_render_graph_bind(
         };
     };
 
-    if !graph_is_compatible_with_realm_kind(graph.state.plan(), realm_kind) {
+    if !vulfram_render::graph_is_compatible_with_realm_kind(graph.state.plan(), realm_kind) {
         let result = emit_render_graph_error(
             engine,
             format!(

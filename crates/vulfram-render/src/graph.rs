@@ -357,8 +357,8 @@ fn topo_sort(nodes: &[RenderGraphNode], edges: &[RenderGraphEdge]) -> Result<Vec
 }
 
 fn is_known_pass(pass_id: &str) -> bool {
-    vulfram_realm_3d::supports_render_pass(pass_id)
-        || vulfram_realm_2d::supports_render_pass(pass_id)
+    crate::supports_render_pass_for_realm_kind(pass_id, RealmKind::ThreeD)
+        || crate::supports_render_pass_for_realm_kind(pass_id, RealmKind::TwoD)
 }
 
 #[cfg(test)]
