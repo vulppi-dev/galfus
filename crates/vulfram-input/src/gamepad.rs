@@ -87,6 +87,49 @@ impl GamepadStateCache {
     pub fn update_button(&mut self, button: u32, state: ElementState, value: f32) {
         self.buttons.insert(button, (state, value));
     }
+
+    pub fn button_state_from_value(value: f32) -> ElementState {
+        if value > 0.5 {
+            ElementState::Pressed
+        } else {
+            ElementState::Released
+        }
+    }
+
+    pub fn update_button_event(
+        &mut self,
+        gamepad_id: u32,
+        button: u32,
+        value: f32,
+    ) -> Option<GamepadEvent> {
+        let state = Self::button_state_from_value(value);
+        if !self.button_changed(button, state, value) {
+            return None;
+        }
+        self.update_button(button, state, value);
+        Some(GamepadEvent::OnButton {
+            gamepad_id,
+            button,
+            state,
+            value,
+        })
+    }
+
+    pub fn update_axis_event(
+        &mut self,
+        gamepad_id: u32,
+        axis: u32,
+        value: f32,
+    ) -> Option<GamepadEvent> {
+        if !self.axis_changed(axis, value) {
+            return None;
+        }
+        Some(GamepadEvent::OnAxis {
+            gamepad_id,
+            axis,
+            value: self.update_axis_and_get(axis, value),
+        })
+    }
 }
 
 #[derive(Debug, Default)]
@@ -127,7 +170,8 @@ impl GamepadState {
 
 #[cfg(test)]
 mod tests {
-    use super::GamepadStateCache;
+    use super::{GamepadEvent, GamepadStateCache};
+    use crate::ElementState;
 
     #[test]
     fn update_axis_and_get_returns_current_adjusted_value() {
@@ -141,5 +185,26 @@ mod tests {
         let mut cache = GamepadStateCache::new();
         let value = cache.update_axis_and_get(0, 0.01);
         assert_eq!(value, 0.0);
+    }
+
+    #[test]
+    fn update_button_event_emits_pressed_state() {
+        let mut cache = GamepadStateCache::new();
+        let event = cache.update_button_event(7, 2, 1.0);
+        assert!(matches!(
+            event,
+            Some(GamepadEvent::OnButton {
+                gamepad_id: 7,
+                button: 2,
+                state: ElementState::Pressed,
+                value,
+            }) if value == 1.0
+        ));
+    }
+
+    #[test]
+    fn update_axis_event_skips_small_changes() {
+        let mut cache = GamepadStateCache::new();
+        assert!(cache.update_axis_event(3, 1, 0.0).is_none());
     }
 }

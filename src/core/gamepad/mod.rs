@@ -11,7 +11,6 @@ use crate::core::cmd::EngineEvent;
 #[cfg(not(feature = "wasm"))]
 use crate::core::gamepad::converters::{convert_gilrs_axis, convert_gilrs_button};
 use crate::core::gamepad::events::GamepadEvent;
-use crate::core::input::events::ElementState;
 use crate::core::state::EngineState;
 
 use self::cache::GamepadCacheManager;
@@ -49,91 +48,54 @@ pub fn process_gilrs_event(engine_state: &mut EngineState, event: GilrsEvent) {
         }
         GilrsEventType::ButtonPressed(button, _code) => {
             let button_mapped = convert_gilrs_button(button);
-            let value = 1.0;
-            let state = ElementState::Pressed;
-
             if let Some(cache) = manager.get_mut(gamepad_id) {
-                if !cache.button_changed(button_mapped, state, value) {
-                    return;
+                if let Some(gamepad_event) =
+                    cache.update_button_event(gamepad_id, button_mapped, 1.0)
+                {
+                    engine_state
+                        .runtime
+                        .event_queue
+                        .push(EngineEvent::Gamepad(gamepad_event));
                 }
-                cache.update_button(button_mapped, state, value);
             }
-
-            engine_state
-                .runtime
-                .event_queue
-                .push(EngineEvent::Gamepad(GamepadEvent::OnButton {
-                    gamepad_id,
-                    button: button_mapped,
-                    state,
-                    value,
-                }));
         }
         GilrsEventType::ButtonReleased(button, _code) => {
             let button_mapped = convert_gilrs_button(button);
-            let value = 0.0;
-            let state = ElementState::Released;
-
             if let Some(cache) = manager.get_mut(gamepad_id) {
-                if !cache.button_changed(button_mapped, state, value) {
-                    return;
+                if let Some(gamepad_event) =
+                    cache.update_button_event(gamepad_id, button_mapped, 0.0)
+                {
+                    engine_state
+                        .runtime
+                        .event_queue
+                        .push(EngineEvent::Gamepad(gamepad_event));
                 }
-                cache.update_button(button_mapped, state, value);
             }
-
-            engine_state
-                .runtime
-                .event_queue
-                .push(EngineEvent::Gamepad(GamepadEvent::OnButton {
-                    gamepad_id,
-                    button: button_mapped,
-                    state,
-                    value,
-                }));
         }
         GilrsEventType::ButtonChanged(button, value, _code) => {
             let button_mapped = convert_gilrs_button(button);
-            let state = if value > 0.5 {
-                ElementState::Pressed
-            } else {
-                ElementState::Released
-            };
-
             if let Some(cache) = manager.get_mut(gamepad_id) {
-                if !cache.button_changed(button_mapped, state, value) {
-                    return;
+                if let Some(gamepad_event) =
+                    cache.update_button_event(gamepad_id, button_mapped, value)
+                {
+                    engine_state
+                        .runtime
+                        .event_queue
+                        .push(EngineEvent::Gamepad(gamepad_event));
                 }
-                cache.update_button(button_mapped, state, value);
             }
-
-            engine_state
-                .runtime
-                .event_queue
-                .push(EngineEvent::Gamepad(GamepadEvent::OnButton {
-                    gamepad_id,
-                    button: button_mapped,
-                    state,
-                    value,
-                }));
         }
         GilrsEventType::AxisChanged(axis, value, _code) => {
             let axis_mapped = convert_gilrs_axis(axis);
 
             if let Some(cache) = manager.get_mut(gamepad_id) {
-                if !cache.axis_changed(axis_mapped, value) {
-                    return;
+                if let Some(gamepad_event) = cache.update_axis_event(gamepad_id, axis_mapped, value)
+                {
+                    engine_state
+                        .runtime
+                        .event_queue
+                        .push(EngineEvent::Gamepad(gamepad_event));
                 }
-
-                let adjusted_value = cache.update_axis_and_get(axis_mapped, value);
-
-                engine_state
-                    .runtime
-                    .event_queue
-                    .push(EngineEvent::Gamepad(GamepadEvent::OnAxis {
-                        gamepad_id,
-                        axis: axis_mapped,
-                        value: adjusted_value,
-                    }));
             }
         }
         _ => {}
@@ -185,44 +147,32 @@ pub fn process_web_gamepads(engine_state: &mut EngineState) {
                     Err(_) => continue,
                 };
                 let value = button.value() as f32;
-                let state = if button.pressed() || value > 0.5 {
-                    ElementState::Pressed
-                } else {
-                    ElementState::Released
-                };
                 let button_id = button_idx as u32;
-
-                if !cache.button_changed(button_id, state, value) {
-                    continue;
+                let button_value = if button.pressed() && value <= 0.5 {
+                    1.0
+                } else {
+                    value
+                };
+                if let Some(gamepad_event) =
+                    cache.update_button_event(gamepad_id, button_id, button_value)
+                {
+                    engine_state
+                        .runtime
+                        .event_queue
+                        .push(EngineEvent::Gamepad(gamepad_event));
                 }
-                cache.update_button(button_id, state, value);
-
-                engine_state.runtime.event_queue.push(EngineEvent::Gamepad(
-                    GamepadEvent::OnButton {
-                        gamepad_id,
-                        button: button_id,
-                        state,
-                        value,
-                    },
-                ));
             }
 
             let axes = pad.axes();
             for (axis_idx, axis_val) in axes.iter().enumerate() {
                 let value = axis_val.as_f64().unwrap_or(0.0) as f32;
                 let axis_id = axis_idx as u32;
-                if !cache.axis_changed(axis_id, value) {
-                    continue;
+                if let Some(gamepad_event) = cache.update_axis_event(gamepad_id, axis_id, value) {
+                    engine_state
+                        .runtime
+                        .event_queue
+                        .push(EngineEvent::Gamepad(gamepad_event));
                 }
-                let adjusted_value = cache.update_axis_and_get(axis_id, value);
-                engine_state
-                    .runtime
-                    .event_queue
-                    .push(EngineEvent::Gamepad(GamepadEvent::OnAxis {
-                        gamepad_id,
-                        axis: axis_id,
-                        value: adjusted_value,
-                    }));
             }
         }
     }
