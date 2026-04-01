@@ -4072,6 +4072,10 @@ dependencies = [
 [[package]]
 name = "vulfram-runtime"
 version = "0.21.2-alpha"
+dependencies = [
+ "glam 0.30.10",
+ "vulfram-platform",
+]
 
 [[package]]
 name = "vulfram-types"

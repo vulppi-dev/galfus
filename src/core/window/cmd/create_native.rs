@@ -66,6 +66,20 @@ pub fn engine_cmd_window_create(
     let win_id = args.window_id;
     engine.window.map_window(window.id(), win_id);
 
+    let bootstrap_target = vulfram_platform::PlatformRenderBootstrapTarget::new(
+        args.window_id,
+        UVec2::new(window_width, window_height),
+        vulfram_platform::PlatformRenderSurfaceKind::NativeWindow,
+        if args.transparent {
+            vulfram_platform::PlatformSurfaceAlphaMode::Transparent
+        } else {
+            vulfram_platform::PlatformSurfaceAlphaMode::Opaque
+        },
+        true,
+    );
+    let bootstrap_plan =
+        vulfram_runtime::plan_render_bootstrap(engine.device.is_some(), bootstrap_target);
+
     let surface = match engine.wgpu.create_surface(window.clone()) {
         Ok(surface) => surface,
         Err(e) => {
@@ -81,7 +95,10 @@ pub fn engine_cmd_window_create(
 
     // Get or create adapter and device
     let mut gpu_profiling_supported = false;
-    let (adapter, is_new_device) = if engine.device.is_none() {
+    let (adapter, is_new_device) = if matches!(
+        bootstrap_plan.device_strategy,
+        vulfram_runtime::RenderBootstrapDeviceStrategy::CreateSharedDevice
+    ) {
         // First window - create new adapter and device
         let adapter =
             match pollster::block_on(engine.wgpu.request_adapter(&wgpu::RequestAdapterOptions {
@@ -217,15 +234,20 @@ pub fn engine_cmd_window_create(
         .find(|f| f.is_srgb())
         .unwrap_or(caps.formats[0]);
 
-    // Use Opaque alpha mode to prevent window transparency
-    // This ensures the clear color is rendered correctly
-    let alpha_mode = wgpu::CompositeAlphaMode::Opaque;
+    let alpha_mode = match bootstrap_plan.target.alpha_mode {
+        vulfram_platform::PlatformSurfaceAlphaMode::Opaque => wgpu::CompositeAlphaMode::Opaque,
+        vulfram_platform::PlatformSurfaceAlphaMode::Transparent => {
+            wgpu::CompositeAlphaMode::PreMultiplied
+        }
+    };
 
     let config = wgpu::SurfaceConfiguration {
         usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
-        width: window_width,
-        height: window_height,
-        present_mode: if caps.present_modes.contains(&wgpu::PresentMode::Mailbox) {
+        width: bootstrap_plan.target.size.x,
+        height: bootstrap_plan.target.size.y,
+        present_mode: if bootstrap_plan.target.prefer_low_latency_present
+            && caps.present_modes.contains(&wgpu::PresentMode::Mailbox)
+        {
             wgpu::PresentMode::Mailbox
         } else {
             wgpu::PresentMode::Fifo
@@ -266,12 +288,16 @@ pub fn engine_cmd_window_create(
             render_state.init(device, queue, format);
 
             // Initialize size-dependent resources (like depth buffer)
-            render_state.on_resize(device, window_width, window_height);
+            render_state.on_resize(
+                device,
+                bootstrap_plan.target.size.x,
+                bootstrap_plan.target.size.y,
+            );
             crate::core::resources::ensure_render_target(
                 device,
                 &mut surface_target,
-                window_width,
-                window_height,
+                bootstrap_plan.target.size.x,
+                bootstrap_plan.target.size.y,
                 wgpu::TextureFormat::Rgba16Float,
             );
         }
@@ -303,7 +329,7 @@ pub fn engine_cmd_window_create(
     engine
         .window
         .set_lifecycle_state(win_id, crate::core::window::EngineWindowState::Windowed);
-    let binding = register_window_realm(engine, win_id, UVec2::new(window_width, window_height));
+    let binding = register_window_realm(engine, win_id, bootstrap_plan.target.size);
 
     if is_new_device && gpu_profiling_supported && engine.gpu_profiler.is_none() {
         if let (Some(device), Some(queue)) = (&engine.device, &engine.queue) {

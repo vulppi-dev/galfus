@@ -104,12 +104,18 @@ pub fn engine_cmd_window_create_async(
         rect.height(),
         dpr,
     );
-    let window_width = window_size.x;
-    let window_height = window_size.y;
+    let bootstrap_target = vulfram_platform::PlatformRenderBootstrapTarget::new(
+        args.window_id,
+        window_size,
+        vulfram_platform::PlatformRenderSurfaceKind::WebCanvas,
+        vulfram_platform::PlatformSurfaceAlphaMode::Opaque,
+        false,
+    );
 
     let win_id = args.window_id;
     let canvas_clone = canvas.clone();
     spawn_local(async move {
+        let bootstrap_plan = vulfram_runtime::plan_render_bootstrap(false, bootstrap_target);
         let instance_descriptor = wgpu::InstanceDescriptor {
             backends: wgpu::Backends::BROWSER_WEBGPU,
             backend_options: wgpu::BackendOptions::default(),
@@ -235,8 +241,8 @@ pub fn engine_cmd_window_create_async(
 
         let config = wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
-            width: window_width,
-            height: window_height,
+            width: bootstrap_plan.target.size.x,
+            height: bootstrap_plan.target.size.y,
             present_mode: wgpu::PresentMode::Fifo,
             format,
             alpha_mode: wgpu::CompositeAlphaMode::Opaque,
@@ -253,13 +259,17 @@ pub fn engine_cmd_window_create_async(
         );
         render_state.rgba16f_msaa_supported_mask = rgba16f_msaa_supported_mask;
         render_state.init(&device, &queue, format);
-        render_state.on_resize(&device, window_width, window_height);
+        render_state.on_resize(
+            &device,
+            bootstrap_plan.target.size.x,
+            bootstrap_plan.target.size.y,
+        );
         let mut surface_target = None;
         crate::core::resources::ensure_render_target(
             &device,
             &mut surface_target,
-            window_width,
-            window_height,
+            bootstrap_plan.target.size.x,
+            bootstrap_plan.target.size.y,
             wgpu::TextureFormat::Rgba16Float,
         );
 
@@ -281,8 +291,8 @@ pub fn engine_cmd_window_create_async(
                     window: window_handle,
                     surface,
                     config: config.clone(),
-                    inner_size: UVec2::new(window_width, window_height),
-                    outer_size: UVec2::new(window_width, window_height),
+                    inner_size: bootstrap_plan.target.size,
+                    outer_size: bootstrap_plan.target.size,
                     surface_target,
                     is_dirty: true,
                     last_present_ns: 0,
@@ -303,11 +313,8 @@ pub fn engine_cmd_window_create_async(
                 .state
                 .window
                 .set_lifecycle_state(win_id, crate::core::window::EngineWindowState::Windowed);
-            let binding = register_window_realm(
-                &mut engine.state,
-                win_id,
-                UVec2::new(window_width, window_height),
-            );
+            let binding =
+                register_window_realm(&mut engine.state, win_id, bootstrap_plan.target.size);
 
             engine
                 .state

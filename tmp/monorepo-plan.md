@@ -637,6 +637,13 @@ Critério de aceite:
 - runtime coordena, não redefine domínios
 - estado central reduzido ao que for necessário para orquestração
 
+Status atual:
+- crate criado
+- `RuntimeState` já concentra frame lifecycle, filas, deferreds e metadados de retry
+- contrato inicial de bootstrap de render já existe no runtime:
+  o runtime recebe um alvo vindo de `platform` e decide apenas a estratégia de device compartilhado vs reuse
+- o próximo avanço relevante continua sendo aprofundar a coordenação entre subsistemas sem puxar detalhes internos de render/platform para dentro do runtime
+
 ### Fase 9 — Criação de `vulfram-platform`
 
 Objetivo:
@@ -655,6 +662,7 @@ Tarefas:
   - helpers de lifecycle web para fullscreen e pointer-lock extraídos
   - planner puro de resize de surface e comando de cursor web extraídos
   - resolução semântica de lifecycle de janela centralizada em `vulfram-platform`
+  - contrato semântico de bootstrap de render criado para descrever o alvo que será entregue ao runtime
   - integração browser ainda pendente
 
 Testes obrigatórios:

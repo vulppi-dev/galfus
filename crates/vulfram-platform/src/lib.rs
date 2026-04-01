@@ -1,8 +1,12 @@
+pub mod bootstrap;
 pub mod browser;
 pub mod window;
 
 use std::collections::HashSet;
 
+pub use bootstrap::{
+    PlatformRenderBootstrapTarget, PlatformRenderSurfaceKind, PlatformSurfaceAlphaMode,
+};
 pub use browser::{
     BrowserCursorCommandPlan, BrowserPointerCaptureUpdate, BrowserPointerMotionInput,
     BrowserSurfaceResizePlan, PlatformCursorGrabMode, PlatformWindowState,

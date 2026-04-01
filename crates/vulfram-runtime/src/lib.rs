@@ -1,4 +1,10 @@
+mod bootstrap;
+
 use std::collections::HashMap;
+
+pub use bootstrap::{
+    RenderBootstrapDeviceStrategy, RuntimeRenderBootstrapPlan, plan_render_bootstrap,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct DeferredCommandKey {
@@ -74,8 +80,12 @@ pub fn should_drop_deferred(attempts: u32, age_frames: u64) -> bool {
 #[cfg(test)]
 mod tests {
     use super::{
-        DEFER_MAX_AGE_FRAMES, DEFER_MAX_ATTEMPTS, RuntimeFrameState, RuntimeState,
-        defer_backoff_frames, should_drop_deferred,
+        DEFER_MAX_AGE_FRAMES, DEFER_MAX_ATTEMPTS, RenderBootstrapDeviceStrategy, RuntimeFrameState,
+        RuntimeRenderBootstrapPlan, RuntimeState, defer_backoff_frames, plan_render_bootstrap,
+        should_drop_deferred,
+    };
+    use vulfram_platform::{
+        PlatformRenderBootstrapTarget, PlatformRenderSurfaceKind, PlatformSurfaceAlphaMode,
     };
 
     #[test]
@@ -115,5 +125,31 @@ mod tests {
         assert!(state.deferred_cmd_meta.is_empty());
         assert!(state.event_queue.is_empty());
         assert!(state.response_queue.is_empty());
+    }
+
+    #[test]
+    fn render_bootstrap_plan_switches_between_create_and_reuse() {
+        let target = PlatformRenderBootstrapTarget::new(
+            9,
+            glam::UVec2::new(1280, 720),
+            PlatformRenderSurfaceKind::NativeWindow,
+            PlatformSurfaceAlphaMode::Opaque,
+            true,
+        );
+
+        assert_eq!(
+            plan_render_bootstrap(false, target),
+            RuntimeRenderBootstrapPlan {
+                target,
+                device_strategy: RenderBootstrapDeviceStrategy::CreateSharedDevice,
+            }
+        );
+        assert_eq!(
+            plan_render_bootstrap(true, target),
+            RuntimeRenderBootstrapPlan {
+                target,
+                device_strategy: RenderBootstrapDeviceStrategy::ReuseSharedDevice,
+            }
+        );
     }
 }
