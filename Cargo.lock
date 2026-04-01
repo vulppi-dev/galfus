@@ -4063,10 +4063,12 @@ dependencies = [
  "glam 0.30.10",
  "rmp-serde",
  "serde",
+ "vulfram-platform",
  "vulfram-protocol",
  "vulfram-realm-2d",
  "vulfram-realm-3d",
  "vulfram-realm-core",
+ "wgpu",
 ]
 
 [[package]]

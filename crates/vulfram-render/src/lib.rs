@@ -1,6 +1,7 @@
 mod graph;
 mod graph_fallbacks;
 mod realm_planner;
+mod render_bootstrap;
 mod ui_actions;
 mod validation;
 
@@ -22,5 +23,9 @@ pub use realm_planner::{
     plan_external_texture_refresh, plan_realm_environment_bindings, plan_surface_targets,
     plan_target_size_updates, resolve_connector_surface, resolve_realm_surface,
     should_render_realm, update_present_size_cache, update_surface_cache,
+};
+pub use render_bootstrap::{
+    RenderDeviceFeaturePlan, RenderSurfaceConfigPlan, plan_device_features, plan_surface_config,
+    resolve_rgba16f_msaa_supported_mask,
 };
 pub use ui_actions::{UiPlatformAction, collect_platform_actions};

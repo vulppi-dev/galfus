@@ -14,7 +14,7 @@ use wasm_bindgen_futures::spawn_local;
 use web_sys::HtmlCanvasElement;
 
 #[cfg(all(feature = "wasm", target_arch = "wasm32"))]
-use super::create_shared::{register_window_realm, resolve_rgba16f_msaa_supported_mask};
+use super::create_shared::register_window_realm;
 #[cfg(all(feature = "wasm", target_arch = "wasm32"))]
 use super::{CmdResultWindowCreate, CmdWindowCreateArgs};
 #[cfg(all(feature = "wasm", not(target_arch = "wasm32")))]
@@ -177,32 +177,13 @@ pub fn engine_cmd_window_create_async(
             }
         };
 
-        let adapter_features = adapter.features();
-        let mut required_features = wgpu::Features::empty();
-        let gpu_profiling_supported = adapter_features.contains(
-            wgpu::Features::TIMESTAMP_QUERY | wgpu::Features::TIMESTAMP_QUERY_INSIDE_ENCODERS,
-        );
-        if gpu_profiling_supported {
-            required_features |=
-                wgpu::Features::TIMESTAMP_QUERY | wgpu::Features::TIMESTAMP_QUERY_INSIDE_ENCODERS;
-        }
-
-        if adapter_features.contains(wgpu::Features::POLYGON_MODE_LINE) {
-            required_features |= wgpu::Features::POLYGON_MODE_LINE;
-        }
-        if adapter_features.contains(wgpu::Features::POLYGON_MODE_POINT) {
-            required_features |= wgpu::Features::POLYGON_MODE_POINT;
-        }
-        let adapter_specific_format_features_supported =
-            adapter_features.contains(wgpu::Features::TEXTURE_ADAPTER_SPECIFIC_FORMAT_FEATURES);
-        if adapter_specific_format_features_supported {
-            required_features |= wgpu::Features::TEXTURE_ADAPTER_SPECIFIC_FORMAT_FEATURES;
-        }
+        let feature_plan = vulfram_render::plan_device_features(adapter.features());
+        let gpu_profiling_supported = feature_plan.gpu_profiling_supported;
 
         let (device, queue) = match adapter
             .request_device(&wgpu::DeviceDescriptor {
                 label: None,
-                required_features,
+                required_features: feature_plan.required_features,
                 required_limits: wgpu::Limits::default(),
                 memory_hints: wgpu::MemoryHints::default(),
                 ..Default::default()
@@ -232,33 +213,27 @@ pub fn engine_cmd_window_create_async(
         };
 
         let caps = surface.get_capabilities(&adapter);
-        let format = caps
-            .formats
-            .iter()
-            .copied()
-            .find(|f| f.is_srgb())
-            .unwrap_or(caps.formats[0]);
-
+        let surface_plan = vulfram_render::plan_surface_config(&caps, bootstrap_plan.target);
         let config = wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
-            width: bootstrap_plan.target.size.x,
-            height: bootstrap_plan.target.size.y,
-            present_mode: wgpu::PresentMode::Fifo,
-            format,
-            alpha_mode: wgpu::CompositeAlphaMode::Opaque,
+            width: surface_plan.width,
+            height: surface_plan.height,
+            present_mode: surface_plan.present_mode,
+            format: surface_plan.format,
+            alpha_mode: surface_plan.alpha_mode,
             view_formats: vec![],
             desired_maximum_frame_latency: 2,
         };
 
         surface.configure(&device, &config);
 
-        let mut render_state = crate::core::render::RenderState::new(format);
-        let rgba16f_msaa_supported_mask = resolve_rgba16f_msaa_supported_mask(
+        let mut render_state = crate::core::render::RenderState::new(surface_plan.format);
+        let rgba16f_msaa_supported_mask = vulfram_render::resolve_rgba16f_msaa_supported_mask(
             &adapter,
-            adapter_specific_format_features_supported,
+            feature_plan.adapter_specific_format_features_supported,
         );
         render_state.rgba16f_msaa_supported_mask = rgba16f_msaa_supported_mask;
-        render_state.init(&device, &queue, format);
+        render_state.init(&device, &queue, surface_plan.format);
         render_state.on_resize(
             &device,
             bootstrap_plan.target.size.x,

@@ -2,7 +2,7 @@
 use std::sync::Arc;
 
 #[cfg(not(feature = "wasm"))]
-use super::create_shared::{register_window_realm, resolve_rgba16f_msaa_supported_mask};
+use super::create_shared::register_window_realm;
 #[cfg(not(feature = "wasm"))]
 use super::{CmdResultWindowCreate, CmdWindowCreateArgs};
 #[cfg(not(feature = "wasm"))]
@@ -118,32 +118,13 @@ pub fn engine_cmd_window_create(
                 }
             };
 
-        let adapter_features = adapter.features();
-        let mut required_features = wgpu::Features::empty();
-        gpu_profiling_supported = adapter_features.contains(
-            wgpu::Features::TIMESTAMP_QUERY | wgpu::Features::TIMESTAMP_QUERY_INSIDE_ENCODERS,
-        );
-        if gpu_profiling_supported {
-            required_features |=
-                wgpu::Features::TIMESTAMP_QUERY | wgpu::Features::TIMESTAMP_QUERY_INSIDE_ENCODERS;
-        }
-
-        if adapter_features.contains(wgpu::Features::POLYGON_MODE_LINE) {
-            required_features |= wgpu::Features::POLYGON_MODE_LINE;
-        }
-        if adapter_features.contains(wgpu::Features::POLYGON_MODE_POINT) {
-            required_features |= wgpu::Features::POLYGON_MODE_POINT;
-        }
-        let adapter_specific_format_features_supported =
-            adapter_features.contains(wgpu::Features::TEXTURE_ADAPTER_SPECIFIC_FORMAT_FEATURES);
-        if adapter_specific_format_features_supported {
-            required_features |= wgpu::Features::TEXTURE_ADAPTER_SPECIFIC_FORMAT_FEATURES;
-        }
+        let feature_plan = vulfram_render::plan_device_features(adapter.features());
+        gpu_profiling_supported = feature_plan.gpu_profiling_supported;
 
         let (device, queue) = match adapter
             .request_device(&wgpu::DeviceDescriptor {
                 label: None,
-                required_features,
+                required_features: feature_plan.required_features,
                 required_limits: wgpu::Limits::default(),
                 memory_hints: wgpu::MemoryHints::default(),
                 ..Default::default()
@@ -161,9 +142,9 @@ pub fn engine_cmd_window_create(
                 };
             }
         };
-        engine.rgba16f_msaa_supported_mask = resolve_rgba16f_msaa_supported_mask(
+        engine.rgba16f_msaa_supported_mask = vulfram_render::resolve_rgba16f_msaa_supported_mask(
             &adapter,
-            adapter_specific_format_features_supported,
+            feature_plan.adapter_specific_format_features_supported,
         );
 
         engine.caps = Some(surface.get_capabilities(&adapter));
@@ -227,33 +208,14 @@ pub fn engine_cmd_window_create(
         }
     };
 
-    let format = caps
-        .formats
-        .iter()
-        .copied()
-        .find(|f| f.is_srgb())
-        .unwrap_or(caps.formats[0]);
-
-    let alpha_mode = match bootstrap_plan.target.alpha_mode {
-        vulfram_platform::PlatformSurfaceAlphaMode::Opaque => wgpu::CompositeAlphaMode::Opaque,
-        vulfram_platform::PlatformSurfaceAlphaMode::Transparent => {
-            wgpu::CompositeAlphaMode::PreMultiplied
-        }
-    };
-
+    let surface_plan = vulfram_render::plan_surface_config(caps, bootstrap_plan.target);
     let config = wgpu::SurfaceConfiguration {
         usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
-        width: bootstrap_plan.target.size.x,
-        height: bootstrap_plan.target.size.y,
-        present_mode: if bootstrap_plan.target.prefer_low_latency_present
-            && caps.present_modes.contains(&wgpu::PresentMode::Mailbox)
-        {
-            wgpu::PresentMode::Mailbox
-        } else {
-            wgpu::PresentMode::Fifo
-        },
-        format,
-        alpha_mode,
+        width: surface_plan.width,
+        height: surface_plan.height,
+        present_mode: surface_plan.present_mode,
+        format: surface_plan.format,
+        alpha_mode: surface_plan.alpha_mode,
         view_formats: vec![],
         desired_maximum_frame_latency: 2,
     };
@@ -280,12 +242,12 @@ pub fn engine_cmd_window_create(
     let outer_size = window.outer_size();
 
     // Create render state and initialize blit resources
-    let mut render_state = crate::core::render::RenderState::new(format);
+    let mut render_state = crate::core::render::RenderState::new(surface_plan.format);
     render_state.rgba16f_msaa_supported_mask = engine.rgba16f_msaa_supported_mask;
     let mut surface_target = None;
     if let Some(device) = &engine.device {
         if let Some(queue) = &engine.queue {
-            render_state.init(device, queue, format);
+            render_state.init(device, queue, surface_plan.format);
 
             // Initialize size-dependent resources (like depth buffer)
             render_state.on_resize(
