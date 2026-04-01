@@ -193,16 +193,16 @@ pub fn engine_cmd_window_cursor(
         _engine
             .window
             .set_pointer_capture_active(args.window_id, plan.active);
-        _engine.runtime.event_queue.push(EngineEvent::Window(
-            WindowEvent::OnPointerCaptureChange {
+        _engine
+            .runtime
+            .push_event(EngineEvent::Window(WindowEvent::OnPointerCaptureChange {
                 window_id: args.window_id,
                 capture: WindowPointerCaptureState {
                     mode,
                     active: plan.active,
                     reason: Some(plan.reason.into()),
                 },
-            },
-        ));
+            }));
 
         return CmdResultWindowCursor {
             success: true,

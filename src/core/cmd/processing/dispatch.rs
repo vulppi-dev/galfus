@@ -17,21 +17,21 @@ pub(super) fn dispatch_command(
         EngineCmd::CmdNotificationSend(args) => {
             let result =
                 sys::engine_cmd_notification_send(engine, platform.event_loop_proxy(), &args);
-            engine.runtime.response_queue.push(CommandResponseEnvelope {
+            engine.runtime.push_response(CommandResponseEnvelope {
                 id: pack.id,
                 response: CommandResponse::NotificationSend(result),
             });
         }
         EngineCmd::CmdSystemDiagnosticsSet(args) => {
             let result = sys::engine_cmd_system_diagnostics_set(engine, &args);
-            engine.runtime.response_queue.push(CommandResponseEnvelope {
+            engine.runtime.push_response(CommandResponseEnvelope {
                 id: pack.id,
                 response: CommandResponse::SystemDiagnosticsSet(result),
             });
         }
         EngineCmd::CmdSystemBuildVersionGet(args) => {
             let result = sys::engine_cmd_system_build_version_get(engine, &args);
-            engine.runtime.response_queue.push(CommandResponseEnvelope {
+            engine.runtime.push_response(CommandResponseEnvelope {
                 id: pack.id,
                 response: CommandResponse::SystemBuildVersionGet(result),
             });
@@ -40,7 +40,7 @@ pub(super) fn dispatch_command(
             match platform.handle_window_create(engine, pack.id, &args) {
                 Ok(()) => {}
                 Err(result) => {
-                    engine.runtime.response_queue.push(CommandResponseEnvelope {
+                    engine.runtime.push_response(CommandResponseEnvelope {
                         id: pack.id,
                         response: CommandResponse::WindowCreate(result),
                     });
@@ -49,28 +49,28 @@ pub(super) fn dispatch_command(
         }
         EngineCmd::CmdWindowClose(args) => {
             let result = win::engine_cmd_window_close(engine, &args);
-            engine.runtime.response_queue.push(CommandResponseEnvelope {
+            engine.runtime.push_response(CommandResponseEnvelope {
                 id: pack.id,
                 response: CommandResponse::WindowClose(result),
             });
         }
         EngineCmd::CmdWindowMeasurement(args) => {
             let result = win::engine_cmd_window_measurement(engine, &args);
-            engine.runtime.response_queue.push(CommandResponseEnvelope {
+            engine.runtime.push_response(CommandResponseEnvelope {
                 id: pack.id,
                 response: CommandResponse::WindowMeasurement(result),
             });
         }
         EngineCmd::CmdWindowCursor(args) => {
             let result = win::engine_cmd_window_cursor(engine, &args);
-            engine.runtime.response_queue.push(CommandResponseEnvelope {
+            engine.runtime.push_response(CommandResponseEnvelope {
                 id: pack.id,
                 response: CommandResponse::WindowCursor(result),
             });
         }
         EngineCmd::CmdWindowState(args) => {
             let result = win::engine_cmd_window_state(engine, &args);
-            engine.runtime.response_queue.push(CommandResponseEnvelope {
+            engine.runtime.push_response(CommandResponseEnvelope {
                 id: pack.id,
                 response: CommandResponse::WindowState(result),
             });
@@ -79,7 +79,7 @@ pub(super) fn dispatch_command(
             let result = crate::core::input::listeners::engine_cmd_input_target_listener_upsert(
                 engine, &args,
             );
-            engine.runtime.response_queue.push(CommandResponseEnvelope {
+            engine.runtime.push_response(CommandResponseEnvelope {
                 id: pack.id,
                 response: CommandResponse::InputTargetListenerUpsert(result),
             });
@@ -88,7 +88,7 @@ pub(super) fn dispatch_command(
             let result = crate::core::input::listeners::engine_cmd_input_target_listener_dispose(
                 engine, &args,
             );
-            engine.runtime.response_queue.push(CommandResponseEnvelope {
+            engine.runtime.push_response(CommandResponseEnvelope {
                 id: pack.id,
                 response: CommandResponse::InputTargetListenerDispose(result),
             });
@@ -96,14 +96,14 @@ pub(super) fn dispatch_command(
         EngineCmd::CmdInputTargetListenerList(args) => {
             let result =
                 crate::core::input::listeners::engine_cmd_input_target_listener_list(engine, &args);
-            engine.runtime.response_queue.push(CommandResponseEnvelope {
+            engine.runtime.push_response(CommandResponseEnvelope {
                 id: pack.id,
                 response: CommandResponse::InputTargetListenerList(result),
             });
         }
         EngineCmd::CmdUploadBufferDiscardAll(args) => {
             let result = buf::engine_cmd_upload_buffer_discard_all(engine, &args);
-            engine.runtime.response_queue.push(CommandResponseEnvelope {
+            engine.runtime.push_response(CommandResponseEnvelope {
                 id: pack.id,
                 response: CommandResponse::UploadBufferDiscardAll(result),
             });
@@ -125,14 +125,14 @@ pub(super) fn dispatch_command(
                     }
                 }
             };
-            engine.runtime.response_queue.push(CommandResponseEnvelope {
+            engine.runtime.push_response(CommandResponseEnvelope {
                 id: pack.id,
                 response: CommandResponse::CameraUpsert(result),
             });
         }
         EngineCmd::CmdCameraDispose(args) => {
             let result = res::engine_cmd_camera_dispose(engine, &args);
-            engine.runtime.response_queue.push(CommandResponseEnvelope {
+            engine.runtime.push_response(CommandResponseEnvelope {
                 id: pack.id,
                 response: CommandResponse::CameraDispose(result),
             });
@@ -154,21 +154,21 @@ pub(super) fn dispatch_command(
                     }
                 }
             };
-            engine.runtime.response_queue.push(CommandResponseEnvelope {
+            engine.runtime.push_response(CommandResponseEnvelope {
                 id: pack.id,
                 response: CommandResponse::ModelUpsert(result),
             });
         }
         EngineCmd::CmdPoseUpdate(args) => {
             let result = res::engine_cmd_pose_update(engine, &args);
-            engine.runtime.response_queue.push(CommandResponseEnvelope {
+            engine.runtime.push_response(CommandResponseEnvelope {
                 id: pack.id,
                 response: CommandResponse::PoseUpdate(result),
             });
         }
         EngineCmd::CmdModelDispose(args) => {
             let result = res::engine_cmd_model_dispose(engine, &args);
-            engine.runtime.response_queue.push(CommandResponseEnvelope {
+            engine.runtime.push_response(CommandResponseEnvelope {
                 id: pack.id,
                 response: CommandResponse::ModelDispose(result),
             });
@@ -190,14 +190,14 @@ pub(super) fn dispatch_command(
                     }
                 }
             };
-            engine.runtime.response_queue.push(CommandResponseEnvelope {
+            engine.runtime.push_response(CommandResponseEnvelope {
                 id: pack.id,
                 response: CommandResponse::LightUpsert(result),
             });
         }
         EngineCmd::CmdLightDispose(args) => {
             let result = res::engine_cmd_light_dispose(engine, &args);
-            engine.runtime.response_queue.push(CommandResponseEnvelope {
+            engine.runtime.push_response(CommandResponseEnvelope {
                 id: pack.id,
                 response: CommandResponse::LightDispose(result),
             });
@@ -219,42 +219,42 @@ pub(super) fn dispatch_command(
                     }
                 }
             };
-            engine.runtime.response_queue.push(CommandResponseEnvelope {
+            engine.runtime.push_response(CommandResponseEnvelope {
                 id: pack.id,
                 response: CommandResponse::MaterialUpsert(result),
             });
         }
         EngineCmd::CmdMaterialDispose(args) => {
             let result = res::engine_cmd_material_dispose(engine, &args);
-            engine.runtime.response_queue.push(CommandResponseEnvelope {
+            engine.runtime.push_response(CommandResponseEnvelope {
                 id: pack.id,
                 response: CommandResponse::MaterialDispose(result),
             });
         }
         EngineCmd::CmdTextureCreateFromBuffer(args) => {
             let result = res::engine_cmd_texture_create_from_buffer(engine, &args);
-            engine.runtime.response_queue.push(CommandResponseEnvelope {
+            engine.runtime.push_response(CommandResponseEnvelope {
                 id: pack.id,
                 response: CommandResponse::TextureCreateFromBuffer(result),
             });
         }
         EngineCmd::CmdTextureCreateSolidColor(args) => {
             let result = res::engine_cmd_texture_create_solid_color(engine, &args);
-            engine.runtime.response_queue.push(CommandResponseEnvelope {
+            engine.runtime.push_response(CommandResponseEnvelope {
                 id: pack.id,
                 response: CommandResponse::TextureCreateSolidColor(result),
             });
         }
         EngineCmd::CmdTextureDispose(args) => {
             let result = res::engine_cmd_texture_dispose(engine, &args);
-            engine.runtime.response_queue.push(CommandResponseEnvelope {
+            engine.runtime.push_response(CommandResponseEnvelope {
                 id: pack.id,
                 response: CommandResponse::TextureDispose(result),
             });
         }
         EngineCmd::CmdTextureBindTarget(args) => {
             let result = res::engine_cmd_texture_bind_target(engine, &args);
-            engine.runtime.response_queue.push(CommandResponseEnvelope {
+            engine.runtime.push_response(CommandResponseEnvelope {
                 id: pack.id,
                 response: CommandResponse::TextureBindTarget(result),
             });
@@ -278,21 +278,21 @@ pub(super) fn dispatch_command(
                     }
                 }
             };
-            engine.runtime.response_queue.push(CommandResponseEnvelope {
+            engine.runtime.push_response(CommandResponseEnvelope {
                 id: pack.id,
                 response: CommandResponse::AudioListenerUpsert(result),
             });
         }
         EngineCmd::CmdAudioListenerDispose(args) => {
             let result = audio::engine_cmd_audio_listener_dispose(engine, &args);
-            engine.runtime.response_queue.push(CommandResponseEnvelope {
+            engine.runtime.push_response(CommandResponseEnvelope {
                 id: pack.id,
                 response: CommandResponse::AudioListenerDispose(result),
             });
         }
         EngineCmd::CmdAudioResourceUpsert(args) => {
             let result = audio::engine_cmd_audio_resource_upsert(engine, &args);
-            engine.runtime.response_queue.push(CommandResponseEnvelope {
+            engine.runtime.push_response(CommandResponseEnvelope {
                 id: pack.id,
                 response: CommandResponse::AudioResourceUpsert(result),
             });
@@ -314,35 +314,35 @@ pub(super) fn dispatch_command(
                     }
                 }
             };
-            engine.runtime.response_queue.push(CommandResponseEnvelope {
+            engine.runtime.push_response(CommandResponseEnvelope {
                 id: pack.id,
                 response: CommandResponse::AudioSourceUpsert(result),
             });
         }
         EngineCmd::CmdAudioSourceTransport(args) => {
             let result = audio::engine_cmd_audio_source_transport(engine, &args);
-            engine.runtime.response_queue.push(CommandResponseEnvelope {
+            engine.runtime.push_response(CommandResponseEnvelope {
                 id: pack.id,
                 response: CommandResponse::AudioSourceTransport(result),
             });
         }
         EngineCmd::CmdAudioStateGet(args) => {
             let result = audio::engine_cmd_audio_state_get(engine, &args);
-            engine.runtime.response_queue.push(CommandResponseEnvelope {
+            engine.runtime.push_response(CommandResponseEnvelope {
                 id: pack.id,
                 response: CommandResponse::AudioStateGet(result),
             });
         }
         EngineCmd::CmdAudioSourceDispose(args) => {
             let result = audio::engine_cmd_audio_source_dispose(engine, &args);
-            engine.runtime.response_queue.push(CommandResponseEnvelope {
+            engine.runtime.push_response(CommandResponseEnvelope {
                 id: pack.id,
                 response: CommandResponse::AudioSourceDispose(result),
             });
         }
         EngineCmd::CmdAudioResourceDispose(args) => {
             let result = audio::engine_cmd_audio_resource_dispose(engine, &args);
-            engine.runtime.response_queue.push(CommandResponseEnvelope {
+            engine.runtime.push_response(CommandResponseEnvelope {
                 id: pack.id,
                 response: CommandResponse::AudioResourceDispose(result),
             });
@@ -364,21 +364,21 @@ pub(super) fn dispatch_command(
                     }
                 }
             };
-            engine.runtime.response_queue.push(CommandResponseEnvelope {
+            engine.runtime.push_response(CommandResponseEnvelope {
                 id: pack.id,
                 response: CommandResponse::GeometryUpsert(result),
             });
         }
         EngineCmd::CmdGeometryDispose(args) => {
             let result = res::engine_cmd_geometry_dispose(engine, &args);
-            engine.runtime.response_queue.push(CommandResponseEnvelope {
+            engine.runtime.push_response(CommandResponseEnvelope {
                 id: pack.id,
                 response: CommandResponse::GeometryDispose(result),
             });
         }
         EngineCmd::CmdPrimitiveGeometryCreate(args) => {
             let result = res::engine_cmd_primitive_geometry_create(engine, &args);
-            engine.runtime.response_queue.push(CommandResponseEnvelope {
+            engine.runtime.push_response(CommandResponseEnvelope {
                 id: pack.id,
                 response: CommandResponse::PrimitiveGeometryCreate(result),
             });
@@ -400,21 +400,21 @@ pub(super) fn dispatch_command(
                     }
                 }
             };
-            engine.runtime.response_queue.push(CommandResponseEnvelope {
+            engine.runtime.push_response(CommandResponseEnvelope {
                 id: pack.id,
                 response: CommandResponse::EnvironmentUpsert(result),
             });
         }
         EngineCmd::CmdEnvironmentDispose(args) => {
             let result = res::engine_cmd_environment_dispose(engine, &args);
-            engine.runtime.response_queue.push(CommandResponseEnvelope {
+            engine.runtime.push_response(CommandResponseEnvelope {
                 id: pack.id,
                 response: CommandResponse::EnvironmentDispose(result),
             });
         }
         EngineCmd::CmdShadowConfigure(args) => {
             let result = res::shadow::engine_cmd_shadow_configure(engine, &args);
-            engine.runtime.response_queue.push(CommandResponseEnvelope {
+            engine.runtime.push_response(CommandResponseEnvelope {
                 id: pack.id,
                 response: CommandResponse::ShadowConfigure(result),
             });
@@ -424,7 +424,7 @@ pub(super) fn dispatch_command(
             if result.success {
                 mark_windows_dirty(engine);
             }
-            engine.runtime.response_queue.push(CommandResponseEnvelope {
+            engine.runtime.push_response(CommandResponseEnvelope {
                 id: pack.id,
                 response: CommandResponse::RealmCreate(result),
             });
@@ -434,7 +434,7 @@ pub(super) fn dispatch_command(
             if result.success {
                 mark_windows_dirty(engine);
             }
-            engine.runtime.response_queue.push(CommandResponseEnvelope {
+            engine.runtime.push_response(CommandResponseEnvelope {
                 id: pack.id,
                 response: CommandResponse::RealmDispose(result),
             });
@@ -444,7 +444,7 @@ pub(super) fn dispatch_command(
             if result.success {
                 mark_windows_dirty(engine);
             }
-            engine.runtime.response_queue.push(CommandResponseEnvelope {
+            engine.runtime.push_response(CommandResponseEnvelope {
                 id: pack.id,
                 response: CommandResponse::RenderGraphUpsert(result),
             });
@@ -454,14 +454,14 @@ pub(super) fn dispatch_command(
             if result.success {
                 mark_windows_dirty(engine);
             }
-            engine.runtime.response_queue.push(CommandResponseEnvelope {
+            engine.runtime.push_response(CommandResponseEnvelope {
                 id: pack.id,
                 response: CommandResponse::RenderGraphDispose(result),
             });
         }
         EngineCmd::CmdRenderGraphList(args) => {
             let result = realm::engine_cmd_render_graph_list(engine, &args);
-            engine.runtime.response_queue.push(CommandResponseEnvelope {
+            engine.runtime.push_response(CommandResponseEnvelope {
                 id: pack.id,
                 response: CommandResponse::RenderGraphList(result),
             });
@@ -471,7 +471,7 @@ pub(super) fn dispatch_command(
             if result.success {
                 mark_windows_dirty(engine);
             }
-            engine.runtime.response_queue.push(CommandResponseEnvelope {
+            engine.runtime.push_response(CommandResponseEnvelope {
                 id: pack.id,
                 response: CommandResponse::RealmRenderGraphBind(result),
             });
@@ -481,14 +481,14 @@ pub(super) fn dispatch_command(
             if result.success {
                 mark_windows_dirty(engine);
             }
-            engine.runtime.response_queue.push(CommandResponseEnvelope {
+            engine.runtime.push_response(CommandResponseEnvelope {
                 id: pack.id,
                 response: CommandResponse::TargetUpsert(result),
             });
         }
         EngineCmd::CmdTargetMeasurement(args) => {
             let result = target::engine_cmd_target_measurement(engine, &args);
-            engine.runtime.response_queue.push(CommandResponseEnvelope {
+            engine.runtime.push_response(CommandResponseEnvelope {
                 id: pack.id,
                 response: CommandResponse::TargetMeasurement(result),
             });
@@ -498,7 +498,7 @@ pub(super) fn dispatch_command(
             if result.success {
                 mark_windows_dirty(engine);
             }
-            engine.runtime.response_queue.push(CommandResponseEnvelope {
+            engine.runtime.push_response(CommandResponseEnvelope {
                 id: pack.id,
                 response: CommandResponse::TargetDispose(result),
             });
@@ -508,7 +508,7 @@ pub(super) fn dispatch_command(
             if result.success {
                 mark_windows_dirty(engine);
             }
-            engine.runtime.response_queue.push(CommandResponseEnvelope {
+            engine.runtime.push_response(CommandResponseEnvelope {
                 id: pack.id,
                 response: CommandResponse::TargetLayerUpsert(result),
             });
@@ -518,7 +518,7 @@ pub(super) fn dispatch_command(
             if result.success {
                 mark_windows_dirty(engine);
             }
-            engine.runtime.response_queue.push(CommandResponseEnvelope {
+            engine.runtime.push_response(CommandResponseEnvelope {
                 id: pack.id,
                 response: CommandResponse::TargetLayerDispose(result),
             });

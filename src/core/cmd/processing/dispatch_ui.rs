@@ -20,7 +20,7 @@ pub(super) fn cmd_ui_theme_define(
     args: CmdUiThemeDefineArgs,
 ) {
     let result = ui::engine_cmd_ui_theme_define(engine, &args);
-    engine.runtime.response_queue.push(CommandResponseEnvelope {
+    engine.runtime.push_response(CommandResponseEnvelope {
         id: command_id,
         response: CommandResponse::UiThemeDefine(result),
     });
@@ -32,7 +32,7 @@ pub(super) fn cmd_ui_theme_dispose(
     args: CmdUiThemeDisposeArgs,
 ) {
     let result = ui::engine_cmd_ui_theme_dispose(engine, &args);
-    engine.runtime.response_queue.push(CommandResponseEnvelope {
+    engine.runtime.push_response(CommandResponseEnvelope {
         id: command_id,
         response: CommandResponse::UiThemeDispose(result),
     });
@@ -47,7 +47,7 @@ pub(super) fn cmd_ui_document_create(
     if result.success {
         mark_windows_dirty(engine);
     }
-    engine.runtime.response_queue.push(CommandResponseEnvelope {
+    engine.runtime.push_response(CommandResponseEnvelope {
         id: command_id,
         response: CommandResponse::UiDocumentCreate(result),
     });
@@ -62,7 +62,7 @@ pub(super) fn cmd_ui_document_dispose(
     if result.success {
         mark_windows_dirty(engine);
     }
-    engine.runtime.response_queue.push(CommandResponseEnvelope {
+    engine.runtime.push_response(CommandResponseEnvelope {
         id: command_id,
         response: CommandResponse::UiDocumentDispose(result),
     });
@@ -77,7 +77,7 @@ pub(super) fn cmd_ui_document_set_rect(
     if result.success {
         mark_windows_dirty(engine);
     }
-    engine.runtime.response_queue.push(CommandResponseEnvelope {
+    engine.runtime.push_response(CommandResponseEnvelope {
         id: command_id,
         response: CommandResponse::UiDocumentSetRect(result),
     });
@@ -92,7 +92,7 @@ pub(super) fn cmd_ui_document_set_theme(
     if result.success {
         mark_windows_dirty(engine);
     }
-    engine.runtime.response_queue.push(CommandResponseEnvelope {
+    engine.runtime.push_response(CommandResponseEnvelope {
         id: command_id,
         response: CommandResponse::UiDocumentSetTheme(result),
     });
@@ -104,7 +104,7 @@ pub(super) fn cmd_ui_document_get_tree(
     args: CmdUiDocumentGetTreeArgs,
 ) {
     let result = ui::engine_cmd_ui_document_get_tree(engine, &args);
-    engine.runtime.response_queue.push(CommandResponseEnvelope {
+    engine.runtime.push_response(CommandResponseEnvelope {
         id: command_id,
         response: CommandResponse::UiDocumentGetTree(result),
     });
@@ -116,7 +116,7 @@ pub(super) fn cmd_ui_document_get_layout_rects(
     args: CmdUiDocumentGetLayoutRectsArgs,
 ) {
     let result = ui::engine_cmd_ui_document_get_layout_rects(engine, &args);
-    engine.runtime.response_queue.push(CommandResponseEnvelope {
+    engine.runtime.push_response(CommandResponseEnvelope {
         id: command_id,
         response: CommandResponse::UiDocumentGetLayoutRects(result),
     });
@@ -127,7 +127,7 @@ pub(super) fn cmd_ui_apply_ops(engine: &mut EngineState, command_id: u64, args: 
     if result.success {
         mark_windows_dirty(engine);
     }
-    engine.runtime.response_queue.push(CommandResponseEnvelope {
+    engine.runtime.push_response(CommandResponseEnvelope {
         id: command_id,
         response: CommandResponse::UiApplyOps(result),
     });
@@ -135,7 +135,7 @@ pub(super) fn cmd_ui_apply_ops(engine: &mut EngineState, command_id: u64, args: 
 
 pub(super) fn cmd_ui_debug_set(engine: &mut EngineState, command_id: u64, args: CmdUiDebugSetArgs) {
     let result = ui::engine_cmd_ui_debug_set(engine, &args);
-    engine.runtime.response_queue.push(CommandResponseEnvelope {
+    engine.runtime.push_response(CommandResponseEnvelope {
         id: command_id,
         response: CommandResponse::UiDebugSet(result),
     });
@@ -143,7 +143,7 @@ pub(super) fn cmd_ui_debug_set(engine: &mut EngineState, command_id: u64, args: 
 
 pub(super) fn cmd_ui_focus_set(engine: &mut EngineState, command_id: u64, args: CmdUiFocusSetArgs) {
     let result = ui::engine_cmd_ui_focus_set(engine, &args);
-    engine.runtime.response_queue.push(CommandResponseEnvelope {
+    engine.runtime.push_response(CommandResponseEnvelope {
         id: command_id,
         response: CommandResponse::UiFocusSet(result),
     });
@@ -151,7 +151,7 @@ pub(super) fn cmd_ui_focus_set(engine: &mut EngineState, command_id: u64, args: 
 
 pub(super) fn cmd_ui_focus_get(engine: &mut EngineState, command_id: u64, args: CmdUiFocusGetArgs) {
     let result = ui::engine_cmd_ui_focus_get(engine, &args);
-    engine.runtime.response_queue.push(CommandResponseEnvelope {
+    engine.runtime.push_response(CommandResponseEnvelope {
         id: command_id,
         response: CommandResponse::UiFocusGet(result),
     });
@@ -163,7 +163,7 @@ pub(super) fn cmd_ui_event_trace_set(
     args: CmdUiEventTraceSetArgs,
 ) {
     let result = ui::engine_cmd_ui_event_trace_set(engine, &args);
-    engine.runtime.response_queue.push(CommandResponseEnvelope {
+    engine.runtime.push_response(CommandResponseEnvelope {
         id: command_id,
         response: CommandResponse::UiEventTraceSet(result),
     });
@@ -175,7 +175,7 @@ pub(super) fn cmd_ui_image_create_from_buffer(
     args: CmdUiImageCreateFromBufferArgs,
 ) {
     let result = ui::engine_cmd_ui_image_create_from_buffer(engine, &args);
-    engine.runtime.response_queue.push(CommandResponseEnvelope {
+    engine.runtime.push_response(CommandResponseEnvelope {
         id: command_id,
         response: CommandResponse::UiImageCreateFromBuffer(result),
     });
@@ -187,7 +187,7 @@ pub(super) fn cmd_ui_image_dispose(
     args: CmdUiImageDisposeArgs,
 ) {
     let result = ui::engine_cmd_ui_image_dispose(engine, &args);
-    engine.runtime.response_queue.push(CommandResponseEnvelope {
+    engine.runtime.push_response(CommandResponseEnvelope {
         id: command_id,
         response: CommandResponse::UiImageDispose(result),
     });
@@ -199,7 +199,7 @@ pub(super) fn cmd_ui_clipboard_paste(
     args: CmdUiClipboardPasteArgs,
 ) {
     let result = ui::engine_cmd_ui_clipboard_paste(engine, &args);
-    engine.runtime.response_queue.push(CommandResponseEnvelope {
+    engine.runtime.push_response(CommandResponseEnvelope {
         id: command_id,
         response: CommandResponse::UiClipboardPaste(result),
     });
@@ -211,7 +211,7 @@ pub(super) fn cmd_ui_screenshot_reply(
     args: CmdUiScreenshotReplyArgs,
 ) {
     let result = ui::engine_cmd_ui_screenshot_reply(engine, &args);
-    engine.runtime.response_queue.push(CommandResponseEnvelope {
+    engine.runtime.push_response(CommandResponseEnvelope {
         id: command_id,
         response: CommandResponse::UiScreenshotReply(result),
     });
@@ -223,7 +223,7 @@ pub(super) fn cmd_ui_accesskit_action_request(
     args: CmdUiAccessKitActionRequestArgs,
 ) {
     let result = ui::engine_cmd_ui_accesskit_action_request(engine, &args);
-    engine.runtime.response_queue.push(CommandResponseEnvelope {
+    engine.runtime.push_response(CommandResponseEnvelope {
         id: command_id,
         response: CommandResponse::UiAccessKitActionRequest(result),
     });

@@ -59,42 +59,42 @@ pub(super) fn dispatch_ui_and_misc(engine: &mut EngineState, envelope_id: u64, c
         }
         EngineCmd::CmdModelList(args) => {
             let result = res::engine_cmd_model_list(engine, &args);
-            engine.runtime.response_queue.push(CommandResponseEnvelope {
+            engine.runtime.push_response(CommandResponseEnvelope {
                 id: envelope_id,
                 response: CommandResponse::ModelList(result),
             });
         }
         EngineCmd::CmdMaterialList(args) => {
             let result = res::engine_cmd_material_list(engine, &args);
-            engine.runtime.response_queue.push(CommandResponseEnvelope {
+            engine.runtime.push_response(CommandResponseEnvelope {
                 id: envelope_id,
                 response: CommandResponse::MaterialList(result),
             });
         }
         EngineCmd::CmdTextureList(args) => {
             let result = res::engine_cmd_texture_list(engine, &args);
-            engine.runtime.response_queue.push(CommandResponseEnvelope {
+            engine.runtime.push_response(CommandResponseEnvelope {
                 id: envelope_id,
                 response: CommandResponse::TextureList(result),
             });
         }
         EngineCmd::CmdGeometryList(args) => {
             let result = res::engine_cmd_geometry_list(engine, &args);
-            engine.runtime.response_queue.push(CommandResponseEnvelope {
+            engine.runtime.push_response(CommandResponseEnvelope {
                 id: envelope_id,
                 response: CommandResponse::GeometryList(result),
             });
         }
         EngineCmd::CmdLightList(args) => {
             let result = res::engine_cmd_light_list(engine, &args);
-            engine.runtime.response_queue.push(CommandResponseEnvelope {
+            engine.runtime.push_response(CommandResponseEnvelope {
                 id: envelope_id,
                 response: CommandResponse::LightList(result),
             });
         }
         EngineCmd::CmdCameraList(args) => {
             let result = res::engine_cmd_camera_list(engine, &args);
-            engine.runtime.response_queue.push(CommandResponseEnvelope {
+            engine.runtime.push_response(CommandResponseEnvelope {
                 id: envelope_id,
                 response: CommandResponse::CameraList(result),
             });
@@ -109,7 +109,7 @@ pub(super) fn dispatch_ui_and_misc(engine: &mut EngineState, envelope_id: u64, c
                     window_state.is_dirty = true;
                 }
             }
-            engine.runtime.response_queue.push(CommandResponseEnvelope {
+            engine.runtime.push_response(CommandResponseEnvelope {
                 id: envelope_id,
                 response: CommandResponse::GizmoDrawLine(gizmo::CmdResultGizmoDraw { status: 0 }),
             });
@@ -124,7 +124,7 @@ pub(super) fn dispatch_ui_and_misc(engine: &mut EngineState, envelope_id: u64, c
                     window_state.is_dirty = true;
                 }
             }
-            engine.runtime.response_queue.push(CommandResponseEnvelope {
+            engine.runtime.push_response(CommandResponseEnvelope {
                 id: envelope_id,
                 response: CommandResponse::GizmoDrawAabb(gizmo::CmdResultGizmoDraw { status: 0 }),
             });
@@ -139,7 +139,7 @@ pub(super) fn dispatch_ui_and_misc(engine: &mut EngineState, envelope_id: u64, c
                     window_state.is_dirty = true;
                 }
             }
-            engine.runtime.response_queue.push(CommandResponseEnvelope {
+            engine.runtime.push_response(CommandResponseEnvelope {
                 id: envelope_id,
                 response: CommandResponse::GizmoDrawPolyline(gizmo::CmdResultGizmoDraw {
                     status: 0,

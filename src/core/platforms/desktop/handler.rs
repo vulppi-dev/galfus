@@ -250,9 +250,10 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
             }
 
             WinitWindowEvent::HoveredFileCancelled => {
-                self.runtime.event_queue.push(EngineEvent::Window(
-                    WindowEvent::OnFileHoverCancel { window_id },
-                ));
+                self.runtime
+                    .push_event(EngineEvent::Window(WindowEvent::OnFileHoverCancel {
+                        window_id,
+                    }));
             }
 
             WinitWindowEvent::Focused(focused) => {
@@ -277,7 +278,7 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
                 if mode != CursorGrabMode::None {
                     let active = focused;
                     if self.window.set_pointer_capture_active(window_id, active) {
-                        self.runtime.event_queue.push(EngineEvent::Window(
+                        self.runtime.push_event(EngineEvent::Window(
                             WindowEvent::OnPointerCaptureChange {
                                 window_id,
                                 capture: WindowPointerCaptureState {
@@ -344,12 +345,11 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
                 self.input.cache.keyboard.modifiers = new_modifiers;
                 self.input.modifiers = new_modifiers;
 
-                self.runtime.event_queue.push(EngineEvent::Keyboard(
-                    KeyboardEvent::OnModifiersChange {
+                self.runtime
+                    .push_event(EngineEvent::Keyboard(KeyboardEvent::OnModifiersChange {
                         window_id,
                         modifiers: new_modifiers,
-                    },
-                ));
+                    }));
             }
 
             WinitWindowEvent::Ime(ime) => {
@@ -519,8 +519,8 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
             }
 
             WinitWindowEvent::RotationGesture { delta, phase, .. } => {
-                self.runtime.event_queue.push(EngineEvent::Pointer(
-                    PointerEvent::OnRotationGesture {
+                self.runtime
+                    .push_event(EngineEvent::Pointer(PointerEvent::OnRotationGesture {
                         window_id,
                         window_width: None,
                         window_height: None,
@@ -529,21 +529,19 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
                         target_width: None,
                         target_height: None,
                         trace: None,
-                    },
-                ));
+                    }));
             }
 
             WinitWindowEvent::DoubleTapGesture { .. } => {
-                self.runtime.event_queue.push(EngineEvent::Pointer(
-                    PointerEvent::OnDoubleTapGesture {
+                self.runtime
+                    .push_event(EngineEvent::Pointer(PointerEvent::OnDoubleTapGesture {
                         window_id,
                         window_width: None,
                         window_height: None,
                         target_width: None,
                         target_height: None,
                         trace: None,
-                    },
-                ));
+                    }));
             }
 
             WinitWindowEvent::Touch(touch) => {
@@ -592,14 +590,13 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
                     })
                     .unwrap_or((0, 0));
 
-                self.runtime.event_queue.push(EngineEvent::Window(
-                    WindowEvent::OnScaleFactorChange {
+                self.runtime
+                    .push_event(EngineEvent::Window(WindowEvent::OnScaleFactorChange {
                         window_id,
                         scale_factor,
                         new_width,
                         new_height,
-                    },
-                ));
+                    }));
             }
 
             WinitWindowEvent::ThemeChanged(theme) => {
@@ -648,7 +645,7 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
                     if window_state.is_dirty && window_state.window.is_visible().unwrap_or(true) {
                         window_state.is_dirty = false;
 
-                        self.runtime.event_queue.push(EngineEvent::Window(
+                        self.runtime.push_event(EngineEvent::Window(
                             WindowEvent::OnRedrawRequest { window_id },
                         ));
 
@@ -741,14 +738,14 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
             EngineCustomEvents::CreateWindow(id, args) => {
                 let result = engine_cmd_window_create(self, event_loop, &args);
 
-                self.runtime.response_queue.push(CommandResponseEnvelope {
+                self.runtime.push_response(CommandResponseEnvelope {
                     id,
                     response: CommandResponse::WindowCreate(result),
                 });
             }
 
             EngineCustomEvents::NotificationInteraction(event) => {
-                self.runtime.event_queue.push(EngineEvent::System(event));
+                self.runtime.push_event(EngineEvent::System(event));
             }
         }
 
