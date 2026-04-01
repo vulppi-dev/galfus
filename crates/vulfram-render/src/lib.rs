@@ -1,6 +1,7 @@
 mod cache;
 mod graph;
 mod graph_fallbacks;
+mod profiler;
 mod realm_planner;
 mod realm_policy;
 mod render_bootstrap;
@@ -16,6 +17,7 @@ pub use graph::{
     is_reserved_render_graph_id, render_graph_desc_hash, resolve_render_graph_id, validate_graph,
 };
 pub use graph_fallbacks::{fallback_graph, ui_fallback_graph};
+pub use profiler::{GpuProfiler, GpuTimingReport};
 pub use realm_planner::{
     ComposeBlendMode, ComposeConnectorCandidate, ComposeOverlayPlan, ComposeOverlayPlanEntry,
     EnvironmentLayerBinding, ExternalTextureRefreshPlan, ExternalTextureSource,

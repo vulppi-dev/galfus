@@ -9,6 +9,7 @@ pub mod runtime;
 mod scene_sync;
 pub mod state;
 mod ui_platform_actions;
+use crate::core::profiling::gpu::apply_gpu_timing_report;
 use crate::core::realm::{FrameReport, RealmGraphPlanner, apply_target_graph_stats};
 use crate::core::render::passes::UiPlatformAction;
 use crate::core::state::EngineState;
@@ -513,7 +514,9 @@ pub fn render_frames(engine_state: &mut EngineState) {
                     gpu_profiler.buffer_size(),
                 );
                 queue.submit(Some(resolve_encoder.finish()));
-                gpu_profiler.readback_and_update(device, &mut engine_state.profiling);
+                if let Some(report) = gpu_profiler.readback_report(device) {
+                    apply_gpu_timing_report(&mut engine_state.profiling, report);
+                }
             }
         }
     }

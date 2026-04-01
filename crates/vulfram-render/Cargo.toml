@@ -5,6 +5,7 @@ edition.workspace = true
 license.workspace = true
 
 [dependencies]
+bytemuck = "1.24"
 egui = "0.29"
 glam = { version = "0.30", features = ["serde"] }
 rmp-serde = "1.3"
