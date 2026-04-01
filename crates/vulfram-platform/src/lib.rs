@@ -6,6 +6,7 @@ use std::collections::HashSet;
 
 pub use bootstrap::{
     PlatformRenderBootstrapTarget, PlatformRenderSurfaceKind, PlatformSurfaceAlphaMode,
+    plan_native_render_bootstrap_target, plan_web_render_bootstrap_target,
 };
 pub use browser::{
     BrowserCursorCommandPlan, BrowserPointerCaptureUpdate, BrowserPointerMotionInput,

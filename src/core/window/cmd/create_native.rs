@@ -66,16 +66,10 @@ pub fn engine_cmd_window_create(
     let win_id = args.window_id;
     engine.window.map_window(window.id(), win_id);
 
-    let bootstrap_target = vulfram_platform::PlatformRenderBootstrapTarget::new(
+    let bootstrap_target = vulfram_platform::plan_native_render_bootstrap_target(
         args.window_id,
         UVec2::new(window_width, window_height),
-        vulfram_platform::PlatformRenderSurfaceKind::NativeWindow,
-        if args.transparent {
-            vulfram_platform::PlatformSurfaceAlphaMode::Transparent
-        } else {
-            vulfram_platform::PlatformSurfaceAlphaMode::Opaque
-        },
-        true,
+        args.transparent,
     );
     let bootstrap_plan =
         vulfram_runtime::plan_render_bootstrap(engine.device.is_some(), bootstrap_target);

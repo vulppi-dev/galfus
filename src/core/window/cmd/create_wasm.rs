@@ -104,13 +104,8 @@ pub fn engine_cmd_window_create_async(
         rect.height(),
         dpr,
     );
-    let bootstrap_target = vulfram_platform::PlatformRenderBootstrapTarget::new(
-        args.window_id,
-        window_size,
-        vulfram_platform::PlatformRenderSurfaceKind::WebCanvas,
-        vulfram_platform::PlatformSurfaceAlphaMode::Opaque,
-        false,
-    );
+    let bootstrap_target =
+        vulfram_platform::plan_web_render_bootstrap_target(args.window_id, window_size);
 
     let win_id = args.window_id;
     let canvas_clone = canvas.clone();
