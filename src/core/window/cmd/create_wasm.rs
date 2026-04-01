@@ -226,19 +226,14 @@ pub fn engine_cmd_window_create_async(
             engine.state.render.insert(win_id, artifacts.render_state);
             engine.state.window.insert_state(
                 win_id,
-                WindowState {
-                    window: window_handle,
+                WindowState::new_web(
+                    window_handle,
                     surface,
-                    config: artifacts.config.clone(),
-                    inner_size: bootstrap_plan.target.size,
-                    outer_size: bootstrap_plan.target.size,
-                    surface_target: artifacts.surface_target,
-                    is_dirty: true,
-                    last_present_ns: 0,
-                    last_frame_delta_ns: 0,
-                    fps_instant: 0.0,
-                    web_listener_registrations: listeners,
-                },
+                    artifacts.config.clone(),
+                    bootstrap_plan.target.size,
+                    artifacts.surface_target,
+                    listeners,
+                ),
             );
             engine.state.window.initialize_window_defaults(win_id);
             let binding =

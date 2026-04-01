@@ -56,6 +56,60 @@ pub struct WindowState {
     pub web_listener_registrations: Vec<WebListenerRegistration>,
 }
 
+impl WindowState {
+    #[cfg(not(feature = "wasm"))]
+    pub fn new_native(
+        window: Arc<Window>,
+        surface: wgpu::Surface<'static>,
+        config: wgpu::SurfaceConfiguration,
+        inner_position: IVec2,
+        outer_position: IVec2,
+        inner_size: UVec2,
+        outer_size: UVec2,
+        surface_target: Option<RenderTarget>,
+    ) -> Self {
+        Self {
+            window,
+            surface,
+            config,
+            surface_target,
+            inner_position,
+            outer_position,
+            inner_size,
+            outer_size,
+            is_dirty: true,
+            last_present_instant: None,
+            last_frame_delta_ns: 0,
+            fps_instant: 0.0,
+            redraw_force_until_ms: 0,
+        }
+    }
+
+    #[cfg(feature = "wasm")]
+    pub fn new_web(
+        window: Arc<Window>,
+        surface: wgpu::Surface<'static>,
+        config: wgpu::SurfaceConfiguration,
+        size: UVec2,
+        surface_target: Option<RenderTarget>,
+        web_listener_registrations: Vec<WebListenerRegistration>,
+    ) -> Self {
+        Self {
+            window,
+            surface,
+            config,
+            surface_target,
+            inner_size: size,
+            outer_size: size,
+            is_dirty: true,
+            last_present_ns: 0,
+            last_frame_delta_ns: 0,
+            fps_instant: 0.0,
+            web_listener_registrations,
+        }
+    }
+}
+
 /// Aggregates window state, IDs and caches
 pub struct WindowManager {
     pub states: HashMap<u32, WindowState>,

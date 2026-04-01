@@ -237,21 +237,16 @@ pub fn engine_cmd_window_create(
     engine.render.insert(win_id, artifacts.render_state);
     engine.window.insert_state(
         win_id,
-        WindowState {
+        WindowState::new_native(
             window,
             surface,
-            config: artifacts.config.clone(),
-            inner_position: IVec2::new(inner_position.x, inner_position.y),
-            outer_position: IVec2::new(outer_position.x, outer_position.y),
-            inner_size: UVec2::new(inner_size.width, inner_size.height),
-            outer_size: UVec2::new(outer_size.width, outer_size.height),
-            surface_target: artifacts.surface_target,
-            is_dirty: true,
-            last_present_instant: None,
-            last_frame_delta_ns: 0,
-            fps_instant: 0.0,
-            redraw_force_until_ms: 0,
-        },
+            artifacts.config.clone(),
+            IVec2::new(inner_position.x, inner_position.y),
+            IVec2::new(outer_position.x, outer_position.y),
+            UVec2::new(inner_size.width, inner_size.height),
+            UVec2::new(outer_size.width, outer_size.height),
+            artifacts.surface_target,
+        ),
     );
     engine.window.initialize_window_defaults(win_id);
     let binding = register_window_realm(engine, win_id, bootstrap_plan.target.size);
@@ -269,15 +264,13 @@ pub fn engine_cmd_window_create(
     }
 
     // Initialize window cache
-    let cache = engine.window.cache.get_or_create(win_id);
-    cache.inner_position = IVec2::new(inner_position.x, inner_position.y);
-    cache.outer_position = IVec2::new(outer_position.x, outer_position.y);
-    cache.inner_size = UVec2::new(inner_size.width, inner_size.height);
-    cache.outer_size = UVec2::new(outer_size.width, outer_size.height);
-    cache.scale_factor = 1.0; // Will be updated on first scale factor change event
-    cache.focused = false;
-    cache.occluded = false;
-    cache.dark_mode = false;
+    engine.window.cache.initialize_window_cache(
+        win_id,
+        IVec2::new(inner_position.x, inner_position.y),
+        IVec2::new(outer_position.x, outer_position.y),
+        UVec2::new(inner_size.width, inner_size.height),
+        UVec2::new(outer_size.width, outer_size.height),
+    );
 
     CmdResultWindowCreate {
         success: true,

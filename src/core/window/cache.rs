@@ -65,6 +65,25 @@ impl WindowCacheManager {
             .or_insert_with(WindowStateCache::new)
     }
 
+    pub fn initialize_window_cache(
+        &mut self,
+        window_id: u32,
+        inner_position: IVec2,
+        outer_position: IVec2,
+        inner_size: UVec2,
+        outer_size: UVec2,
+    ) {
+        let cache = self.get_or_create(window_id);
+        cache.inner_position = inner_position;
+        cache.outer_position = outer_position;
+        cache.inner_size = inner_size;
+        cache.outer_size = outer_size;
+        cache.scale_factor = 1.0;
+        cache.focused = false;
+        cache.occluded = false;
+        cache.dark_mode = false;
+    }
+
     /// Remove cache for a window
     pub fn remove(&mut self, window_id: u32) {
         self.caches.remove(&window_id);
