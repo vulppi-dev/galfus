@@ -64,6 +64,43 @@ impl RuntimeFrameState {
     }
 }
 
+impl<TCmd, TEvent, TResponse> RuntimeState<TCmd, TEvent, TResponse> {
+    pub fn clear_events(&mut self) {
+        self.event_queue.clear();
+    }
+
+    pub fn enqueue_commands<I>(&mut self, commands: I)
+    where
+        I: IntoIterator<Item = TCmd>,
+    {
+        self.cmd_queue.extend(commands);
+    }
+
+    pub fn push_deferred_command(&mut self, command: TCmd) {
+        self.deferred_cmd_queue.push(command);
+    }
+
+    pub fn take_pending_commands(&mut self) -> Vec<TCmd> {
+        std::mem::take(&mut self.cmd_queue)
+    }
+
+    pub fn take_deferred_commands(&mut self) -> Vec<TCmd> {
+        std::mem::take(&mut self.deferred_cmd_queue)
+    }
+
+    pub fn replace_deferred_commands(&mut self, commands: Vec<TCmd>) {
+        self.deferred_cmd_queue = commands;
+    }
+
+    pub fn push_event(&mut self, event: TEvent) {
+        self.event_queue.push(event);
+    }
+
+    pub fn push_response(&mut self, response: TResponse) {
+        self.response_queue.push(response);
+    }
+}
+
 pub const DEFER_MAX_ATTEMPTS: u32 = 120;
 pub const DEFER_MAX_AGE_FRAMES: u64 = 1200;
 pub const DEFER_BACKOFF_MAX_EXP: u32 = 6;
@@ -125,6 +162,24 @@ mod tests {
         assert!(state.deferred_cmd_meta.is_empty());
         assert!(state.event_queue.is_empty());
         assert!(state.response_queue.is_empty());
+    }
+
+    #[test]
+    fn runtime_state_queue_helpers_move_batches_without_leaks() {
+        let mut state = RuntimeState::<u8, u16, u32>::default();
+        state.enqueue_commands([1, 2, 3]);
+        state.push_deferred_command(9);
+        state.push_event(7);
+        state.push_response(11);
+
+        assert_eq!(state.take_pending_commands(), vec![1, 2, 3]);
+        assert_eq!(state.take_deferred_commands(), vec![9]);
+        state.replace_deferred_commands(vec![5, 6]);
+        state.clear_events();
+
+        assert_eq!(state.deferred_cmd_queue, vec![5, 6]);
+        assert!(state.event_queue.is_empty());
+        assert_eq!(state.response_queue, vec![11]);
     }
 
     #[test]

@@ -63,7 +63,7 @@ pub(crate) fn engine_process_batch(
                         "deferred command dropped after {} attempts ({} frames): {}",
                         attempts, age_frames, reason
                     );
-                    engine.runtime.response_queue.push(CommandResponseEnvelope {
+                    engine.runtime.push_response(CommandResponseEnvelope {
                         id: command_id,
                         response: super::response_maps::response_with_message(
                             last_response.response.clone(),
@@ -90,7 +90,7 @@ pub(crate) fn engine_process_batch(
                     }
                 } else {
                     let _ = engine.runtime.response_queue.pop();
-                    engine.runtime.deferred_cmd_queue.push(EngineCmdEnvelope {
+                    engine.runtime.push_deferred_command(EngineCmdEnvelope {
                         id: command_id,
                         cmd: deferred_cmd,
                     });

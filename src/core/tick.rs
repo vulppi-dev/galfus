@@ -14,7 +14,7 @@ use super::singleton::with_engine_singleton;
 pub fn vulfram_tick(time: u64, delta_time: u32) -> VulframResult {
     match with_engine_singleton(|engine| {
         engine.state.runtime.frame.begin_tick(time, delta_time);
-        engine.state.runtime.event_queue.clear();
+        engine.state.runtime.clear_events();
 
         // Reset profiling counters
         engine
@@ -30,9 +30,9 @@ pub fn vulfram_tick(time: u64, delta_time: u32) -> VulframResult {
             let cmd_start = Instant::now();
             #[cfg(feature = "wasm")]
             let cmd_start = (Date::now() * 1_000_000.0) as u64;
-            let deferred = std::mem::take(&mut engine.state.runtime.deferred_cmd_queue);
+            let deferred = engine.state.runtime.take_deferred_commands();
             // Prefer newest host commands first; deferred retries are eventual and can be stale.
-            let mut batch = std::mem::take(&mut engine.state.runtime.cmd_queue);
+            let mut batch = engine.state.runtime.take_pending_commands();
             let mut still_deferred = Vec::new();
             for envelope in deferred {
                 let key = deferred_command_key(envelope.id, &envelope.cmd);
@@ -49,7 +49,10 @@ pub fn vulfram_tick(time: u64, delta_time: u32) -> VulframResult {
                     still_deferred.push(envelope);
                 }
             }
-            engine.state.runtime.deferred_cmd_queue = still_deferred;
+            engine
+                .state
+                .runtime
+                .replace_deferred_commands(still_deferred);
             engine.state.runtime.frame.had_commands_this_frame = !batch.is_empty();
             let result = engine_process_batch(&mut engine.state, &mut engine.platform, batch);
             #[cfg(not(feature = "wasm"))]
@@ -81,8 +84,7 @@ pub fn vulfram_tick(time: u64, delta_time: u32) -> VulframResult {
                 engine
                     .state
                     .runtime
-                    .event_queue
-                    .push(crate::core::cmd::EngineEvent::System(
+                    .push_event(crate::core::cmd::EngineEvent::System(
                         crate::core::system::events::SystemEvent::AudioReady {
                             resource_id: event.resource_id,
                             success: event.success,

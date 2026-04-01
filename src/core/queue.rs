@@ -39,7 +39,7 @@ pub fn vulfram_send_queue(ptr: *const u8, length: usize) -> VulframResult {
     };
 
     match with_engine(|engine| {
-        engine.runtime.cmd_queue.extend(batch);
+        engine.runtime.enqueue_commands(batch);
         VulframResult::Success
     }) {
         Err(e) => return e,
