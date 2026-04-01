@@ -14,7 +14,7 @@ use wasm_bindgen_futures::spawn_local;
 use web_sys::HtmlCanvasElement;
 
 #[cfg(all(feature = "wasm", target_arch = "wasm32"))]
-use super::create_shared::{build_window_render_state, register_window_realm};
+use super::create_shared::{build_window_render_bootstrap_artifacts, register_window_realm};
 #[cfg(all(feature = "wasm", target_arch = "wasm32"))]
 use super::{CmdResultWindowCreate, CmdWindowCreateArgs};
 #[cfg(all(feature = "wasm", not(target_arch = "wasm32")))]
@@ -172,17 +172,12 @@ pub fn engine_cmd_window_create_async(
             }
         };
 
-        let feature_plan = vulfram_render::plan_device_features(adapter.features());
-        let gpu_profiling_supported = feature_plan.gpu_profiling_supported;
+        let adapter_info = vulfram_render::analyze_adapter(&adapter);
 
         let (device, queue) = match adapter
-            .request_device(&wgpu::DeviceDescriptor {
-                label: None,
-                required_features: feature_plan.required_features,
-                required_limits: wgpu::Limits::default(),
-                memory_hints: wgpu::MemoryHints::default(),
-                ..Default::default()
-            })
+            .request_device(&vulfram_render::build_device_descriptor(
+                adapter_info.feature_plan,
+            ))
             .await
         {
             Ok((device, queue)) => (device, queue),
@@ -208,30 +203,13 @@ pub fn engine_cmd_window_create_async(
         };
 
         let caps = surface.get_capabilities(&adapter);
-        let surface_plan = vulfram_render::plan_surface_config(&caps, bootstrap_plan.target);
-        let config = wgpu::SurfaceConfiguration {
-            usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
-            width: surface_plan.width,
-            height: surface_plan.height,
-            present_mode: surface_plan.present_mode,
-            format: surface_plan.format,
-            alpha_mode: surface_plan.alpha_mode,
-            view_formats: vec![],
-            desired_maximum_frame_latency: 2,
-        };
-
-        surface.configure(&device, &config);
-
-        let rgba16f_msaa_supported_mask = vulfram_render::resolve_rgba16f_msaa_supported_mask(
-            &adapter,
-            feature_plan.adapter_specific_format_features_supported,
-        );
-        let (render_state, surface_target) = build_window_render_state(
+        let artifacts = build_window_render_bootstrap_artifacts(
+            &surface,
             &device,
             &queue,
-            surface_plan.format,
-            bootstrap_plan.target.size,
-            rgba16f_msaa_supported_mask,
+            &caps,
+            bootstrap_plan.target,
+            adapter_info.rgba16f_msaa_supported_mask,
         );
 
         let listeners =
@@ -241,20 +219,20 @@ pub fn engine_cmd_window_create_async(
         let _ = with_engine_singleton(|engine| {
             engine.state.wgpu = instance;
             engine.state.caps = Some(caps);
-            engine.state.rgba16f_msaa_supported_mask = rgba16f_msaa_supported_mask;
+            engine.state.rgba16f_msaa_supported_mask = adapter_info.rgba16f_msaa_supported_mask;
             engine.state.device = Some(device);
             engine.state.queue = Some(queue);
             engine.state.window.map_window(window_handle.id(), win_id);
-            engine.state.render.insert(win_id, render_state);
+            engine.state.render.insert(win_id, artifacts.render_state);
             engine.state.window.insert_state(
                 win_id,
                 WindowState {
                     window: window_handle,
                     surface,
-                    config: config.clone(),
+                    config: artifacts.config.clone(),
                     inner_size: bootstrap_plan.target.size,
                     outer_size: bootstrap_plan.target.size,
-                    surface_target,
+                    surface_target: artifacts.surface_target,
                     is_dirty: true,
                     last_present_ns: 0,
                     last_frame_delta_ns: 0,
@@ -297,7 +275,9 @@ pub fn engine_cmd_window_create_async(
                         present_id: Some(binding.present_id.0),
                     }),
                 });
-            if gpu_profiling_supported && engine.state.gpu_profiler.is_none() {
+            if adapter_info.feature_plan.gpu_profiling_supported
+                && engine.state.gpu_profiler.is_none()
+            {
                 if let (Some(device), Some(queue)) =
                     (engine.state.device.as_ref(), engine.state.queue.as_ref())
                 {

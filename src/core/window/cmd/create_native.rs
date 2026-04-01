@@ -2,7 +2,7 @@
 use std::sync::Arc;
 
 #[cfg(not(feature = "wasm"))]
-use super::create_shared::{build_window_render_state, register_window_realm};
+use super::create_shared::{build_window_render_bootstrap_artifacts, register_window_realm};
 #[cfg(not(feature = "wasm"))]
 use super::{CmdResultWindowCreate, CmdWindowCreateArgs};
 #[cfg(not(feature = "wasm"))]
@@ -88,8 +88,7 @@ pub fn engine_cmd_window_create(
     };
 
     // Get or create adapter and device
-    let mut gpu_profiling_supported = false;
-    let (adapter, is_new_device) = if matches!(
+    let (adapter, is_new_device, adapter_info) = if matches!(
         bootstrap_plan.device_strategy,
         vulfram_runtime::RenderBootstrapDeviceStrategy::CreateSharedDevice
     ) {
@@ -112,17 +111,12 @@ pub fn engine_cmd_window_create(
                 }
             };
 
-        let feature_plan = vulfram_render::plan_device_features(adapter.features());
-        gpu_profiling_supported = feature_plan.gpu_profiling_supported;
+        let adapter_info = vulfram_render::analyze_adapter(&adapter);
 
         let (device, queue) = match adapter
-            .request_device(&wgpu::DeviceDescriptor {
-                label: None,
-                required_features: feature_plan.required_features,
-                required_limits: wgpu::Limits::default(),
-                memory_hints: wgpu::MemoryHints::default(),
-                ..Default::default()
-            })
+            .request_device(&vulfram_render::build_device_descriptor(
+                adapter_info.feature_plan,
+            ))
             .block_on()
         {
             Ok((device, queue)) => (device, queue),
@@ -136,15 +130,12 @@ pub fn engine_cmd_window_create(
                 };
             }
         };
-        engine.rgba16f_msaa_supported_mask = vulfram_render::resolve_rgba16f_msaa_supported_mask(
-            &adapter,
-            feature_plan.adapter_specific_format_features_supported,
-        );
+        engine.rgba16f_msaa_supported_mask = adapter_info.rgba16f_msaa_supported_mask;
 
         engine.caps = Some(surface.get_capabilities(&adapter));
         engine.device = Some(device);
         engine.queue = Some(queue);
-        (adapter, true)
+        (adapter, true, adapter_info)
     } else {
         // Subsequent windows - validate surface compatibility with existing adapter
         let adapter = match pollster::block_on(engine.wgpu.request_adapter(
@@ -167,7 +158,8 @@ pub fn engine_cmd_window_create(
                 };
             }
         };
-        (adapter, false)
+        let adapter_info = vulfram_render::analyze_adapter(&adapter);
+        (adapter, false, adapter_info)
     };
 
     // Get surface capabilities
@@ -202,19 +194,6 @@ pub fn engine_cmd_window_create(
         }
     };
 
-    let surface_plan = vulfram_render::plan_surface_config(caps, bootstrap_plan.target);
-    let config = wgpu::SurfaceConfiguration {
-        usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
-        width: surface_plan.width,
-        height: surface_plan.height,
-        present_mode: surface_plan.present_mode,
-        format: surface_plan.format,
-        alpha_mode: surface_plan.alpha_mode,
-        view_formats: vec![],
-        desired_maximum_frame_latency: 2,
-    };
-
-    // Configure the surface with the device
     let device = match engine.device.as_ref() {
         Some(device) => device,
         None => {
@@ -227,7 +206,27 @@ pub fn engine_cmd_window_create(
             };
         }
     };
-    surface.configure(device, &config);
+    let queue = match engine.queue.as_ref() {
+        Some(queue) => queue,
+        None => {
+            return CmdResultWindowCreate {
+                success: false,
+                message: "Graphics queue not initialized".into(),
+                realm_id: None,
+                surface_id: None,
+                present_id: None,
+            };
+        }
+    };
+    let artifacts = build_window_render_bootstrap_artifacts(
+        &surface,
+        device,
+        queue,
+        caps,
+        bootstrap_plan.target,
+        adapter_info.rgba16f_msaa_supported_mask,
+    );
+    engine.rgba16f_msaa_supported_mask = adapter_info.rgba16f_msaa_supported_mask;
 
     // Get initial window positions and sizes
     let inner_position = window.inner_position().unwrap_or_default();
@@ -235,32 +234,18 @@ pub fn engine_cmd_window_create(
     let inner_size = window.inner_size();
     let outer_size = window.outer_size();
 
-    let (render_state, surface_target) = match (&engine.device, &engine.queue) {
-        (Some(device), Some(queue)) => build_window_render_state(
-            device,
-            queue,
-            surface_plan.format,
-            bootstrap_plan.target.size,
-            engine.rgba16f_msaa_supported_mask,
-        ),
-        _ => (
-            crate::core::render::RenderState::new(surface_plan.format),
-            None,
-        ),
-    };
-
-    engine.render.insert(win_id, render_state);
+    engine.render.insert(win_id, artifacts.render_state);
     engine.window.insert_state(
         win_id,
         WindowState {
             window,
             surface,
-            config: config.clone(),
+            config: artifacts.config.clone(),
             inner_position: IVec2::new(inner_position.x, inner_position.y),
             outer_position: IVec2::new(outer_position.x, outer_position.y),
             inner_size: UVec2::new(inner_size.width, inner_size.height),
             outer_size: UVec2::new(outer_size.width, outer_size.height),
-            surface_target,
+            surface_target: artifacts.surface_target,
             is_dirty: true,
             last_present_instant: None,
             last_frame_delta_ns: 0,
@@ -277,7 +262,10 @@ pub fn engine_cmd_window_create(
         .set_lifecycle_state(win_id, crate::core::window::EngineWindowState::Windowed);
     let binding = register_window_realm(engine, win_id, bootstrap_plan.target.size);
 
-    if is_new_device && gpu_profiling_supported && engine.gpu_profiler.is_none() {
+    if is_new_device
+        && adapter_info.feature_plan.gpu_profiling_supported
+        && engine.gpu_profiler.is_none()
+    {
         if let (Some(device), Some(queue)) = (&engine.device, &engine.queue) {
             engine.gpu_profiler = Some(GpuProfiler::new(device, queue, engine.window.states.len()));
         }

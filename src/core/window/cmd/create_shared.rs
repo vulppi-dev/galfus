@@ -14,6 +14,12 @@ pub struct WindowRealmBinding {
     pub present_id: PresentId,
 }
 
+pub struct WindowRenderBootstrapArtifacts {
+    pub config: wgpu::SurfaceConfiguration,
+    pub render_state: RenderState,
+    pub surface_target: Option<RenderTarget>,
+}
+
 pub fn register_window_realm(
     engine: &mut EngineState,
     window_id: u32,
@@ -78,4 +84,40 @@ pub fn build_window_render_state(
     );
 
     (render_state, surface_target)
+}
+
+pub fn build_window_render_bootstrap_artifacts(
+    surface: &wgpu::Surface<'static>,
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+    caps: &wgpu::SurfaceCapabilities,
+    bootstrap_target: vulfram_platform::PlatformRenderBootstrapTarget,
+    rgba16f_msaa_supported_mask: u8,
+) -> WindowRenderBootstrapArtifacts {
+    let surface_plan = vulfram_render::plan_surface_config(caps, bootstrap_target);
+    let config = wgpu::SurfaceConfiguration {
+        usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+        width: surface_plan.width,
+        height: surface_plan.height,
+        present_mode: surface_plan.present_mode,
+        format: surface_plan.format,
+        alpha_mode: surface_plan.alpha_mode,
+        view_formats: vec![],
+        desired_maximum_frame_latency: 2,
+    };
+    surface.configure(device, &config);
+
+    let (render_state, surface_target) = build_window_render_state(
+        device,
+        queue,
+        surface_plan.format,
+        bootstrap_target.size,
+        rgba16f_msaa_supported_mask,
+    );
+
+    WindowRenderBootstrapArtifacts {
+        config,
+        render_state,
+        surface_target,
+    }
 }

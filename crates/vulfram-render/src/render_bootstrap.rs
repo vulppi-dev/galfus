@@ -8,6 +8,12 @@ pub struct RenderDeviceFeaturePlan {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct RenderAdapterBootstrapInfo {
+    pub feature_plan: RenderDeviceFeaturePlan,
+    pub rgba16f_msaa_supported_mask: u8,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct RenderSurfaceConfigPlan {
     pub format: wgpu::TextureFormat,
     pub present_mode: wgpu::PresentMode,
@@ -43,6 +49,30 @@ pub fn plan_device_features(adapter_features: wgpu::Features) -> RenderDeviceFea
         required_features,
         gpu_profiling_supported,
         adapter_specific_format_features_supported,
+    }
+}
+
+pub fn analyze_adapter(adapter: &wgpu::Adapter) -> RenderAdapterBootstrapInfo {
+    let feature_plan = plan_device_features(adapter.features());
+    let rgba16f_msaa_supported_mask = resolve_rgba16f_msaa_supported_mask(
+        adapter,
+        feature_plan.adapter_specific_format_features_supported,
+    );
+    RenderAdapterBootstrapInfo {
+        feature_plan,
+        rgba16f_msaa_supported_mask,
+    }
+}
+
+pub fn build_device_descriptor(
+    feature_plan: RenderDeviceFeaturePlan,
+) -> wgpu::DeviceDescriptor<'static> {
+    wgpu::DeviceDescriptor {
+        label: None,
+        required_features: feature_plan.required_features,
+        required_limits: wgpu::Limits::default(),
+        memory_hints: wgpu::MemoryHints::default(),
+        ..Default::default()
     }
 }
 
@@ -139,7 +169,7 @@ mod core_defaults {
 
 #[cfg(test)]
 mod tests {
-    use super::{plan_device_features, plan_surface_config};
+    use super::{build_device_descriptor, plan_device_features, plan_surface_config};
     use vulfram_platform::{
         PlatformRenderBootstrapTarget, PlatformRenderSurfaceKind, PlatformSurfaceAlphaMode,
     };
@@ -185,5 +215,16 @@ mod tests {
         assert_eq!(plan.format, wgpu::TextureFormat::Rgba8UnormSrgb);
         assert_eq!(plan.present_mode, wgpu::PresentMode::Mailbox);
         assert_eq!(plan.alpha_mode, wgpu::CompositeAlphaMode::Opaque);
+    }
+
+    #[test]
+    fn builds_device_descriptor_from_feature_plan() {
+        let feature_plan = plan_device_features(wgpu::Features::POLYGON_MODE_LINE);
+        let descriptor = build_device_descriptor(feature_plan);
+        assert!(
+            descriptor
+                .required_features
+                .contains(wgpu::Features::POLYGON_MODE_LINE)
+        );
     }
 }
