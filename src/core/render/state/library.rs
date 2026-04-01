@@ -1,11 +1,4 @@
-/// Collection of standard samplers for various rendering needs
-pub struct SamplerSet {
-    pub point_clamp: wgpu::Sampler,
-    pub linear_clamp: wgpu::Sampler,
-    pub point_repeat: wgpu::Sampler,
-    pub linear_repeat: wgpu::Sampler,
-    pub comparison: wgpu::Sampler,
-}
+pub use vulfram_render::SamplerSet;
 
 /// Static GPU resources that are shared across the renderer
 pub struct ResourceLibrary {
