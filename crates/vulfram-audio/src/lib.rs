@@ -1,10 +1,24 @@
 mod backend;
+mod contracts;
 mod sync;
+#[cfg(not(target_arch = "wasm32"))]
+mod backends {
+    pub mod kira;
+}
+#[cfg(target_arch = "wasm32")]
+mod backends {
+    pub mod webaudio;
+}
 
 use glam::{Quat, Vec3};
 use std::collections::HashMap;
 
 pub use backend::AudioProxy;
+#[cfg(not(target_arch = "wasm32"))]
+pub use backends::kira::KiraAudioProxy;
+#[cfg(target_arch = "wasm32")]
+pub use backends::webaudio::WebAudioProxy;
+pub use contracts::*;
 pub use sync::{
     AudioModelTransform, AudioSourceUpdatePlan, plan_bound_source_updates,
     resolve_listener_binding_state,

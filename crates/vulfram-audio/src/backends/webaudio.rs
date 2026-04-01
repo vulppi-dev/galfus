@@ -8,9 +8,7 @@ use wasm_bindgen::JsValue;
 use wasm_bindgen_futures::spawn_local;
 use web_sys::{AudioBuffer, AudioBufferSourceNode, AudioContext, GainNode, PannerNode};
 
-use crate::core::audio::{
-    AudioListenerState, AudioPlayMode, AudioProxy, AudioReadyEvent, AudioSourceParams,
-};
+use crate::{AudioListenerState, AudioPlayMode, AudioProxy, AudioReadyEvent, AudioSourceParams};
 
 struct DecodeResult {
     resource_id: u32,

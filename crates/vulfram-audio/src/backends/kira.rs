@@ -13,9 +13,7 @@ use kira::tween::Tween;
 use kira::{StartTime, Volume};
 use mint::{Quaternion, Vector3};
 
-use crate::core::audio::{
-    AudioListenerState, AudioPlayMode, AudioProxy, AudioReadyEvent, AudioSourceParams,
-};
+use crate::{AudioListenerState, AudioPlayMode, AudioProxy, AudioReadyEvent, AudioSourceParams};
 
 struct DecodeResult {
     resource_id: u32,

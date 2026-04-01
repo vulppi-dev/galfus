@@ -591,7 +591,9 @@ Status atual:
 - o core já consome esses tipos a partir de `vulfram-audio`
 - a interface backend-neutral de áudio agora também vive no crate novo
 - o sync semântico entre bindings de áudio e modelos 3D foi puxado para `vulfram-audio`
-- backends e fluxo de comandos ainda permanecem no core nesta fase intermediária
+- contratos de comando/estado de áudio agora vivem no crate novo
+- backends `kira` e `webaudio` agora vivem no crate novo
+- o que restou no core é basicamente adaptação de dispatch e integração com o runtime
 
 Testes obrigatórios:
 - regras de estado

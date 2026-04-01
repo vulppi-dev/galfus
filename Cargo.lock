@@ -3932,6 +3932,13 @@ name = "vulfram-audio"
 version = "0.21.2-alpha"
 dependencies = [
  "glam 0.30.10",
+ "js-sys",
+ "kira",
+ "mint",
+ "serde",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
 ]
 
 [[package]]
