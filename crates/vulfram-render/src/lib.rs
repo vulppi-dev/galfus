@@ -1,6 +1,8 @@
 mod cache;
+mod fallbacks;
 mod graph;
 mod graph_fallbacks;
+mod library;
 mod profiler;
 mod realm_planner;
 mod realm_policy;
@@ -11,6 +13,7 @@ mod ui_actions;
 mod validation;
 
 pub use cache::{ComputePipelineKey, PipelineKey, RenderCache, ShaderId};
+pub use fallbacks::{FallbackTextures, create_fallback_textures};
 pub use graph::{
     DEFAULT_2D_RENDER_GRAPH_ID, DEFAULT_3D_RENDER_GRAPH_ID, LogicalId, RenderGraphDesc,
     RenderGraphEdge, RenderGraphEdgeReason, RenderGraphLifetime, RenderGraphNode, RenderGraphPlan,
@@ -19,6 +22,7 @@ pub use graph::{
     is_reserved_render_graph_id, render_graph_desc_hash, resolve_render_graph_id, validate_graph,
 };
 pub use graph_fallbacks::{fallback_graph, ui_fallback_graph};
+pub use library::ResourceLibrary;
 pub use profiler::{GpuProfiler, GpuTimingReport};
 pub use realm_planner::{
     ComposeBlendMode, ComposeConnectorCandidate, ComposeOverlayPlan, ComposeOverlayPlanEntry,
