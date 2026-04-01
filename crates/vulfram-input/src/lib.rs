@@ -14,7 +14,7 @@ pub use cache::{InputCacheManager, InputState};
 pub use cache::{KeyboardStateCache, PointerStateCache};
 pub use gamepad::{
     GAMEPAD_AXIS_CHANGE_THRESHOLD, GAMEPAD_AXIS_DEAD_ZONE, GAMEPAD_BUTTON_CHANGE_THRESHOLD,
-    GamepadCacheManager, GamepadStateCache,
+    GamepadCacheManager, GamepadEvent, GamepadState, GamepadStateCache,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]

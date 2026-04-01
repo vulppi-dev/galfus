@@ -60,7 +60,7 @@ impl PlatformProxy for DesktopProxy {
             return start.elapsed().as_nanos() as u64;
         }
         let mut gilrs_events = Vec::new();
-        if let Some(gilrs) = &mut state.gamepad.gilrs {
+        if let Some(gilrs) = &mut state.gamepad_backend.gilrs {
             while let Some(event) = gilrs.next_event() {
                 gilrs_events.push(event);
             }

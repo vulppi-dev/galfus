@@ -24,7 +24,7 @@ pub fn process_gilrs_event(engine_state: &mut EngineState, event: GilrsEvent) {
 
     match event.event {
         GilrsEventType::Connected => {
-            let name: String = if let Some(gilrs) = &engine_state.gamepad.gilrs {
+            let name: String = if let Some(gilrs) = &engine_state.gamepad_backend.gilrs {
                 gilrs.gamepad(event.id).name().into()
             } else {
                 "Unknown".into()

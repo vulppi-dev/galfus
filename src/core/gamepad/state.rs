@@ -1,14 +1,13 @@
-use crate::core::gamepad::cache::GamepadCacheManager;
 #[cfg(not(feature = "wasm"))]
 use crate::core::platform::gilrs;
 
-pub struct GamepadState {
+#[derive(Debug, Default)]
+pub struct GamepadBackendState {
     #[cfg(not(feature = "wasm"))]
     pub gilrs: Option<gilrs::Gilrs>,
-    pub cache: GamepadCacheManager,
 }
 
-impl GamepadState {
+impl GamepadBackendState {
     pub fn new() -> Self {
         #[cfg(not(feature = "wasm"))]
         let gilrs = match gilrs::Gilrs::new() {
@@ -22,7 +21,6 @@ impl GamepadState {
         Self {
             #[cfg(not(feature = "wasm"))]
             gilrs,
-            cache: GamepadCacheManager::new(),
         }
     }
 }

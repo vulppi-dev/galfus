@@ -1,10 +1,34 @@
 use std::collections::HashMap;
 
+use serde::{Deserialize, Serialize};
+
 use crate::ElementState;
 
 pub const GAMEPAD_AXIS_DEAD_ZONE: f32 = 0.1;
 pub const GAMEPAD_AXIS_CHANGE_THRESHOLD: f32 = 0.01;
 pub const GAMEPAD_BUTTON_CHANGE_THRESHOLD: f32 = 0.05;
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(tag = "event", content = "data", rename_all = "kebab-case")]
+pub enum GamepadEvent {
+    #[serde(rename_all = "camelCase")]
+    OnConnect { gamepad_id: u32, name: String },
+    #[serde(rename_all = "camelCase")]
+    OnDisconnect { gamepad_id: u32 },
+    #[serde(rename_all = "camelCase")]
+    OnButton {
+        gamepad_id: u32,
+        button: u32,
+        state: ElementState,
+        value: f32,
+    },
+    #[serde(rename_all = "camelCase")]
+    OnAxis {
+        gamepad_id: u32,
+        axis: u32,
+        value: f32,
+    },
+}
 
 #[derive(Debug, Clone, Default)]
 pub struct GamepadStateCache {
@@ -87,6 +111,17 @@ impl GamepadCacheManager {
 
     pub fn get_mut(&mut self, gamepad_id: u32) -> Option<&mut GamepadStateCache> {
         self.gamepads.get_mut(&gamepad_id)
+    }
+}
+
+#[derive(Debug, Default)]
+pub struct GamepadState {
+    pub cache: GamepadCacheManager,
+}
+
+impl GamepadState {
+    pub fn new() -> Self {
+        Self::default()
     }
 }
 
