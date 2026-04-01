@@ -4,6 +4,48 @@ use crate::meta::{
     TargetTextureBindingMeta, TextureRecordMeta,
 };
 
+pub fn collect_record_meta<T, M, F>(
+    records: &std::collections::HashMap<u32, T>,
+    mut to_meta: F,
+) -> Vec<M>
+where
+    F: FnMut(u32, &T) -> M,
+{
+    records
+        .iter()
+        .map(|(id, record)| to_meta(*id, record))
+        .collect()
+}
+
+pub fn hash_map_by_meta<T, M, F, H>(
+    records: &std::collections::HashMap<u32, T>,
+    to_meta: F,
+    hash_meta: H,
+) -> u64
+where
+    F: FnMut(u32, &T) -> M,
+    H: Fn(&[M]) -> u64,
+{
+    let meta = collect_record_meta(records, to_meta);
+    hash_meta(&meta)
+}
+
+pub fn sync_map_by_meta<T: Clone, M, F, P>(
+    current: &mut std::collections::HashMap<u32, T>,
+    next: &std::collections::HashMap<u32, T>,
+    to_meta: F,
+    plan_sync: P,
+) where
+    F: FnMut(u32, &T) -> M,
+    P: Fn(&[M], &[M]) -> SyncPlan,
+{
+    let mut to_meta = to_meta;
+    let current_meta = collect_record_meta(current, &mut to_meta);
+    let next_meta = collect_record_meta(next, &mut to_meta);
+    let plan = plan_sync(&current_meta, &next_meta);
+    apply_sync_plan_map(current, next, &plan);
+}
+
 pub fn hash_texture_records(records: &[TextureRecordMeta]) -> u64 {
     use std::hash::{Hash, Hasher};
 

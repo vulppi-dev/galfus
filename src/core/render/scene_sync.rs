@@ -279,142 +279,105 @@ pub(super) fn sync_scene_from_realm_and_universal_resources(
 fn hash_texture_records(
     textures: &std::collections::HashMap<u32, crate::core::resources::TextureRecord>,
 ) -> u64 {
-    let records: Vec<_> = textures
-        .iter()
-        .map(|(id, record)| {
+    vulfram_realm_3d::hash_map_by_meta(
+        textures,
+        |id, record| {
             let size = record._texture.size();
             vulfram_realm_3d::TextureRecordMeta {
-                id: *id,
+                id,
                 label: record.label.clone(),
                 width: size.width,
                 height: size.height,
                 depth_or_array_layers: size.depth_or_array_layers,
                 format: format!("{:?}", record._texture.format()),
             }
-        })
-        .collect();
-    vulfram_realm_3d::hash_texture_records(&records)
+        },
+        vulfram_realm_3d::hash_texture_records,
+    )
 }
 
 fn hash_forward_atlas_entries(
     entries: &std::collections::HashMap<u32, crate::core::resources::ForwardAtlasEntry>,
 ) -> u64 {
-    let entries: Vec<_> = entries
-        .iter()
-        .map(|(id, entry)| vulfram_realm_3d::ForwardAtlasEntryMeta {
-            id: *id,
+    vulfram_realm_3d::hash_map_by_meta(
+        entries,
+        |id, entry| vulfram_realm_3d::ForwardAtlasEntryMeta {
+            id,
             label: entry.label.clone(),
             layer: entry.layer,
             uv_scale_bias: entry.uv_scale_bias.to_array(),
-        })
-        .collect();
-    vulfram_realm_3d::hash_forward_atlas_entries(&entries)
+        },
+        vulfram_realm_3d::hash_forward_atlas_entries,
+    )
 }
 
 fn hash_target_texture_binds(
     binds: &std::collections::HashMap<u32, crate::core::resources::TargetTextureBinding>,
 ) -> u64 {
-    let binds: Vec<_> = binds
-        .iter()
-        .map(
-            |(texture_id, bind)| vulfram_realm_3d::TargetTextureBindingMeta {
-                texture_id: *texture_id,
-                target_id: bind.target_id,
-                label: bind.label.clone(),
-            },
-        )
-        .collect();
-    vulfram_realm_3d::hash_target_texture_binds(&binds)
+    vulfram_realm_3d::hash_map_by_meta(
+        binds,
+        |texture_id, bind| vulfram_realm_3d::TargetTextureBindingMeta {
+            texture_id,
+            target_id: bind.target_id,
+            label: bind.label.clone(),
+        },
+        vulfram_realm_3d::hash_target_texture_binds,
+    )
 }
 
 fn sync_texture_records(
     current: &mut std::collections::HashMap<u32, crate::core::resources::TextureRecord>,
     next: &std::collections::HashMap<u32, crate::core::resources::TextureRecord>,
 ) {
-    let current_meta: Vec<_> = current
-        .iter()
-        .map(|(id, record)| {
+    vulfram_realm_3d::sync_map_by_meta(
+        current,
+        next,
+        |id, record| {
             let size = record._texture.size();
             vulfram_realm_3d::TextureRecordMeta {
-                id: *id,
+                id,
                 label: record.label.clone(),
                 width: size.width,
                 height: size.height,
                 depth_or_array_layers: size.depth_or_array_layers,
                 format: format!("{:?}", record._texture.format()),
             }
-        })
-        .collect();
-    let next_meta: Vec<_> = next
-        .iter()
-        .map(|(id, record)| {
-            let size = record._texture.size();
-            vulfram_realm_3d::TextureRecordMeta {
-                id: *id,
-                label: record.label.clone(),
-                width: size.width,
-                height: size.height,
-                depth_or_array_layers: size.depth_or_array_layers,
-                format: format!("{:?}", record._texture.format()),
-            }
-        })
-        .collect();
-    let plan = vulfram_realm_3d::plan_texture_record_sync(&current_meta, &next_meta);
-    vulfram_realm_3d::apply_sync_plan_map(current, next, &plan);
+        },
+        vulfram_realm_3d::plan_texture_record_sync,
+    );
 }
 
 fn sync_forward_atlas_entries(
     current: &mut std::collections::HashMap<u32, crate::core::resources::ForwardAtlasEntry>,
     next: &std::collections::HashMap<u32, crate::core::resources::ForwardAtlasEntry>,
 ) {
-    let current_meta: Vec<_> = current
-        .iter()
-        .map(|(id, entry)| vulfram_realm_3d::ForwardAtlasEntryMeta {
-            id: *id,
+    vulfram_realm_3d::sync_map_by_meta(
+        current,
+        next,
+        |id, entry| vulfram_realm_3d::ForwardAtlasEntryMeta {
+            id,
             label: entry.label.clone(),
             layer: entry.layer,
             uv_scale_bias: entry.uv_scale_bias.to_array(),
-        })
-        .collect();
-    let next_meta: Vec<_> = next
-        .iter()
-        .map(|(id, entry)| vulfram_realm_3d::ForwardAtlasEntryMeta {
-            id: *id,
-            label: entry.label.clone(),
-            layer: entry.layer,
-            uv_scale_bias: entry.uv_scale_bias.to_array(),
-        })
-        .collect();
-    let plan = vulfram_realm_3d::plan_forward_atlas_sync(&current_meta, &next_meta);
-    vulfram_realm_3d::apply_sync_plan_map(current, next, &plan);
+        },
+        vulfram_realm_3d::plan_forward_atlas_sync,
+    );
 }
 
 fn sync_target_texture_binds(
     current: &mut std::collections::HashMap<u32, crate::core::resources::TargetTextureBinding>,
     next: &std::collections::HashMap<u32, crate::core::resources::TargetTextureBinding>,
 ) {
-    let current_meta: Vec<_> = current
-        .iter()
-        .map(
-            |(texture_id, bind)| vulfram_realm_3d::TargetTextureBindingMeta {
-                texture_id: *texture_id,
-                target_id: bind.target_id,
-                label: bind.label.clone(),
-            },
-        )
-        .collect();
-    let next_meta: Vec<_> = next
-        .iter()
-        .map(
-            |(texture_id, bind)| vulfram_realm_3d::TargetTextureBindingMeta {
-                texture_id: *texture_id,
-                target_id: bind.target_id,
-                label: bind.label.clone(),
-            },
-        )
-        .collect();
-    let plan = vulfram_realm_3d::plan_target_texture_bind_sync(&current_meta, &next_meta);
-    vulfram_realm_3d::apply_sync_plan_map(current, next, &plan);
+    vulfram_realm_3d::sync_map_by_meta(
+        current,
+        next,
+        |texture_id, bind| vulfram_realm_3d::TargetTextureBindingMeta {
+            texture_id,
+            target_id: bind.target_id,
+            label: bind.label.clone(),
+        },
+        vulfram_realm_3d::plan_target_texture_bind_sync,
+    );
 }
 
 pub(super) fn sync_window_geometry_registry(
