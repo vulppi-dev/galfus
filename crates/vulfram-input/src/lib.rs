@@ -1,4 +1,5 @@
 mod cache;
+mod gamepad;
 
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
@@ -11,6 +12,10 @@ use vulfram_types::{ConnectorId, RealmId, SurfaceId};
 pub use cache::{InputCacheManager, InputState};
 #[cfg(not(target_arch = "wasm32"))]
 pub use cache::{KeyboardStateCache, PointerStateCache};
+pub use gamepad::{
+    GAMEPAD_AXIS_CHANGE_THRESHOLD, GAMEPAD_AXIS_DEAD_ZONE, GAMEPAD_BUTTON_CHANGE_THRESHOLD,
+    GamepadCacheManager, GamepadStateCache,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "kebab-case")]
