@@ -288,15 +288,31 @@ pub fn plan_geometry_registry_sync(current_ids: &[u32], next_ids: &[u32]) -> Syn
     }
 }
 
+pub fn apply_sync_plan_map<T: Clone>(
+    current: &mut std::collections::HashMap<u32, T>,
+    next: &std::collections::HashMap<u32, T>,
+    plan: &SyncPlan,
+) {
+    for stale_id in &plan.stale_ids {
+        current.remove(stale_id);
+    }
+    for replace_id in &plan.replace_ids {
+        if let Some(record) = next.get(replace_id) {
+            current.insert(*replace_id, record.clone());
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
         CameraProjectionPlan, ForwardAtlasEntryMeta, LightRecordMeta, MaterialRecordMeta,
         ModelRecordMeta, SyncPlan, TargetTextureBindingMeta, TextureRecordMeta,
-        graph_is_compatible, hash_forward_atlas_entries, hash_target_texture_binds,
-        hash_texture_records, light_record_changed, material_record_changed, model_record_changed,
-        plan_camera_projection_update, plan_forward_atlas_sync, plan_geometry_registry_sync,
-        plan_target_texture_bind_sync, plan_texture_record_sync, supports_render_pass,
+        apply_sync_plan_map, graph_is_compatible, hash_forward_atlas_entries,
+        hash_target_texture_binds, hash_texture_records, light_record_changed,
+        material_record_changed, model_record_changed, plan_camera_projection_update,
+        plan_forward_atlas_sync, plan_geometry_registry_sync, plan_target_texture_bind_sync,
+        plan_texture_record_sync, supports_render_pass,
     };
 
     #[test]
@@ -467,6 +483,23 @@ mod tests {
                 replace_ids: vec![4],
             }
         );
+    }
+
+    #[test]
+    fn apply_sync_plan_map_removes_stale_and_replaces_changed_entries() {
+        let mut current = std::collections::HashMap::from([(1_u32, "old-a"), (2_u32, "old-b")]);
+        let next = std::collections::HashMap::from([(1_u32, "new-a"), (3_u32, "new-c")]);
+        let plan = SyncPlan {
+            stale_ids: vec![2],
+            replace_ids: vec![1, 3],
+        };
+
+        apply_sync_plan_map(&mut current, &next, &plan);
+
+        assert_eq!(current.len(), 2);
+        assert_eq!(current.get(&1), Some(&"new-a"));
+        assert_eq!(current.get(&3), Some(&"new-c"));
+        assert!(!current.contains_key(&2));
     }
 
     #[test]

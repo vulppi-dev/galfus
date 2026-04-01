@@ -348,15 +348,7 @@ fn sync_texture_records(
         })
         .collect();
     let plan = vulfram_realm_3d::plan_texture_record_sync(&current_meta, &next_meta);
-
-    for stale_id in plan.stale_ids {
-        current.remove(&stale_id);
-    }
-    for replace_id in plan.replace_ids {
-        if let Some(record) = next.get(&replace_id) {
-            current.insert(replace_id, record.clone());
-        }
-    }
+    vulfram_realm_3d::apply_sync_plan_map(current, next, &plan);
 }
 
 fn sync_forward_atlas_entries(
@@ -382,15 +374,7 @@ fn sync_forward_atlas_entries(
         })
         .collect();
     let plan = vulfram_realm_3d::plan_forward_atlas_sync(&current_meta, &next_meta);
-
-    for stale_id in plan.stale_ids {
-        current.remove(&stale_id);
-    }
-    for replace_id in plan.replace_ids {
-        if let Some(entry) = next.get(&replace_id) {
-            current.insert(replace_id, entry.clone());
-        }
-    }
+    vulfram_realm_3d::apply_sync_plan_map(current, next, &plan);
 }
 
 fn sync_target_texture_binds(
@@ -418,15 +402,7 @@ fn sync_target_texture_binds(
         )
         .collect();
     let plan = vulfram_realm_3d::plan_target_texture_bind_sync(&current_meta, &next_meta);
-
-    for stale_id in plan.stale_ids {
-        current.remove(&stale_id);
-    }
-    for replace_id in plan.replace_ids {
-        if let Some(bind) = next.get(&replace_id) {
-            current.insert(replace_id, bind.clone());
-        }
-    }
+    vulfram_realm_3d::apply_sync_plan_map(current, next, &plan);
 }
 
 pub(super) fn sync_window_geometry_registry(
