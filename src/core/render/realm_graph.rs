@@ -160,27 +160,7 @@ pub(crate) fn ensure_surface_target<'a>(
     size: glam::UVec2,
     format: wgpu::TextureFormat,
 ) -> &'a RenderTarget {
-    let size = glam::UVec2::new(size.x.max(1), size.y.max(1));
-    let needs_target = match surface_targets.get(&surface_id) {
-        Some(existing) => {
-            let tex_size = existing.texture.size();
-            tex_size.width != size.x || tex_size.height != size.y || existing.format != format
-        }
-        None => true,
-    };
-
-    if needs_target {
-        let extent = wgpu::Extent3d {
-            width: size.x,
-            height: size.y,
-            depth_or_array_layers: 1,
-        };
-        surface_targets.insert(surface_id, RenderTarget::new(device, extent, format));
-    }
-
-    surface_targets
-        .get(&surface_id)
-        .expect("surface target missing after ensure")
+    vulfram_render::ensure_surface_target(device, surface_targets, surface_id, size, format)
 }
 
 pub(crate) fn compose_realm_connectors(
