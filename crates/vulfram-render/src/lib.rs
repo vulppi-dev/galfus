@@ -1,3 +1,4 @@
+mod cache;
 mod graph;
 mod graph_fallbacks;
 mod realm_planner;
@@ -6,6 +7,7 @@ mod render_bootstrap;
 mod ui_actions;
 mod validation;
 
+pub use cache::{ComputePipelineKey, PipelineKey, RenderCache, ShaderId};
 pub use graph::{
     DEFAULT_2D_RENDER_GRAPH_ID, DEFAULT_3D_RENDER_GRAPH_ID, LogicalId, RenderGraphDesc,
     RenderGraphEdge, RenderGraphEdgeReason, RenderGraphLifetime, RenderGraphNode, RenderGraphPlan,
