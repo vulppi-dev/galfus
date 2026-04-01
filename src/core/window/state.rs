@@ -97,6 +97,12 @@ impl WindowManager {
         self.states.insert(window_id, state);
     }
 
+    pub fn initialize_window_defaults(&mut self, window_id: u32) {
+        self.set_cursor_grab_mode(window_id, CursorGrabMode::None);
+        self.set_pointer_capture_active(window_id, false);
+        self.set_lifecycle_state(window_id, EngineWindowState::Windowed);
+    }
+
     pub fn set_cursor_grab_mode(&mut self, window_id: u32, mode: CursorGrabMode) {
         self.cursor_grab_modes.insert(window_id, mode);
     }

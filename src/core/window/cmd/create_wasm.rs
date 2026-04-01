@@ -240,18 +240,7 @@ pub fn engine_cmd_window_create_async(
                     web_listener_registrations: listeners,
                 },
             );
-            engine
-                .state
-                .window
-                .set_cursor_grab_mode(win_id, crate::core::window::CursorGrabMode::None);
-            engine
-                .state
-                .window
-                .set_pointer_capture_active(win_id, false);
-            engine
-                .state
-                .window
-                .set_lifecycle_state(win_id, crate::core::window::EngineWindowState::Windowed);
+            engine.state.window.initialize_window_defaults(win_id);
             let binding =
                 register_window_realm(&mut engine.state, win_id, bootstrap_plan.target.size);
 
@@ -275,17 +264,17 @@ pub fn engine_cmd_window_create_async(
                         present_id: Some(binding.present_id.0),
                     }),
                 });
-            if adapter_info.feature_plan.gpu_profiling_supported
-                && engine.state.gpu_profiler.is_none()
             {
                 if let (Some(device), Some(queue)) =
                     (engine.state.device.as_ref(), engine.state.queue.as_ref())
                 {
-                    engine.state.gpu_profiler = Some(GpuProfiler::new(
+                    GpuProfiler::ensure_available(
+                        &mut engine.state.gpu_profiler,
                         device,
                         queue,
                         engine.state.window.states.len(),
-                    ));
+                        adapter_info.feature_plan.gpu_profiling_supported,
+                    );
                 }
             }
         });

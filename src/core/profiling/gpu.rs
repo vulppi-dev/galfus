@@ -14,6 +14,19 @@ pub struct GpuProfiler {
 }
 
 impl GpuProfiler {
+    pub fn ensure_available(
+        gpu_profiler: &mut Option<Self>,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        window_count: usize,
+        supported: bool,
+    ) {
+        if !supported || gpu_profiler.is_some() {
+            return;
+        }
+        *gpu_profiler = Some(Self::new(device, queue, window_count));
+    }
+
     pub fn new(device: &wgpu::Device, queue: &wgpu::Queue, window_count: usize) -> Self {
         let query_count = Self::required_query_count(window_count);
         let query_set = device.create_query_set(&wgpu::QuerySetDescriptor {

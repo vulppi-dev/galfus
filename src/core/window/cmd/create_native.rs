@@ -253,21 +253,18 @@ pub fn engine_cmd_window_create(
             redraw_force_until_ms: 0,
         },
     );
-    engine
-        .window
-        .set_cursor_grab_mode(win_id, crate::core::window::CursorGrabMode::None);
-    engine.window.set_pointer_capture_active(win_id, false);
-    engine
-        .window
-        .set_lifecycle_state(win_id, crate::core::window::EngineWindowState::Windowed);
+    engine.window.initialize_window_defaults(win_id);
     let binding = register_window_realm(engine, win_id, bootstrap_plan.target.size);
 
-    if is_new_device
-        && adapter_info.feature_plan.gpu_profiling_supported
-        && engine.gpu_profiler.is_none()
-    {
+    if is_new_device {
         if let (Some(device), Some(queue)) = (&engine.device, &engine.queue) {
-            engine.gpu_profiler = Some(GpuProfiler::new(device, queue, engine.window.states.len()));
+            GpuProfiler::ensure_available(
+                &mut engine.gpu_profiler,
+                device,
+                queue,
+                engine.window.states.len(),
+                adapter_info.feature_plan.gpu_profiling_supported,
+            );
         }
     }
 
