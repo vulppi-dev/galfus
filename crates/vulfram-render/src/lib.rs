@@ -18,9 +18,7 @@ pub use realm_planner::{
     plan_target_size_updates, resolve_connector_surface, resolve_realm_surface,
     should_render_realm, update_present_size_cache, update_surface_cache,
 };
-pub use ui_actions::{
-    UiPlatformAction, WindowFullscreenMode, collect_platform_actions, resolve_window_state,
-};
+pub use ui_actions::{UiPlatformAction, collect_platform_actions};
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(untagged)]

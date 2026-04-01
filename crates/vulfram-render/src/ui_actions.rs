@@ -4,12 +4,6 @@ use vulfram_protocol::{
     CursorIcon, EngineWindowState, UiViewportClass, UiViewportCommand, UserAttentionType,
 };
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum WindowFullscreenMode {
-    Exclusive,
-    Borderless,
-}
-
 #[derive(Debug, Clone)]
 pub enum UiPlatformAction {
     SetCursorIcon {
@@ -260,25 +254,6 @@ pub fn collect_platform_actions(
     actions
 }
 
-pub fn resolve_window_state(
-    minimized: bool,
-    maximized: bool,
-    fullscreen: Option<WindowFullscreenMode>,
-) -> EngineWindowState {
-    if minimized {
-        EngineWindowState::Minimized
-    } else if maximized {
-        EngineWindowState::Maximized
-    } else if let Some(mode) = fullscreen {
-        match mode {
-            WindowFullscreenMode::Exclusive => EngineWindowState::Fullscreen,
-            WindowFullscreenMode::Borderless => EngineWindowState::WindowedFullscreen,
-        }
-    } else {
-        EngineWindowState::Windowed
-    }
-}
-
 fn map_attention_type(attention: egui::UserAttentionType) -> Option<UserAttentionType> {
     match attention {
         egui::UserAttentionType::Critical => Some(UserAttentionType::Critical),
@@ -393,10 +368,7 @@ fn map_cursor_icon(icon: egui::CursorIcon) -> Option<CursorIcon> {
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        UiPlatformAction, WindowFullscreenMode, collect_platform_actions, resolve_window_state,
-    };
-    use vulfram_protocol::EngineWindowState;
+    use super::{UiPlatformAction, collect_platform_actions};
 
     #[test]
     fn collects_root_viewport_window_actions() {
@@ -447,29 +419,5 @@ mod tests {
             UiPlatformAction::EmitViewportCommand { window_id, realm_id, .. }
             if *window_id == 3 && *realm_id == 9
         )));
-    }
-
-    #[test]
-    fn resolves_window_state_from_flags() {
-        assert_eq!(
-            resolve_window_state(true, false, None),
-            EngineWindowState::Minimized
-        );
-        assert_eq!(
-            resolve_window_state(false, true, None),
-            EngineWindowState::Maximized
-        );
-        assert_eq!(
-            resolve_window_state(false, false, Some(WindowFullscreenMode::Exclusive)),
-            EngineWindowState::Fullscreen
-        );
-        assert_eq!(
-            resolve_window_state(false, false, Some(WindowFullscreenMode::Borderless)),
-            EngineWindowState::WindowedFullscreen
-        );
-        assert_eq!(
-            resolve_window_state(false, false, None),
-            EngineWindowState::Windowed
-        );
     }
 }
