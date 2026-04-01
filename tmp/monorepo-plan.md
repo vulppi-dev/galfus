@@ -574,6 +574,17 @@ Critério de aceite:
 - `render` consome semântica, não a define
 - nenhuma dependência em `runtime`
 
+Status atual:
+- crate criado e já concentra contratos de render graph, fallback graphs e validação semântica
+- helpers de IDs reservados/default e hashing de graph já vivem no crate novo
+- planners puros de `realm_graph` já foram extraídos:
+  cut connectors, surface cache, realms por janela, present-size cache, sizing de surfaces e overlays de compose
+- planners de sizing/update já foram extraídos:
+  target size update, external texture refresh, environment binding e diagnóstico de soft-cut
+- o crate foi reorganizado internamente em módulos menores para evitar novo acoplamento local
+- o que ainda resta no core é majoritariamente backend concreto:
+  `wgpu`, passes, execução de frame, lifecycle GPU e aplicação de recursos vivos
+
 ### Fase 7 — Criação de `vulfram-audio`
 
 Objetivo:
@@ -673,6 +684,14 @@ Critério de aceite:
 - sem `wgpu`
 - sem ownership gráfico
 
+Status atual:
+- crate criado e já concentra política de passes compatíveis do realm 3D
+- fingerprints e sync plans de texturas, atlas, target texture binds e geometria já vivem no crate
+- planners de atualização semântica para câmeras, modelos, luzes e materiais já foram extraídos
+- aplicação genérica de `SyncPlan` em mapas também já vive no crate
+- o crate foi reorganizado em módulos menores para manter responsabilidades locais bem separadas
+- o que segue no core é adaptação para records vivos e recursos gráficos concretos
+
 ### Fase 11 — Criação de `vulfram-realm-2d`
 
 Objetivo:
@@ -689,6 +708,12 @@ Testes obrigatórios:
 
 Critério de aceite:
 - sem placeholders vazios sem função concreta
+
+Status atual:
+- crate criado com responsabilidade concreta mínima, mas real:
+  política de compatibilidade de passes para realms 2D
+- ainda é um domínio pequeno, porém já útil e integrado ao fluxo de validação de render graph
+- próximos avanços em `realm-2d` só fazem sentido quando surgirem tipos/estruturas 2D semânticas de verdade
 
 ### Fase 12 — Criação dos `vulfram-bindings-*`
 
