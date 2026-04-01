@@ -5,6 +5,7 @@ mod profiler;
 mod realm_planner;
 mod realm_policy;
 mod render_bootstrap;
+mod target;
 mod ui_actions;
 mod validation;
 
@@ -38,4 +39,5 @@ pub use render_bootstrap::{
     build_default_instance_descriptor, build_device_descriptor, create_default_instance,
     plan_device_features, plan_surface_config, resolve_rgba16f_msaa_supported_mask,
 };
+pub use target::{RenderTarget, ensure_render_target};
 pub use ui_actions::{UiPlatformAction, collect_platform_actions};
