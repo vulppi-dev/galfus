@@ -30,6 +30,32 @@ where
     hash_meta(&meta)
 }
 
+pub fn retain_records_by_ids<T>(
+    records: &mut std::collections::HashMap<u32, T>,
+    live_ids: &std::collections::HashSet<u32>,
+) {
+    records.retain(|record_id, _| live_ids.contains(record_id));
+}
+
+pub fn rebuild_record_map<T: Clone, F>(
+    current: &mut std::collections::HashMap<u32, T>,
+    next: &std::collections::HashMap<u32, T>,
+    mut update_existing: F,
+) where
+    F: FnMut(&mut T, &T),
+{
+    let mut previous = std::mem::take(current);
+    current.clear();
+    for (record_id, next_record) in next {
+        if let Some(mut current_record) = previous.remove(record_id) {
+            update_existing(&mut current_record, next_record);
+            current.insert(*record_id, current_record);
+        } else {
+            current.insert(*record_id, next_record.clone());
+        }
+    }
+}
+
 pub fn sync_map_by_meta<T: Clone, M, F, P>(
     current: &mut std::collections::HashMap<u32, T>,
     next: &std::collections::HashMap<u32, T>,

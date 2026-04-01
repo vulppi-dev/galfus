@@ -14,14 +14,8 @@ pub(super) fn sync_scene_from_realm_and_universal_resources(
         .values()
         .flat_map(|entities| entities.cameras.keys().copied())
         .collect();
-    render_state
-        .detached_cameras
-        .retain(|camera_id, _| live_camera_ids.contains(camera_id));
-    let mut previous_models = std::mem::take(&mut render_state.scene.models);
-    let mut previous_lights = std::mem::take(&mut render_state.scene.lights);
+    vulfram_realm_3d::retain_records_by_ids(&mut render_state.detached_cameras, &live_camera_ids);
     render_state.scene.cameras.clear();
-    render_state.scene.models.clear();
-    render_state.scene.lights.clear();
 
     if let Some(entities) = universal.realm3d.entities.get(&realm_id) {
         for (camera_id, node) in &entities.cameras {
@@ -56,8 +50,10 @@ pub(super) fn sync_scene_from_realm_and_universal_resources(
             record.mark_dirty();
             render_state.scene.cameras.insert(*camera_id, record);
         }
-        for (model_id, node) in &entities.models {
-            if let Some(mut record) = previous_models.remove(model_id) {
+        vulfram_realm_3d::rebuild_record_map(
+            &mut render_state.scene.models,
+            &entities.models,
+            |record, node| {
                 let current_meta = vulfram_realm_3d::ModelRecordMeta {
                     transform: record.data.transform.to_cols_array(),
                     translation: record.data.translation.to_array(),
@@ -99,13 +95,12 @@ pub(super) fn sync_scene_from_realm_and_universal_resources(
                 if update_plan.mark_dirty {
                     record.mark_dirty();
                 }
-                render_state.scene.models.insert(*model_id, record);
-            } else {
-                render_state.scene.models.insert(*model_id, node.clone());
-            }
-        }
-        for (light_id, node) in &entities.lights {
-            if let Some(mut record) = previous_lights.remove(light_id) {
+            },
+        );
+        vulfram_realm_3d::rebuild_record_map(
+            &mut render_state.scene.lights,
+            &entities.lights,
+            |record, node| {
                 let current_meta = vulfram_realm_3d::LightRecordMeta {
                     position: record.data.position.to_array(),
                     direction: record.data.direction.to_array(),
@@ -143,21 +138,17 @@ pub(super) fn sync_scene_from_realm_and_universal_resources(
                 if update_plan.mark_dirty {
                     record.mark_dirty();
                 }
-                render_state.scene.lights.insert(*light_id, record);
-            } else {
-                render_state.scene.lights.insert(*light_id, node.clone());
-            }
-        }
+            },
+        );
     } else {
-        previous_models.clear();
-        previous_lights.clear();
+        render_state.scene.models.clear();
+        render_state.scene.lights.clear();
     }
 
-    let mut previous_materials_standard =
-        std::mem::take(&mut render_state.scene.materials_standard);
-    render_state.scene.materials_standard.clear();
-    for (material_id, node) in &universal.realm3d.materials_standard {
-        if let Some(mut record) = previous_materials_standard.remove(material_id) {
+    vulfram_realm_3d::rebuild_record_map(
+        &mut render_state.scene.materials_standard,
+        &universal.realm3d.materials_standard,
+        |record, node| {
             let current_meta = vulfram_realm_3d::MaterialRecordMeta {
                 label: record.label.clone(),
                 data_bytes: bytemuck::bytes_of(&record.data).to_vec(),
@@ -191,21 +182,12 @@ pub(super) fn sync_scene_from_realm_and_universal_resources(
             if update_plan.reset_bind_group {
                 record.bind_group = None;
             }
-            render_state
-                .scene
-                .materials_standard
-                .insert(*material_id, record);
-        } else {
-            render_state
-                .scene
-                .materials_standard
-                .insert(*material_id, node.clone());
-        }
-    }
-    let mut previous_materials_pbr = std::mem::take(&mut render_state.scene.materials_pbr);
-    render_state.scene.materials_pbr.clear();
-    for (material_id, node) in &universal.realm3d.materials_pbr {
-        if let Some(mut record) = previous_materials_pbr.remove(material_id) {
+        },
+    );
+    vulfram_realm_3d::rebuild_record_map(
+        &mut render_state.scene.materials_pbr,
+        &universal.realm3d.materials_pbr,
+        |record, node| {
             let current_meta = vulfram_realm_3d::MaterialRecordMeta {
                 label: record.label.clone(),
                 data_bytes: bytemuck::bytes_of(&record.data).to_vec(),
@@ -239,17 +221,8 @@ pub(super) fn sync_scene_from_realm_and_universal_resources(
             if update_plan.reset_bind_group {
                 record.bind_group = None;
             }
-            render_state
-                .scene
-                .materials_pbr
-                .insert(*material_id, record);
-        } else {
-            render_state
-                .scene
-                .materials_pbr
-                .insert(*material_id, node.clone());
-        }
-    }
+        },
+    );
     let textures_hash = hash_texture_records(&universal.render_resources.textures);
     if render_state.textures_sync_hash != textures_hash {
         sync_texture_records(

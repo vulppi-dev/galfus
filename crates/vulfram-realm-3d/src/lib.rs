@@ -13,7 +13,7 @@ pub use sync::{
     hash_target_texture_binds, hash_texture_records, plan_camera_projection_update,
     plan_forward_atlas_sync, plan_geometry_registry_sync, plan_light_record_update,
     plan_material_record_update, plan_model_record_update, plan_target_texture_bind_sync,
-    plan_texture_record_sync, sync_map_by_meta,
+    plan_texture_record_sync, rebuild_record_map, retain_records_by_ids, sync_map_by_meta,
 };
 
 #[cfg(test)]
