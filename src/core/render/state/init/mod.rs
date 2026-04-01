@@ -29,88 +29,7 @@ impl RenderState {
         let fallbacks = self.init_fallback_textures(device, queue);
 
         // 5. Initialize pipeline layouts
-        let gizmo_pipeline_layout =
-            device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-                label: Some("Gizmo Pipeline Layout"),
-                bind_group_layouts: &[&layouts.shared],
-                immediate_size: 0,
-            });
-
-        let forward_standard_pipeline_layout =
-            device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-                label: Some("Forward Standard Pipeline Layout"),
-                bind_group_layouts: &[&layouts.shared, &layouts.object_standard],
-                immediate_size: 0,
-            });
-
-        let forward_pbr_pipeline_layout =
-            device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-                label: Some("Forward PBR Pipeline Layout"),
-                bind_group_layouts: &[&layouts.shared, &layouts.object_pbr],
-                immediate_size: 0,
-            });
-
-        let shadow_pipeline_layout =
-            device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-                label: Some("Shadow Pipeline Layout"),
-                bind_group_layouts: &[&layouts.shared, &layouts.object],
-                immediate_size: 0,
-            });
-
-        let outline_pipeline_layout =
-            device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-                label: Some("Outline Pipeline Layout"),
-                bind_group_layouts: &[&layouts.shared, &layouts.object],
-                immediate_size: 0,
-            });
-
-        let light_cull_pipeline_layout =
-            device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-                label: Some("LightCull Pipeline Layout"),
-                bind_group_layouts: &[&layouts.light_cull],
-                immediate_size: 0,
-            });
-
-        let ssao_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-            label: Some("SSAO Pipeline Layout"),
-            bind_group_layouts: &[&layouts.ssao],
-            immediate_size: 0,
-        });
-
-        let ssao_blur_pipeline_layout =
-            device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-                label: Some("SSAO Blur Pipeline Layout"),
-                bind_group_layouts: &[&layouts.ssao_blur],
-                immediate_size: 0,
-            });
-
-        let ssao_msaa_pipeline_layout =
-            device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-                label: Some("SSAO MSAA Pipeline Layout"),
-                bind_group_layouts: &[&layouts.ssao_msaa],
-                immediate_size: 0,
-            });
-
-        let ssao_blur_msaa_pipeline_layout =
-            device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-                label: Some("SSAO Blur MSAA Pipeline Layout"),
-                bind_group_layouts: &[&layouts.ssao_blur_msaa],
-                immediate_size: 0,
-            });
-
-        let bloom_pipeline_layout =
-            device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-                label: Some("Bloom Pipeline Layout"),
-                bind_group_layouts: &[&layouts.bloom],
-                immediate_size: 0,
-            });
-
-        let skybox_pipeline_layout =
-            device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-                label: Some("Skybox Pipeline Layout"),
-                bind_group_layouts: &[&layouts.skybox],
-                immediate_size: 0,
-            });
+        let pipeline_layouts = vulfram_render::create_pipeline_layouts(device, &layouts);
 
         // 6. Initialize shaders
         let forward_standard_shader = device.create_shader_module(wgpu::include_wgsl!(
@@ -145,45 +64,10 @@ impl RenderState {
         let gizmo_shader =
             device.create_shader_module(wgpu::include_wgsl!("../../gizmos/gizmo.wgsl"));
 
-        let post_uniform_buffer = device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("PostProcess Uniform Buffer"),
-            size: 96,
-            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-            mapped_at_creation: false,
-        });
-        let compose_uniform_buffer = device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("Compose Cover Uniform Buffer"),
-            size: 16,
-            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-            mapped_at_creation: false,
-        });
-
-        let ssao_uniform_buffer = device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("SSAO Uniform Buffer"),
-            size: 160,
-            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-            mapped_at_creation: false,
-        });
-
-        let ssao_blur_uniform_buffer = device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("SSAO Blur Uniform Buffer"),
-            size: 32,
-            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-            mapped_at_creation: false,
-        });
-
-        let bloom_uniform_buffer = device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("Bloom Storage Buffer"),
-            size: 32,
-            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
-            mapped_at_creation: false,
-        });
-        let skybox_uniform_buffer = device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("Skybox Uniform Buffer"),
-            size: crate::core::render::passes::skybox_uniform_buffer_size(),
-            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-            mapped_at_creation: false,
-        });
+        let effect_buffers = vulfram_render::create_effect_buffers(
+            device,
+            crate::core::render::passes::skybox_uniform_buffer_size(),
+        );
 
         // 7. Initialize library
         self.library = Some(ResourceLibrary {
@@ -199,16 +83,16 @@ impl RenderState {
             layout_ssao_blur_msaa: layouts.ssao_blur_msaa,
             layout_bloom: layouts.bloom,
             layout_skybox: layouts.skybox,
-            forward_standard_pipeline_layout,
-            forward_pbr_pipeline_layout,
-            shadow_pipeline_layout,
-            outline_pipeline_layout,
-            ssao_pipeline_layout,
-            ssao_blur_pipeline_layout,
-            ssao_msaa_pipeline_layout,
-            ssao_blur_msaa_pipeline_layout,
-            bloom_pipeline_layout,
-            skybox_pipeline_layout,
+            forward_standard_pipeline_layout: pipeline_layouts.forward_standard,
+            forward_pbr_pipeline_layout: pipeline_layouts.forward_pbr,
+            shadow_pipeline_layout: pipeline_layouts.shadow,
+            outline_pipeline_layout: pipeline_layouts.outline,
+            ssao_pipeline_layout: pipeline_layouts.ssao,
+            ssao_blur_pipeline_layout: pipeline_layouts.ssao_blur,
+            ssao_msaa_pipeline_layout: pipeline_layouts.ssao_msaa,
+            ssao_blur_msaa_pipeline_layout: pipeline_layouts.ssao_blur_msaa,
+            bloom_pipeline_layout: pipeline_layouts.bloom,
+            skybox_pipeline_layout: pipeline_layouts.skybox,
             forward_standard_shader,
             forward_pbr_shader,
             post_shader,
@@ -223,8 +107,8 @@ impl RenderState {
             light_cull_shader,
             shadow_shader,
             gizmo_shader,
-            light_cull_pipeline_layout,
-            gizmo_pipeline_layout,
+            light_cull_pipeline_layout: pipeline_layouts.light_cull,
+            gizmo_pipeline_layout: pipeline_layouts.gizmo,
             samplers,
             _fallback_texture: fallbacks.texture,
             fallback_view: fallbacks.view,
@@ -234,11 +118,11 @@ impl RenderState {
             fallback_shadow_view: fallbacks.shadow_view,
         });
 
-        self.post_uniform_buffer = Some(post_uniform_buffer);
-        self.compose_uniform_buffer = Some(compose_uniform_buffer);
-        self.ssao_uniform_buffer = Some(ssao_uniform_buffer);
-        self.ssao_blur_uniform_buffer = Some(ssao_blur_uniform_buffer);
-        self.bloom_uniform_buffer = Some(bloom_uniform_buffer);
-        self.skybox_uniform_buffer = Some(skybox_uniform_buffer);
+        self.post_uniform_buffer = Some(effect_buffers.post);
+        self.compose_uniform_buffer = Some(effect_buffers.compose);
+        self.ssao_uniform_buffer = Some(effect_buffers.ssao);
+        self.ssao_blur_uniform_buffer = Some(effect_buffers.ssao_blur);
+        self.bloom_uniform_buffer = Some(effect_buffers.bloom);
+        self.skybox_uniform_buffer = Some(effect_buffers.skybox);
     }
 }

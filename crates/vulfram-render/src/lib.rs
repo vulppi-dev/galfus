@@ -2,6 +2,7 @@ mod cache;
 mod fallbacks;
 mod graph;
 mod graph_fallbacks;
+mod layouts;
 mod library;
 mod profiler;
 mod realm_planner;
@@ -22,6 +23,9 @@ pub use graph::{
     is_reserved_render_graph_id, render_graph_desc_hash, resolve_render_graph_id, validate_graph,
 };
 pub use graph_fallbacks::{fallback_graph, ui_fallback_graph};
+pub use layouts::{
+    EffectBuffers, Layouts, PipelineLayouts, create_effect_buffers, create_pipeline_layouts,
+};
 pub use library::ResourceLibrary;
 pub use profiler::{GpuProfiler, GpuTimingReport};
 pub use realm_planner::{

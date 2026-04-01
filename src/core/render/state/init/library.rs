@@ -3,24 +3,9 @@ mod library_effects;
 
 use super::super::RenderState;
 
-pub(crate) struct Layouts {
-    pub(crate) shared: wgpu::BindGroupLayout,
-    pub(crate) object: wgpu::BindGroupLayout,
-    pub(crate) object_standard: wgpu::BindGroupLayout,
-    pub(crate) object_pbr: wgpu::BindGroupLayout,
-    pub(crate) target: wgpu::BindGroupLayout,
-    pub(crate) light_cull: wgpu::BindGroupLayout,
-    pub(crate) ssao: wgpu::BindGroupLayout,
-    pub(crate) ssao_blur: wgpu::BindGroupLayout,
-    pub(crate) ssao_msaa: wgpu::BindGroupLayout,
-    pub(crate) ssao_blur_msaa: wgpu::BindGroupLayout,
-    pub(crate) bloom: wgpu::BindGroupLayout,
-    pub(crate) skybox: wgpu::BindGroupLayout,
-}
-
 impl RenderState {
-    pub(crate) fn init_layouts(&self, device: &wgpu::Device) -> Layouts {
-        Layouts {
+    pub(crate) fn init_layouts(&self, device: &wgpu::Device) -> vulfram_render::Layouts {
+        vulfram_render::Layouts {
             shared: library_common::create_layout_shared(device),
             object: library_common::create_layout_object(device),
             object_standard: library_common::create_layout_object_standard(device),
