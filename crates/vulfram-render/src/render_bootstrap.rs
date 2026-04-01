@@ -76,6 +76,32 @@ pub fn build_device_descriptor(
     }
 }
 
+pub fn build_default_instance_descriptor() -> wgpu::InstanceDescriptor {
+    if cfg!(target_arch = "wasm32") {
+        wgpu::InstanceDescriptor {
+            backends: wgpu::Backends::BROWSER_WEBGPU,
+            backend_options: wgpu::BackendOptions::default(),
+            flags: wgpu::InstanceFlags::empty(),
+            memory_budget_thresholds: wgpu::MemoryBudgetThresholds::default(),
+        }
+    } else {
+        wgpu::InstanceDescriptor {
+            backends: if cfg!(target_os = "ios") || cfg!(target_os = "macos") {
+                wgpu::Backends::METAL | wgpu::Backends::VULKAN
+            } else {
+                wgpu::Backends::DX12 | wgpu::Backends::VULKAN
+            },
+            backend_options: wgpu::BackendOptions::default(),
+            flags: wgpu::InstanceFlags::empty(),
+            memory_budget_thresholds: wgpu::MemoryBudgetThresholds::default(),
+        }
+    }
+}
+
+pub fn create_default_instance() -> wgpu::Instance {
+    wgpu::Instance::new(&build_default_instance_descriptor())
+}
+
 pub fn plan_surface_config(
     caps: &wgpu::SurfaceCapabilities,
     target: PlatformRenderBootstrapTarget,
@@ -169,7 +195,10 @@ mod core_defaults {
 
 #[cfg(test)]
 mod tests {
-    use super::{build_device_descriptor, plan_device_features, plan_surface_config};
+    use super::{
+        build_default_instance_descriptor, build_device_descriptor, plan_device_features,
+        plan_surface_config,
+    };
     use vulfram_platform::{
         PlatformRenderBootstrapTarget, PlatformRenderSurfaceKind, PlatformSurfaceAlphaMode,
     };
@@ -226,5 +255,11 @@ mod tests {
                 .required_features
                 .contains(wgpu::Features::POLYGON_MODE_LINE)
         );
+    }
+
+    #[test]
+    fn default_instance_descriptor_uses_empty_flags() {
+        let descriptor = build_default_instance_descriptor();
+        assert!(descriptor.flags.is_empty());
     }
 }

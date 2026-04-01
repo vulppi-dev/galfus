@@ -59,27 +59,6 @@ pub struct EngineState {
 
 impl EngineState {
     pub fn new() -> Self {
-        #[cfg(any(not(feature = "wasm"), target_arch = "wasm32"))]
-        let wgpu_descriptor = if cfg!(target_arch = "wasm32") {
-            wgpu::InstanceDescriptor {
-                backends: wgpu::Backends::BROWSER_WEBGPU,
-                backend_options: wgpu::BackendOptions::default(),
-                flags: wgpu::InstanceFlags::empty(),
-                memory_budget_thresholds: wgpu::MemoryBudgetThresholds::default(),
-            }
-        } else {
-            wgpu::InstanceDescriptor {
-                backends: if cfg!(target_os = "ios") || cfg!(target_os = "macos") {
-                    wgpu::Backends::METAL | wgpu::Backends::VULKAN
-                } else {
-                    wgpu::Backends::DX12 | wgpu::Backends::VULKAN
-                },
-                backend_options: wgpu::BackendOptions::default(),
-                flags: wgpu::InstanceFlags::empty(),
-                memory_budget_thresholds: wgpu::MemoryBudgetThresholds::default(),
-            }
-        };
-
         let mut universal_state = UniversalState::default();
         crate::core::render::graph::ensure_default_render_graphs(
             &mut universal_state.render_graphs,
@@ -97,7 +76,7 @@ impl EngineState {
             window: WindowManager::new(),
             render: RenderManager::default(),
             #[cfg(any(not(feature = "wasm"), target_arch = "wasm32"))]
-            wgpu: wgpu::Instance::new(&wgpu_descriptor),
+            wgpu: vulfram_render::create_default_instance(),
             #[cfg(any(not(feature = "wasm"), target_arch = "wasm32"))]
             caps: None,
             rgba16f_msaa_supported_mask: crate::core::render::RenderState::MSAA_MASK_DEFAULT_SAFE,

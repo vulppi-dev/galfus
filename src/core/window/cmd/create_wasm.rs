@@ -111,13 +111,7 @@ pub fn engine_cmd_window_create_async(
     let canvas_clone = canvas.clone();
     spawn_local(async move {
         let bootstrap_plan = vulfram_runtime::plan_render_bootstrap(false, bootstrap_target);
-        let instance_descriptor = wgpu::InstanceDescriptor {
-            backends: wgpu::Backends::BROWSER_WEBGPU,
-            backend_options: wgpu::BackendOptions::default(),
-            flags: wgpu::InstanceFlags::empty(),
-            memory_budget_thresholds: wgpu::MemoryBudgetThresholds::default(),
-        };
-        let instance = wgpu::Instance::new(&instance_descriptor);
+        let instance = vulfram_render::create_default_instance();
         let surface =
             match instance.create_surface(wgpu::SurfaceTarget::Canvas(canvas_clone.clone())) {
                 Ok(surface) => surface,

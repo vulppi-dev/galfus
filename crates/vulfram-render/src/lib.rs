@@ -26,7 +26,7 @@ pub use realm_planner::{
 };
 pub use render_bootstrap::{
     RenderAdapterBootstrapInfo, RenderDeviceFeaturePlan, RenderSurfaceConfigPlan, analyze_adapter,
-    build_device_descriptor, plan_device_features, plan_surface_config,
-    resolve_rgba16f_msaa_supported_mask,
+    build_default_instance_descriptor, build_device_descriptor, create_default_instance,
+    plan_device_features, plan_surface_config, resolve_rgba16f_msaa_supported_mask,
 };
 pub use ui_actions::{UiPlatformAction, collect_platform_actions};
