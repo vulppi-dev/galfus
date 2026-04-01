@@ -1,6 +1,7 @@
 use crate::meta::{
-    CameraProjectionPlan, ForwardAtlasEntryMeta, LightRecordMeta, MaterialRecordMeta,
-    ModelRecordMeta, SyncPlan, TargetTextureBindingMeta, TextureRecordMeta,
+    CameraProjectionPlan, EntityRecordUpdatePlan, ForwardAtlasEntryMeta, LightRecordMeta,
+    MaterialRecordMeta, MaterialRecordUpdatePlan, ModelRecordMeta, SyncPlan,
+    TargetTextureBindingMeta, TextureRecordMeta,
 };
 
 pub fn hash_texture_records(records: &[TextureRecordMeta]) -> u64 {
@@ -67,16 +68,33 @@ pub fn plan_camera_projection_update(
     }
 }
 
-pub fn model_record_changed(current: &ModelRecordMeta, next: &ModelRecordMeta) -> bool {
-    current != next
+pub fn plan_model_record_update(
+    current: &ModelRecordMeta,
+    next: &ModelRecordMeta,
+) -> EntityRecordUpdatePlan {
+    EntityRecordUpdatePlan {
+        mark_dirty: current != next,
+    }
 }
 
-pub fn light_record_changed(current: &LightRecordMeta, next: &LightRecordMeta) -> bool {
-    current != next
+pub fn plan_light_record_update(
+    current: &LightRecordMeta,
+    next: &LightRecordMeta,
+) -> EntityRecordUpdatePlan {
+    EntityRecordUpdatePlan {
+        mark_dirty: current != next,
+    }
 }
 
-pub fn material_record_changed(current: &MaterialRecordMeta, next: &MaterialRecordMeta) -> bool {
-    current != next
+pub fn plan_material_record_update(
+    current: &MaterialRecordMeta,
+    next: &MaterialRecordMeta,
+) -> MaterialRecordUpdatePlan {
+    let mark_dirty = current != next;
+    MaterialRecordUpdatePlan {
+        mark_dirty,
+        reset_bind_group: mark_dirty,
+    }
 }
 
 pub fn plan_texture_record_sync(

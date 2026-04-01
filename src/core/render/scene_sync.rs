@@ -94,7 +94,9 @@ pub(super) fn sync_scene_from_realm_and_universal_resources(
                 record.cast_shadow = node.cast_shadow;
                 record.receive_shadow = node.receive_shadow;
                 record.cast_outline = node.cast_outline;
-                if vulfram_realm_3d::model_record_changed(&current_meta, &next_meta) {
+                let update_plan =
+                    vulfram_realm_3d::plan_model_record_update(&current_meta, &next_meta);
+                if update_plan.mark_dirty {
                     record.mark_dirty();
                 }
                 render_state.scene.models.insert(*model_id, record);
@@ -136,7 +138,9 @@ pub(super) fn sync_scene_from_realm_and_universal_resources(
                 record.data = node.data;
                 record.layer_mask = node.layer_mask;
                 record.cast_shadow = node.cast_shadow;
-                if vulfram_realm_3d::light_record_changed(&current_meta, &next_meta) {
+                let update_plan =
+                    vulfram_realm_3d::plan_light_record_update(&current_meta, &next_meta);
+                if update_plan.mark_dirty {
                     record.mark_dirty();
                 }
                 render_state.scene.lights.insert(*light_id, record);
@@ -179,8 +183,12 @@ pub(super) fn sync_scene_from_realm_and_universal_resources(
             record.surface_type = node.surface_type;
             record.topology = node.topology;
             record.polygon_mode = node.polygon_mode;
-            if vulfram_realm_3d::material_record_changed(&current_meta, &next_meta) {
+            let update_plan =
+                vulfram_realm_3d::plan_material_record_update(&current_meta, &next_meta);
+            if update_plan.mark_dirty {
                 record.mark_dirty();
+            }
+            if update_plan.reset_bind_group {
                 record.bind_group = None;
             }
             render_state
@@ -223,8 +231,12 @@ pub(super) fn sync_scene_from_realm_and_universal_resources(
             record.surface_type = node.surface_type;
             record.topology = node.topology;
             record.polygon_mode = node.polygon_mode;
-            if vulfram_realm_3d::material_record_changed(&current_meta, &next_meta) {
+            let update_plan =
+                vulfram_realm_3d::plan_material_record_update(&current_meta, &next_meta);
+            if update_plan.mark_dirty {
                 record.mark_dirty();
+            }
+            if update_plan.reset_bind_group {
                 record.bind_group = None;
             }
             render_state

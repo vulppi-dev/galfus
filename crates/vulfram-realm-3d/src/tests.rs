@@ -1,9 +1,10 @@
 use crate::{
-    CameraProjectionPlan, ForwardAtlasEntryMeta, LightRecordMeta, MaterialRecordMeta,
-    ModelRecordMeta, SyncPlan, TargetTextureBindingMeta, TextureRecordMeta, apply_sync_plan_map,
-    graph_is_compatible, hash_forward_atlas_entries, hash_target_texture_binds,
-    hash_texture_records, light_record_changed, material_record_changed, model_record_changed,
+    CameraProjectionPlan, EntityRecordUpdatePlan, ForwardAtlasEntryMeta, LightRecordMeta,
+    MaterialRecordMeta, MaterialRecordUpdatePlan, ModelRecordMeta, SyncPlan,
+    TargetTextureBindingMeta, TextureRecordMeta, apply_sync_plan_map, graph_is_compatible,
+    hash_forward_atlas_entries, hash_target_texture_binds, hash_texture_records,
     plan_camera_projection_update, plan_forward_atlas_sync, plan_geometry_registry_sync,
+    plan_light_record_update, plan_material_record_update, plan_model_record_update,
     plan_target_texture_bind_sync, plan_texture_record_sync, supports_render_pass,
 };
 
@@ -248,8 +249,14 @@ fn entity_and_material_change_detectors_compare_semantic_fields() {
         geometry_id: 9,
         ..model.clone()
     };
-    assert!(!model_record_changed(&model, &model));
-    assert!(model_record_changed(&model, &changed_model));
+    assert_eq!(
+        plan_model_record_update(&model, &model),
+        EntityRecordUpdatePlan { mark_dirty: false }
+    );
+    assert_eq!(
+        plan_model_record_update(&model, &changed_model),
+        EntityRecordUpdatePlan { mark_dirty: true }
+    );
 
     let light = LightRecordMeta {
         position: [0.0; 4],
@@ -269,8 +276,14 @@ fn entity_and_material_change_detectors_compare_semantic_fields() {
         cast_shadow: true,
         ..light.clone()
     };
-    assert!(!light_record_changed(&light, &light));
-    assert!(light_record_changed(&light, &changed_light));
+    assert_eq!(
+        plan_light_record_update(&light, &light),
+        EntityRecordUpdatePlan { mark_dirty: false }
+    );
+    assert_eq!(
+        plan_light_record_update(&light, &changed_light),
+        EntityRecordUpdatePlan { mark_dirty: true }
+    );
 
     let material = MaterialRecordMeta {
         label: Some("mat".into()),
@@ -285,6 +298,18 @@ fn entity_and_material_change_detectors_compare_semantic_fields() {
         texture_ids: vec![1, 3],
         ..material.clone()
     };
-    assert!(!material_record_changed(&material, &material));
-    assert!(material_record_changed(&material, &changed_material));
+    assert_eq!(
+        plan_material_record_update(&material, &material),
+        MaterialRecordUpdatePlan {
+            mark_dirty: false,
+            reset_bind_group: false,
+        }
+    );
+    assert_eq!(
+        plan_material_record_update(&material, &changed_material),
+        MaterialRecordUpdatePlan {
+            mark_dirty: true,
+            reset_bind_group: true,
+        }
+    );
 }

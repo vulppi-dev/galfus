@@ -35,6 +35,11 @@ pub struct CameraProjectionPlan {
     pub reset_projection_size: bool,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct EntityRecordUpdatePlan {
+    pub mark_dirty: bool,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct ModelRecordMeta {
     pub transform: [f32; 16],
@@ -76,4 +81,10 @@ pub struct MaterialRecordMeta {
     pub surface_type: u32,
     pub topology: u32,
     pub polygon_mode: u32,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct MaterialRecordUpdatePlan {
+    pub mark_dirty: bool,
+    pub reset_bind_group: bool,
 }
