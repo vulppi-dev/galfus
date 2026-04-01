@@ -2,7 +2,7 @@
 use std::sync::Arc;
 
 #[cfg(not(feature = "wasm"))]
-use super::create_shared::register_window_realm;
+use super::create_shared::{build_window_render_state, register_window_realm};
 #[cfg(not(feature = "wasm"))]
 use super::{CmdResultWindowCreate, CmdWindowCreateArgs};
 #[cfg(not(feature = "wasm"))]
@@ -241,29 +241,19 @@ pub fn engine_cmd_window_create(
     let inner_size = window.inner_size();
     let outer_size = window.outer_size();
 
-    // Create render state and initialize blit resources
-    let mut render_state = crate::core::render::RenderState::new(surface_plan.format);
-    render_state.rgba16f_msaa_supported_mask = engine.rgba16f_msaa_supported_mask;
-    let mut surface_target = None;
-    if let Some(device) = &engine.device {
-        if let Some(queue) = &engine.queue {
-            render_state.init(device, queue, surface_plan.format);
-
-            // Initialize size-dependent resources (like depth buffer)
-            render_state.on_resize(
-                device,
-                bootstrap_plan.target.size.x,
-                bootstrap_plan.target.size.y,
-            );
-            crate::core::resources::ensure_render_target(
-                device,
-                &mut surface_target,
-                bootstrap_plan.target.size.x,
-                bootstrap_plan.target.size.y,
-                wgpu::TextureFormat::Rgba16Float,
-            );
-        }
-    }
+    let (render_state, surface_target) = match (&engine.device, &engine.queue) {
+        (Some(device), Some(queue)) => build_window_render_state(
+            device,
+            queue,
+            surface_plan.format,
+            bootstrap_plan.target.size,
+            engine.rgba16f_msaa_supported_mask,
+        ),
+        _ => (
+            crate::core::render::RenderState::new(surface_plan.format),
+            None,
+        ),
+    };
 
     engine.render.insert(win_id, render_state);
     engine.window.insert_state(

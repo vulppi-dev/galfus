@@ -14,7 +14,7 @@ use wasm_bindgen_futures::spawn_local;
 use web_sys::HtmlCanvasElement;
 
 #[cfg(all(feature = "wasm", target_arch = "wasm32"))]
-use super::create_shared::register_window_realm;
+use super::create_shared::{build_window_render_state, register_window_realm};
 #[cfg(all(feature = "wasm", target_arch = "wasm32"))]
 use super::{CmdResultWindowCreate, CmdWindowCreateArgs};
 #[cfg(all(feature = "wasm", not(target_arch = "wasm32")))]
@@ -227,25 +227,16 @@ pub fn engine_cmd_window_create_async(
 
         surface.configure(&device, &config);
 
-        let mut render_state = crate::core::render::RenderState::new(surface_plan.format);
         let rgba16f_msaa_supported_mask = vulfram_render::resolve_rgba16f_msaa_supported_mask(
             &adapter,
             feature_plan.adapter_specific_format_features_supported,
         );
-        render_state.rgba16f_msaa_supported_mask = rgba16f_msaa_supported_mask;
-        render_state.init(&device, &queue, surface_plan.format);
-        render_state.on_resize(
+        let (render_state, surface_target) = build_window_render_state(
             &device,
-            bootstrap_plan.target.size.x,
-            bootstrap_plan.target.size.y,
-        );
-        let mut surface_target = None;
-        crate::core::resources::ensure_render_target(
-            &device,
-            &mut surface_target,
-            bootstrap_plan.target.size.x,
-            bootstrap_plan.target.size.y,
-            wgpu::TextureFormat::Rgba16Float,
+            &queue,
+            surface_plan.format,
+            bootstrap_plan.target.size,
+            rgba16f_msaa_supported_mask,
         );
 
         let listeners =

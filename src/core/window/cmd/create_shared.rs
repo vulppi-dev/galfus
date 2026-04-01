@@ -3,7 +3,9 @@ use glam::UVec2;
 use crate::core::realm::{
     PresentId, PresentState, RealmId, RealmKind, RealmState, SurfaceId, SurfaceKind, SurfaceState,
 };
+use crate::core::render::RenderState;
 use crate::core::render::graph::{DEFAULT_3D_RENDER_GRAPH_ID, ensure_default_render_graphs};
+use crate::core::resources::RenderTarget;
 use crate::core::state::EngineState;
 
 pub struct WindowRealmBinding {
@@ -52,4 +54,28 @@ pub fn register_window_realm(
         surface_id,
         present_id,
     }
+}
+
+pub fn build_window_render_state(
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+    surface_format: wgpu::TextureFormat,
+    target_size: UVec2,
+    rgba16f_msaa_supported_mask: u8,
+) -> (RenderState, Option<RenderTarget>) {
+    let mut render_state = RenderState::new(surface_format);
+    render_state.rgba16f_msaa_supported_mask = rgba16f_msaa_supported_mask;
+    render_state.init(device, queue, surface_format);
+    render_state.on_resize(device, target_size.x, target_size.y);
+
+    let mut surface_target = None;
+    crate::core::resources::ensure_render_target(
+        device,
+        &mut surface_target,
+        target_size.x,
+        target_size.y,
+        wgpu::TextureFormat::Rgba16Float,
+    );
+
+    (render_state, surface_target)
 }
