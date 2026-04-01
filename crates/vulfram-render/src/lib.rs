@@ -1,3 +1,4 @@
+mod bind_group_layouts;
 mod cache;
 mod fallbacks;
 mod graph;
@@ -13,6 +14,7 @@ mod target;
 mod ui_actions;
 mod validation;
 
+pub use bind_group_layouts::{RenderLayoutSizes, create_render_layouts};
 pub use cache::{ComputePipelineKey, PipelineKey, RenderCache, ShaderId};
 pub use fallbacks::{FallbackTextures, create_fallback_textures};
 pub use graph::{

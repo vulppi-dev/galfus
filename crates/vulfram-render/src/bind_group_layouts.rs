@@ -1,7 +1,35 @@
-use crate::core::render::state::light::LightDrawParams;
-use crate::core::resources::FrameComponent;
+pub struct RenderLayoutSizes {
+    pub frame_uniform_min_size: u64,
+    pub camera_uniform_min_size: u64,
+    pub light_draw_uniform_min_size: u64,
+    pub model_storage_min_size: u64,
+    pub material_standard_uniform_min_size: u64,
+    pub material_pbr_uniform_min_size: u64,
+    pub matrix_storage_min_size: u64,
+}
 
-pub(super) fn create_layout_shared(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+pub fn create_render_layouts(device: &wgpu::Device, sizes: &RenderLayoutSizes) -> crate::Layouts {
+    crate::Layouts {
+        shared: create_layout_shared(device, sizes),
+        object: create_layout_object(device, sizes),
+        object_standard: create_layout_object_standard(device, sizes),
+        object_pbr: create_layout_object_pbr(device, sizes),
+        target: create_layout_target(device),
+        light_cull: create_layout_light_cull(device),
+        ssao: create_layout_ssao(device),
+        ssao_blur: create_layout_ssao_blur(device),
+        ssao_msaa: create_layout_ssao_msaa(device),
+        ssao_blur_msaa: create_layout_ssao_blur_msaa(device),
+        bloom: create_layout_bloom(device),
+        skybox: create_layout_skybox(device),
+    }
+}
+
+fn nz(value: u64) -> std::num::NonZeroU64 {
+    std::num::NonZeroU64::new(value.max(1)).expect("non-zero layout size")
+}
+
+fn create_layout_shared(device: &wgpu::Device, sizes: &RenderLayoutSizes) -> wgpu::BindGroupLayout {
     device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
         label: Some("BindGroupLayout Shared"),
         entries: &[
@@ -11,10 +39,7 @@ pub(super) fn create_layout_shared(device: &wgpu::Device) -> wgpu::BindGroupLayo
                 ty: wgpu::BindingType::Buffer {
                     ty: wgpu::BufferBindingType::Uniform,
                     has_dynamic_offset: false,
-                    min_binding_size: Some(
-                        std::num::NonZeroU64::new(std::mem::size_of::<FrameComponent>() as u64)
-                            .unwrap(),
-                    ),
+                    min_binding_size: Some(nz(sizes.frame_uniform_min_size)),
                 },
                 count: None,
             },
@@ -24,12 +49,7 @@ pub(super) fn create_layout_shared(device: &wgpu::Device) -> wgpu::BindGroupLayo
                 ty: wgpu::BindingType::Buffer {
                     ty: wgpu::BufferBindingType::Uniform,
                     has_dynamic_offset: true,
-                    min_binding_size: Some(
-                        std::num::NonZeroU64::new(std::mem::size_of::<
-                            crate::core::resources::CameraComponent,
-                        >() as u64)
-                        .unwrap(),
-                    ),
+                    min_binding_size: Some(nz(sizes.camera_uniform_min_size)),
                 },
                 count: None,
             },
@@ -39,10 +59,7 @@ pub(super) fn create_layout_shared(device: &wgpu::Device) -> wgpu::BindGroupLayo
                 ty: wgpu::BindingType::Buffer {
                     ty: wgpu::BufferBindingType::Uniform,
                     has_dynamic_offset: true,
-                    min_binding_size: Some(
-                        std::num::NonZeroU64::new(std::mem::size_of::<LightDrawParams>() as u64)
-                            .unwrap(),
-                    ),
+                    min_binding_size: Some(nz(sizes.light_draw_uniform_min_size)),
                 },
                 count: None,
             },
@@ -160,7 +177,7 @@ pub(super) fn create_layout_shared(device: &wgpu::Device) -> wgpu::BindGroupLayo
     })
 }
 
-pub(super) fn create_layout_object(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+fn create_layout_object(device: &wgpu::Device, sizes: &RenderLayoutSizes) -> wgpu::BindGroupLayout {
     device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
         label: Some("BindGroupLayout Object"),
         entries: &[
@@ -170,12 +187,7 @@ pub(super) fn create_layout_object(device: &wgpu::Device) -> wgpu::BindGroupLayo
                 ty: wgpu::BindingType::Buffer {
                     ty: wgpu::BufferBindingType::Storage { read_only: true },
                     has_dynamic_offset: false,
-                    min_binding_size: Some(
-                        std::num::NonZeroU64::new(std::mem::size_of::<
-                            crate::core::resources::ModelComponent,
-                        >() as u64)
-                        .unwrap(),
-                    ),
+                    min_binding_size: Some(nz(sizes.model_storage_min_size)),
                 },
                 count: None,
             },
@@ -185,10 +197,7 @@ pub(super) fn create_layout_object(device: &wgpu::Device) -> wgpu::BindGroupLayo
                 ty: wgpu::BindingType::Buffer {
                     ty: wgpu::BufferBindingType::Storage { read_only: true },
                     has_dynamic_offset: false,
-                    min_binding_size: Some(
-                        std::num::NonZeroU64::new(std::mem::size_of::<glam::Mat4>() as u64)
-                            .unwrap(),
-                    ),
+                    min_binding_size: Some(nz(sizes.matrix_storage_min_size)),
                 },
                 count: None,
             },
@@ -196,7 +205,10 @@ pub(super) fn create_layout_object(device: &wgpu::Device) -> wgpu::BindGroupLayo
     })
 }
 
-pub(super) fn create_layout_object_standard(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+fn create_layout_object_standard(
+    device: &wgpu::Device,
+    sizes: &RenderLayoutSizes,
+) -> wgpu::BindGroupLayout {
     device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
         label: Some("BindGroupLayout Object Standard"),
         entries: &[
@@ -206,12 +218,7 @@ pub(super) fn create_layout_object_standard(device: &wgpu::Device) -> wgpu::Bind
                 ty: wgpu::BindingType::Buffer {
                     ty: wgpu::BufferBindingType::Storage { read_only: true },
                     has_dynamic_offset: false,
-                    min_binding_size: Some(
-                        std::num::NonZeroU64::new(std::mem::size_of::<
-                            crate::core::resources::ModelComponent,
-                        >() as u64)
-                        .unwrap(),
-                    ),
+                    min_binding_size: Some(nz(sizes.model_storage_min_size)),
                 },
                 count: None,
             },
@@ -221,12 +228,7 @@ pub(super) fn create_layout_object_standard(device: &wgpu::Device) -> wgpu::Bind
                 ty: wgpu::BindingType::Buffer {
                     ty: wgpu::BufferBindingType::Uniform,
                     has_dynamic_offset: true,
-                    min_binding_size: Some(
-                        std::num::NonZeroU64::new(std::mem::size_of::<
-                            crate::core::resources::MaterialStandardParams,
-                        >() as u64)
-                        .unwrap(),
-                    ),
+                    min_binding_size: Some(nz(sizes.material_standard_uniform_min_size)),
                 },
                 count: None,
             },
@@ -254,10 +256,7 @@ pub(super) fn create_layout_object_standard(device: &wgpu::Device) -> wgpu::Bind
                 ty: wgpu::BindingType::Buffer {
                     ty: wgpu::BufferBindingType::Storage { read_only: true },
                     has_dynamic_offset: false,
-                    min_binding_size: Some(
-                        std::num::NonZeroU64::new(std::mem::size_of::<glam::Mat4>() as u64)
-                            .unwrap(),
-                    ),
+                    min_binding_size: Some(nz(sizes.matrix_storage_min_size)),
                 },
                 count: None,
             },
@@ -265,7 +264,10 @@ pub(super) fn create_layout_object_standard(device: &wgpu::Device) -> wgpu::Bind
     })
 }
 
-pub(super) fn create_layout_object_pbr(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+fn create_layout_object_pbr(
+    device: &wgpu::Device,
+    sizes: &RenderLayoutSizes,
+) -> wgpu::BindGroupLayout {
     device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
         label: Some("BindGroupLayout Object PBR"),
         entries: &[
@@ -275,12 +277,7 @@ pub(super) fn create_layout_object_pbr(device: &wgpu::Device) -> wgpu::BindGroup
                 ty: wgpu::BindingType::Buffer {
                     ty: wgpu::BufferBindingType::Storage { read_only: true },
                     has_dynamic_offset: false,
-                    min_binding_size: Some(
-                        std::num::NonZeroU64::new(std::mem::size_of::<
-                            crate::core::resources::ModelComponent,
-                        >() as u64)
-                        .unwrap(),
-                    ),
+                    min_binding_size: Some(nz(sizes.model_storage_min_size)),
                 },
                 count: None,
             },
@@ -290,12 +287,7 @@ pub(super) fn create_layout_object_pbr(device: &wgpu::Device) -> wgpu::BindGroup
                 ty: wgpu::BindingType::Buffer {
                     ty: wgpu::BufferBindingType::Uniform,
                     has_dynamic_offset: true,
-                    min_binding_size: Some(
-                        std::num::NonZeroU64::new(std::mem::size_of::<
-                            crate::core::resources::MaterialPbrParams,
-                        >() as u64)
-                        .unwrap(),
-                    ),
+                    min_binding_size: Some(nz(sizes.material_pbr_uniform_min_size)),
                 },
                 count: None,
             },
@@ -323,10 +315,7 @@ pub(super) fn create_layout_object_pbr(device: &wgpu::Device) -> wgpu::BindGroup
                 ty: wgpu::BindingType::Buffer {
                     ty: wgpu::BufferBindingType::Storage { read_only: true },
                     has_dynamic_offset: false,
-                    min_binding_size: Some(
-                        std::num::NonZeroU64::new(std::mem::size_of::<glam::Mat4>() as u64)
-                            .unwrap(),
-                    ),
+                    min_binding_size: Some(nz(sizes.matrix_storage_min_size)),
                 },
                 count: None,
             },
@@ -334,7 +323,7 @@ pub(super) fn create_layout_object_pbr(device: &wgpu::Device) -> wgpu::BindGroup
     })
 }
 
-pub(super) fn create_layout_target(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+fn create_layout_target(device: &wgpu::Device) -> wgpu::BindGroupLayout {
     device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
         label: Some("BindGroupLayout Target"),
         entries: &[
@@ -370,6 +359,254 @@ fn textured_array_2d_entry(binding: u32) -> wgpu::BindGroupLayoutEntry {
             sample_type: wgpu::TextureSampleType::Float { filterable: true },
             view_dimension: wgpu::TextureViewDimension::D2,
             multisampled: false,
+        },
+        count: None,
+    }
+}
+
+fn create_layout_ssao(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+    device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+        label: Some("BindGroupLayout SSAO"),
+        entries: &[
+            wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Texture {
+                    sample_type: wgpu::TextureSampleType::Depth,
+                    view_dimension: wgpu::TextureViewDimension::D2,
+                    multisampled: false,
+                },
+                count: None,
+            },
+            wgpu::BindGroupLayoutEntry {
+                binding: 1,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Uniform,
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
+                },
+                count: None,
+            },
+        ],
+    })
+}
+
+fn create_layout_ssao_blur(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+    device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+        label: Some("BindGroupLayout SSAO Blur"),
+        entries: &[
+            wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Texture {
+                    sample_type: wgpu::TextureSampleType::Float { filterable: false },
+                    view_dimension: wgpu::TextureViewDimension::D2,
+                    multisampled: false,
+                },
+                count: None,
+            },
+            wgpu::BindGroupLayoutEntry {
+                binding: 1,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Texture {
+                    sample_type: wgpu::TextureSampleType::Depth,
+                    view_dimension: wgpu::TextureViewDimension::D2,
+                    multisampled: false,
+                },
+                count: None,
+            },
+            wgpu::BindGroupLayoutEntry {
+                binding: 2,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Uniform,
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
+                },
+                count: None,
+            },
+        ],
+    })
+}
+
+fn create_layout_ssao_msaa(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+    device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+        label: Some("BindGroupLayout SSAO MSAA"),
+        entries: &[
+            wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Texture {
+                    sample_type: wgpu::TextureSampleType::Depth,
+                    view_dimension: wgpu::TextureViewDimension::D2,
+                    multisampled: true,
+                },
+                count: None,
+            },
+            wgpu::BindGroupLayoutEntry {
+                binding: 1,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Uniform,
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
+                },
+                count: None,
+            },
+        ],
+    })
+}
+
+fn create_layout_ssao_blur_msaa(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+    device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+        label: Some("BindGroupLayout SSAO Blur MSAA"),
+        entries: &[
+            wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Texture {
+                    sample_type: wgpu::TextureSampleType::Float { filterable: false },
+                    view_dimension: wgpu::TextureViewDimension::D2,
+                    multisampled: false,
+                },
+                count: None,
+            },
+            wgpu::BindGroupLayoutEntry {
+                binding: 1,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Texture {
+                    sample_type: wgpu::TextureSampleType::Depth,
+                    view_dimension: wgpu::TextureViewDimension::D2,
+                    multisampled: true,
+                },
+                count: None,
+            },
+            wgpu::BindGroupLayoutEntry {
+                binding: 2,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Uniform,
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
+                },
+                count: None,
+            },
+        ],
+    })
+}
+
+fn create_layout_bloom(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+    device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+        label: Some("BindGroupLayout Bloom"),
+        entries: &[
+            wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Texture {
+                    sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                    view_dimension: wgpu::TextureViewDimension::D2,
+                    multisampled: false,
+                },
+                count: None,
+            },
+            wgpu::BindGroupLayoutEntry {
+                binding: 1,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                count: None,
+            },
+            wgpu::BindGroupLayoutEntry {
+                binding: 2,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Storage { read_only: true },
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
+                },
+                count: None,
+            },
+        ],
+    })
+}
+
+fn create_layout_skybox(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+    device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+        label: Some("BindGroupLayout Skybox"),
+        entries: &[
+            wgpu::BindGroupLayoutEntry {
+                binding: 0,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Uniform,
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
+                },
+                count: None,
+            },
+            wgpu::BindGroupLayoutEntry {
+                binding: 1,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Texture {
+                    sample_type: wgpu::TextureSampleType::Float { filterable: true },
+                    view_dimension: wgpu::TextureViewDimension::D2,
+                    multisampled: false,
+                },
+                count: None,
+            },
+            wgpu::BindGroupLayoutEntry {
+                binding: 2,
+                visibility: wgpu::ShaderStages::FRAGMENT,
+                ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                count: None,
+            },
+        ],
+    })
+}
+
+fn create_layout_light_cull(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+    device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+        label: Some("BindGroupLayout LightCull"),
+        entries: &[
+            storage_read_entry(0),
+            storage_write_entry(1),
+            storage_write_entry(2),
+            wgpu::BindGroupLayoutEntry {
+                binding: 3,
+                visibility: wgpu::ShaderStages::COMPUTE,
+                ty: wgpu::BindingType::Buffer {
+                    ty: wgpu::BufferBindingType::Uniform,
+                    has_dynamic_offset: false,
+                    min_binding_size: None,
+                },
+                count: None,
+            },
+            storage_read_entry(4),
+        ],
+    })
+}
+
+fn storage_read_entry(binding: u32) -> wgpu::BindGroupLayoutEntry {
+    wgpu::BindGroupLayoutEntry {
+        binding,
+        visibility: wgpu::ShaderStages::COMPUTE,
+        ty: wgpu::BindingType::Buffer {
+            ty: wgpu::BufferBindingType::Storage { read_only: true },
+            has_dynamic_offset: false,
+            min_binding_size: None,
+        },
+        count: None,
+    }
+}
+
+fn storage_write_entry(binding: u32) -> wgpu::BindGroupLayoutEntry {
+    wgpu::BindGroupLayoutEntry {
+        binding,
+        visibility: wgpu::ShaderStages::COMPUTE,
+        ty: wgpu::BindingType::Buffer {
+            ty: wgpu::BufferBindingType::Storage { read_only: false },
+            has_dynamic_offset: false,
+            min_binding_size: None,
         },
         count: None,
     }
