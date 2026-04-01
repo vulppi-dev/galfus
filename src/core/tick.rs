@@ -22,9 +22,7 @@ pub fn vulfram_tick(time: u64, delta_time: u32) -> VulframResult {
             .profiling
             .begin_frame(delta_time, engine.state.runtime.frame.frame_index);
 
-        if !engine.state.runtime.deferred_cmd_queue.is_empty()
-            || !engine.state.runtime.cmd_queue.is_empty()
-        {
+        if engine.state.runtime.has_pending_commands() {
             // MARK: Command Processing
             #[cfg(not(feature = "wasm"))]
             let cmd_start = Instant::now();
@@ -94,7 +92,7 @@ pub fn vulfram_tick(time: u64, delta_time: u32) -> VulframResult {
             }
         }
 
-        let events_before = engine.state.runtime.event_queue.len();
+        let events_before = engine.state.runtime.event_count();
 
         // MARK: Gamepad Processing
         engine.state.profiling.input.gamepad_processing_ns =
@@ -120,7 +118,7 @@ pub fn vulfram_tick(time: u64, delta_time: u32) -> VulframResult {
             engine.state.profiling.ui.input_ns = now.saturating_sub(ui_input_start);
         }
 
-        let events_after = engine.state.runtime.event_queue.len();
+        let events_after = engine.state.runtime.event_count();
         engine.state.profiling.input.total_events_dispatched = events_after - events_before;
 
         // MARK: Render Frame Lifecycle

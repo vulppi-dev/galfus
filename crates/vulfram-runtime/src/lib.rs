@@ -65,8 +65,16 @@ impl RuntimeFrameState {
 }
 
 impl<TCmd, TEvent, TResponse> RuntimeState<TCmd, TEvent, TResponse> {
+    pub fn has_pending_commands(&self) -> bool {
+        !self.cmd_queue.is_empty() || !self.deferred_cmd_queue.is_empty()
+    }
+
     pub fn clear_events(&mut self) {
         self.event_queue.clear();
+    }
+
+    pub fn clear_responses(&mut self) {
+        self.response_queue.clear();
     }
 
     pub fn enqueue_commands<I>(&mut self, commands: I)
@@ -90,6 +98,30 @@ impl<TCmd, TEvent, TResponse> RuntimeState<TCmd, TEvent, TResponse> {
 
     pub fn replace_deferred_commands(&mut self, commands: Vec<TCmd>) {
         self.deferred_cmd_queue = commands;
+    }
+
+    pub fn event_count(&self) -> usize {
+        self.event_queue.len()
+    }
+
+    pub fn response_count(&self) -> usize {
+        self.response_queue.len()
+    }
+
+    pub fn event_queue_ref(&self) -> &Vec<TEvent> {
+        &self.event_queue
+    }
+
+    pub fn response_queue_ref(&self) -> &Vec<TResponse> {
+        &self.response_queue
+    }
+
+    pub fn take_events(&mut self) -> Vec<TEvent> {
+        std::mem::take(&mut self.event_queue)
+    }
+
+    pub fn replace_events(&mut self, events: Vec<TEvent>) {
+        self.event_queue = events;
     }
 
     pub fn push_event(&mut self, event: TEvent) {
@@ -172,14 +204,22 @@ mod tests {
         state.push_event(7);
         state.push_response(11);
 
+        assert!(state.has_pending_commands());
+        assert_eq!(state.event_count(), 1);
+        assert_eq!(state.response_count(), 1);
         assert_eq!(state.take_pending_commands(), vec![1, 2, 3]);
         assert_eq!(state.take_deferred_commands(), vec![9]);
+        assert_eq!(state.event_queue_ref(), &vec![7]);
+        assert_eq!(state.response_queue_ref(), &vec![11]);
+        assert_eq!(state.take_events(), vec![7]);
         state.replace_deferred_commands(vec![5, 6]);
+        state.replace_events(vec![8]);
         state.clear_events();
+        state.clear_responses();
 
         assert_eq!(state.deferred_cmd_queue, vec![5, 6]);
         assert!(state.event_queue.is_empty());
-        assert_eq!(state.response_queue, vec![11]);
+        assert!(state.response_queue.is_empty());
     }
 
     #[test]

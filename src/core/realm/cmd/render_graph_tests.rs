@@ -82,7 +82,7 @@ fn create_realm(engine: &mut EngineState, kind: RealmKindDto) -> u32 {
 
 fn take_error_events(engine: &mut EngineState) -> Vec<(String, String, Option<String>)> {
     let mut errors = Vec::new();
-    for event in engine.runtime.event_queue.drain(..) {
+    for event in engine.runtime.take_events() {
         let EngineEvent::System(SystemEvent::Error {
             scope,
             message,
