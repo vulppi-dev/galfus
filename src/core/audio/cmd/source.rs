@@ -1,6 +1,8 @@
 use crate::core::audio::AudioSourceParams;
 use crate::core::state::EngineState;
-use vulfram_audio::{dispose_source, insert_source, update_source};
+use vulfram_audio::{
+    AudioModelTransform, dispose_source, insert_source, plan_bound_source_updates, update_source,
+};
 
 use super::types::{
     AudioPlayModeDto, AudioSourceTransportActionDto, CmdAudioSourceCreateArgs,
@@ -191,36 +193,20 @@ pub fn process_audio_source_bindings(engine: &mut EngineState) {
         Some(entities) => entities,
         None => return,
     };
-    let listener_record = match entities.models.get(&listener_binding.model_id) {
-        Some(record) => record,
-        None => return,
-    };
-    let (_, listener_rotation, listener_translation) = listener_record
-        .data
-        .transform
-        .to_scale_rotation_translation();
-    for (source_id, binding) in engine.audio_state.source_bindings.iter() {
-        if binding.realm_id != listener_binding.realm_id {
-            continue;
-        }
-        let record = match entities.models.get(&binding.model_id) {
-            Some(record) => record,
-            None => continue,
-        };
-        let (_, rotation, translation) = record.data.transform.to_scale_rotation_translation();
-        let mut params = match engine.audio_state.source_params.get(source_id) {
-            Some(params) => *params,
-            None => continue,
-        };
-        params.position = translation;
-        params.orientation = rotation;
-        if binding.model_id == listener_binding.model_id {
-            params.position = listener_translation;
-            params.orientation = listener_rotation;
-            params.spatial.min_distance = 0.0;
-            params.spatial.max_distance = 0.01;
-            params.spatial.rolloff = 0.0;
-        }
-        let _ = engine.audio.source_update(*source_id, params);
+    let models: Vec<_> = entities
+        .models
+        .iter()
+        .map(|(&model_id, record)| {
+            let (_, rotation, translation) = record.data.transform.to_scale_rotation_translation();
+            AudioModelTransform {
+                model_id,
+                translation,
+                rotation,
+            }
+        })
+        .collect();
+    for update in plan_bound_source_updates(&engine.audio_state, listener_binding.realm_id, &models)
+    {
+        let _ = engine.audio.source_update(update.source_id, update.params);
     }
 }

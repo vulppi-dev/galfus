@@ -589,6 +589,8 @@ Status atual:
 - crate criado
 - `AudioState`, `AudioListenerBinding`, `AudioSourceParams`, `AudioSpatialParams`, `AudioPlayMode`, `AudioReadyEvent` e `AudioStreamState` já vivem no crate novo
 - o core já consome esses tipos a partir de `vulfram-audio`
+- a interface backend-neutral de áudio agora também vive no crate novo
+- o sync semântico entre bindings de áudio e modelos 3D foi puxado para `vulfram-audio`
 - backends e fluxo de comandos ainda permanecem no core nesta fase intermediária
 
 Testes obrigatórios:

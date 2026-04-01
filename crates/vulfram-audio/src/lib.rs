@@ -1,5 +1,14 @@
+mod backend;
+mod sync;
+
 use glam::{Quat, Vec3};
 use std::collections::HashMap;
+
+pub use backend::AudioProxy;
+pub use sync::{
+    AudioModelTransform, AudioSourceUpdatePlan, plan_bound_source_updates,
+    resolve_listener_binding_state,
+};
 
 #[derive(Debug, Clone, Copy, Default, PartialEq)]
 pub struct AudioListenerState {

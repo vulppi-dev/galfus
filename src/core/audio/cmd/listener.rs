@@ -1,8 +1,8 @@
-use glam::Vec3;
-
 use crate::core::audio::AudioListenerState;
 use crate::core::state::EngineState;
-use vulfram_audio::{bind_listener, dispose_listener_for_realm};
+use vulfram_audio::{
+    AudioModelTransform, bind_listener, dispose_listener_for_realm, resolve_listener_binding_state,
+};
 
 use super::types::{
     CmdAudioListenerCreateArgs, CmdAudioListenerDisposeArgs, CmdAudioListenerUpdateArgs,
@@ -92,18 +92,22 @@ pub fn process_audio_listener_binding(engine: &mut EngineState) {
         Some(entities) => entities,
         None => return,
     };
-    let record = match entities.models.get(&binding.model_id) {
-        Some(record) => record,
-        None => return,
-    };
-    let (_, rotation, translation) = record.data.transform.to_scale_rotation_translation();
-    let forward = (rotation * Vec3::NEG_Z).normalize_or_zero();
-    let up = (rotation * Vec3::Y).normalize_or_zero();
-    let state = AudioListenerState {
-        position: translation,
-        velocity: Vec3::ZERO,
-        forward,
-        up,
+    let models: Vec<_> = entities
+        .models
+        .iter()
+        .map(|(&model_id, record)| {
+            let (_, rotation, translation) = record.data.transform.to_scale_rotation_translation();
+            AudioModelTransform {
+                model_id,
+                translation,
+                rotation,
+            }
+        })
+        .collect();
+    let Some(state) =
+        resolve_listener_binding_state(&engine.audio_state, binding.realm_id, &models)
+    else {
+        return;
     };
     let _ = engine.audio.listener_update(state);
 }
