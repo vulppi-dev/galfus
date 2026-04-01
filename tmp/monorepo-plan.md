@@ -577,6 +577,9 @@ Critério de aceite:
 Status atual:
 - crate criado e já concentra contratos de render graph, fallback graphs e validação semântica
 - helpers de IDs reservados/default e hashing de graph já vivem no crate novo
+- políticas de realm para compatibilidade de passes e `clear_alpha` já vivem no crate novo
+- políticas concretas de bootstrap gráfico já vivem no crate novo:
+  análise de adapter, `DeviceDescriptor`, `InstanceDescriptor`, `SurfaceConfiguration` e máscara de MSAA
 - planners puros de `realm_graph` já foram extraídos:
   cut connectors, surface cache, realms por janela, present-size cache, sizing de surfaces e overlays de compose
 - planners de sizing/update já foram extraídos:
@@ -584,6 +587,9 @@ Status atual:
 - o crate foi reorganizado internamente em módulos menores para evitar novo acoplamento local
 - o que ainda resta no core é majoritariamente backend concreto:
   `wgpu`, passes, execução de frame, lifecycle GPU e aplicação de recursos vivos
+- leitura prática:
+  a fase semântica e de políticas do `vulfram-render` está essencialmente concluída nesta etapa;
+  o que sobra é backend gráfico concreto, que continua pertencendo ao lado de render do core até a separação final do runtime/platform/bindings
 
 ### Fase 7 — Criação de `vulfram-audio`
 
@@ -697,8 +703,11 @@ Status atual:
 - fingerprints e sync plans de texturas, atlas, target texture binds e geometria já vivem no crate
 - planners de atualização semântica para câmeras, modelos, luzes e materiais já foram extraídos
 - aplicação genérica de `SyncPlan` em mapas também já vive no crate
+- helpers genéricos de rebuild/retenção de mapas por ID agora também vivem no crate e já são usados pelo `scene_sync`
 - o crate foi reorganizado em módulos menores para manter responsabilidades locais bem separadas
 - o que segue no core é adaptação para records vivos e recursos gráficos concretos
+- leitura prática:
+  a fronteira semântica de `vulfram-realm-3d` está essencialmente concluída nesta etapa
 
 ### Fase 11 — Criação de `vulfram-realm-2d`
 
@@ -720,7 +729,8 @@ Critério de aceite:
 Status atual:
 - crate criado com responsabilidade concreta mínima, mas real:
   política de compatibilidade de passes para realms 2D
-- ainda é um domínio pequeno, porém já útil e integrado ao fluxo de validação de render graph
+- o crate já influencia o fluxo real de render por meio da validação de render graph e das políticas consumidas por `vulfram-render`
+- ainda é um domínio pequeno, porém já útil e integrado ao fluxo de validação e execução
 - próximos avanços em `realm-2d` só fazem sentido quando surgirem tipos/estruturas 2D semânticas de verdade
 
 ### Fase 12 — Criação dos `vulfram-bindings-*`
