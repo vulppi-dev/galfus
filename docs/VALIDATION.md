@@ -7,15 +7,21 @@ This document defines the current quality-validation split between automated che
 Primary automated gate:
 
 - `scripts/check.sh`
+- CI workflow `build-bindings.yml`
 
 Current scope:
 
 - `cargo check --lib`
 - WGSL shader validation
+- `cargo test -p vulfram-runtime --lib` via `scripts/check.sh`
+- `cargo test --workspace --lib` in CI
+- formatting drift detection in CI (`git diff --exit-code` after checks)
 
 Notes:
 
 - This gate validates compilation and shader consistency.
+- CI additionally validates that the refactored workspace still builds/tests across
+  the split crates and bindings packaging workflow.
 - It does not guarantee visual quality, UX behavior, or platform-policy edge cases.
 - After documentation-only architecture work, this script is not required unless
   code or shader files also changed.

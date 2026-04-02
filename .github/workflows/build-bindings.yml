@@ -18,7 +18,7 @@ permissions:
 
 jobs:
   quality-tests:
-    name: Quality Tests (Core)
+    name: Quality Tests (Workspace)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -33,6 +33,12 @@ jobs:
 
       - name: Static checks
         run: scripts/check.sh
+
+      - name: Workspace tests
+        run: cargo test --workspace --lib
+
+      - name: Verify formatting is clean
+        run: git diff --exit-code
 
   build:
     name: Build ${{ matrix.binding }} - ${{ matrix.os }}-${{ matrix.arch }}
@@ -125,6 +131,9 @@ jobs:
         id: build
         shell: bash
         run: |
+          PACKAGE_NAME="vulfram-bindings-${{ matrix.binding }}"
+          ARTIFACT_STEM="${PACKAGE_NAME//-/_}"
+
           if [ "${{ matrix.os }}" == "ubuntu-latest" ]; then
             TARGET="${{ (matrix.arch == 'arm64' && 'aarch64-unknown-linux-gnu') || 'x86_64-unknown-linux-gnu' }}"
           elif [ "${{ matrix.os }}" == "windows-latest" ]; then
@@ -134,6 +143,8 @@ jobs:
           fi
 
           echo "target=${TARGET}" >> "${GITHUB_OUTPUT}"
+          echo "package_name=${PACKAGE_NAME}" >> "${GITHUB_OUTPUT}"
+          echo "artifact_stem=${ARTIFACT_STEM}" >> "${GITHUB_OUTPUT}"
           echo "Building target=${TARGET} binding=${{ matrix.binding }}"
 
           if [[ "${{ matrix.os }}" == "macos-latest" ]]; then
@@ -150,9 +161,9 @@ jobs:
             echo 'pre-build = ["dpkg --add-architecture arm64 && apt-get update && apt-get install -y libudev-dev:arm64 libasound2-dev:arm64"]' >> Cross.toml
 
             export PKG_CONFIG_ALLOW_CROSS=1
-            cross build --release --target "${TARGET}" --no-default-features --features "${{ matrix.binding }}"
+            cross build -p "${PACKAGE_NAME}" --release --target "${TARGET}"
           else
-            cargo build --release --target "${TARGET}" --no-default-features --features "${{ matrix.binding }}"
+            cargo build -p "${PACKAGE_NAME}" --release --target "${TARGET}"
           fi
 
       - name: Package distributable
@@ -176,19 +187,22 @@ jobs:
           if [[ "${{ matrix.os }}" == "windows-latest" ]]; then EXTENSION="dll"; fi
           if [[ "${{ matrix.os }}" == "macos-latest" ]]; then EXTENSION="dylib"; fi
 
+          LIB_PREFIX="lib"
+          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then LIB_PREFIX=""; fi
+
           if [[ "${{ matrix.os }}" == "ubuntu-latest" && "${{ matrix.arch }}" == "arm64" ]]; then
             SEARCH_PATH="target/aarch64-unknown-linux-gnu/release"
           else
             SEARCH_PATH="target/${{ steps.build.outputs.target }}/release"
           fi
 
-          SOURCE_FILE="$(find "${SEARCH_PATH}" -maxdepth 1 -type f -name "*.${EXTENSION}" | head -n 1)"
-          if [[ -z "${SOURCE_FILE}" ]]; then
-            SOURCE_FILE="$(find target/release -maxdepth 1 -type f -name "*.${EXTENSION}" | head -n 1)"
+          SOURCE_FILE="${SEARCH_PATH}/${LIB_PREFIX}${{ steps.build.outputs.artifact_stem }}.${EXTENSION}"
+          if [[ ! -f "${SOURCE_FILE}" ]]; then
+            SOURCE_FILE="target/release/${LIB_PREFIX}${{ steps.build.outputs.artifact_stem }}.${EXTENSION}"
           fi
 
-          if [[ -z "${SOURCE_FILE}" ]]; then
-            echo "No compiled library found for extension ${EXTENSION}"
+          if [[ ! -f "${SOURCE_FILE}" ]]; then
+            echo "No compiled library found at ${SOURCE_FILE}"
             exit 1
           fi
 
@@ -280,7 +294,7 @@ jobs:
         run: cargo install wasm-bindgen-cli --version 0.2.114
 
       - name: Build
-        run: cargo build --release --target wasm32-unknown-unknown --no-default-features --features wasm
+        run: cargo build -p vulfram-bindings-wasm --release --target wasm32-unknown-unknown
 
       - name: Package distributable
         id: package
@@ -293,7 +307,7 @@ jobs:
             --target web \
             --out-dir "${DIST_DIR}" \
             --out-name vulfram_core \
-            target/wasm32-unknown-unknown/release/vulfram_core.wasm
+            target/wasm32-unknown-unknown/release/vulfram_bindings_wasm.wasm
 
           # wasm-bindgen emits <out-name>_bg.wasm for web targets.
           DEST_PATH="${DIST_DIR}/vulfram_core_bg.wasm"
