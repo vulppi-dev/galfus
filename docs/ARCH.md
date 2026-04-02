@@ -197,3 +197,14 @@ The rest of the documentation should assume:
 - render graphs are global resources bound per realm
 - `vulfram-runtime` is the current integration root
 - `vulfram-render` should increasingly own auto-graph planning policy
+
+## 9. Test File Layout
+
+Automated tests should live in dedicated test source files, not inline in the
+same file as functional code.
+
+Preferred pattern:
+
+- keep runtime code in the primary module file
+- reference sibling test files with `#[cfg(test)]` and `#[path = "..."] mod tests;`
+- keep larger grouped test suites in dedicated `tests.rs`/`*_tests.rs` modules

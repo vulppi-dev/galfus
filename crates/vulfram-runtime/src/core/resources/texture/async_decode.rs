@@ -149,21 +149,8 @@ fn spawn_decode(job: TextureDecodeJob, sender: Sender<TextureAsyncEvent>) {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn cancel_only_marks_existing_pending_entries() {
-        let mut manager = TextureAsyncManager::new();
-        assert!(!manager.cancel(10));
-        assert!(!manager.was_canceled(10));
-
-        manager.pending.insert(10);
-        assert!(manager.cancel(10));
-        assert!(manager.was_canceled(10));
-        assert!(!manager.was_canceled(10));
-    }
-}
+#[path = "async_decode_tests.rs"]
+mod tests;
 
 #[cfg(target_arch = "wasm32")]
 fn spawn_decode(job: TextureDecodeJob, sender: Sender<TextureAsyncEvent>) {
