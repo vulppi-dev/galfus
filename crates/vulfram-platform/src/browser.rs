@@ -44,6 +44,14 @@ pub struct BrowserPointerMotionInput {
     pub window_size: Option<Vec2>,
 }
 
+pub fn browser_now_ns(now_ms: f64) -> u64 {
+    (now_ms * 1_000_000.0) as u64
+}
+
+pub fn should_poll_browser_gamepads(has_windows: bool, document_has_focus: bool) -> bool {
+    has_windows && document_has_focus
+}
+
 pub fn map_browser_pointer_type(pointer_type: &str) -> u32 {
     match pointer_type {
         "mouse" => 0,
@@ -170,11 +178,11 @@ pub fn plan_browser_cursor_mode_change(mode: PlatformCursorGrabMode) -> BrowserC
 mod tests {
     use super::{
         BrowserCursorCommandPlan, BrowserPointerCaptureUpdate, BrowserPointerMotionInput,
-        BrowserSurfaceResizePlan, PlatformCursorGrabMode, PlatformWindowState,
+        BrowserSurfaceResizePlan, PlatformCursorGrabMode, PlatformWindowState, browser_now_ns,
         map_browser_pointer_type, normalize_browser_key_text, plan_browser_cursor_mode_change,
         plan_browser_surface_resize, resolve_browser_pointer_position,
         resolve_browser_window_state, resolve_canvas_surface_size, resolve_pointer_lock_change,
-        resolve_pointer_lock_error,
+        resolve_pointer_lock_error, should_poll_browser_gamepads,
     };
     use glam::vec2;
 
@@ -265,6 +273,18 @@ mod tests {
                 reason: "pointer-lock-error",
             })
         );
+    }
+
+    #[test]
+    fn browser_now_ns_scales_milliseconds() {
+        assert_eq!(browser_now_ns(12.5), 12_500_000);
+    }
+
+    #[test]
+    fn should_poll_browser_gamepads_requires_windows_and_focus() {
+        assert!(!should_poll_browser_gamepads(false, true));
+        assert!(!should_poll_browser_gamepads(true, false));
+        assert!(should_poll_browser_gamepads(true, true));
     }
 
     #[test]

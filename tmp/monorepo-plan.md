@@ -652,6 +652,11 @@ Status atual:
 
 ### Fase 9 — Criação de `vulfram-platform`
 
+Status:
+- concluída no escopo arquitetural desta refatoração
+- `vulfram-platform` já concentra redraw planning, lifecycle de janela, bootstrap target semântico, helpers browser de sizing/teclado/ponteiro/cursor, backend de gamepad e operações de polling/mapeamento de `gilrs`
+- o que permanece fora do crate é integração concreta com runtime, janela viva e render, não semântica própria de plataforma
+
 Objetivo:
 - integrar ambiente real ao stack novo sem contaminar crates semânticos
 
@@ -664,12 +669,12 @@ Tarefas:
   - crate criado
   - planner puro de redraw por janela extraído
   - desktop já consome `vulfram-platform` para decidir redraw
-  - helpers puros de browser para sizing de canvas, texto de teclado e ponteiro extraídos
+  - helpers puros de browser para sizing de canvas, texto de teclado, ponteiro e polling extraídos
   - helpers de lifecycle web para fullscreen e pointer-lock extraídos
   - planner puro de resize de surface e comando de cursor web extraídos
   - resolução semântica de lifecycle de janela centralizada em `vulfram-platform`
   - contrato semântico de bootstrap de render criado para descrever o alvo que será entregue ao runtime
-  - integração browser ainda pendente
+  - backend de gamepad e mapeamentos `gilrs` movidos para `vulfram-platform`
 
 Testes obrigatórios:
 - testes puros para adaptadores e conversões

@@ -1,5 +1,3 @@
-use js_sys::Date;
-
 use crate::core::platform::{EventLoop, EventLoopProxy};
 use crate::core::singleton::EngineCustomEvents;
 use crate::core::state::EngineState;
@@ -8,6 +6,7 @@ use crate::core::window::engine_cmd_window_create;
 #[cfg(target_arch = "wasm32")]
 use crate::core::window::engine_cmd_window_create_async;
 use crate::core::window::{CmdResultWindowCreate, CmdWindowCreateArgs};
+use vulfram_platform::{browser_now_ns, should_poll_browser_gamepads};
 
 use super::PlatformProxy;
 
@@ -27,7 +26,7 @@ impl BrowserProxy {
     }
 
     fn now_ns() -> u64 {
-        (Date::now() * 1_000_000.0) as u64
+        browser_now_ns(js_sys::Date::now())
     }
 }
 
@@ -56,14 +55,11 @@ impl PlatformProxy for BrowserProxy {
 
     fn process_gamepads(&mut self, state: &mut EngineState) -> u64 {
         let start = Self::now_ns();
-        if state.window.states.is_empty() {
-            return Self::now_ns().saturating_sub(start);
-        }
         let has_focus = web_sys::window()
             .and_then(|window| window.document())
             .map(|document| document.has_focus().unwrap_or(true))
             .unwrap_or(true);
-        if !has_focus {
+        if !should_poll_browser_gamepads(!state.window.states.is_empty(), has_focus) {
             return Self::now_ns().saturating_sub(start);
         }
         crate::core::gamepad::process_web_gamepads(state);

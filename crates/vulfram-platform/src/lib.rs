@@ -11,10 +11,11 @@ pub use bootstrap::{
 };
 pub use browser::{
     BrowserCursorCommandPlan, BrowserPointerCaptureUpdate, BrowserPointerMotionInput,
-    BrowserSurfaceResizePlan, PlatformCursorGrabMode, PlatformWindowState,
+    BrowserSurfaceResizePlan, PlatformCursorGrabMode, PlatformWindowState, browser_now_ns,
     map_browser_pointer_type, normalize_browser_key_text, plan_browser_cursor_mode_change,
     plan_browser_surface_resize, resolve_browser_pointer_position, resolve_browser_window_state,
     resolve_canvas_surface_size, resolve_pointer_lock_change, resolve_pointer_lock_error,
+    should_poll_browser_gamepads,
 };
 pub use gamepad::{PlatformGamepadBackendState, map_gilrs_axis, map_gilrs_button};
 #[cfg(not(target_arch = "wasm32"))]

@@ -76,8 +76,8 @@ pub fn attach_canvas_listeners(
     let focus_closure = Closure::wrap(Box::new(move |_event: Event| {
         with_live_window(window_id, |engine| {
             engine
-                .event_queue
-                .push(EngineEvent::Window(WindowEvent::OnFocus {
+                .runtime
+                .push_event(EngineEvent::Window(WindowEvent::OnFocus {
                     window_id,
                     focused: true,
                 }));
@@ -100,8 +100,8 @@ pub fn attach_canvas_listeners(
                 ));
             }
             engine
-                .event_queue
-                .push(EngineEvent::Window(WindowEvent::OnFocus {
+                .runtime
+                .push_event(EngineEvent::Window(WindowEvent::OnFocus {
                     window_id,
                     focused: false,
                 }));
@@ -122,8 +122,8 @@ pub fn attach_canvas_listeners(
                 .unwrap_or(EngineWindowState::Windowed);
             if engine.window.set_lifecycle_state(window_id, state) {
                 engine
-                    .event_queue
-                    .push(EngineEvent::Window(WindowEvent::OnStateChange {
+                    .runtime
+                    .push_event(EngineEvent::Window(WindowEvent::OnStateChange {
                         window_id,
                         state,
                     }));
@@ -159,16 +159,16 @@ pub fn attach_canvas_listeners(
                 .window
                 .set_pointer_capture_active(window_id, capture_update.active)
             {
-                engine
-                    .event_queue
-                    .push(EngineEvent::Window(WindowEvent::OnPointerCaptureChange {
+                engine.runtime.push_event(EngineEvent::Window(
+                    WindowEvent::OnPointerCaptureChange {
                         window_id,
                         capture: WindowPointerCaptureState {
                             mode: CursorGrabMode::Locked,
                             active: capture_update.active,
                             reason: Some(capture_update.reason.into()),
                         },
-                    }));
+                    },
+                ));
             }
         });
     }) as Box<dyn FnMut(Event)>);
@@ -189,8 +189,8 @@ pub fn attach_canvas_listeners(
                 .window
                 .set_pointer_capture_active(window_id, capture_update.active);
             engine
-                .event_queue
-                .push(EngineEvent::Window(WindowEvent::OnPointerCaptureChange {
+                .runtime
+                .push_event(EngineEvent::Window(WindowEvent::OnPointerCaptureChange {
                     window_id,
                     capture: WindowPointerCaptureState {
                         mode: CursorGrabMode::Locked,
@@ -235,8 +235,8 @@ pub fn attach_canvas_listeners(
                 ));
             }
             engine
-                .event_queue
-                .push(EngineEvent::Keyboard(CoreKeyboardEvent::OnInput {
+                .runtime
+                .push_event(EngineEvent::Keyboard(CoreKeyboardEvent::OnInput {
                     window_id,
                     key_code,
                     state: ElementState::Pressed,
@@ -277,8 +277,8 @@ pub fn attach_canvas_listeners(
                 ));
             }
             engine
-                .event_queue
-                .push(EngineEvent::Keyboard(CoreKeyboardEvent::OnInput {
+                .runtime
+                .push_event(EngineEvent::Keyboard(CoreKeyboardEvent::OnInput {
                     window_id,
                     key_code,
                     state: ElementState::Released,
@@ -298,8 +298,8 @@ pub fn attach_canvas_listeners(
         };
         with_live_window(window_id, |engine| {
             engine
-                .event_queue
-                .push(EngineEvent::Keyboard(CoreKeyboardEvent::OnImeEnable {
+                .runtime
+                .push_event(EngineEvent::Keyboard(CoreKeyboardEvent::OnImeEnable {
                     window_id,
                 }));
         });
@@ -319,8 +319,8 @@ pub fn attach_canvas_listeners(
         let text = event.data().unwrap_or_default();
         with_live_window(window_id, |engine| {
             engine
-                .event_queue
-                .push(EngineEvent::Keyboard(CoreKeyboardEvent::OnImePreedit {
+                .runtime
+                .push_event(EngineEvent::Keyboard(CoreKeyboardEvent::OnImePreedit {
                     window_id,
                     text,
                     cursor_range: None,
@@ -342,14 +342,14 @@ pub fn attach_canvas_listeners(
         let text = event.data().unwrap_or_default();
         with_live_window(window_id, |engine| {
             engine
-                .event_queue
-                .push(EngineEvent::Keyboard(CoreKeyboardEvent::OnImeCommit {
+                .runtime
+                .push_event(EngineEvent::Keyboard(CoreKeyboardEvent::OnImeCommit {
                     window_id,
                     text,
                 }));
             engine
-                .event_queue
-                .push(EngineEvent::Keyboard(CoreKeyboardEvent::OnImeDisable {
+                .runtime
+                .push_event(EngineEvent::Keyboard(CoreKeyboardEvent::OnImeDisable {
                     window_id,
                 }));
         });
@@ -386,8 +386,8 @@ pub fn attach_canvas_listeners(
             });
             engine.window.cursor_positions.insert(window_id, position);
             engine
-                .event_queue
-                .push(EngineEvent::Pointer(CorePointerEvent::OnMove {
+                .runtime
+                .push_event(EngineEvent::Pointer(CorePointerEvent::OnMove {
                     window_id,
                     window_width: None,
                     window_height: None,
@@ -416,8 +416,8 @@ pub fn attach_canvas_listeners(
 
         with_live_window(window_id, |engine| {
             engine
-                .event_queue
-                .push(EngineEvent::Pointer(CorePointerEvent::OnButton {
+                .runtime
+                .push_event(EngineEvent::Pointer(CorePointerEvent::OnButton {
                     window_id,
                     window_width: None,
                     window_height: None,
@@ -448,8 +448,8 @@ pub fn attach_canvas_listeners(
 
         with_live_window(window_id, |engine| {
             engine
-                .event_queue
-                .push(EngineEvent::Pointer(CorePointerEvent::OnButton {
+                .runtime
+                .push_event(EngineEvent::Pointer(CorePointerEvent::OnButton {
                     window_id,
                     window_width: None,
                     window_height: None,
@@ -476,8 +476,8 @@ pub fn attach_canvas_listeners(
         let pointer_id = event.pointer_id() as u64;
         with_live_window(window_id, |engine| {
             engine
-                .event_queue
-                .push(EngineEvent::Pointer(CorePointerEvent::OnEnter {
+                .runtime
+                .push_event(EngineEvent::Pointer(CorePointerEvent::OnEnter {
                     window_id,
                     window_width: None,
                     window_height: None,
@@ -505,8 +505,8 @@ pub fn attach_canvas_listeners(
         let pointer_id = event.pointer_id() as u64;
         with_live_window(window_id, |engine| {
             engine
-                .event_queue
-                .push(EngineEvent::Pointer(CorePointerEvent::OnLeave {
+                .runtime
+                .push_event(EngineEvent::Pointer(CorePointerEvent::OnLeave {
                     window_id,
                     window_width: None,
                     window_height: None,
@@ -542,8 +542,8 @@ pub fn attach_canvas_listeners(
         with_live_window(window_id, |engine| {
             let _ = &wheel_canvas;
             engine
-                .event_queue
-                .push(EngineEvent::Pointer(CorePointerEvent::OnScroll {
+                .runtime
+                .push_event(EngineEvent::Pointer(CorePointerEvent::OnScroll {
                     window_id,
                     window_width: None,
                     window_height: None,
@@ -638,8 +638,8 @@ fn sync_canvas_surface_size(window_id: u32, width: u32, height: u32) -> bool {
             surface_entry.value.size = glam::UVec2::new(width, height);
         }
         engine
-            .event_queue
-            .push(EngineEvent::Window(WindowEvent::OnResize {
+            .runtime
+            .push_event(EngineEvent::Window(WindowEvent::OnResize {
                 window_id,
                 width,
                 height,
