@@ -801,6 +801,16 @@ Testes e validação:
 Critério de aceite:
 - demo atua como consumidor da engine, não como parte dela
 
+Status:
+- concluída no escopo arquitetural desta refatoração
+
+Status final da fase:
+- `crates/vulfram-demo` criado como bin dedicado
+- harness local e cenários portados para o crate novo
+- demo passou a consumir `vulfram-core` como dependência, em vez de viver dentro do pacote raiz
+- `src/demo`, `src/app.rs` e `src/main.rs` foram removidos do pacote raiz
+- Escape continua fechando demos por padrão via harness já portado
+
 ### Fase 14 — Limpeza final
 
 Objetivo:

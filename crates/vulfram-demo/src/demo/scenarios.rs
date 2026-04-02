@@ -3,51 +3,6 @@ use std::{cell::RefCell, rc::Rc};
 
 use glam::{Mat4, UVec2, Vec2, Vec3, Vec4};
 
-use crate::core;
-use crate::core::audio::cmd::{
-    AudioPlayModeDto, AudioSourceTransportActionDto, AudioSpatialParamsDto,
-    CmdAudioResourceUpsertArgs, CmdAudioSourceCreateArgs, CmdAudioSourceTransportArgs,
-};
-use crate::core::buffers::cmd::CmdUploadBufferDiscardAllArgs;
-use crate::core::cmd::{
-    CmdCameraUpsertArgs, CmdEnvironmentUpsertArgs, CmdGeometryUpsertArgs, CmdLightUpsertArgs,
-    CmdMaterialUpsertArgs, CmdModelUpsertArgs, CommandResponse, EngineCmd, EngineEvent,
-};
-use crate::core::input::events::{ElementState, KeyboardEvent, PointerEvent};
-use crate::core::input::keycodes::{KEY_ESCAPE, KEY_W};
-use crate::core::profiling::state::ProfilingDetailLevel;
-use crate::core::realm::cmd::{CmdRealmCreateArgs, CmdRealmDisposeArgs, RealmKindDto};
-use crate::core::render::gizmos::{
-    CmdGizmoDrawAabbArgs, CmdGizmoDrawLineArgs, CmdGizmoDrawPolylineArgs,
-};
-use crate::core::resources::shadow::CmdShadowConfigureArgs;
-use crate::core::resources::shadow::ShadowConfig;
-use crate::core::resources::{
-    CmdCameraUpdateArgs, CmdEnvironmentUpdateArgs, CmdModelCreateArgs, CmdModelUpdateArgs,
-    CmdPrimitiveGeometryCreateArgs, EnvironmentConfig, PrimitiveShape, SkyboxConfig, SkyboxMode,
-};
-use crate::core::system::{
-    diagnostics::CmdSystemDiagnosticsSetArgs,
-    notification::{CmdNotificationSendArgs, NotificationLevel},
-};
-use crate::core::target::{
-    DimensionValue, TargetKind, TargetLayerLayout,
-    cmd::{
-        CmdTargetDisposeArgs, CmdTargetLayerDisposeArgs, CmdTargetLayerUpsertArgs,
-        CmdTargetUpsertArgs,
-    },
-};
-use crate::core::ui::cmd::{
-    CmdUiAccessKitActionRequestArgs, CmdUiClipboardPasteArgs, CmdUiDebugSetArgs,
-    CmdUiDocumentCreateArgs, CmdUiDocumentGetLayoutRectsArgs, CmdUiDocumentGetTreeArgs,
-    CmdUiEventTraceSetArgs, CmdUiFocusGetArgs, CmdUiFocusSetArgs, CmdUiImageCreateFromBufferArgs,
-    CmdUiImageDisposeArgs, CmdUiScreenshotReplyArgs,
-};
-use crate::core::ui::types::{UiNode, UiNodeKind, UiNodeProps, UiOp};
-use crate::core::window::{
-    CmdWindowCursorArgs, CmdWindowMeasurementArgs, CmdWindowStateArgs, CursorIcon,
-    EngineWindowState,
-};
 use crate::demo::assets::{
     load_texture_bytes, upload_binary_bytes, upload_buffer, upload_texture_bytes,
 };
@@ -66,6 +21,51 @@ use pointer_listener_lab::run_demo_7_pointer_listener_lab;
 use setup::{
     aux_window_commands, base_scene_commands, extra_setup_commands, list_commands, ui_button_op,
     window_cursor_cmd, window_measurement_cmd, window_state_cmd,
+};
+use vulfram_core::core;
+use vulfram_core::core::audio::cmd::{
+    AudioPlayModeDto, AudioSourceTransportActionDto, AudioSpatialParamsDto,
+    CmdAudioResourceUpsertArgs, CmdAudioSourceCreateArgs, CmdAudioSourceTransportArgs,
+};
+use vulfram_core::core::buffers::cmd::CmdUploadBufferDiscardAllArgs;
+use vulfram_core::core::cmd::{
+    CmdCameraUpsertArgs, CmdEnvironmentUpsertArgs, CmdGeometryUpsertArgs, CmdLightUpsertArgs,
+    CmdMaterialUpsertArgs, CmdModelUpsertArgs, CommandResponse, EngineCmd, EngineEvent,
+};
+use vulfram_core::core::input::events::{ElementState, KeyboardEvent, PointerEvent};
+use vulfram_core::core::input::keycodes::{KEY_ESCAPE, KEY_W};
+use vulfram_core::core::profiling::state::ProfilingDetailLevel;
+use vulfram_core::core::realm::cmd::{CmdRealmCreateArgs, CmdRealmDisposeArgs, RealmKindDto};
+use vulfram_core::core::render::gizmos::{
+    CmdGizmoDrawAabbArgs, CmdGizmoDrawLineArgs, CmdGizmoDrawPolylineArgs,
+};
+use vulfram_core::core::resources::shadow::CmdShadowConfigureArgs;
+use vulfram_core::core::resources::shadow::ShadowConfig;
+use vulfram_core::core::resources::{
+    CmdCameraUpdateArgs, CmdEnvironmentUpdateArgs, CmdModelCreateArgs, CmdModelUpdateArgs,
+    CmdPrimitiveGeometryCreateArgs, EnvironmentConfig, PrimitiveShape, SkyboxConfig, SkyboxMode,
+};
+use vulfram_core::core::system::{
+    diagnostics::CmdSystemDiagnosticsSetArgs,
+    notification::{CmdNotificationSendArgs, NotificationLevel},
+};
+use vulfram_core::core::target::{
+    DimensionValue, TargetKind, TargetLayerLayout,
+    cmd::{
+        CmdTargetDisposeArgs, CmdTargetLayerDisposeArgs, CmdTargetLayerUpsertArgs,
+        CmdTargetUpsertArgs,
+    },
+};
+use vulfram_core::core::ui::cmd::{
+    CmdUiAccessKitActionRequestArgs, CmdUiClipboardPasteArgs, CmdUiDebugSetArgs,
+    CmdUiDocumentCreateArgs, CmdUiDocumentGetLayoutRectsArgs, CmdUiDocumentGetTreeArgs,
+    CmdUiEventTraceSetArgs, CmdUiFocusGetArgs, CmdUiFocusSetArgs, CmdUiImageCreateFromBufferArgs,
+    CmdUiImageDisposeArgs, CmdUiScreenshotReplyArgs,
+};
+use vulfram_core::core::ui::types::{UiNode, UiNodeKind, UiNodeProps, UiOp};
+use vulfram_core::core::window::{
+    CmdWindowCursorArgs, CmdWindowMeasurementArgs, CmdWindowStateArgs, CursorIcon,
+    EngineWindowState,
 };
 use window_ui::run_demo_2_window_ui;
 
@@ -444,7 +444,7 @@ fn run_demo_bundle(
                         state.borrow_mut().on_pointer_move(*position);
                     }
                     EngineEvent::Window(
-                        crate::core::window::WindowEvent::OnPointerCaptureChange {
+                        vulfram_core::core::window::WindowEvent::OnPointerCaptureChange {
                             window_id,
                             capture,
                         },
@@ -458,7 +458,7 @@ fn run_demo_bundle(
             for aux_window in &aux_windows {
                 if should_close_window(*aux_window, &event) {
                     let _ = send_commands(vec![EngineCmd::CmdWindowClose(
-                        crate::core::window::CmdWindowCloseArgs {
+                        vulfram_core::core::window::CmdWindowCloseArgs {
                             window_id: *aux_window,
                         },
                     )]);
@@ -486,9 +486,9 @@ fn sample_cubic_bezier(p0: Vec3, p1: Vec3, p2: Vec3, p3: Vec3, segments: usize) 
 
 fn should_close_window(window_id: u32, event: &EngineEvent) -> bool {
     match event {
-        EngineEvent::Window(crate::core::window::WindowEvent::OnCloseRequest { window_id: id }) => {
-            *id == window_id
-        }
+        EngineEvent::Window(vulfram_core::core::window::WindowEvent::OnCloseRequest {
+            window_id: id,
+        }) => *id == window_id,
         EngineEvent::Keyboard(KeyboardEvent::OnInput {
             window_id: id,
             key_code,

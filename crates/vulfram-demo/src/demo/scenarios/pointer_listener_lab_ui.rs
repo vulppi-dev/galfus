@@ -1,6 +1,6 @@
 use glam::Vec2;
 
-use crate::core::ui::types::{
+use vulfram_core::core::ui::types::{
     UiColor, UiLayout, UiLayoutDirection, UiLength, UiNode, UiNodeKind, UiNodeProps, UiOp,
     UiPadding, UiSize, UiSplitDirection,
 };

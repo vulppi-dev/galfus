@@ -1,9 +1,9 @@
 use glam::{Mat4, Vec2};
 
-use crate::core::cmd::EngineCmd;
-use crate::core::ui::cmd::{CmdUiApplyOpsArgs, CmdUiDocumentCreateArgs};
-use crate::core::ui::types::{UiNode, UiNodeKind, UiNodeProps, UiOp};
-use crate::core::window::{CmdWindowCursorArgs, CursorGrabMode, CursorIcon};
+use vulfram_core::core::cmd::EngineCmd;
+use vulfram_core::core::ui::cmd::{CmdUiApplyOpsArgs, CmdUiDocumentCreateArgs};
+use vulfram_core::core::ui::types::{UiNode, UiNodeKind, UiNodeProps, UiOp};
+use vulfram_core::core::window::{CmdWindowCursorArgs, CursorGrabMode, CursorIcon};
 
 use super::DemoIds;
 

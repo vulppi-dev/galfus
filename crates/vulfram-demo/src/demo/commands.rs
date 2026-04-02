@@ -1,13 +1,13 @@
-use crate::core::cmd::EngineCmd;
-use crate::core::resources::shadow::{CmdShadowConfigureArgs, ShadowConfig};
-use crate::core::resources::{
+use glam::{Mat4, Vec2, Vec4};
+use vulfram_core::core::cmd::EngineCmd;
+use vulfram_core::core::resources::shadow::{CmdShadowConfigureArgs, ShadowConfig};
+use vulfram_core::core::resources::{
     CameraKind, CmdCameraCreateArgs, CmdLightCreateArgs, CmdMaterialCreateArgs, MaterialKind,
     MaterialOptions, MaterialSampler, PbrOptions, StandardOptions,
 };
-use glam::{Mat4, Vec2, Vec4};
 
 pub fn create_camera_cmd(realm_id: u32, camera_id: u32, label: &str, transform: Mat4) -> EngineCmd {
-    EngineCmd::CmdCameraUpsert(crate::core::cmd::CmdCameraUpsertArgs::Create(
+    EngineCmd::CmdCameraUpsert(vulfram_core::core::cmd::CmdCameraUpsertArgs::Create(
         CmdCameraCreateArgs {
             realm_id,
             camera_id,
@@ -30,12 +30,12 @@ pub fn create_point_light_cmd(
     position: Vec4,
     intensity: f32,
 ) -> EngineCmd {
-    EngineCmd::CmdLightUpsert(crate::core::cmd::CmdLightUpsertArgs::Create(
+    EngineCmd::CmdLightUpsert(vulfram_core::core::cmd::CmdLightUpsertArgs::Create(
         CmdLightCreateArgs {
             realm_id,
             light_id,
             label: Some("Point Light".to_string()),
-            kind: Some(crate::core::resources::LightKind::Point),
+            kind: Some(vulfram_core::core::resources::LightKind::Point),
             position: Some(position),
             direction: None,
             color: Some(Vec4::new(1.0, 1.0, 1.0, 1.0)),
@@ -55,12 +55,12 @@ pub fn create_ambient_light_cmd(
     color: Vec4,
     intensity: f32,
 ) -> EngineCmd {
-    EngineCmd::CmdLightUpsert(crate::core::cmd::CmdLightUpsertArgs::Create(
+    EngineCmd::CmdLightUpsert(vulfram_core::core::cmd::CmdLightUpsertArgs::Create(
         CmdLightCreateArgs {
             realm_id,
             light_id,
             label: Some("Ambient Light".to_string()),
-            kind: Some(crate::core::resources::LightKind::Ambient),
+            kind: Some(vulfram_core::core::resources::LightKind::Ambient),
             position: None,
             direction: None,
             color: Some(color),
@@ -81,7 +81,7 @@ pub fn create_standard_material_cmd(
     base_tex_id: Option<u32>,
     emissive_color: Option<Vec4>,
 ) -> EngineCmd {
-    EngineCmd::CmdMaterialUpsert(crate::core::cmd::CmdMaterialUpsertArgs::Create(
+    EngineCmd::CmdMaterialUpsert(vulfram_core::core::cmd::CmdMaterialUpsertArgs::Create(
         CmdMaterialCreateArgs {
             material_id,
             label: Some(label.to_string()),
@@ -91,7 +91,7 @@ pub fn create_standard_material_cmd(
                 base_tex_id,
                 base_sampler: Some(MaterialSampler::LinearClamp),
                 emissive_color: Some(emissive_color.unwrap_or(Vec4::ZERO)),
-                polygon_mode: Some(crate::core::resources::PolygonMode::Fill),
+                polygon_mode: Some(vulfram_core::core::resources::PolygonMode::Fill),
                 ..Default::default()
             })),
         },
@@ -105,7 +105,7 @@ pub fn create_pbr_material_cmd(
     metallic: f32,
     roughness: f32,
 ) -> EngineCmd {
-    EngineCmd::CmdMaterialUpsert(crate::core::cmd::CmdMaterialUpsertArgs::Create(
+    EngineCmd::CmdMaterialUpsert(vulfram_core::core::cmd::CmdMaterialUpsertArgs::Create(
         CmdMaterialCreateArgs {
             material_id,
             label: Some(label.to_string()),
@@ -114,7 +114,7 @@ pub fn create_pbr_material_cmd(
                 base_color: Some(base_color),
                 metallic: Some(metallic),
                 roughness: Some(roughness),
-                polygon_mode: Some(crate::core::resources::PolygonMode::Fill),
+                polygon_mode: Some(vulfram_core::core::resources::PolygonMode::Fill),
                 ..Default::default()
             })),
         },

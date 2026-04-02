@@ -1,7 +1,7 @@
-use crate::core::buffers::state::UploadType;
 use bytemuck::cast_slice;
+use vulfram_core::core::buffers::state::UploadType;
 
-use crate::core;
+use vulfram_core::core;
 
 pub fn load_texture_bytes(path: &str) -> Vec<u8> {
     std::fs::read(path).expect("failed to read texture")
@@ -20,7 +20,7 @@ pub fn upload_buffer<T: bytemuck::Pod>(buffer_id: u64, upload_type: UploadType, 
     let upload_type_id = upload_type_to_u32(upload_type);
     assert_eq!(
         core::vulfram_upload_buffer(buffer_id, upload_type_id, bytes.as_ptr(), bytes.len()),
-        crate::core::VulframResult::Success
+        vulfram_core::core::VulframResult::Success
     );
 }
 

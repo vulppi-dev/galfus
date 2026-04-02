@@ -1,4 +1,4 @@
-mod core;
+pub mod core;
 
 pub use core::{
     vulfram_dispose, vulfram_get_profiling, vulfram_init, vulfram_receive_events,

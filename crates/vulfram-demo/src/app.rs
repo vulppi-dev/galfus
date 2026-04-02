@@ -1,15 +1,15 @@
-use crate::core::VulframResult;
-use crate::core::cmd::EngineCmd;
-use crate::core::window::CmdWindowCloseArgs;
 use crate::demo::{DemoContext, create_window, run_demo, select_demo};
 use std::sync::Mutex;
+use vulfram_core::core::VulframResult;
+use vulfram_core::core::cmd::EngineCmd;
+use vulfram_core::core::window::CmdWindowCloseArgs;
 
 static ENGINE_GUARD: Mutex<()> = Mutex::new(());
 
 pub fn run() {
     let _lock = ENGINE_GUARD.lock().unwrap();
 
-    assert_eq!(crate::core::vulfram_init(), VulframResult::Success);
+    assert_eq!(vulfram_core::core::vulfram_init(), VulframResult::Success);
 
     let demo_kind = select_demo();
     let window_id: u32 = 1;
@@ -30,5 +30,8 @@ pub fn run() {
         let _ = crate::demo::send_commands(vec![close_cmd]);
     }
 
-    assert_eq!(crate::core::vulfram_dispose(), VulframResult::Success);
+    assert_eq!(
+        vulfram_core::core::vulfram_dispose(),
+        VulframResult::Success
+    );
 }

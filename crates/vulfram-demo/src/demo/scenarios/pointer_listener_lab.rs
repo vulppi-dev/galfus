@@ -4,28 +4,28 @@ use glam::{Mat4, Vec3, Vec4};
 
 use super::pointer_listener_lab_ui::{build_ui_tree, format_vec2};
 use super::{DemoContext, DemoIds, create_ui_realm};
-use crate::core;
-use crate::core::cmd::CmdEnvironmentUpsertArgs;
-use crate::core::cmd::{CmdModelUpsertArgs, CommandResponse, EngineCmd, EngineEvent};
-use crate::core::input::listeners::CmdInputTargetListenerUpsertArgs;
-use crate::core::realm::cmd::{CmdRealmCreateArgs, RealmKindDto};
-use crate::core::resources::shadow::{CmdShadowConfigureArgs, ShadowConfig};
-use crate::core::resources::{
-    CmdEnvironmentUpdateArgs, EnvironmentConfig, SkyboxConfig, SkyboxMode,
-};
-use crate::core::system::SystemEvent;
-use crate::core::target::{
-    DimensionValue, TargetKind, TargetLayerLayout,
-    cmd::{CmdTargetLayerUpsertArgs, CmdTargetUpsertArgs},
-};
-use crate::core::ui::cmd::{CmdUiApplyOpsArgs, CmdUiDocumentCreateArgs};
-use crate::core::ui::types::{UiColor, UiNodeProps, UiOp};
 use crate::demo::commands::{
     create_ambient_light_cmd, create_camera_cmd, create_pbr_material_cmd, create_point_light_cmd,
 };
 use crate::demo::hud::FpsHud;
 use crate::demo::io::{receive_events, receive_responses, send_command, send_commands};
 use crate::demo::loop_utils::run_loop_with_events;
+use vulfram_core::core;
+use vulfram_core::core::cmd::CmdEnvironmentUpsertArgs;
+use vulfram_core::core::cmd::{CmdModelUpsertArgs, CommandResponse, EngineCmd, EngineEvent};
+use vulfram_core::core::input::listeners::CmdInputTargetListenerUpsertArgs;
+use vulfram_core::core::realm::cmd::{CmdRealmCreateArgs, RealmKindDto};
+use vulfram_core::core::resources::shadow::{CmdShadowConfigureArgs, ShadowConfig};
+use vulfram_core::core::resources::{
+    CmdEnvironmentUpdateArgs, EnvironmentConfig, SkyboxConfig, SkyboxMode,
+};
+use vulfram_core::core::system::SystemEvent;
+use vulfram_core::core::target::{
+    DimensionValue, TargetKind, TargetLayerLayout,
+    cmd::{CmdTargetLayerUpsertArgs, CmdTargetUpsertArgs},
+};
+use vulfram_core::core::ui::cmd::{CmdUiApplyOpsArgs, CmdUiDocumentCreateArgs};
+use vulfram_core::core::ui::types::{UiColor, UiNodeProps, UiOp};
 
 pub(super) fn run_demo_7_pointer_listener_lab(ctx: DemoContext) -> bool {
     let ids = DemoIds::from_number(7);
@@ -125,18 +125,18 @@ pub(super) fn run_demo_7_pointer_listener_lab(ctx: DemoContext) -> bool {
         }),
     ));
     setup_cmds.push(EngineCmd::CmdPrimitiveGeometryCreate(
-        crate::core::resources::CmdPrimitiveGeometryCreateArgs {
+        vulfram_core::core::resources::CmdPrimitiveGeometryCreateArgs {
             geometry_id: left_geometry_id,
             label: Some("Demo7 Left Cube".into()),
-            shape: crate::core::resources::PrimitiveShape::Cube,
+            shape: vulfram_core::core::resources::PrimitiveShape::Cube,
             options: None,
         },
     ));
     setup_cmds.push(EngineCmd::CmdPrimitiveGeometryCreate(
-        crate::core::resources::CmdPrimitiveGeometryCreateArgs {
+        vulfram_core::core::resources::CmdPrimitiveGeometryCreateArgs {
             geometry_id: left_ground_geometry_id,
             label: Some("Demo7 Left Ground".into()),
-            shape: crate::core::resources::PrimitiveShape::Plane,
+            shape: vulfram_core::core::resources::PrimitiveShape::Plane,
             options: None,
         },
     ));
@@ -173,7 +173,7 @@ pub(super) fn run_demo_7_pointer_listener_lab(ctx: DemoContext) -> bool {
         0.95,
     ));
     setup_cmds.push(EngineCmd::CmdModelUpsert(CmdModelUpsertArgs::Create(
-        crate::core::resources::CmdModelCreateArgs {
+        vulfram_core::core::resources::CmdModelCreateArgs {
             realm_id: left_realm_id,
             model_id: left_model_id,
             label: Some("Demo7 Left Model".into()),
@@ -188,7 +188,7 @@ pub(super) fn run_demo_7_pointer_listener_lab(ctx: DemoContext) -> bool {
         },
     )));
     setup_cmds.push(EngineCmd::CmdModelUpsert(CmdModelUpsertArgs::Create(
-        crate::core::resources::CmdModelCreateArgs {
+        vulfram_core::core::resources::CmdModelCreateArgs {
             realm_id: left_realm_id,
             model_id: left_ground_model_id,
             label: Some("Demo7 Left Ground Model".into()),
@@ -280,18 +280,18 @@ pub(super) fn run_demo_7_pointer_listener_lab(ctx: DemoContext) -> bool {
         }),
     ));
     setup_cmds.push(EngineCmd::CmdPrimitiveGeometryCreate(
-        crate::core::resources::CmdPrimitiveGeometryCreateArgs {
+        vulfram_core::core::resources::CmdPrimitiveGeometryCreateArgs {
             geometry_id: inner_geometry_id,
             label: Some("Demo7 Inner Cube".into()),
-            shape: crate::core::resources::PrimitiveShape::Cube,
+            shape: vulfram_core::core::resources::PrimitiveShape::Cube,
             options: None,
         },
     ));
     setup_cmds.push(EngineCmd::CmdPrimitiveGeometryCreate(
-        crate::core::resources::CmdPrimitiveGeometryCreateArgs {
+        vulfram_core::core::resources::CmdPrimitiveGeometryCreateArgs {
             geometry_id: inner_ground_geometry_id,
             label: Some("Demo7 Inner Ground".into()),
-            shape: crate::core::resources::PrimitiveShape::Plane,
+            shape: vulfram_core::core::resources::PrimitiveShape::Plane,
             options: None,
         },
     ));
@@ -328,7 +328,7 @@ pub(super) fn run_demo_7_pointer_listener_lab(ctx: DemoContext) -> bool {
         0.96,
     ));
     setup_cmds.push(EngineCmd::CmdModelUpsert(CmdModelUpsertArgs::Create(
-        crate::core::resources::CmdModelCreateArgs {
+        vulfram_core::core::resources::CmdModelCreateArgs {
             realm_id: inner_realm_id,
             model_id: inner_model_id,
             label: Some("Demo7 Inner Model".into()),
@@ -343,7 +343,7 @@ pub(super) fn run_demo_7_pointer_listener_lab(ctx: DemoContext) -> bool {
         },
     )));
     setup_cmds.push(EngineCmd::CmdModelUpsert(CmdModelUpsertArgs::Create(
-        crate::core::resources::CmdModelCreateArgs {
+        vulfram_core::core::resources::CmdModelCreateArgs {
             realm_id: inner_realm_id,
             model_id: inner_ground_model_id,
             label: Some("Demo7 Inner Ground Model".into()),
@@ -393,7 +393,7 @@ pub(super) fn run_demo_7_pointer_listener_lab(ctx: DemoContext) -> bool {
         move |total_ms, delta_ms| {
             let mut cmds = hud.frame_commands(total_ms, delta_ms);
             cmds.push(EngineCmd::CmdModelUpsert(CmdModelUpsertArgs::Update(
-                crate::core::resources::CmdModelUpdateArgs {
+                vulfram_core::core::resources::CmdModelUpdateArgs {
                     realm_id: left_realm_id,
                     model_id: left_model_id,
                     label: None,
@@ -411,7 +411,7 @@ pub(super) fn run_demo_7_pointer_listener_lab(ctx: DemoContext) -> bool {
                 },
             )));
             cmds.push(EngineCmd::CmdModelUpsert(CmdModelUpsertArgs::Update(
-                crate::core::resources::CmdModelUpdateArgs {
+                vulfram_core::core::resources::CmdModelUpdateArgs {
                     realm_id: inner_realm_id,
                     model_id: inner_model_id,
                     label: None,

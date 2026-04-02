@@ -1,5 +1,5 @@
 use super::*;
-use crate::core::resources::*;
+use vulfram_core::core::resources::*;
 mod setup_cases_tail;
 pub(super) fn ui_button_op(parent: u32, node_id: u32, label: &str) -> UiOp {
     UiOp::Add {

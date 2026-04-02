@@ -4034,6 +4034,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "vulfram-demo"
+version = "0.21.2-alpha"
+dependencies = [
+ "bytemuck",
+ "glam 0.30.10",
+ "rmp-serde",
+ "vulfram-core",
+]
+
+[[package]]
 name = "vulfram-input"
 version = "0.21.2-alpha"
 dependencies = [

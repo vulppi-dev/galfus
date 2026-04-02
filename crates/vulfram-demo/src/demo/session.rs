@@ -1,12 +1,12 @@
-use crate::core::VulframResult;
-use crate::core::cmd::{CommandResponse, EngineCmd, EngineEvent};
-use crate::core::window::CmdWindowCreateArgs;
-use crate::core::window::WindowEvent;
 use glam::UVec2;
 use std::time::Duration;
+use vulfram_core::core::VulframResult;
+use vulfram_core::core::cmd::{CommandResponse, EngineCmd, EngineEvent};
+use vulfram_core::core::window::CmdWindowCreateArgs;
+use vulfram_core::core::window::WindowEvent;
 
-use crate::core;
 use crate::demo::io::{receive_events, receive_responses, send_commands};
+use vulfram_core::core;
 
 const WINDOW_READY_TIMEOUT: Duration = Duration::from_secs(10);
 const WINDOW_READY_DELTA_MS: u32 = 16;
@@ -22,7 +22,7 @@ pub fn create_window(window_id: u32, title: &str) -> WindowBinding {
         title: title.into(),
         size: UVec2::new(1280, 720),
         resizable: true,
-        initial_state: crate::core::window::EngineWindowState::Maximized,
+        initial_state: vulfram_core::core::window::EngineWindowState::Maximized,
         ..Default::default()
     });
     assert_eq!(send_commands(vec![create_cmd]), VulframResult::Success);

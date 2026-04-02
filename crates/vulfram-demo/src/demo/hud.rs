@@ -1,6 +1,6 @@
-use crate::core::cmd::EngineCmd;
-use crate::core::ui::cmd::{CmdUiApplyOpsArgs, CmdUiDocumentCreateArgs};
-use crate::core::ui::types::{
+use vulfram_core::core::cmd::EngineCmd;
+use vulfram_core::core::ui::cmd::{CmdUiApplyOpsArgs, CmdUiDocumentCreateArgs};
+use vulfram_core::core::ui::types::{
     UiAlign, UiLayout, UiLayoutDirection, UiLength, UiNode, UiNodeKind, UiNodeProps, UiOp, UiSize,
 };
 

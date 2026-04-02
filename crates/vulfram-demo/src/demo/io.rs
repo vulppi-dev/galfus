@@ -1,9 +1,9 @@
-use crate::core::VulframResult;
-use crate::core::cmd::{CommandResponseEnvelope, EngineCmd, EngineCmdEnvelope, EngineEvent};
 use rmp_serde::{from_slice, to_vec_named};
 use std::sync::atomic::{AtomicU64, Ordering};
+use vulfram_core::core::VulframResult;
+use vulfram_core::core::cmd::{CommandResponseEnvelope, EngineCmd, EngineCmdEnvelope, EngineEvent};
 
-use crate::core;
+use vulfram_core::core;
 
 static NEXT_COMMAND_ID: AtomicU64 = AtomicU64::new(1);
 

@@ -35,7 +35,7 @@ pub(super) fn append_setup_commands_tail(
                 theme_id: None,
             }));
             cmds.push(EngineCmd::CmdUiApplyOps(
-                crate::core::ui::cmd::CmdUiApplyOpsArgs {
+                vulfram_core::core::ui::cmd::CmdUiApplyOpsArgs {
                     document_id: ids.ui_doc_extra,
                     version: 1,
                     ops: vec![
@@ -104,7 +104,7 @@ pub(super) fn append_setup_commands_tail(
                 window_id: Some(ctx.window_id),
             }));
             cmds.push(EngineCmd::CmdUiEventTraceSet(CmdUiEventTraceSetArgs {
-                level: Some(crate::core::input::events::PointerTraceLevel::Full),
+                level: Some(vulfram_core::core::input::events::PointerTraceLevel::Full),
                 sampling_percent: Some(100),
             }));
             cmds.push(EngineCmd::CmdUiDebugSet(CmdUiDebugSetArgs {
@@ -265,7 +265,7 @@ pub(super) fn append_setup_commands_tail(
                 theme_id: None,
             }));
             cmds.push(EngineCmd::CmdUiApplyOps(
-                crate::core::ui::cmd::CmdUiApplyOpsArgs {
+                vulfram_core::core::ui::cmd::CmdUiApplyOpsArgs {
                     document_id: ids.ui_doc_extra,
                     version: 1,
                     ops: vec![UiOp::Add {
@@ -303,25 +303,27 @@ pub(super) fn append_setup_commands_tail(
                 },
             ));
             cmds.push(EngineCmd::CmdAudioListenerUpsert(
-                crate::core::cmd::CmdAudioListenerUpsertArgs::Create(
-                    crate::core::audio::cmd::CmdAudioListenerCreateArgs {
+                vulfram_core::core::cmd::CmdAudioListenerUpsertArgs::Create(
+                    vulfram_core::core::audio::cmd::CmdAudioListenerCreateArgs {
                         realm_id: ctx.realm_id,
                         model_id: ids.model_id,
                     },
                 ),
             ));
             cmds.push(EngineCmd::CmdAudioSourceUpsert(
-                crate::core::cmd::CmdAudioSourceUpsertArgs::Create(CmdAudioSourceCreateArgs {
-                    realm_id: ctx.realm_id,
-                    source_id: ids.aux_id + 1,
-                    model_id: ids.model_id,
-                    position: Vec3::ZERO,
-                    velocity: Vec3::ZERO,
-                    orientation: glam::Quat::IDENTITY,
-                    gain: 1.0,
-                    pitch: 1.0,
-                    spatial: AudioSpatialParamsDto::default(),
-                }),
+                vulfram_core::core::cmd::CmdAudioSourceUpsertArgs::Create(
+                    CmdAudioSourceCreateArgs {
+                        realm_id: ctx.realm_id,
+                        source_id: ids.aux_id + 1,
+                        model_id: ids.model_id,
+                        position: Vec3::ZERO,
+                        velocity: Vec3::ZERO,
+                        orientation: glam::Quat::IDENTITY,
+                        gain: 1.0,
+                        pitch: 1.0,
+                        spatial: AudioSpatialParamsDto::default(),
+                    },
+                ),
             ));
             cmds.push(EngineCmd::CmdAudioSourceTransport(
                 CmdAudioSourceTransportArgs {
@@ -335,7 +337,7 @@ pub(super) fn append_setup_commands_tail(
                 },
             ));
             cmds.push(EngineCmd::CmdAudioStateGet(
-                crate::core::audio::cmd::CmdAudioStateGetArgs::default(),
+                vulfram_core::core::audio::cmd::CmdAudioStateGetArgs::default(),
             ));
         }
         24 => {}
@@ -346,7 +348,7 @@ pub(super) fn append_setup_commands_tail(
                     profiling_detail: Some(ProfilingDetailLevel::Basic),
                     profiling_sampling_percent: Some(100),
                     profiling_window_frames: Some(60),
-                    trace_level: Some(crate::core::input::events::PointerTraceLevel::Errors),
+                    trace_level: Some(vulfram_core::core::input::events::PointerTraceLevel::Errors),
                     trace_sampling_percent: Some(100),
                 },
             ));

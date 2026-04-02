@@ -182,7 +182,7 @@ pub(crate) fn extra_setup_commands(
             }
             upload_buffer(
                 70_000 + ids.model_id as u64,
-                crate::core::buffers::state::UploadType::Raw,
+                vulfram_core::core::buffers::state::UploadType::Raw,
                 &bones,
             );
             cmds.push(EngineCmd::CmdPoseUpdate(CmdPoseUpdateArgs {
@@ -214,22 +214,22 @@ pub(crate) fn extra_setup_commands(
             let base_buffer = 80_000 + ids.geometry_id as u64;
             upload_buffer(
                 base_buffer,
-                crate::core::buffers::state::UploadType::VertexData,
+                vulfram_core::core::buffers::state::UploadType::VertexData,
                 &positions,
             );
             upload_buffer(
                 base_buffer + 1,
-                crate::core::buffers::state::UploadType::VertexData,
+                vulfram_core::core::buffers::state::UploadType::VertexData,
                 &normals,
             );
             upload_buffer(
                 base_buffer + 2,
-                crate::core::buffers::state::UploadType::VertexData,
+                vulfram_core::core::buffers::state::UploadType::VertexData,
                 &uvs,
             );
             upload_buffer(
                 base_buffer + 3,
-                crate::core::buffers::state::UploadType::IndexData,
+                vulfram_core::core::buffers::state::UploadType::IndexData,
                 &indices,
             );
 
@@ -239,19 +239,23 @@ pub(crate) fn extra_setup_commands(
                     label: Some("Triangle Custom".into()),
                     entries: vec![
                         GeometryPrimitiveEntry {
-                            primitive_type: crate::core::resources::GeometryPrimitiveType::Position,
+                            primitive_type:
+                                vulfram_core::core::resources::GeometryPrimitiveType::Position,
                             buffer_id: base_buffer,
                         },
                         GeometryPrimitiveEntry {
-                            primitive_type: crate::core::resources::GeometryPrimitiveType::Normal,
+                            primitive_type:
+                                vulfram_core::core::resources::GeometryPrimitiveType::Normal,
                             buffer_id: base_buffer + 1,
                         },
                         GeometryPrimitiveEntry {
-                            primitive_type: crate::core::resources::GeometryPrimitiveType::UV,
+                            primitive_type:
+                                vulfram_core::core::resources::GeometryPrimitiveType::UV,
                             buffer_id: base_buffer + 2,
                         },
                         GeometryPrimitiveEntry {
-                            primitive_type: crate::core::resources::GeometryPrimitiveType::Index,
+                            primitive_type:
+                                vulfram_core::core::resources::GeometryPrimitiveType::Index,
                             buffer_id: base_buffer + 3,
                         },
                     ],

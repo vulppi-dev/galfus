@@ -1,13 +1,13 @@
-use crate::core::VulframResult;
-use crate::core::cmd::EngineEvent;
-use crate::core::input::events::{ElementState, KeyboardEvent};
-use crate::core::input::keycodes::{KEY_ESCAPE, KEY_W};
-use crate::core::window::{CmdWindowCloseArgs, WindowEvent};
 use std::time::{Duration, Instant};
+use vulfram_core::core::VulframResult;
+use vulfram_core::core::cmd::EngineEvent;
+use vulfram_core::core::input::events::{ElementState, KeyboardEvent};
+use vulfram_core::core::input::keycodes::{KEY_ESCAPE, KEY_W};
+use vulfram_core::core::window::{CmdWindowCloseArgs, WindowEvent};
 
-use crate::core;
-use crate::core::cmd::EngineCmd;
 use crate::demo::io::{receive_events, receive_responses, send_commands};
+use vulfram_core::core;
+use vulfram_core::core::cmd::EngineCmd;
 
 pub fn run_loop_with_events<F, G>(
     window_id: u32,

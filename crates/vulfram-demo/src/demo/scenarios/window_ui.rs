@@ -149,7 +149,7 @@ pub(super) fn run_demo_2_window_ui(ctx: DemoContext) -> bool {
     ];
     setup_cmds.extend(hud.setup_commands(ui_realm_id));
     setup_cmds.push(EngineCmd::CmdUiApplyOps(
-        crate::core::ui::cmd::CmdUiApplyOpsArgs {
+        vulfram_core::core::ui::cmd::CmdUiApplyOpsArgs {
             document_id: control_doc_id,
             version: 1,
             ops: vec![
@@ -254,7 +254,7 @@ pub(super) fn run_demo_2_window_ui(ctx: DemoContext) -> bool {
             let _ = send_commands(frame_cmds);
         }
 
-        if core::vulfram_tick(total_ms, delta_ms) != crate::core::VulframResult::Success {
+        if core::vulfram_tick(total_ms, delta_ms) != vulfram_core::core::VulframResult::Success {
             return false;
         }
 
@@ -296,7 +296,7 @@ pub(super) fn run_demo_2_window_ui(ctx: DemoContext) -> bool {
             last_measurement_text = text.clone();
             control_version = control_version.saturating_add(1);
             let _ = send_commands(vec![EngineCmd::CmdUiApplyOps(
-                crate::core::ui::cmd::CmdUiApplyOpsArgs {
+                vulfram_core::core::ui::cmd::CmdUiApplyOpsArgs {
                     document_id: control_doc_id,
                     version: control_version,
                     ops: vec![UiOp::Set {
@@ -315,7 +315,7 @@ pub(super) fn run_demo_2_window_ui(ctx: DemoContext) -> bool {
         for event in events {
             if should_close_window(ctx.window_id, &event) {
                 let _ = send_commands(vec![EngineCmd::CmdWindowClose(
-                    crate::core::window::CmdWindowCloseArgs {
+                    vulfram_core::core::window::CmdWindowCloseArgs {
                         window_id: ctx.window_id,
                     },
                 )]);
@@ -326,7 +326,7 @@ pub(super) fn run_demo_2_window_ui(ctx: DemoContext) -> bool {
                 continue;
             };
             if ui_event.document_id != control_doc_id
-                || ui_event.kind != crate::core::ui::events::UiEventKind::Click
+                || ui_event.kind != vulfram_core::core::ui::events::UiEventKind::Click
             {
                 continue;
             }
