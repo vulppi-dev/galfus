@@ -51,8 +51,7 @@ fn emit_window_state_change_if_needed(engine: &mut EngineState, window_id: u32) 
     if engine.window.set_lifecycle_state(window_id, next_state) {
         engine
             .runtime
-            .event_queue
-            .push(EngineEvent::Window(WindowEvent::OnStateChange {
+            .push_event(EngineEvent::Window(WindowEvent::OnStateChange {
                 window_id,
                 state: next_state,
             }));
@@ -62,26 +61,22 @@ fn emit_window_state_change_if_needed(engine: &mut EngineState, window_id: u32) 
 impl ApplicationHandler<EngineCustomEvents> for EngineState {
     fn resumed(&mut self, _event_loop: &ActiveEventLoop) {
         self.runtime
-            .event_queue
-            .push(EngineEvent::System(SystemEvent::OnResume));
+            .push_event(EngineEvent::System(SystemEvent::OnResume));
     }
 
     fn suspended(&mut self, _event_loop: &ActiveEventLoop) {
         self.runtime
-            .event_queue
-            .push(EngineEvent::System(SystemEvent::OnSuspend));
+            .push_event(EngineEvent::System(SystemEvent::OnSuspend));
     }
 
     fn exiting(&mut self, _event_loop: &ActiveEventLoop) {
         self.runtime
-            .event_queue
-            .push(EngineEvent::System(SystemEvent::OnExit));
+            .push_event(EngineEvent::System(SystemEvent::OnExit));
     }
 
     fn memory_warning(&mut self, _event_loop: &ActiveEventLoop) {
         self.runtime
-            .event_queue
-            .push(EngineEvent::System(SystemEvent::OnMemoryWarning));
+            .push_event(EngineEvent::System(SystemEvent::OnMemoryWarning));
     }
 
     fn window_event(
