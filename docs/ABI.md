@@ -187,6 +187,12 @@ Typical flow:
 3. Binding copies and frees the buffer.
 4. Binding decodes events and forwards them into the host-side input system.
 
+Current composition note:
+
+- the host composes the scene through `Realm`, `Target`, and `TargetLayer`
+- the core derives internal `Surface`, `Present`, and `Connector` tables from
+  those maps
+
 ---
 
 ### 2.5 Upload of Raw Blobs

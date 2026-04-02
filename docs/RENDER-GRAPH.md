@@ -1,194 +1,43 @@
-# Render Graph (Internal)
+# Render Graph
 
-This document describes the render graph format used by the engine. Render graphs live in a global core catalog and are referenced by realms through logical `render_graph_id`. If a bound graph is missing or invalid, the core executes a safe fallback graph for that realm kind. Render graphs are realm-scoped (via binding), not window-scoped.
+Render graphs are global resources stored by logical `render_graph_id` and
+bound per realm.
 
-## Goals
+They are:
 
-- **Host control**: The host defines the render sequence and dependencies.
-- **Logical IDs only**: The host never sees GPU handles or internal IDs.
-- **Performance**: Minimal per-frame overhead, cacheable plan, and reusable resources.
-- **Robustness**: Invalid or missing graphs fall back to a default graph.
+- host-defined
+- core-validated
+- cached by compiled plan/hash
+- realm-scoped by binding
 
-## High-Level Flow
+They are not window-scoped and do not replace the auto-graph composition model.
 
-1. The host upserts a render graph resource using logical IDs.
-2. The core validates the graph and compiles an execution plan.
-3. A realm binds to that graph by `render_graph_id`.
-4. On missing/invalid bindings, the core uses a fallback graph.
+## Flow
 
-Execution order is strict: passes run exactly in graph topological order (`plan.order`).
-The core does not inject implicit render passes outside the bound graph.
+1. Host upserts a render graph resource.
+2. Core validates the graph.
+3. Core compiles or reuses a cached execution plan.
+4. A realm binds to that graph through `render_graph_id`.
+5. Missing or invalid graphs fall back safely by realm kind.
 
-## Graph Structure
+## Relationship to Auto-Graph
 
-### Graph
+Render graph and auto-graph solve different problems:
 
-| Field     | Type       | Description                                   |
-| --------- | ---------- | --------------------------------------------- |
-| graphId   | LogicalId  | Logical graph identifier (cache key)          |
-| nodes     | Node[]     | Render nodes                                  |
-| edges     | Edge[]     | Dependencies between nodes                    |
-| resources | Resource[] | Declared resources                            |
-| fallback  | bool       | Reserved metadata field (currently not used in runtime decisions) |
+- render graph
+  - defines pass/resource execution inside a realm
+- auto-graph
+  - defines how realms are composed across targets/windows/surfaces
 
-### Node
+The host participates in both, but through different APIs:
 
-| Field   | Type        | Description                              |
-| ------- | ----------- | ---------------------------------------- |
-| nodeId  | LogicalId   | Logical node identifier                  |
-| passId  | string      | Pass type (e.g., "forward")               |
-| inputs  | LogicalId[] | Resource IDs read by this node           |
-| outputs | LogicalId[] | Resource IDs written by this node        |
-| params  | Map         | Optional parameters (clear, flags, etc.) |
+- render graph resource commands
+- realm/target/target-layer commands
 
-### Resource
+## Core Rules
 
-| Field      | Type       | Description                                               |
-| ---------- | ---------- | --------------------------------------------------------- |
-| resId      | LogicalId  | Logical resource identifier                               |
-| kind       | string     | "texture", "buffer", "attachment" (defaults to "texture") |
-| lifetime   | string     | "frame" or "persistent" (defaults to "frame")             |
-| aliasGroup | LogicalId? | Optional alias group for memory reuse                     |
-
-### Edge
-
-| Field      | Type      | Description                                      |
-| ---------- | --------- | ------------------------------------------------ |
-| fromNodeId | LogicalId | Dependency source                                |
-| toNodeId   | LogicalId | Dependency target                                |
-| reason     | string?   | Optional: "read_after_write", "write_after_read" |
-
-### LogicalId
-
-Logical IDs can be strings or numeric values.
-
-## Known Pass IDs
-
-- `shadow`
-- `light-cull`
-- `skybox`
-- `forward`
-- `outline`
-- `ssao`
-- `ssao-blur`
-- `bloom`
-- `post`
-- `compose`
-- `ui`
-
-Bloom uses the emissive output from the forward pass when available and falls back to the HDR color buffer otherwise.
-
-## Minimal Example
-
-```json
-{
-  "graphId": "main_render",
-  "nodes": [
-    {
-      "nodeId": "shadow_pass",
-      "passId": "shadow",
-      "inputs": [],
-      "outputs": ["shadow_atlas"]
-    },
-    {
-      "nodeId": "forward_pass",
-      "passId": "forward",
-      "inputs": ["shadow_atlas"],
-      "outputs": ["hdr_color", "depth"]
-    },
-    {
-      "nodeId": "outline_pass",
-      "passId": "outline",
-      "inputs": ["depth"],
-      "outputs": ["outline_color"]
-    },
-    {
-      "nodeId": "ssao_pass",
-      "passId": "ssao",
-      "inputs": ["depth"],
-      "outputs": ["ssao_raw"]
-    },
-    {
-      "nodeId": "ssao_blur_pass",
-      "passId": "ssao-blur",
-      "inputs": ["ssao_raw", "depth"],
-      "outputs": ["ssao_blur"]
-    },
-    {
-      "nodeId": "bloom_pass",
-      "passId": "bloom",
-      "inputs": ["hdr_color"],
-      "outputs": ["bloom_color"]
-    },
-    {
-      "nodeId": "post_pass",
-      "passId": "post",
-      "inputs": ["hdr_color", "outline_color", "ssao_blur", "bloom_color"],
-      "outputs": ["post_color"]
-    },
-    {
-      "nodeId": "compose_pass",
-      "passId": "compose",
-      "inputs": ["post_color"],
-      "outputs": ["swapchain"]
-    }
-  ],
-  "edges": [
-    { "fromNodeId": "shadow_pass", "toNodeId": "forward_pass" },
-    { "fromNodeId": "forward_pass", "toNodeId": "outline_pass" },
-    { "fromNodeId": "forward_pass", "toNodeId": "ssao_pass" },
-    { "fromNodeId": "ssao_pass", "toNodeId": "ssao_blur_pass" },
-    { "fromNodeId": "ssao_blur_pass", "toNodeId": "post_pass" },
-    { "fromNodeId": "forward_pass", "toNodeId": "bloom_pass" },
-    { "fromNodeId": "bloom_pass", "toNodeId": "post_pass" },
-    { "fromNodeId": "outline_pass", "toNodeId": "post_pass" },
-    { "fromNodeId": "post_pass", "toNodeId": "compose_pass" }
-  ],
-  "resources": [
-    { "resId": "shadow_atlas" },
-    { "resId": "hdr_color" },
-    { "resId": "depth" },
-    { "resId": "outline_color" },
-    { "resId": "ssao_raw" },
-    { "resId": "ssao_blur" },
-    { "resId": "bloom_color" },
-    { "resId": "post_color" },
-    { "resId": "swapchain", "kind": "attachment" }
-  ],
-  "fallback": true
-}
-```
-
-## Validation Rules (Core)
-
-- **DAG only**: No cycles.
-- **Resources exist**: Every input/output refers to a declared resource.
-- **Write ordering**: A resource must be produced before it is read.
-- **Edge reason coherence**: When `reason` is set, dependency direction must match resource usage.
-- **Multiple writers**: Rewrites of the same resource must preserve explicit dependency ordering.
-- **Pass compatibility**: Each `pass_id` must be a known core pass type.
-- **Realm bind compatibility**: `two-d` realms can bind only UI-only graphs (`ui` pass).
-- **Safe updates**: updating a graph already bound to realms must preserve compatibility with all those realms.
-
-If validation fails, the core switches to the fallback graph.
-
-## Fallback Graph
-
-The fallback graph represents the default rendering pipeline that always works. It is used when:
-
-- The host provides no graph.
-- The provided graph fails validation.
-
-Example fallback:
-
-```
-shadow -> forward -> outline + ssao -> ssao-blur + bloom -> post -> compose
-```
-
-## Performance Notes
-
-- **Cache per graph hash**: Compile once per `RenderGraphDesc` hash and reuse across graph IDs/realms.
-- **Cache pruning**: Compiled-plan cache entries are removed when the last referencing graph is disposed.
-- **Alias groups**: Allow the core to reuse memory for non-overlapping resources.
-- **Frame lifetime**: `lifetime = "frame"` resources are recycled automatically.
-- **Minimal validation on hot path**: Validate only when the graph changes.
+- graph resources live in a global catalog
+- realm binding chooses which graph a realm executes
+- validation and plan caching are core-side
+- the runtime may use fallback graphs when the requested graph is absent or
+  incompatible with the realm kind

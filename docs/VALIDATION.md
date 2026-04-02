@@ -17,6 +17,8 @@ Notes:
 
 - This gate validates compilation and shader consistency.
 - It does not guarantee visual quality, UX behavior, or platform-policy edge cases.
+- After documentation-only architecture work, this script is not required unless
+  code or shader files also changed.
 
 ## Manual Validation
 

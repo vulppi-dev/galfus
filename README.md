@@ -158,6 +158,8 @@ Vulfram distinguishes between two fundamental types:
 The host manages all logical identifiers:
 
 - `WindowId` - Window instances
+- `RealmId` - Realm instances
+- `TargetId` - Logical composition targets
 - `CameraId` - Camera instances
 - `ModelId` - Model instances
 - `LightId` - Light instances
@@ -167,6 +169,17 @@ The host manages all logical identifiers:
 - `BufferId` - Upload blob identifiers
 
 These are opaque integers to the core. The host ensures uniqueness and consistency.
+
+### Internal Composition Tables
+
+The core derives and owns these runtime tables internally:
+
+- `Surface`
+- `Present`
+- `Connector`
+
+The host composes output through `Realm`, `Target`, and `TargetLayer` commands
+instead of managing these internal tables directly.
 
 ### Asynchronous Resource Linking (Fallback-Driven)
 
@@ -350,15 +363,14 @@ cargo fmt
 ```text
 vulfram/
 ├── crates/
-│   ├── vulfram-core/            # Core crate source tree
+│   ├── vulfram-runtime/         # Integration root, ABI re-exports and frame orchestration
 │   ├── vulfram-types/           # Shared logical/base types
 │   ├── vulfram-protocol/        # Host/runtime contracts + MsgPack codec
-│   ├── vulfram-realm-core/      # Realm/surface/target semantics
+│   ├── vulfram-realm-core/      # Realm composition semantics and graph/report DTOs
 │   ├── vulfram-input/           # Normalized input semantics
 │   ├── vulfram-realm-ui/        # UI semantic layer
-│   ├── vulfram-render/          # WGPU backend + render helpers
+│   ├── vulfram-render/          # WGPU-facing render policy, graphs and planning helpers
 │   ├── vulfram-audio/           # Audio domain + backends
-│   ├── vulfram-runtime/         # Tick/frame orchestration
 │   ├── vulfram-platform/        # Desktop/browser integration
 │   ├── vulfram-realm-3d/        # 3D realm semantics + sync plans
 │   ├── vulfram-realm-2d/        # 2D realm placeholder/contracts
@@ -392,7 +404,8 @@ Comprehensive documentation is available in the `docs/` folder.
 1. **[OVERVIEW.md](docs/OVERVIEW.md)** - Start here! High-level concepts and design philosophy
 2. **[ABI.md](docs/ABI.md)** - C-ABI functions, usage contract, and calling conventions
 3. **[ARCH.md](docs/ARCH.md)** - Architecture, lifecycle, and main loop patterns
-4. **[GLOSSARY.md](docs/GLOSSARY.md)** - Terminology and naming conventions
+4. **[REALM-ARCH.md](docs/REALM-ARCH.md)** - Realm composition architecture and refactor direction
+5. **[GLOSSARY.md](docs/GLOSSARY.md)** - Terminology and naming conventions
 
 **For Core Contributors (Rust Developers):**
 

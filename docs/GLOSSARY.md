@@ -1,316 +1,137 @@
-# 🦊 Vulfram — Glossary (Terminology and Naming Conventions)
+# Vulfram Glossary
 
-> Internal reference for common terminology and naming patterns used in the
-> Vulfram project. This is useful for both core contributors and binding authors.
+## Host
 
----
+External application/runtime that calls the exported `vulfram_*` functions.
 
-## 1. Core Concepts
+The host owns:
 
-### Host
+- game/application logic
+- logical IDs
+- command batches
+- frame driving
+- response/event consumption
 
-Any external program or runtime that calls the `vulfram_*` functions.
+## Core
 
-Examples:
+The Rust side of Vulfram as integrated by `vulfram-runtime` and its dependent
+crates.
 
-- Node.js (N-API) runtime
-- Lua VM
-- Python interpreter
-- Browser WASM host
-- Custom native applications
+## Runtime
 
-Responsibilities of the host:
+Current integration root of the Rust side.
 
-- Drive the main loop.
-- Provide `time` and `delta_time` to `vulfram_tick`.
-- Manage game logic and world state (ECS, OOP, etc.).
-- Generate and maintain logical IDs (entities, resources, buffers).
-- Build MessagePack command batches and send them to the core.
-- Consume events, responses, and profiling data from the core.
+In practice this means `vulfram-runtime` is where:
 
-### Core
+- ABI entry points are re-exported
+- commands/events/responses are orchestrated
+- frame lifecycle is coordinated
+- subsystem states are integrated
 
-The Rust dynamic library implementing Vulfram.
+## Render Policy
 
-Responsibilities of the core:
+Rules that directly determine renderability, composition, sizing, pass order,
+surface planning and WGPU-facing execution.
 
-- Abstract away window, input, and rendering systems.
-- Manage GPU resources and pipelines using WGPU.
-- Manage component instances (cameras, models, etc.).
-- Translate commands from the host into internal state changes.
-- Render frames in `vulfram_tick`.
+In Vulfram, render policy belongs primarily to `vulfram-render`.
 
-### ABI (Application Binary Interface)
+## Realm
 
-The C-ABI interface exposed by the core, consisting of:
+Execution scope for rendering.
 
-- Function signatures such as `u32 vulfram_init(void)`.
-- Primitive types (`u32`, pointers, `size_t`, `double`).
-- No Rust-specific constructs (`String`, traits, generics) cross the ABI boundary.
+A realm has:
 
-Bindings (N-API modules, PyO3 extensions, etc.) use this ABI to build
-higher-level, language-friendly APIs.
+- a `kind`
+- an optional `render_graph_id`
+- an internal output surface resolved by the core
 
----
+## Target
 
-## 2. Components vs Resources
-
-### Component
-
-A **component** is a high-level structure describing some behavior or
-participation in the scene, usually attached to a host-chosen ID
-(e.g. `camera_id`, `model_id`, `light_id`).
+Host-visible logical output anchor.
 
 Examples:
 
-- `CameraComponent`: Projection, view matrices, viewport, layer mask.
-- `ModelComponent`: References to geometry/material, world transform, shadow flags.
-- `LightComponent`: Color, intensity, range, type (point, directional, spot).
+- window
+- widget realm viewport
+- realm plane
+- texture
 
-Characteristics:
+## TargetLayer
 
-- Components are created/updated via commands (MessagePack).
-- They can embed **static data**.
-- They reference **sharable resources** by logical ID.
+Host-visible mapping from one realm to one target plus layout/composition data.
 
-### Resource
+This is the host-facing composition API.
 
-A **resource** is a reusable asset or configuration used by components.
+## Surface
 
-Examples:
+Core-owned runtime table representing a renderable/sampleable output.
 
-- `GeometryResource`: Vertex and index data.
-- `MaterialResource`: Surface properties (Standard or PBR).
-- `TextureResource`: Image data (decoded or raw).
+Important:
 
-Resources are identified by logical IDs such as:
+- not directly created by the host
+- derived internally from realm/target composition
 
-- `GeometryId`, `MaterialId`, `TextureId`.
+## Present
 
-### Label
+Core-owned mapping from a window root to a surface.
 
-A **label** is an optional semantic name (string) assigned to a resource or component.
+## Connector
 
-Characteristics:
+Core-owned mapping used to compose one realm surface into another realm/window
+host context.
 
-- Used primarily for debugging and scene discovery.
-- Displayed in tools (profiling, debug view) to help identify resources.
-- Not used for indexing or internal logic; logical IDs are the primary keys.
+## Auto-Graph
 
-#### Sharable Resources
+The reconciliation process that derives internal composition tables and graph
+diagnostics from host-provided `Target` and `TargetLayer` maps.
 
-- May be shared between multiple components/entities.
-- Are referenced via logical IDs.
-- Have internal GPU handles (e.g., `wgpu::Buffer`, `wgpu::Texture`).
+Recommended ownership:
 
-#### Static Resources
+- policy in `vulfram-render`
+- command application in `vulfram-runtime`
+- DTOs/state semantics in `vulfram-realm-core`
 
-- Live **inside** a specific component only.
-- Not assigned a separate logical ID.
-- Serialized as part of the component’s payload.
+## UniversalState
 
-Example:
+Current broad runtime aggregate in `vulfram-runtime`.
 
-- Camera viewport stored directly in `CameraComponent`.
-- Instance-specific color in `ModelComponent`.
+It is realm-centric but not realm-only. It currently mixes:
 
----
+- composition
+- targets
+- input routing
+- UI state
+- scene/resource registries
+- render graph catalogs
+- diagnostics
 
-## 3. IDs and Handles
+Because of that, it should be split before any attempt to move it into
+`vulfram-realm-core`.
 
-### Logical IDs (Host-visible)
+## Render Graph
 
-Integers defined and managed by the host. Common logical IDs:
+Global render graph resource referenced by logical `render_graph_id` and bound
+per realm.
 
-- `WindowId`
-- `CameraId`
-- `ModelId`
-- `LightId`
-- `GeometryId`
-- `MaterialId`
-- `TextureId`
-- `BufferId` (for uploads)
+## Logical IDs
 
-Convention:
+Host-managed IDs such as:
 
-- Logical IDs are **opaque** to the core. They are just keys.
-- The host must ensure they are unique and consistently reused or destroyed
-  according to the application design.
+- window IDs
+- realm IDs
+- target IDs
+- resource IDs
+- component IDs
+- UI IDs
 
-### Handles (Core-only)
+The host guarantees validity and uniqueness.
 
-Internal references used by the core, such as:
+## Internal IDs / Handles
 
-- GPU buffers, textures, samplers, and pipelines
-- Per-instance records for cameras, models, and lights
+Core-owned identifiers/handles such as:
 
-These handles are typically indices or pointers managed by the core and are
-never exposed through the ABI.
-
----
-
-## 4. Uploads and Buffers
-
-### Upload
-
-A raw data blob sent from the host to the core via `vulfram_upload_buffer`.
-
-- Identified by `(BufferId, type)`.
-- Stored in an internal upload table as an `UploadEntry`.
-- Consumable by `Create*` commands referencing `BufferId`.
-
-Uploads are treated as **one-shot**:
-
-- Once used to create resources, they may be removed.
-- Unused uploads can be discarded by a maintenance command like
-  `CmdUploadBufferDiscardAll`.
-
-### Fallback Resource
-
-Safe default resource used when a referenced ID does not exist yet
-(for example, fallback material or fallback texture view). This allows
-rendering to continue while resources are created asynchronously.
-
-### Asynchronous Resource Linking
-
-The ability to create models, materials, geometries, and textures in any
-order. Missing references use fallbacks until the real resource appears.
-
-### Resource Reuse
-
-Resources are shareable by design:
-
-- One geometry can be referenced by many models.
-- One material can be referenced by many models.
-- One texture can be referenced by many materials.
-
-There is no ownership tracking; disposing a resource while still referenced
-falls back gracefully.
-
-### Buffer (GPU)
-
-A GPU memory object created via WGPU, typically one of:
-
-- Vertex buffer
-- Index buffer
-- Uniform buffer
-- Storage buffer
-
-These are held via `BufferHandle` internally.
-
----
-
-## 5. Queues
-
-### Command Queue (`send_queue`)
-
-Logical queue of commands coming from the host:
-
-- Create/update/destroy resources.
-- Create/update/destroy components.
-- Maintenance actions.
-
-Serialized as MessagePack and passed to `vulfram_send_queue`.
-
-Commands are queued and consumed during `vulfram_tick`.
-
-### Response Queue (`receive_queue`)
-
-Logical queue of responses from the core:
-
-- Acknowledgments.
-- Error details.
-- Debug/log responses (structured).
-
-The host reads this via `vulfram_receive_queue` and decodes MessagePack.
-
-Calling `vulfram_receive_queue` consumes and clears the internal response queue.
-
-### Event Queue (`receive_events`)
-
-Logical queue of events:
-
-- Keyboard/mouse input.
-- Gamepad events.
-- Window events (resize, focus, close, etc.).
-
-The host reads this via `vulfram_receive_events` and integrates it into its
-own input and windowing logic.
-
----
-
-## 6. LayerMask
-
-`LayerMask` is a `u32` bitmask used to filter visibility and influence.
-
-Common roles:
-
-- `layerMaskCamera`
-  - Specifies which layers a camera can see.
-- `layerMaskComponent`
-  - Specifies which layers a model/mesh belongs to.
-- (future) `layerMaskLight`
-  - Specifies which layers a light affects.
-
-Common rule:
-
-```text
-Visible / influenced if (A.layerMask & B.layerMask) > 0
-```
-
----
-
-## 7. Functions and Files
-
-### `vulfram_*` Functions
-
-All public ABI functions are prefixed with `vulfram_`:
-
-- `vulfram_init`
-- `vulfram_dispose`
-- `vulfram_send_queue`
-- `vulfram_receive_queue`
-- `vulfram_receive_events`
-- `vulfram_upload_buffer`
-- `vulfram_tick`
-- `vulfram_get_profiling`
-
-### Documentation Files
-
-- `docs/OVERVIEW.md`
-  - High-level summary and concepts.
-
-- `docs/ABI.md`
-  - Functions, ABI details and usage contract.
-
-- `docs/ARCH.md`
-  - Architecture, lifecycle, and main loop contract.
-
-- `docs/API.md`
-  - Internal Rust API: crates, structs, internal flows.
-
-- `docs/GLOSSARY.md`
-  - This document: terminology and naming patterns.
-
----
-
-## 8. Profiling
-
-### ProfilingData
-
-Internal structure that collects:
-
-- Timing for core sections:
-  - total tick
-  - render passes
-  - command processing
-  - event collection
-
-- Counters:
-  - number of draw calls
-  - number of visible mesh instances
-  - number of active resources
-
-Exposed to the host via:
-
-- `vulfram_get_profiling` → MessagePack → host tooling/UI.
+- `SurfaceId`
+- `PresentId`
+- `ConnectorId`
+- GPU resources
+- compiled plans and caches
