@@ -1,14 +1,10 @@
-mod common;
-mod keyboard;
-mod pointer;
-
-pub use common::ElementState;
-pub use common::ModifiersState;
-pub use common::TouchPhase;
-pub use keyboard::KeyboardEvent;
-pub use pointer::ScrollDelta;
+pub use vulfram_input::ElementState;
+pub use vulfram_input::KeyboardEvent;
+pub use vulfram_input::ModifiersState;
+pub use vulfram_input::ScrollDelta;
+pub use vulfram_input::TouchPhase;
 #[allow(unused_imports)]
-pub use pointer::{
+pub use vulfram_input::{
     PointerEvent, PointerEventTrace, PointerTraceConfig, PointerTraceHop, PointerTraceLevel,
     PointerTraceStage,
 };

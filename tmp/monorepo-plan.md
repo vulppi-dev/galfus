@@ -830,6 +830,11 @@ Critério de aceite:
 - sem duplicação estrutural desnecessária
 - fronteiras de crate respeitadas
 
+Status atual:
+- em andamento
+- a limpeza final já começou pela remoção de módulos-casca do `vulfram-core`
+- `core/input`, `core/audio` e `core/window` já perderam wrappers internos redundantes que apenas reexportavam crates novos
+
 ---
 
 ## Estratégia de testes por fase
