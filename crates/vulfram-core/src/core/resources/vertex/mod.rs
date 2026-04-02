@@ -53,6 +53,29 @@ impl VertexAllocatorSystem {
         &self.records
     }
 
+    pub fn estimated_gpu_bytes(&self) -> u64 {
+        let default_bytes = [
+            self.default_normal.buffer.size(),
+            self.default_tangent.buffer.size(),
+            self.default_color0.buffer.size(),
+            self.default_uv0.buffer.size(),
+            self.default_uv1.buffer.size(),
+            self.default_joints.buffer.size(),
+            self.default_weights.buffer.size(),
+        ]
+        .into_iter()
+        .sum::<u64>();
+
+        default_bytes
+            .saturating_add(self.index_u32.buffer().size())
+            .saturating_add(
+                self.streams
+                    .iter()
+                    .map(|arena| arena.buffer().size())
+                    .sum::<u64>(),
+            )
+    }
+
     pub fn geometry_has_streams(&self, geometry_id: u32, streams: &[VertexStream]) -> Option<bool> {
         let record = self.records.get(&geometry_id)?;
         let has_stream = |stream: VertexStream| match &record.storage {

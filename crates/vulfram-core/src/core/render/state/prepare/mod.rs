@@ -22,6 +22,14 @@ impl RenderState {
                 .map(|record| (record.order, *id))
                 .unwrap_or((0, *id))
         });
+        self.camera_uniform_slots.clear();
+        self.camera_uniform_slots.extend(
+            self.camera_order
+                .iter()
+                .copied()
+                .enumerate()
+                .map(|(slot, camera_id)| (camera_id, slot as u32)),
+        );
 
         // 1. Pre-prepare lights
         self.prepare_lights(device);
@@ -100,7 +108,10 @@ impl RenderState {
         // 3. Upload camera data
         for (id, record) in &mut self.scene.cameras {
             if record.is_dirty {
-                bindings.camera_pool.write(*id, &record.data);
+                let Some(slot) = self.camera_uniform_slots.get(id).copied() else {
+                    continue;
+                };
+                bindings.camera_pool.write(slot, &record.data);
                 record.clear_dirty();
             }
         }

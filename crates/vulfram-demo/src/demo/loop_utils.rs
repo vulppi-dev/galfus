@@ -4,9 +4,9 @@ use vulfram_core::core::cmd::EngineEvent;
 use vulfram_core::core::input::events::{ElementState, KeyboardEvent};
 use vulfram_core::core::input::keycodes::{KEY_ESCAPE, KEY_W};
 use vulfram_core::core::window::{CmdWindowCloseArgs, WindowEvent};
+use vulfram_core::vulfram_tick;
 
 use crate::demo::io::{receive_events, receive_responses, send_commands};
-use vulfram_core::core;
 use vulfram_core::core::cmd::EngineCmd;
 
 pub fn run_loop_with_events<F, G>(
@@ -42,18 +42,9 @@ where
         }
 
         let tick_start = Instant::now();
-        assert_eq!(
-            core::vulfram_tick(total_ms, delta_ms),
-            VulframResult::Success
-        );
+        assert_eq!(vulfram_tick(total_ms, delta_ms), VulframResult::Success);
 
         let _ = receive_responses();
-        if total_ms % 1000 == 0 {
-            if let Some(profiling) = get_profiling() {
-                println!("Profiling: {:?}", profiling);
-            }
-        }
-
         if handle_events(window_id, &mut on_event) {
             let _ = send_commands(vec![EngineCmd::CmdWindowClose(CmdWindowCloseArgs {
                 window_id,
@@ -99,17 +90,4 @@ where
         }
     }
     false
-}
-
-fn get_profiling() -> Option<core::profiling::cmd::ProfilingData> {
-    let mut ptr = std::ptr::null();
-    let mut len: usize = 0;
-    let result = core::vulfram_get_profiling(&mut ptr, &mut len);
-
-    if result != VulframResult::Success || len == 0 {
-        return None;
-    }
-
-    let bytes = unsafe { Box::from_raw(std::slice::from_raw_parts_mut(ptr as *mut u8, len)) };
-    Some(rmp_serde::from_slice(&bytes).expect("failed to deserialize profiling"))
 }

@@ -5,6 +5,7 @@ pub struct TextureRecord {
     pub label: Option<String>,
     pub _texture: wgpu::Texture,
     pub view: wgpu::TextureView,
+    pub format: wgpu::TextureFormat,
 }
 
 #[derive(Debug, Clone)]

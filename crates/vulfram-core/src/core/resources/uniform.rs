@@ -104,6 +104,15 @@ impl<T: Pod> UniformBufferPool<T> {
         &self.buffer
     }
 
+    pub fn allocated_bytes(&self) -> u64 {
+        self.buffer.size()
+            + self
+                .garbage
+                .iter()
+                .map(|entry| entry._buffer.size())
+                .sum::<u64>()
+    }
+
     pub fn get_offset(&self, index: u32) -> u64 {
         index as u64 * self.item_size
     }

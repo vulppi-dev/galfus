@@ -133,7 +133,6 @@ struct BundleOptions {
     enable_aux_window: bool,
     draw_gizmos: bool,
     poll_lists: bool,
-    log_input_wait: bool,
 }
 
 fn run_demo_1(ctx: DemoContext) -> bool {
@@ -146,7 +145,6 @@ fn run_demo_1(ctx: DemoContext) -> bool {
             enable_aux_window: false,
             draw_gizmos: false,
             poll_lists: false,
-            log_input_wait: false,
         },
     )
 }
@@ -161,7 +159,6 @@ fn run_demo_3(ctx: DemoContext) -> bool {
             enable_aux_window: false,
             draw_gizmos: true,
             poll_lists: false,
-            log_input_wait: false,
         },
     )
 }
@@ -176,7 +173,6 @@ fn run_demo_4(ctx: DemoContext) -> bool {
             enable_aux_window: false,
             draw_gizmos: false,
             poll_lists: false,
-            log_input_wait: false,
         },
     )
 }
@@ -191,7 +187,6 @@ fn run_demo_5(ctx: DemoContext) -> bool {
             enable_aux_window: true,
             draw_gizmos: false,
             poll_lists: false,
-            log_input_wait: true,
         },
     )
 }
@@ -206,7 +201,6 @@ fn run_demo_6(ctx: DemoContext) -> bool {
             enable_aux_window: true,
             draw_gizmos: false,
             poll_lists: true,
-            log_input_wait: false,
         },
     )
 }
@@ -407,11 +401,6 @@ fn run_demo_bundle(
             if options.poll_lists && total_ms.saturating_sub(last_list_ms) >= 1000 {
                 last_list_ms = total_ms;
                 cmds.extend(list_commands(ctx.window_id));
-            }
-
-            if options.log_input_wait && total_ms.saturating_sub(last_list_ms) >= 1500 {
-                last_list_ms = total_ms;
-                println!("Demo 024 aguardando eventos de keyboard/mouse/touch/gamepad...");
             }
 
             cmds

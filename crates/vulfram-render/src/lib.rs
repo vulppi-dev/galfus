@@ -18,7 +18,7 @@ mod validation;
 mod window_state_map;
 
 pub use bind_group_layouts::{RenderLayoutSizes, create_render_layouts};
-pub use cache::{ComputePipelineKey, PipelineKey, RenderCache, ShaderId};
+pub use cache::{ComputePipelineKey, PipelineKey, RenderCache, RenderCacheStats, ShaderId};
 pub use fallbacks::{FallbackTextures, create_fallback_textures};
 pub use graph::{
     DEFAULT_2D_RENDER_GRAPH_ID, DEFAULT_3D_RENDER_GRAPH_ID, LogicalId, RenderGraphDesc,
@@ -56,6 +56,9 @@ pub use render_bootstrap::{
 pub use resource_init::build_resource_library;
 pub use samplers::{SamplerSet, create_standard_samplers};
 pub use shaders::{ShaderModules, create_shader_modules};
-pub use target::{RenderTarget, ensure_render_target, ensure_surface_target};
+pub use target::{
+    RenderTarget, ensure_render_target, ensure_surface_target, estimate_texture_bytes,
+    texture_format_texel_bytes,
+};
 pub use ui_actions::{UiPlatformAction, collect_platform_actions};
 pub use window_state_map::WindowStateMap;

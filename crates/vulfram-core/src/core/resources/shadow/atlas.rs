@@ -36,6 +36,7 @@ pub struct ShadowAtlasSystem {
     _texture: wgpu::Texture,
     view: wgpu::TextureView,
     layer_views: Vec<wgpu::TextureView>, // Cached views for each layer
+    format: wgpu::TextureFormat,
 
     // Config (clamped by hardware limits)
     pitch_px: u32,
@@ -113,6 +114,7 @@ impl ShadowAtlasSystem {
             _texture: texture,
             view,
             layer_views,
+            format: desc.format,
             pitch_px,
             guard_px,
             tiles_w: actual_tiles_w,
@@ -127,6 +129,10 @@ impl ShadowAtlasSystem {
 
     pub fn layer_view(&self, layer: u32) -> Option<&wgpu::TextureView> {
         self.layer_views.get(layer as usize)
+    }
+
+    pub fn estimated_bytes(&self) -> u64 {
+        vulfram_render::estimate_texture_bytes(self._texture.size(), self.format, 1)
     }
 
     /// Allocate a region of tiles. Returns None if capacity is insufficient or if fragmentation

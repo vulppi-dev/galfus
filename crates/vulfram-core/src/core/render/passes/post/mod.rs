@@ -143,14 +143,14 @@ pub fn pass_post(
         None => return,
     };
 
-    let cache = &mut render_state.cache;
-
     let uniform_buffer = match render_state.post_uniform_buffer.as_ref() {
         Some(buffer) => buffer,
         None => return,
     };
 
     let mut used_bind_keys = std::collections::HashSet::new();
+    let mut post_bind_cache_hits = 0u32;
+    let mut post_bind_cache_misses = 0u32;
     for camera_id in render_state.camera_order.iter().copied() {
         let post_config = camera_posts
             .get(&camera_id)
@@ -188,7 +188,7 @@ pub fn pass_post(
             blend: None,
         };
 
-        let pipeline = cache.get_or_create(key, frame_index, || {
+        let pipeline = render_state.cache.get_or_create(key, frame_index, || {
             let layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                 label: Some("Post Pipeline Layout"),
                 bind_group_layouts: &[&library.layout_target],
@@ -245,6 +245,12 @@ pub fn pass_post(
             uniform_buffer_ptr: uniform_buffer as *const wgpu::Buffer as usize,
         };
         used_bind_keys.insert(bind_key);
+        let bind_cache_hit = render_state.post_bind_cache.contains_key(&bind_key);
+        if bind_cache_hit {
+            post_bind_cache_hits = post_bind_cache_hits.saturating_add(1);
+        } else {
+            post_bind_cache_misses = post_bind_cache_misses.saturating_add(1);
+        }
         let bind_group = render_state
             .post_bind_cache
             .entry(bind_key)
@@ -286,4 +292,10 @@ pub fn pass_post(
     render_state
         .post_bind_cache
         .retain(|key, _| used_bind_keys.contains(key));
+    render_state.post_bind_cache_hits = render_state
+        .post_bind_cache_hits
+        .saturating_add(post_bind_cache_hits);
+    render_state.post_bind_cache_misses = render_state
+        .post_bind_cache_misses
+        .saturating_add(post_bind_cache_misses);
 }

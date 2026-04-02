@@ -244,18 +244,18 @@ components first and upload data later.
 - **Rust** 1.70+ ([rustup.rs](https://rustup.rs/))
 - **Vulkan**, **Metal**, or **DirectX 12** updated drivers
 
-### Quick Start (Core Test Harness)
+### Quick Start (Demo Harness)
 
 ```bash
 # Clone the repository
 git clone https://github.com/vulppi-dev/vulfram.git
 cd vulfram
 
-# Build and run the test harness
-cargo run
+# Build and run the first demo
+cargo run -p vulfram-demo -- 1
 ```
 
-The test harness lives in `src/main.rs` and exercises:
+The demo harness lives in `crates/vulfram-demo` and exercises:
 
 - window creation
 - primitive geometry creation
@@ -316,8 +316,8 @@ The test harness lives in `src/main.rs` and exercises:
 ## 🛠️ Development
 
 ```bash
-# Build Rust core
-cargo build --release
+# Build the workspace
+cargo build --workspace --release
 
 # Run tests
 cargo test
@@ -347,30 +347,32 @@ cargo fmt
 
 ## 📦 Project Structure
 
-```
+```text
 vulfram/
-├── src/                         # Rust core
-│   ├── lib.rs                   # Crate entry point (cdylib)
-│   └── core/                    # Engine core modules
-│       ├── cmd.rs               # Command routing
-│       ├── lifecycle.rs         # Init/dispose lifecycle
-│       ├── queue.rs             # Command/response/event queues
-│       ├── singleton.rs         # Global state management
-│       ├── state.rs             # Engine state
-│       ├── tick.rs              # Frame update logic
-│       ├── platforms/           # Platform proxies
-│       │   ├── desktop/         # Winit + native input
-│       │   └── browser/         # DOM canvas + web input
-│       ├── window/              # Window commands/events/state
-│       ├── input/               # Keyboard/pointer events + cache
-│       ├── gamepad/             # Gamepad events + cache
-│       ├── render/              # Rendering system
-│       └── resources/           # Camera/model/light/material/texture
-│
-├── docs/                        # Documentation
-├── assets/                      # Visual resources
-├── Cargo.toml                   # Rust dependencies
-└── README.md                    # This file
+├── crates/
+│   ├── vulfram-core/            # Core crate source tree
+│   ├── vulfram-types/           # Shared logical/base types
+│   ├── vulfram-protocol/        # Host/runtime contracts + MsgPack codec
+│   ├── vulfram-realm-core/      # Realm/surface/target semantics
+│   ├── vulfram-input/           # Normalized input semantics
+│   ├── vulfram-realm-ui/        # UI semantic layer
+│   ├── vulfram-render/          # WGPU backend + render helpers
+│   ├── vulfram-audio/           # Audio domain + backends
+│   ├── vulfram-runtime/         # Tick/frame orchestration
+│   ├── vulfram-platform/        # Desktop/browser integration
+│   ├── vulfram-realm-3d/        # 3D realm semantics + sync plans
+│   ├── vulfram-realm-2d/        # 2D realm placeholder/contracts
+│   ├── vulfram-bindings-ffi/    # C ABI host binding
+│   ├── vulfram-bindings-wasm/   # wasm-bindgen host binding
+│   ├── vulfram-bindings-napi/   # Node.js binding
+│   ├── vulfram-bindings-python/ # Python binding
+│   ├── vulfram-bindings-lua/    # Lua binding
+│   └── vulfram-demo/            # Visual/manual validation demos
+├── docs/
+├── assets/
+├── scripts/
+├── Cargo.toml
+└── README.md
 ```
 
 ---
@@ -459,8 +461,9 @@ Contributions are welcome! Please follow these guidelines:
 - **`bytemuck`** - Safe type conversions for GPU data
 - **`image`** - Image loading and decoding
 
-Bindings are provided via feature flags (`napi`, `lua`, `python`) and are
-implemented in Rust.
+Bindings now live in dedicated workspace crates:
+`vulfram-bindings-ffi`, `vulfram-bindings-wasm`, `vulfram-bindings-napi`,
+`vulfram-bindings-lua`, and `vulfram-bindings-python`.
 
 ---
 

@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::collections::hash_map::Entry;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(u64)]
@@ -50,6 +51,15 @@ pub struct RenderCache {
     pipelines: HashMap<PipelineKey, PipelineEntry>,
     compute_pipelines: HashMap<ComputePipelineKey, ComputePipelineEntry>,
     max_unused_frames: u64,
+    frame_stats: RenderCacheStats,
+}
+
+#[derive(Debug, Clone, Copy, Default)]
+pub struct RenderCacheStats {
+    pub render_pipeline_hits: u32,
+    pub render_pipeline_misses: u32,
+    pub compute_pipeline_hits: u32,
+    pub compute_pipeline_misses: u32,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -69,6 +79,7 @@ impl RenderCache {
             pipelines: HashMap::new(),
             compute_pipelines: HashMap::new(),
             max_unused_frames: 3,
+            frame_stats: RenderCacheStats::default(),
         }
     }
 
@@ -81,13 +92,24 @@ impl RenderCache {
     where
         F: FnOnce() -> wgpu::RenderPipeline,
     {
-        let entry = self.pipelines.entry(key).or_insert_with(|| PipelineEntry {
-            pipeline: create(),
-            last_used_frame: frame_index,
-        });
-
-        entry.last_used_frame = frame_index;
-        &entry.pipeline
+        match self.pipelines.entry(key) {
+            Entry::Occupied(entry) => {
+                self.frame_stats.render_pipeline_hits =
+                    self.frame_stats.render_pipeline_hits.saturating_add(1);
+                let entry = entry.into_mut();
+                entry.last_used_frame = frame_index;
+                &entry.pipeline
+            }
+            Entry::Vacant(entry) => {
+                self.frame_stats.render_pipeline_misses =
+                    self.frame_stats.render_pipeline_misses.saturating_add(1);
+                let entry = entry.insert(PipelineEntry {
+                    pipeline: create(),
+                    last_used_frame: frame_index,
+                });
+                &entry.pipeline
+            }
+        }
     }
 
     pub fn gc(&mut self, frame_index: u64) {
@@ -101,6 +123,7 @@ impl RenderCache {
     pub fn clear(&mut self) {
         self.pipelines.clear();
         self.compute_pipelines.clear();
+        self.frame_stats = RenderCacheStats::default();
     }
 
     pub fn get_or_create_compute<F>(
@@ -112,15 +135,31 @@ impl RenderCache {
     where
         F: FnOnce() -> wgpu::ComputePipeline,
     {
-        let entry = self
-            .compute_pipelines
-            .entry(key)
-            .or_insert_with(|| ComputePipelineEntry {
-                pipeline: create(),
-                last_used_frame: frame_index,
-            });
+        match self.compute_pipelines.entry(key) {
+            Entry::Occupied(entry) => {
+                self.frame_stats.compute_pipeline_hits =
+                    self.frame_stats.compute_pipeline_hits.saturating_add(1);
+                let entry = entry.into_mut();
+                entry.last_used_frame = frame_index;
+                &entry.pipeline
+            }
+            Entry::Vacant(entry) => {
+                self.frame_stats.compute_pipeline_misses =
+                    self.frame_stats.compute_pipeline_misses.saturating_add(1);
+                let entry = entry.insert(ComputePipelineEntry {
+                    pipeline: create(),
+                    last_used_frame: frame_index,
+                });
+                &entry.pipeline
+            }
+        }
+    }
 
-        entry.last_used_frame = frame_index;
-        &entry.pipeline
+    pub fn frame_stats(&self) -> RenderCacheStats {
+        self.frame_stats
+    }
+
+    pub fn reset_frame_stats(&mut self) {
+        self.frame_stats = RenderCacheStats::default();
     }
 }

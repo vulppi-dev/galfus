@@ -142,6 +142,8 @@ pub fn pass_compose_to_view(
     render_pass.set_pipeline(pipeline);
 
     let mut used_bind_keys = std::collections::HashSet::new();
+    let mut compose_bind_cache_hits = 0u32;
+    let mut compose_bind_cache_misses = 0u32;
     for camera_id in render_state.camera_order.iter().copied() {
         let Some(record) = render_state.scene.cameras.get(&camera_id) else {
             continue;
@@ -213,6 +215,12 @@ pub fn pass_compose_to_view(
             uniform_buffer_ptr: uniform_buffer as *const wgpu::Buffer as usize,
         };
         used_bind_keys.insert(bind_key);
+        let bind_cache_hit = render_state.compose_bind_cache.contains_key(&bind_key);
+        if bind_cache_hit {
+            compose_bind_cache_hits = compose_bind_cache_hits.saturating_add(1);
+        } else {
+            compose_bind_cache_misses = compose_bind_cache_misses.saturating_add(1);
+        }
         let bind_group = render_state
             .compose_bind_cache
             .entry(bind_key)
@@ -234,4 +242,10 @@ pub fn pass_compose_to_view(
     render_state
         .compose_bind_cache
         .retain(|key, _| used_bind_keys.contains(key));
+    render_state.compose_bind_cache_hits = render_state
+        .compose_bind_cache_hits
+        .saturating_add(compose_bind_cache_hits);
+    render_state.compose_bind_cache_misses = render_state
+        .compose_bind_cache_misses
+        .saturating_add(compose_bind_cache_misses);
 }

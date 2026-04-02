@@ -174,6 +174,7 @@ fn create_texture_from_image(
             label: args.label.clone(),
             _texture: texture,
             view,
+            format,
         },
     );
     mark_global_materials_dirty(&mut engine.universal_state.realm3d, args.texture_id);
@@ -384,6 +385,7 @@ pub fn engine_cmd_texture_create_solid_color(
             label: args.label.clone(),
             _texture: texture,
             view,
+            format,
         },
     );
     mark_global_materials_dirty(&mut engine.universal_state.realm3d, args.texture_id);

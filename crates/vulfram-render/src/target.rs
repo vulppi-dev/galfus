@@ -1,6 +1,31 @@
 use std::collections::HashMap;
 use std::hash::Hash;
 
+pub fn texture_format_texel_bytes(format: wgpu::TextureFormat) -> u64 {
+    match format {
+        wgpu::TextureFormat::Rgba8Unorm | wgpu::TextureFormat::Rgba8UnormSrgb => 4,
+        wgpu::TextureFormat::Depth32Float => 4,
+        wgpu::TextureFormat::Rgba16Float => 8,
+        _ => 0,
+    }
+}
+
+pub fn estimate_texture_bytes(
+    size: wgpu::Extent3d,
+    format: wgpu::TextureFormat,
+    sample_count: u32,
+) -> u64 {
+    let texel_bytes = texture_format_texel_bytes(format);
+    if texel_bytes == 0 {
+        return 0;
+    }
+    (size.width as u64)
+        .saturating_mul(size.height as u64)
+        .saturating_mul(size.depth_or_array_layers as u64)
+        .saturating_mul(sample_count.max(1) as u64)
+        .saturating_mul(texel_bytes)
+}
+
 #[derive(Debug, Clone)]
 pub struct RenderTarget {
     pub texture: wgpu::Texture,
@@ -41,6 +66,10 @@ impl RenderTarget {
             format,
             sample_count,
         }
+    }
+
+    pub fn estimated_bytes(&self) -> u64 {
+        estimate_texture_bytes(self.texture.size(), self.format, self.sample_count)
     }
 }
 

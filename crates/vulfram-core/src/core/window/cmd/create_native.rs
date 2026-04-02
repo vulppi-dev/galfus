@@ -52,7 +52,6 @@ pub fn engine_cmd_window_create(
     let window = match event_loop.create_window(win_attrs) {
         Ok(window) => Arc::new(window),
         Err(e) => {
-            println!("Failed to create window: {}", e);
             return CmdResultWindowCreate {
                 success: false,
                 message: format!("Winit create window error: {}", e),

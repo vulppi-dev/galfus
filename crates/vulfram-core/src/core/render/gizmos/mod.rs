@@ -225,6 +225,13 @@ impl GizmoSystem {
         }
     }
 
+    pub fn estimated_gpu_bytes(&self) -> u64 {
+        self.buffer
+            .as_ref()
+            .map(|buffer| buffer.size())
+            .unwrap_or(0)
+    }
+
     fn pixel_to_world_offset(
         &self,
         kind: crate::core::resources::CameraKind,

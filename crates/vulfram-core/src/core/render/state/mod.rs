@@ -38,6 +38,7 @@ pub struct RenderState {
     pub scene: RenderScene,
     pub detached_cameras: std::collections::HashMap<u32, crate::core::resources::CameraRecord>,
     pub camera_order: Vec<u32>,
+    pub camera_uniform_slots: std::collections::HashMap<u32, u32>,
     pub target_texture_binds:
         std::collections::HashMap<u32, crate::core::resources::TargetTextureBinding>,
     pub external_textures: std::collections::HashMap<u32, wgpu::TextureView>,
@@ -60,6 +61,10 @@ pub struct RenderState {
     pub camera_environment_overrides: std::collections::HashMap<u32, EnvironmentConfig>,
     pub compose_bind_cache: std::collections::HashMap<SampledTargetBindKey, wgpu::BindGroup>,
     pub post_bind_cache: std::collections::HashMap<SampledTargetBindKey, wgpu::BindGroup>,
+    pub compose_bind_cache_hits: u32,
+    pub compose_bind_cache_misses: u32,
+    pub post_bind_cache_hits: u32,
+    pub post_bind_cache_misses: u32,
     pub textures_sync_hash: u64,
     pub atlas_sync_hash: u64,
     pub target_binds_sync_hash: u64,
@@ -134,11 +139,150 @@ impl RenderState {
             .unwrap_or(&self.environment)
     }
 
+    pub fn camera_uniform_slot(&self, camera_id: u32) -> Option<u32> {
+        self.camera_uniform_slots.get(&camera_id).copied()
+    }
+
     pub fn camera_record(&self, camera_id: u32) -> Option<&crate::core::resources::CameraRecord> {
         self.scene
             .cameras
             .get(&camera_id)
             .or_else(|| self.detached_cameras.get(&camera_id))
+    }
+
+    pub fn estimated_gpu_bytes(&self) -> u64 {
+        let render_targets = self
+            .scene
+            .cameras
+            .values()
+            .chain(self.detached_cameras.values())
+            .map(Self::camera_record_gpu_bytes)
+            .sum::<u64>();
+        let scene_textures = self
+            .scene
+            .textures
+            .values()
+            .map(|record| {
+                vulfram_render::estimate_texture_bytes(record._texture.size(), record.format, 1)
+            })
+            .sum::<u64>();
+        let post_buffers = [
+            self.post_uniform_buffer.as_ref(),
+            self.compose_uniform_buffer.as_ref(),
+            self.ssao_uniform_buffer.as_ref(),
+            self.ssao_blur_uniform_buffer.as_ref(),
+            self.bloom_uniform_buffer.as_ref(),
+            self.skybox_uniform_buffer.as_ref(),
+        ]
+        .into_iter()
+        .flatten()
+        .map(wgpu::Buffer::size)
+        .sum::<u64>();
+        let ui_bytes = self
+            .ui_renderers
+            .values()
+            .map(crate::core::ui::UiRenderer::estimated_gpu_bytes)
+            .sum::<u64>();
+
+        render_targets
+            .saturating_add(scene_textures)
+            .saturating_add(post_buffers)
+            .saturating_add(
+                self.bindings
+                    .as_ref()
+                    .map(Self::binding_gpu_bytes)
+                    .unwrap_or(0),
+            )
+            .saturating_add(
+                self.light_system
+                    .as_ref()
+                    .map(Self::light_culling_gpu_bytes)
+                    .unwrap_or(0),
+            )
+            .saturating_add(
+                self.shadow
+                    .as_ref()
+                    .map(Self::shadow_manager_gpu_bytes)
+                    .unwrap_or(0),
+            )
+            .saturating_add(
+                self.vertex
+                    .as_ref()
+                    .map(crate::core::resources::VertexAllocatorSystem::estimated_gpu_bytes)
+                    .unwrap_or(0),
+            )
+            .saturating_add(self.gizmos.estimated_gpu_bytes())
+            .saturating_add(ui_bytes)
+    }
+
+    fn camera_record_gpu_bytes(record: &crate::core::resources::CameraRecord) -> u64 {
+        [
+            record.render_target.as_ref(),
+            record.emissive_target.as_ref(),
+            record.post_target.as_ref(),
+            record.outline_target.as_ref(),
+            record.ssao_target.as_ref(),
+            record.ssao_blur_target.as_ref(),
+            record.bloom_target.as_ref(),
+            record.forward_depth_target.as_ref(),
+            record.forward_msaa_target.as_ref(),
+            record.forward_emissive_msaa_target.as_ref(),
+        ]
+        .into_iter()
+        .flatten()
+        .map(vulfram_render::RenderTarget::estimated_bytes)
+        .sum::<u64>()
+            + record
+                .bloom_chain
+                .iter()
+                .flatten()
+                .map(vulfram_render::RenderTarget::estimated_bytes)
+                .sum::<u64>()
+    }
+
+    fn binding_gpu_bytes(bindings: &BindingSystem) -> u64 {
+        bindings
+            .frame_pool
+            .allocated_bytes()
+            .saturating_add(bindings.camera_pool.allocated_bytes())
+            .saturating_add(bindings.shadow_camera_pool.allocated_bytes())
+            .saturating_add(bindings.model_pool.allocated_bytes())
+            .saturating_add(bindings.instance_pool.allocated_bytes())
+            .saturating_add(bindings.outline_instance_pool.allocated_bytes())
+            .saturating_add(bindings.shadow_instance_pool.allocated_bytes())
+            .saturating_add(bindings.material_standard_pool.allocated_bytes())
+            .saturating_add(bindings.material_standard_inputs.allocated_bytes())
+            .saturating_add(bindings.material_pbr_pool.allocated_bytes())
+            .saturating_add(bindings.material_pbr_inputs.allocated_bytes())
+            .saturating_add(bindings.bones_pool.allocated_bytes())
+    }
+
+    fn light_culling_gpu_bytes(light_system: &LightCullingSystem) -> u64 {
+        light_system
+            .lights
+            .allocated_bytes()
+            .saturating_add(light_system.visible_indices.allocated_bytes())
+            .saturating_add(light_system.visible_counts.allocated_bytes())
+            .saturating_add(light_system.camera_frustums.allocated_bytes())
+            .saturating_add(light_system.light_params.allocated_bytes())
+            .saturating_add(
+                light_system
+                    .params_buffer
+                    .as_ref()
+                    .map(wgpu::Buffer::size)
+                    .unwrap_or(0),
+            )
+    }
+
+    fn shadow_manager_gpu_bytes(
+        shadow_manager: &crate::core::resources::shadow::ShadowManager,
+    ) -> u64 {
+        shadow_manager
+            .atlas
+            .estimated_bytes()
+            .saturating_add(shadow_manager.page_table.allocated_bytes())
+            .saturating_add(shadow_manager.point_light_vp.allocated_bytes())
+            .saturating_add(shadow_manager.params_pool.allocated_bytes())
     }
 
     pub fn sync_camera_targets_and_projection(

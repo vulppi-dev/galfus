@@ -410,6 +410,29 @@ For debug or tooling:
   - Deserialize MessagePack into profiling data.
   - Display or log via in-engine tools, overlays, or external tools.
 
+Current profiling visibility includes:
+
+- frame timings and per-domain totals
+- per-window FPS snapshot
+- rolling-window averages and stability percentiles (`p50`, `p95`, `p99`,
+  worst frame)
+- process RAM current/peak when supported
+- engine-owned GPU memory current/peak (estimated from live GPU resources)
+- process CPU %
+- frame-budget utilization for command, input, render, UI, graph and GPU
+- cache efficiency counters for render/compute pipelines and key bind-group
+  caches
+
+Important interpretation boundary:
+
+- The host can always derive traffic it explicitly sends or receives.
+- The core-side profiling focuses on internal work that the host cannot observe
+  directly from its own command stream.
+- GPU memory metrics describe resources owned by the engine, not the total VRAM
+  usage of the whole machine.
+- GPU utilization is exposed as `% of frame budget spent on GPU work`, not as a
+  vendor/driver-specific global GPU load metric.
+
 ---
 
 ## 7. One-shot Uploads and Cleanup

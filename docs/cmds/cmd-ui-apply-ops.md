@@ -42,7 +42,7 @@ Aplica um lote de operações declarativas em um `UiDocument`.
 `image-button`, `spinner`, `text-edit`, `input`, `image`, `widget-realm-viewport`,
 `separator`, `spacer`.
 
-Consulte detalhes de `UiNodeProps` em `docs/ui/WIDGETS.md` e `src/core/ui/types.rs`.
+Consulte detalhes de `UiNodeProps` em `docs/ui/WIDGETS.md` e `crates/vulfram-realm-ui/src/types.rs`.
 
 ## Response
 

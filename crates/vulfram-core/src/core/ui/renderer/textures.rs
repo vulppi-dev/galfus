@@ -113,11 +113,32 @@ impl UiTextureStore {
     pub fn fallback(&self) -> &UiTexture {
         &self.fallback
     }
+
+    pub fn estimated_gpu_bytes(&self) -> u64 {
+        self.fallback.estimated_gpu_bytes()
+            + self
+                .textures
+                .values()
+                .map(UiTexture::estimated_gpu_bytes)
+                .sum::<u64>()
+    }
 }
 
 impl UiTexture {
     pub fn bind_group(&self) -> &wgpu::BindGroup {
         &self.bind_group
+    }
+
+    pub fn estimated_gpu_bytes(&self) -> u64 {
+        vulfram_render::estimate_texture_bytes(
+            wgpu::Extent3d {
+                width: self.size[0],
+                height: self.size[1],
+                depth_or_array_layers: 1,
+            },
+            wgpu::TextureFormat::Rgba16Float,
+            1,
+        )
     }
 }
 

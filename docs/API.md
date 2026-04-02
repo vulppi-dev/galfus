@@ -8,7 +8,40 @@
 
 ## 1. Crates and Runtime Stack
 
-The Vulfram core is built as a Rust library with the following key crates:
+The Vulfram workspace is organized around these main crates:
+
+- `vulfram-core`
+  - ABI entry points
+  - integration glue
+  - live engine state and command execution
+- `vulfram-types`
+  - logical IDs and low-level shared types
+- `vulfram-protocol`
+  - host/runtime contracts and MessagePack codec
+- `vulfram-realm-core`
+  - realm/surface/target semantics
+- `vulfram-input`
+  - normalized input semantics and routing helpers
+- `vulfram-realm-ui`
+  - UI semantic state, document model and traced input planning
+- `vulfram-render`
+  - WGPU backend, GPU bootstrap policy, render caches and render graph helpers
+- `vulfram-audio`
+  - audio domain state, contracts and backends
+- `vulfram-runtime`
+  - runtime coordination, deferreds, queues and frame lifecycle
+- `vulfram-platform`
+  - desktop/browser integration and raw platform policies
+- `vulfram-realm-3d`
+  - 3D realm sync plans and pass policies
+- `vulfram-realm-2d`
+  - 2D realm contracts and reserved integration surface
+- `vulfram-bindings-*`
+  - dedicated host bindings (`ffi`, `wasm`, `napi`, `lua`, `python`)
+- `vulfram-demo`
+  - manual/visual validation harness
+
+The core also depends on external libraries for platform/backend work:
 
 - **Platform proxies**
   - `winit` (desktop)
@@ -54,35 +87,38 @@ The Vulfram core is built as a Rust library with the following key crates:
 
 ## 2. Engine State Overview
 
-At a high level, the core is organized around a central `EngineState`:
+At a high level, the runtime is organized around a central `EngineState`:
 
 ```rust
 pub struct EngineState {
     pub window: WindowManager,
+    pub render: RenderManager,
 
     #[cfg(any(not(feature = "wasm"), target_arch = "wasm32"))]
     pub wgpu: wgpu::Instance,
     #[cfg(any(not(feature = "wasm"), target_arch = "wasm32"))]
     pub caps: Option<wgpu::SurfaceCapabilities>,
+    pub rgba16f_msaa_supported_mask: u8,
     pub device: Option<wgpu::Device>,
     pub queue: Option<wgpu::Queue>,
 
     pub buffers: BufferStorage,
     pub texture_async: TextureAsyncManager,
     pub audio: Box<dyn AudioProxy>,
+    pub audio_available: bool,
+    pub audio_state: AudioState,
     pub universal_state: UniversalState,
+    pub surface_targets: HashMap<SurfaceId, RenderTarget>,
+    pub present_sizes_cache: HashMap<SurfaceId, glam::UVec2>,
+    pub present_sizes_hash: u64,
 
-    pub cmd_queue: EngineBatchCmds,
-    pub event_queue: EngineBatchEvents,
-    pub response_queue: EngineBatchResponses,
-
-    pub(crate) time: u64,
-    pub(crate) delta_time: u32,
-    pub(crate) frame_index: u64,
+    pub runtime: EngineRuntimeState,
+    pub pending_texture_decode_results: Vec<TextureDecodeResult>,
 
     #[cfg(not(feature = "wasm"))]
     pub input: InputState,
     pub(crate) gamepad: GamepadState,
+    pub(crate) gamepad_backend: PlatformGamepadBackendState,
 
     pub(crate) profiling: TickProfiling,
     pub(crate) gpu_profiler: Option<GpuProfiler>,
@@ -91,6 +127,10 @@ pub struct EngineState {
 
 `EngineSingleton` owns the `EngineState` plus a platform proxy
 (`DesktopProxy` or `BrowserProxy`) that handles window/input integration.
+
+`RuntimeState` owns the frame lifecycle and queue/deferred orchestration. The
+rest of the engine composes domain-specific states rather than flattening all of
+them into the runtime queue layer.
 
 `UniversalState` is the realm-centric runtime table set:
 
@@ -113,7 +153,8 @@ The core manages several first-class resources:
 State ownership split (current):
 
 - `camera`, `model`, and `light` are realm-owned entities (`realmId` scoped).
-- `material`, `texture`, and `geometry` are shared under `UniversalState.universal_resources`.
+- `material`, `texture`, and `geometry` are shared under the current realm/render
+  resource stores.
 - Window lifecycle affects presentation/surfaces, not universal resource ownership.
 
 Gizmos (current):
@@ -283,7 +324,7 @@ then decoded into internal Rust enums.
 - `vulfram_send_queue(buffer, length)`
   1. Copies the buffer into a `Vec<u8>`.
   2. Deserializes with `rmp-serde` into `EngineBatchCmds` (`Vec<EngineCmdEnvelope>`).
-  3. Pushes the commands into `EngineState::cmd_queue`.
+  3. Pushes the commands into `EngineState::runtime`.
   4. On deserialize/type mismatch error, returns `CmdInvalidMessagePackError` and emits
      `SystemEvent::Error` with scope `serialization`, command type `send-queue`, and
      the decode path of the invalid field when available.
@@ -318,7 +359,7 @@ Per-command contracts remain in `docs/cmds/*`.
 
 During `vulfram_tick`:
 
-1. Drain `cmd_queue`.
+1. Drain ready commands from `RuntimeState`.
 2. For each `EngineCommand`, call into appropriate systems:
    - Resource creation/update
    - Component creation/update
@@ -501,7 +542,7 @@ The input layer aggregates events via the active platform proxy:
 - Window events (resize, close, focus, etc.) from the platform
 
 These are translated into internal `EngineEvent` enums and pushed into
-`event_queue`.
+`RuntimeState`.
 
 Window state transitions are emitted explicitly as:
 - `WindowEvent::OnStateChange` for lifecycle changes (`windowed`, `fullscreen`, etc.);
@@ -534,9 +575,9 @@ Auto-graph diagnostics may also emit `SystemEvent::Error` with:
 
 On `vulfram_receive_events`, the core:
 
-1. Serializes `event_queue` into MessagePack (using `rmp-serde`).
+1. Serializes the current runtime event queue into MessagePack (using `rmp-serde`).
 2. Allocates a buffer, copies bytes, and exposes pointer & length.
-3. Clears `event_queue` for the next frame.
+3. Clears the runtime event queue for the next frame.
 
 ---
 
@@ -553,18 +594,72 @@ On `vulfram_receive_events`, the core:
   - `renderTotalUs`
   - `renderShadowUs`
   - `renderWindowsUs`
+  - `uiInputUs`
   - `frameDeltaUs`
+- Domain totals (microseconds):
+  - `commandUs`
+  - `inputUs`
+  - `routingUs`
+  - `renderUs`
+  - `gpuUs`
+  - `uiUs`
+  - `graphUs`
 - Derived:
   - `fpsInstant`
+- Rolling window:
+  - `sampleCount`
+  - `commandUsAvg`
+  - `inputUsAvg`
+  - `renderUsAvg`
+  - `gpuUsAvg`
+  - `fpsAvg`
+  - `frameUsP50`
+  - `frameUsP95`
+  - `frameUsP99`
+  - `frameUsMax`
+  - `renderUsP95`
+  - `gpuUsP95`
 - Per-window:
   - `windowFps[]` with `windowId`, `fpsInstant`, `frameDeltaUs`
 - Counters:
   - `totalEventsDispatched`
   - `totalEventsCached`
+- Memory:
+  - `memoryBytes.ramCurrent`
+  - `memoryBytes.ramPeak`
+  - `memoryBytes.gpuCurrent`
+  - `memoryBytes.gpuPeak`
+- Utilization:
+  - `utilization.cpuPercent`
+  - `utilization.gpuFramePercent`
+  - `utilization.commandPercent`
+  - `utilization.inputPercent`
+  - `utilization.renderPercent`
+  - `utilization.uiPercent`
+  - `utilization.graphPercent`
+- Cache efficiency:
+  - `cache.renderPipelineHits`
+  - `cache.renderPipelineMisses`
+  - `cache.computePipelineHits`
+  - `cache.computePipelineMisses`
+  - `cache.composeBindCacheHits`
+  - `cache.composeBindCacheMisses`
+  - `cache.postBindCacheHits`
+  - `cache.postBindCacheMisses`
 - `frameReport` with the RealmGraph execution order, cut edges, cached surface
   entries, any throttled/no-progress realms, plus target auto-link diagnostics
   (`targetAutolinkFailures`).
   - `targetAutolinkFailures[]` entries: `{ realmId, targetId, reason }`.
+
+Interpretation notes:
+
+- `ram*` and `cpuPercent` are process-level values when the current platform
+  exposes them.
+- `gpu*` memory is engine-owned/estimated GPU allocation, not global VRAM
+  consumption.
+- `gpuFramePercent` is relative to the current frame budget, which makes it
+  portable across platforms and backends where real device-level GPU %
+  telemetry is not available.
 
 On `vulfram_get_profiling`, the core:
 

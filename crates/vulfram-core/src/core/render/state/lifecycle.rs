@@ -43,6 +43,7 @@ impl RenderState {
             },
             detached_cameras: HashMap::new(),
             camera_order: Vec::new(),
+            camera_uniform_slots: HashMap::new(),
             target_texture_binds: HashMap::new(),
             external_textures: HashMap::new(),
             external_texture_sources: HashMap::new(),
@@ -67,6 +68,10 @@ impl RenderState {
             camera_environment_overrides: HashMap::new(),
             compose_bind_cache: HashMap::new(),
             post_bind_cache: HashMap::new(),
+            compose_bind_cache_hits: 0,
+            compose_bind_cache_misses: 0,
+            post_bind_cache_hits: 0,
+            post_bind_cache_misses: 0,
             textures_sync_hash: 0,
             atlas_sync_hash: 0,
             target_binds_sync_hash: 0,
@@ -82,6 +87,7 @@ impl RenderState {
         self.scene.cameras.clear();
         self.detached_cameras.clear();
         self.camera_order.clear();
+        self.camera_uniform_slots.clear();
         self.scene.models.clear();
         self.scene.lights.clear();
         self.scene.materials_standard.clear();
@@ -117,6 +123,10 @@ impl RenderState {
         self.camera_environment_overrides.clear();
         self.compose_bind_cache.clear();
         self.post_bind_cache.clear();
+        self.compose_bind_cache_hits = 0;
+        self.compose_bind_cache_misses = 0;
+        self.post_bind_cache_hits = 0;
+        self.post_bind_cache_misses = 0;
         self.textures_sync_hash = 0;
         self.atlas_sync_hash = 0;
         self.target_binds_sync_hash = 0;
@@ -161,6 +171,11 @@ impl RenderState {
             shadow.begin_frame(frame_index);
         }
         self.gizmos.clear();
+        self.compose_bind_cache_hits = 0;
+        self.compose_bind_cache_misses = 0;
+        self.post_bind_cache_hits = 0;
+        self.post_bind_cache_misses = 0;
+        self.cache.reset_frame_stats();
         self.cache.gc(frame_index);
     }
 }

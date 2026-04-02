@@ -118,6 +118,15 @@ impl<T: Pod> StorageBufferPool<T> {
         &self.buffer
     }
 
+    pub fn allocated_bytes(&self) -> u64 {
+        self.buffer.size()
+            + self
+                .garbage
+                .iter()
+                .map(|entry| entry._buffer.size())
+                .sum::<u64>()
+    }
+
     // -------------------------------------------------------------------------
     // Frame lifecycle / deferred drop
     // -------------------------------------------------------------------------

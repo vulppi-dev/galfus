@@ -164,6 +164,14 @@ impl UiRenderer {
         self.external_textures.retain(|id, _| keep_ids.contains(id));
     }
 
+    pub fn estimated_gpu_bytes(&self) -> u64 {
+        self.vertex_buffer
+            .size()
+            .saturating_add(self.index_buffer.size())
+            .saturating_add(self.pipeline.uniform_buffer().size())
+            .saturating_add(self.textures.estimated_gpu_bytes())
+    }
+
     fn ensure_mesh_capacity(
         &mut self,
         device: &wgpu::Device,

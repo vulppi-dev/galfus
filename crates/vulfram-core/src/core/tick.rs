@@ -116,6 +116,7 @@ pub fn vulfram_tick(time: u64, delta_time: u32) -> VulframResult {
 
         // MARK: Request Redraw
         engine.state.profiling.render.request_redraw_ns = engine.platform.render(&mut engine.state);
+        crate::core::profiling::metrics::refresh_runtime_metrics(&mut engine.state);
         engine.state.profiling.push_rolling_sample();
         VulframResult::Success
     }) {

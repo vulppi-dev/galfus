@@ -72,14 +72,12 @@ pub fn select_demo() -> DemoKind {
     if let Some(arg) = env::args().nth(1)
         && let Some(demo) = DemoKind::from_str(&arg)
     {
-        println!("Selected demo from args: {:?}", demo);
         return demo;
     }
 
     if let Ok(value) = env::var("VULFRAM_DEMO")
         && let Some(demo) = DemoKind::from_str(&value)
     {
-        println!("Selected demo from env: {:?}", demo);
         return demo;
     }
 

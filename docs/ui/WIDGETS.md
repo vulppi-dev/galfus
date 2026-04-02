@@ -41,7 +41,7 @@
 
 A referência completa de payload por nó está no tipo:
 
-- `src/core/ui/types.rs`:
+- `crates/vulfram-realm-ui/src/types.rs`:
   - `UiNodeProps`
   - `UiLayout`, `UiPadding`, `UiColor`, `UiStroke`
   - `UiPaintOp` (para `canvas`)

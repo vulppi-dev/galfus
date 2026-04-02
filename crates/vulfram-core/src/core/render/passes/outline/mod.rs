@@ -45,6 +45,7 @@ pub fn pass_outline(
     };
 
     for (camera_index, camera_id) in render_state.camera_order.iter().copied().enumerate() {
+        let camera_slot = camera_index as u32;
         let post_config = camera_posts
             .get(&camera_id)
             .map(|env| env.post.clone())
@@ -258,7 +259,7 @@ pub fn pass_outline(
         });
 
         if let Some(shared_group) = bindings.shared_group.as_ref() {
-            let camera_offset = bindings.camera_pool.get_offset(camera_id) as u32;
+            let camera_offset = bindings.camera_pool.get_offset(camera_slot) as u32;
             let light_offset = light_system.draw_params_offset(camera_index as u32) as u32;
             render_pass.set_bind_group(0, shared_group, &[camera_offset, light_offset]);
         }

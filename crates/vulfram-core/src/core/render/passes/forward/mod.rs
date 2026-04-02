@@ -141,6 +141,7 @@ pub fn pass_forward(
             b: clear_rgb.z as f64,
             a: clear_rgb.w as f64,
         };
+        let camera_slot = camera_index as u32;
 
         // 2. Get render target view
         let target_view = match &camera_record.render_target {
@@ -229,7 +230,7 @@ pub fn pass_forward(
 
             // 5. Bind Shared (Group 0: Frame + Camera + ModelPool)
             if let Some(shared_group) = bindings.shared_group.as_ref() {
-                let camera_offset = bindings.camera_pool.get_offset(camera_id) as u32;
+                let camera_offset = bindings.camera_pool.get_offset(camera_slot) as u32;
                 let light_offset = light_system.draw_params_offset(camera_index as u32) as u32;
                 render_pass.set_bind_group(0, shared_group, &[camera_offset, light_offset]);
             }

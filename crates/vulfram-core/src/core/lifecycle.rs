@@ -39,7 +39,6 @@ pub fn vulfram_init() -> VulframResult {
                         command_id: None,
                         command_type: None,
                     }));
-                eprintln!("Audio init failed: {}", message);
             }
             *opt = Some(EngineSingleton { state, platform });
             return VulframResult::Success;
