@@ -16,7 +16,7 @@ pub use browser::{
     plan_browser_surface_resize, resolve_browser_pointer_position, resolve_browser_window_state,
     resolve_canvas_surface_size, resolve_pointer_lock_change, resolve_pointer_lock_error,
 };
-pub use gamepad::PlatformGamepadBackendState;
+pub use gamepad::{PlatformGamepadBackendState, map_gilrs_axis, map_gilrs_button};
 pub use window::{
     PlatformFullscreenMode, PlatformWindowLifecycleState, resolve_platform_window_state,
 };
