@@ -1,4 +1,3 @@
-pub use gilrs;
 pub use winit;
 
 pub use winit::application::ApplicationHandler;

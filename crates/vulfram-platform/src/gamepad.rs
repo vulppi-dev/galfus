@@ -1,5 +1,5 @@
 #[cfg(not(target_arch = "wasm32"))]
-use gilrs::{Axis, Button, Gilrs};
+use gilrs::{Axis, Button, Event, EventType, GamepadId, Gilrs};
 
 #[derive(Debug, Default)]
 pub struct PlatformGamepadBackendState {
@@ -23,6 +23,30 @@ impl PlatformGamepadBackendState {
             gilrs,
         }
     }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+pub fn drain_gilrs_events(state: &mut PlatformGamepadBackendState) -> Vec<Event> {
+    let Some(gilrs) = &mut state.gilrs else {
+        return Vec::new();
+    };
+
+    let mut events = Vec::new();
+    while let Some(event) = gilrs.next_event() {
+        events.push(event);
+    }
+    events
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+pub fn resolve_gilrs_gamepad_name(
+    state: &PlatformGamepadBackendState,
+    gamepad_id: GamepadId,
+) -> Option<String> {
+    state
+        .gilrs
+        .as_ref()
+        .map(|gilrs| gilrs.gamepad(gamepad_id).name().to_owned())
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -61,3 +85,9 @@ pub fn map_gilrs_axis(axis: Axis) -> u32 {
         _ => 255,
     }
 }
+
+#[cfg(not(target_arch = "wasm32"))]
+pub type PlatformGamepadEvent = Event;
+
+#[cfg(not(target_arch = "wasm32"))]
+pub type PlatformGamepadEventType = EventType;

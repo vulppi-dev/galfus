@@ -5,7 +5,10 @@ pub mod events;
 pub mod state;
 
 #[cfg(not(feature = "wasm"))]
-use crate::core::platform::gilrs::{Event as GilrsEvent, EventType as GilrsEventType};
+use vulfram_platform::{
+    PlatformGamepadEvent as GilrsEvent, PlatformGamepadEventType as GilrsEventType,
+    resolve_gilrs_gamepad_name,
+};
 
 use crate::core::cmd::EngineEvent;
 #[cfg(not(feature = "wasm"))]
@@ -23,11 +26,8 @@ pub fn process_gilrs_event(engine_state: &mut EngineState, event: GilrsEvent) {
 
     match event.event {
         GilrsEventType::Connected => {
-            let name: String = if let Some(gilrs) = &engine_state.gamepad_backend.gilrs {
-                gilrs.gamepad(event.id).name().into()
-            } else {
-                "Unknown".into()
-            };
+            let name = resolve_gilrs_gamepad_name(&engine_state.gamepad_backend, event.id)
+                .unwrap_or_else(|| "Unknown".into());
 
             manager.add_gamepad(gamepad_id);
 

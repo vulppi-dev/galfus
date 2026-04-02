@@ -10,7 +10,8 @@ use crate::core::ui::types::{UiImageSource, UiNodeProps};
 use crate::core::window::WindowEvent;
 use crate::core::window::{CmdResultWindowCreate, CmdWindowCreateArgs};
 use vulfram_platform::{
-    PlatformActivityEvent, RedrawContext, WindowRedrawInput, plan_window_redraws,
+    PlatformActivityEvent, RedrawContext, WindowRedrawInput, drain_gilrs_events,
+    plan_window_redraws,
 };
 
 use super::PlatformProxy;
@@ -59,14 +60,7 @@ impl PlatformProxy for DesktopProxy {
         if !has_focused_window {
             return start.elapsed().as_nanos() as u64;
         }
-        let mut gilrs_events = Vec::new();
-        if let Some(gilrs) = &mut state.gamepad_backend.gilrs {
-            while let Some(event) = gilrs.next_event() {
-                gilrs_events.push(event);
-            }
-        }
-
-        for event in gilrs_events {
+        for event in drain_gilrs_events(&mut state.gamepad_backend) {
             crate::core::gamepad::process_gilrs_event(state, event);
         }
 

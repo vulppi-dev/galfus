@@ -17,6 +17,10 @@ pub use browser::{
     resolve_canvas_surface_size, resolve_pointer_lock_change, resolve_pointer_lock_error,
 };
 pub use gamepad::{PlatformGamepadBackendState, map_gilrs_axis, map_gilrs_button};
+#[cfg(not(target_arch = "wasm32"))]
+pub use gamepad::{
+    PlatformGamepadEvent, PlatformGamepadEventType, drain_gilrs_events, resolve_gilrs_gamepad_name,
+};
 pub use window::{
     PlatformFullscreenMode, PlatformWindowLifecycleState, resolve_platform_window_state,
 };
