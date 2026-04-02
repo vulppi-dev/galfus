@@ -3942,6 +3942,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "vulfram-bindings-ffi"
+version = "0.21.2-alpha"
+dependencies = [
+ "vulfram-core",
+]
+
+[[package]]
 name = "vulfram-core"
 version = "0.21.2-alpha"
 dependencies = [

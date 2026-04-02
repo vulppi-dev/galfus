@@ -651,6 +651,7 @@ Status atual:
 - `RuntimeState` já concentra frame lifecycle, filas, deferreds e metadados de retry
 - o fluxo de deferred/retry já está mais encapsulado no crate:
   readiness, registro de retry, cleanup de meta e leitura de eventos passam mais pela API do runtime do que pelo shape interno do storage
+- o batching de comandos prontos para execução também já começou a sair do tick do core e ir para a API do runtime
 - contrato inicial de bootstrap de render já existe no runtime:
   o runtime recebe um alvo vindo de `platform` e decide apenas a estratégia de device compartilhado vs reuse
 - o próximo avanço relevante continua sendo aprofundar a coordenação entre subsistemas sem puxar detalhes internos de render/platform para dentro do runtime
@@ -762,6 +763,13 @@ Testes obrigatórios:
 Critério de aceite:
 - bindings finos
 - nenhuma lógica de domínio dentro deles
+
+Status atual:
+- fase iniciada
+- `vulfram-bindings-ffi` já existe como crate dedicado
+- os símbolos C ABI foram removidos de `src/lib.rs` e passaram para o crate novo
+- `vulfram-core` agora expõe uma superfície `rlib` mínima para os bindings consumirem a API sem reimplementar lógica
+- próximos avanços: repetir o mesmo padrão para `wasm`, `napi`, `lua` e `python`
 
 ### Fase 13 — Criação de `vulfram-demo`
 

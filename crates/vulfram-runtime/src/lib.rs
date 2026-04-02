@@ -107,6 +107,27 @@ impl<TCmd, TEvent, TResponse> RuntimeState<TCmd, TEvent, TResponse> {
         self.deferred_cmd_queue = commands;
     }
 
+    pub fn take_ready_commands<F>(&mut self, frame_index: u64, deferred_key_for: F) -> Vec<TCmd>
+    where
+        F: Fn(&TCmd) -> DeferredCommandKey,
+    {
+        let deferred = self.take_deferred_commands();
+        let mut batch = self.take_pending_commands();
+        let mut still_deferred = Vec::new();
+
+        for command in deferred {
+            let key = deferred_key_for(&command);
+            if self.deferred_is_ready(&key, frame_index) {
+                batch.push(command);
+            } else {
+                still_deferred.push(command);
+            }
+        }
+
+        self.replace_deferred_commands(still_deferred);
+        batch
+    }
+
     pub fn event_count(&self) -> usize {
         self.event_queue.len()
     }
@@ -300,6 +321,35 @@ mod tests {
         assert_eq!(state.deferred_cmd_queue, vec![5, 6]);
         assert!(state.event_queue.is_empty());
         assert!(state.response_queue.is_empty());
+    }
+
+    #[test]
+    fn take_ready_commands_keeps_unready_deferred_entries() {
+        let mut state = RuntimeState::<u8, u16, u32>::default();
+        let ready_key = DeferredCommandKey {
+            command_id: 1,
+            command_signature: 10,
+        };
+        let waiting_key = DeferredCommandKey {
+            command_id: 2,
+            command_signature: 20,
+        };
+        state.enqueue_commands([3]);
+        state.push_deferred_command(1);
+        state.push_deferred_command(2);
+        let _ = state.record_deferred_retry(waiting_key, 5, "wait");
+
+        let batch = state.take_ready_commands(5, |command| match *command {
+            1 => ready_key,
+            2 => waiting_key,
+            other => DeferredCommandKey {
+                command_id: other as u64,
+                command_signature: other as u64,
+            },
+        });
+
+        assert_eq!(batch, vec![3, 1]);
+        assert_eq!(state.deferred_cmd_queue, vec![2]);
     }
 
     #[test]

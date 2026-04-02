@@ -28,26 +28,13 @@ pub fn vulfram_tick(time: u64, delta_time: u32) -> VulframResult {
             let cmd_start = Instant::now();
             #[cfg(feature = "wasm")]
             let cmd_start = (Date::now() * 1_000_000.0) as u64;
-            let deferred = engine.state.runtime.take_deferred_commands();
             // Prefer newest host commands first; deferred retries are eventual and can be stale.
-            let mut batch = engine.state.runtime.take_pending_commands();
-            let mut still_deferred = Vec::new();
-            for envelope in deferred {
-                let key = deferred_command_key(envelope.id, &envelope.cmd);
-                let ready = engine
-                    .state
-                    .runtime
-                    .deferred_is_ready(&key, engine.state.runtime.frame.frame_index);
-                if ready {
-                    batch.push(envelope);
-                } else {
-                    still_deferred.push(envelope);
-                }
-            }
-            engine
+            let batch = engine
                 .state
                 .runtime
-                .replace_deferred_commands(still_deferred);
+                .take_ready_commands(engine.state.runtime.frame.frame_index, |envelope| {
+                    deferred_command_key(envelope.id, &envelope.cmd)
+                });
             engine.state.runtime.frame.had_commands_this_frame = !batch.is_empty();
             let result = engine_process_batch(&mut engine.state, &mut engine.platform, batch);
             #[cfg(not(feature = "wasm"))]
