@@ -4011,6 +4011,8 @@ dependencies = [
  "gilrs",
  "glam 0.30.10",
  "log",
+ "vulfram-input",
+ "winit",
 ]
 
 [[package]]

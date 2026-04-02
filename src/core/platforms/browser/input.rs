@@ -3,7 +3,7 @@ use std::rc::Rc;
 
 use vulfram_input::{
     keyboard_ime_commit_event, keyboard_ime_disable_event, keyboard_ime_enable_event,
-    keyboard_ime_preedit_event, keyboard_input_event, keyboard_modifiers_event,
+    keyboard_ime_preedit_event, keyboard_input_event, keyboard_modifiers_event, map_web_key_code,
     pointer_button_event, pointer_enter_event, pointer_leave_event, pointer_move_event,
     pointer_scroll_event,
 };
@@ -25,7 +25,6 @@ use crate::core::input::events::{ElementState, ModifiersState, TouchPhase};
 use crate::core::input::events::{
     KeyboardEvent as CoreKeyboardEvent, PointerEvent as CorePointerEvent, ScrollDelta,
 };
-use crate::core::input::keycodes::map_web_key_code;
 use crate::core::singleton::with_engine;
 use crate::core::state::EngineState;
 use crate::core::window::{
