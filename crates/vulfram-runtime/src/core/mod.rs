@@ -15,6 +15,8 @@ mod singleton;
 mod state;
 pub mod system;
 pub mod target;
+#[cfg(test)]
+pub mod test_support;
 mod tick;
 pub mod time;
 pub mod ui;

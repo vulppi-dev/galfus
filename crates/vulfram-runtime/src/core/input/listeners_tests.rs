@@ -1,12 +1,12 @@
 use super::{InputTargetListenerConfig, emit_target_listener_events};
 use crate::core::cmd::EngineEvent;
 use crate::core::input::events::{PointerEvent, PointerEventTrace};
-use crate::core::state::EngineState;
 use crate::core::system::SystemEvent;
+use crate::core::test_support::test_engine;
 
 #[test]
 fn listener_emits_system_event_for_matching_pointer_target() {
-    let mut engine = EngineState::new();
+    let mut engine = test_engine();
     engine
         .universal_state
         .interaction

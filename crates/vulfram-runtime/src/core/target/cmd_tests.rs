@@ -2,14 +2,13 @@ use super::{
     CmdTargetMeasurementArgs, CmdTargetUpsertArgs, engine_cmd_target_measurement,
     engine_cmd_target_upsert,
 };
-use crate::core::realm::{AutoLink, SurfaceKind, SurfaceState};
-use crate::core::state::EngineState;
 use crate::core::target::{TargetId, TargetKind};
+use crate::core::test_support::{alloc_offscreen_surface, link_target_surface, test_engine};
 use glam::UVec2;
 
 #[test]
 fn target_upsert_window_requires_window_id() {
-    let mut engine = EngineState::new();
+    let mut engine = test_engine();
     let result = engine_cmd_target_upsert(
         &mut engine,
         &CmdTargetUpsertArgs {
@@ -28,7 +27,7 @@ fn target_upsert_window_requires_window_id() {
 
 #[test]
 fn target_upsert_widget_viewport_allows_missing_window_id() {
-    let mut engine = EngineState::new();
+    let mut engine = test_engine();
     let result = engine_cmd_target_upsert(
         &mut engine,
         &CmdTargetUpsertArgs {
@@ -46,7 +45,7 @@ fn target_upsert_widget_viewport_allows_missing_window_id() {
 
 #[test]
 fn target_upsert_realm_plane_allows_missing_window_id() {
-    let mut engine = EngineState::new();
+    let mut engine = test_engine();
     let result = engine_cmd_target_upsert(
         &mut engine,
         &CmdTargetUpsertArgs {
@@ -64,7 +63,7 @@ fn target_upsert_realm_plane_allows_missing_window_id() {
 
 #[test]
 fn target_upsert_texture_rejects_window_id() {
-    let mut engine = EngineState::new();
+    let mut engine = test_engine();
     let result = engine_cmd_target_upsert(
         &mut engine,
         &CmdTargetUpsertArgs {
@@ -83,7 +82,7 @@ fn target_upsert_texture_rejects_window_id() {
 
 #[test]
 fn target_measurement_uses_declared_size_when_no_runtime_binding_exists() {
-    let mut engine = EngineState::new();
+    let mut engine = test_engine();
     let upsert = engine_cmd_target_upsert(
         &mut engine,
         &CmdTargetUpsertArgs {
@@ -113,7 +112,7 @@ fn target_measurement_uses_declared_size_when_no_runtime_binding_exists() {
 
 #[test]
 fn target_measurement_prefers_surface_size_from_auto_link() {
-    let mut engine = EngineState::new();
+    let mut engine = test_engine();
     let upsert = engine_cmd_target_upsert(
         &mut engine,
         &CmdTargetUpsertArgs {
@@ -127,24 +126,12 @@ fn target_measurement_prefers_surface_size_from_auto_link() {
         },
     );
     assert!(upsert.success);
-    let surface_id = engine
-        .universal_state
-        .composition
-        .surfaces
-        .alloc(SurfaceState {
-            kind: SurfaceKind::Offscreen,
-            size: UVec2::new(640, 360),
-            format_policy: None,
-            alpha_policy: None,
-            msaa_samples: None,
-        });
-    engine.universal_state.targets.auto_links.insert(
-        (7, TargetId(51)),
-        AutoLink {
-            surface_id,
-            connector_id: None,
-            present_id: None,
-        },
+    let surface_id = alloc_offscreen_surface(&mut engine, UVec2::new(640, 360));
+    link_target_surface(
+        &mut engine,
+        crate::core::realm::RealmId(7),
+        TargetId(51),
+        surface_id,
     );
 
     let measured = engine_cmd_target_measurement(
