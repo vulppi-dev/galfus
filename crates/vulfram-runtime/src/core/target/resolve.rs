@@ -8,9 +8,7 @@ use crate::core::state::EngineState;
 use crate::core::system::push_error_event;
 use crate::core::target::{TargetId, TargetKind, TargetLayerLayout, TargetLayerState, TargetState};
 
-const INPUT_FLAG_RAYCAST: u32 = 1 << 0;
-pub const INPUT_FLAG_WIDGET_VIEW: u32 = 1 << 1;
-const DEFAULT_CH_WIDTH: f32 = 8.0;
+pub const INPUT_FLAG_WIDGET_VIEW: u32 = vulfram_render::AUTO_GRAPH_INPUT_FLAG_WIDGET_VIEW;
 
 #[derive(Debug, Clone, Copy)]
 struct ResolvedLayerLayout {
@@ -355,18 +353,7 @@ fn update_auto_link_layout(
 }
 
 fn infer_layer_input_flags(target_kind: TargetKind, source_realm_kind: RealmKind) -> u32 {
-    match target_kind {
-        TargetKind::WidgetRealmViewport => {
-            let mut flags = INPUT_FLAG_WIDGET_VIEW;
-            if source_realm_kind == RealmKind::ThreeD {
-                flags |= INPUT_FLAG_RAYCAST;
-            }
-            flags
-        }
-        TargetKind::RealmPlane if source_realm_kind == RealmKind::ThreeD => INPUT_FLAG_RAYCAST,
-        TargetKind::Window if source_realm_kind == RealmKind::ThreeD => INPUT_FLAG_RAYCAST,
-        TargetKind::RealmPlane | TargetKind::Window | TargetKind::Texture => 0,
-    }
+    vulfram_render::infer_auto_graph_input_flags(target_kind, source_realm_kind)
 }
 
 fn remove_auto_link(universal: &mut UniversalState, key: (u32, TargetId)) {
@@ -436,103 +423,52 @@ fn remove_auto_link(universal: &mut UniversalState, key: (u32, TargetId)) {
 }
 
 fn rebuild_target_indexes(universal: &mut UniversalState) {
-    universal.targets.host_realm_index.clear();
-    for present in universal.composition.presents.entries.values() {
-        let present_surface = present.value.surface;
-        let Some(present_realm) =
-            universal
-                .composition
-                .realms
-                .entries
-                .iter()
-                .find_map(|(realm_id, entry)| {
-                    if entry.value.output_surface == Some(present_surface) {
-                        Some(*realm_id)
-                    } else {
-                        None
-                    }
-                })
-        else {
-            continue;
-        };
-        match universal
-            .targets
-            .host_realm_index
-            .get_mut(&present.value.window_id)
-        {
-            Some(existing) => {
-                if present_realm.0 < existing.0 {
-                    *existing = present_realm;
-                }
-            }
-            None => {
-                universal
-                    .targets
-                    .host_realm_index
-                    .insert(present.value.window_id, present_realm);
-            }
-        }
-    }
+    let presents: Vec<_> = universal
+        .composition
+        .presents
+        .entries
+        .values()
+        .map(|entry| (entry.value.window_id, entry.value.surface))
+        .collect();
+    let realm_output_surfaces: HashMap<_, _> = universal
+        .composition
+        .realms
+        .entries
+        .iter()
+        .map(|(realm_id, entry)| (*realm_id, entry.value.output_surface))
+        .collect();
+    let layer_target_kinds: HashMap<_, _> = universal
+        .targets
+        .target_layers
+        .entries
+        .iter()
+        .filter_map(|((realm_id, target_id), _layer)| {
+            let target = universal.targets.targets.entries.get(target_id)?;
+            Some(((*realm_id, *target_id), (target.kind, target.window_id)))
+        })
+        .collect();
+    universal.targets.host_realm_index = vulfram_render::plan_host_realm_index(
+        &presents,
+        &realm_output_surfaces,
+        &layer_target_kinds,
+    );
 
-    for layer in universal.targets.target_layers.entries.values() {
-        let realm_id = RealmId(layer.realm_id);
-        if !universal.composition.realms.entries.contains_key(&realm_id) {
-            continue;
-        }
-        let Some(target) = universal.targets.targets.entries.get(&layer.target_id) else {
-            continue;
-        };
-        if target.kind != TargetKind::Window {
-            continue;
-        }
-        let Some(window_id) = target.window_id else {
-            continue;
-        };
-        if universal.targets.host_realm_index.contains_key(&window_id) {
-            continue;
-        }
-        match universal.targets.host_realm_index.get_mut(&window_id) {
-            Some(existing) => {
-                if realm_id.0 < existing.0 {
-                    *existing = realm_id;
-                }
-            }
-            None => {
-                universal
-                    .targets
-                    .host_realm_index
-                    .insert(window_id, realm_id);
-            }
-        }
-    }
-
-    universal.targets.target_ui_realm_index.clear();
-    for layer in universal.targets.target_layers.entries.values() {
-        let realm_id = RealmId(layer.realm_id);
-        let Some(realm_entry) = universal.composition.realms.entries.get(&realm_id) else {
-            continue;
-        };
-        if realm_entry.value.kind != crate::core::realm::RealmKind::TwoD {
-            continue;
-        }
-        match universal
-            .targets
-            .target_ui_realm_index
-            .get_mut(&layer.target_id)
-        {
-            Some(existing) => {
-                if realm_id.0 < existing.0 {
-                    *existing = realm_id;
-                }
-            }
-            None => {
-                universal
-                    .targets
-                    .target_ui_realm_index
-                    .insert(layer.target_id, realm_id);
-            }
-        }
-    }
+    let target_layers: Vec<_> = universal
+        .targets
+        .target_layers
+        .entries
+        .keys()
+        .map(|(realm_id, target_id)| (*realm_id, *target_id))
+        .collect();
+    let realm_kinds: HashMap<_, _> = universal
+        .composition
+        .realms
+        .entries
+        .iter()
+        .map(|(realm_id, entry)| (*realm_id, entry.value.kind))
+        .collect();
+    universal.targets.target_ui_realm_index =
+        vulfram_render::plan_target_ui_realm_index(&target_layers, &realm_kinds);
 }
 
 fn surface_state_for_target(
@@ -540,81 +476,34 @@ fn surface_state_for_target(
     target: &TargetState,
     layer: Option<&TargetLayerState>,
 ) -> SurfaceState {
-    let is_window_connector = layer
-        .and_then(|layer| {
-            target
-                .window_id
-                .map(|window_id| (layer.realm_id, window_id))
-        })
-        .and_then(|(layer_realm_id, window_id)| {
-            engine_state
-                .universal_state
-                .targets
-                .host_realm_index
-                .get(&window_id)
-                .map(|host_realm| host_realm.0 != layer_realm_id)
-        })
-        .unwrap_or(false);
-
-    let layer_size = layer.and_then(|layer| {
-        let resolved = resolve_layer_layout(engine_state, target, &layer.layout);
-        let width = resolved.rect.z.max(1.0).round() as u32;
-        let height = resolved.rect.w.max(1.0).round() as u32;
-        if width > 0 && height > 0 {
-            Some(glam::UVec2::new(width, height))
-        } else {
-            None
-        }
-    });
-    let size = match target.kind {
-        TargetKind::Texture => target.size.unwrap_or_else(|| glam::UVec2::new(1, 1)),
-        TargetKind::Window => {
-            if is_window_connector {
-                layer_size
-                    .or_else(|| {
-                        target
-                            .window_id
-                            .and_then(|window_id| engine_state.window.states.get(&window_id))
-                            .map(|state| state.inner_size)
-                    })
-                    .unwrap_or_else(|| glam::UVec2::new(1, 1))
-            } else {
-                target
-                    .window_id
-                    .and_then(|window_id| engine_state.window.states.get(&window_id))
-                    .map(|state| state.inner_size)
-                    .unwrap_or_else(|| glam::UVec2::new(1, 1))
-            }
-        }
-        TargetKind::WidgetRealmViewport | TargetKind::RealmPlane => target
-            .size
-            .or(layer_size)
-            .or_else(|| {
-                target
-                    .window_id
-                    .and_then(|window_id| engine_state.window.states.get(&window_id))
-                    .map(|state| state.inner_size)
-            })
-            .unwrap_or_else(|| glam::UVec2::new(1, 1)),
-    };
+    let window_sizes: HashMap<_, _> = engine_state
+        .window
+        .states
+        .iter()
+        .map(|(window_id, state)| (*window_id, state.inner_size))
+        .collect();
+    let surface_spec = vulfram_render::plan_auto_graph_surface_spec(
+        target.kind,
+        target.window_id,
+        target.size,
+        target.format_policy,
+        target.alpha_policy,
+        target.msaa_samples,
+        layer.map(|layer| &layer.layout),
+        layer.map(|layer| layer.realm_id),
+        &engine_state.universal_state.targets.host_realm_index,
+        &window_sizes,
+    );
 
     SurfaceState {
-        kind: match target.kind {
-            TargetKind::Window => {
-                if is_window_connector {
-                    SurfaceKind::Offscreen
-                } else {
-                    SurfaceKind::Onscreen
-                }
-            }
-            TargetKind::WidgetRealmViewport | TargetKind::RealmPlane | TargetKind::Texture => {
-                SurfaceKind::Offscreen
-            }
+        kind: match surface_spec.kind {
+            vulfram_render::AutoGraphSurfaceKind::Onscreen => SurfaceKind::Onscreen,
+            vulfram_render::AutoGraphSurfaceKind::Offscreen => SurfaceKind::Offscreen,
         },
-        size,
-        format_policy: target.format_policy,
-        alpha_policy: target.alpha_policy,
-        msaa_samples: target.msaa_samples,
+        size: surface_spec.size,
+        format_policy: surface_spec.format_policy,
+        alpha_policy: surface_spec.alpha_policy,
+        msaa_samples: surface_spec.msaa_samples,
     }
 }
 
@@ -631,21 +520,16 @@ fn resolve_layer_layout(
     target: &TargetState,
     layout: &TargetLayerLayout,
 ) -> ResolvedLayerLayout {
-    let ref_size = target
+    let reference_size = target
         .window_id
         .and_then(|window_id| engine_state.window.states.get(&window_id))
         .map(|state| state.inner_size)
         .unwrap_or_else(|| glam::UVec2::new(1, 1));
-    let ref_width = ref_size.x.max(1) as f32;
-    let ref_height = ref_size.y.max(1) as f32;
-    let left = layout.left.resolve(ref_width, DEFAULT_CH_WIDTH);
-    let top = layout.top.resolve(ref_height, DEFAULT_CH_WIDTH);
-    let width = layout.width.resolve(ref_width, DEFAULT_CH_WIDTH).max(0.0);
-    let height = layout.height.resolve(ref_height, DEFAULT_CH_WIDTH).max(0.0);
+    let resolved = vulfram_render::resolve_auto_graph_layout(reference_size, layout);
     ResolvedLayerLayout {
-        rect: glam::Vec4::new(left, top, width, height),
-        z_index: layout.z_index,
-        blend_mode: layout.blend_mode,
-        clip: layout.clip,
+        rect: resolved.rect,
+        z_index: resolved.z_index,
+        blend_mode: resolved.blend_mode,
+        clip: resolved.clip,
     }
 }
