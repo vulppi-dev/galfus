@@ -4061,8 +4061,11 @@ version = "0.21.2-alpha"
 dependencies = [
  "gilrs",
  "glam 0.30.10",
+ "js-sys",
  "log",
  "vulfram-input",
+ "wasm-bindgen",
+ "web-sys",
  "winit",
 ]
 

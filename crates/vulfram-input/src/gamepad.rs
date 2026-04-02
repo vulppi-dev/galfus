@@ -157,6 +157,54 @@ impl GamepadCacheManager {
     }
 }
 
+pub fn connect_gamepad(
+    manager: &mut GamepadCacheManager,
+    gamepad_id: u32,
+    name: impl Into<String>,
+) -> Option<GamepadEvent> {
+    if manager.get_mut(gamepad_id).is_some() {
+        return None;
+    }
+    manager.add_gamepad(gamepad_id);
+    Some(GamepadEvent::OnConnect {
+        gamepad_id,
+        name: name.into(),
+    })
+}
+
+pub fn disconnect_gamepad(
+    manager: &mut GamepadCacheManager,
+    gamepad_id: u32,
+) -> Option<GamepadEvent> {
+    if manager.get_mut(gamepad_id).is_none() {
+        return None;
+    }
+    manager.remove_gamepad(gamepad_id);
+    Some(GamepadEvent::OnDisconnect { gamepad_id })
+}
+
+pub fn update_gamepad_button(
+    manager: &mut GamepadCacheManager,
+    gamepad_id: u32,
+    button: u32,
+    value: f32,
+) -> Option<GamepadEvent> {
+    manager
+        .get_mut(gamepad_id)
+        .and_then(|cache| cache.update_button_event(gamepad_id, button, value))
+}
+
+pub fn update_gamepad_axis(
+    manager: &mut GamepadCacheManager,
+    gamepad_id: u32,
+    axis: u32,
+    value: f32,
+) -> Option<GamepadEvent> {
+    manager
+        .get_mut(gamepad_id)
+        .and_then(|cache| cache.update_axis_event(gamepad_id, axis, value))
+}
+
 #[derive(Debug, Default)]
 pub struct GamepadState {
     pub cache: GamepadCacheManager,
@@ -170,7 +218,9 @@ impl GamepadState {
 
 #[cfg(test)]
 mod tests {
-    use super::{GamepadEvent, GamepadStateCache};
+    use super::{
+        GamepadCacheManager, GamepadEvent, GamepadStateCache, connect_gamepad, disconnect_gamepad,
+    };
     use crate::ElementState;
 
     #[test]
@@ -206,5 +256,20 @@ mod tests {
     fn update_axis_event_skips_small_changes() {
         let mut cache = GamepadStateCache::new();
         assert!(cache.update_axis_event(3, 1, 0.0).is_none());
+    }
+
+    #[test]
+    fn connect_and_disconnect_gamepad_emit_lifecycle_events_once() {
+        let mut manager = GamepadCacheManager::new();
+        assert!(matches!(
+            connect_gamepad(&mut manager, 4, "Pad"),
+            Some(GamepadEvent::OnConnect { gamepad_id: 4, .. })
+        ));
+        assert!(connect_gamepad(&mut manager, 4, "Pad").is_none());
+        assert!(matches!(
+            disconnect_gamepad(&mut manager, 4),
+            Some(GamepadEvent::OnDisconnect { gamepad_id: 4 })
+        ));
+        assert!(disconnect_gamepad(&mut manager, 4).is_none());
     }
 }

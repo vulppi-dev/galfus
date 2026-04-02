@@ -1,7 +1,6 @@
 pub mod audio;
 pub mod buffers;
 pub mod cmd;
-pub mod gamepad;
 pub mod image;
 pub mod input;
 mod lifecycle;

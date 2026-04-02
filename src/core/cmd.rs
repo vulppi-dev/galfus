@@ -1,6 +1,5 @@
 use serde::{Deserialize, Serialize};
 
-use crate::core::gamepad::events::GamepadEvent;
 use crate::core::input::events::{KeyboardEvent, PointerEvent};
 use crate::core::input::listeners::{
     CmdInputTargetListenerDisposeArgs, CmdInputTargetListenerListArgs,
@@ -9,6 +8,7 @@ use crate::core::input::listeners::{
 use crate::core::system::SystemEvent;
 use crate::core::ui::events::UiEvent;
 use crate::core::window::WindowEvent;
+use vulfram_input::GamepadEvent;
 
 pub use crate::core::audio;
 pub use crate::core::buffers as buf;

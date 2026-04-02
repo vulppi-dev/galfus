@@ -9,9 +9,12 @@ use crate::core::state::EngineState;
 use crate::core::ui::types::{UiImageSource, UiNodeProps};
 use crate::core::window::WindowEvent;
 use crate::core::window::{CmdResultWindowCreate, CmdWindowCreateArgs};
+use vulfram_input::{
+    connect_gamepad, disconnect_gamepad, update_gamepad_axis, update_gamepad_button,
+};
 use vulfram_platform::{
-    PlatformActivityEvent, RedrawContext, WindowRedrawInput, drain_gilrs_events,
-    plan_window_redraws,
+    PlatformActivityEvent, RedrawContext, WindowRedrawInput, drain_gilrs_events, map_gilrs_axis,
+    map_gilrs_button, plan_window_redraws, resolve_gilrs_gamepad_name,
 };
 
 use super::PlatformProxy;
@@ -61,7 +64,78 @@ impl PlatformProxy for DesktopProxy {
             return start.elapsed().as_nanos() as u64;
         }
         for event in drain_gilrs_events(&mut state.gamepad_backend) {
-            crate::core::gamepad::process_gilrs_event(state, event);
+            let gamepad_id: u32 = usize::from(event.id) as u32;
+            match event.event {
+                vulfram_platform::PlatformGamepadEventType::Connected => {
+                    let name = resolve_gilrs_gamepad_name(&state.gamepad_backend, event.id)
+                        .unwrap_or_else(|| "Unknown".into());
+                    if let Some(gamepad_event) =
+                        connect_gamepad(&mut state.gamepad.cache, gamepad_id, name)
+                    {
+                        state
+                            .runtime
+                            .push_event(EngineEvent::Gamepad(gamepad_event));
+                    }
+                }
+                vulfram_platform::PlatformGamepadEventType::Disconnected => {
+                    if let Some(gamepad_event) =
+                        disconnect_gamepad(&mut state.gamepad.cache, gamepad_id)
+                    {
+                        state
+                            .runtime
+                            .push_event(EngineEvent::Gamepad(gamepad_event));
+                    }
+                }
+                vulfram_platform::PlatformGamepadEventType::ButtonPressed(button, _code) => {
+                    if let Some(gamepad_event) = update_gamepad_button(
+                        &mut state.gamepad.cache,
+                        gamepad_id,
+                        map_gilrs_button(button),
+                        1.0,
+                    ) {
+                        state
+                            .runtime
+                            .push_event(EngineEvent::Gamepad(gamepad_event));
+                    }
+                }
+                vulfram_platform::PlatformGamepadEventType::ButtonReleased(button, _code) => {
+                    if let Some(gamepad_event) = update_gamepad_button(
+                        &mut state.gamepad.cache,
+                        gamepad_id,
+                        map_gilrs_button(button),
+                        0.0,
+                    ) {
+                        state
+                            .runtime
+                            .push_event(EngineEvent::Gamepad(gamepad_event));
+                    }
+                }
+                vulfram_platform::PlatformGamepadEventType::ButtonChanged(button, value, _code) => {
+                    if let Some(gamepad_event) = update_gamepad_button(
+                        &mut state.gamepad.cache,
+                        gamepad_id,
+                        map_gilrs_button(button),
+                        value,
+                    ) {
+                        state
+                            .runtime
+                            .push_event(EngineEvent::Gamepad(gamepad_event));
+                    }
+                }
+                vulfram_platform::PlatformGamepadEventType::AxisChanged(axis, value, _code) => {
+                    if let Some(gamepad_event) = update_gamepad_axis(
+                        &mut state.gamepad.cache,
+                        gamepad_id,
+                        map_gilrs_axis(axis),
+                        value,
+                    ) {
+                        state
+                            .runtime
+                            .push_event(EngineEvent::Gamepad(gamepad_event));
+                    }
+                }
+                _ => {}
+            }
         }
 
         start.elapsed().as_nanos() as u64

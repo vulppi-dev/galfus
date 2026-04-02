@@ -26,7 +26,8 @@ pub use cache::InputState;
 pub use cache::{KeyboardStateCache, PointerStateCache};
 pub use gamepad::{
     GAMEPAD_AXIS_CHANGE_THRESHOLD, GAMEPAD_AXIS_DEAD_ZONE, GAMEPAD_BUTTON_CHANGE_THRESHOLD,
-    GamepadCacheManager, GamepadEvent, GamepadState, GamepadStateCache,
+    GamepadCacheManager, GamepadEvent, GamepadState, GamepadStateCache, connect_gamepad,
+    disconnect_gamepad, update_gamepad_axis, update_gamepad_button,
 };
 pub use keycodes::{KEY_ESCAPE, KEY_UNIDENTIFIED, KEY_W, map_web_key_code};
 

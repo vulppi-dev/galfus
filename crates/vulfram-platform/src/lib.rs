@@ -24,6 +24,8 @@ pub use desktop::{
     map_winit_physical_key_code, map_winit_touch_phase,
 };
 pub use gamepad::PlatformGamepadBackendState;
+#[cfg(target_arch = "wasm32")]
+pub use gamepad::{PlatformBrowserGamepadSnapshot, poll_browser_gamepads};
 #[cfg(not(target_arch = "wasm32"))]
 pub use gamepad::{
     PlatformGamepadEvent, PlatformGamepadEventType, drain_gilrs_events, map_gilrs_axis,

@@ -4,7 +4,6 @@ use crate::core::audio::KiraAudioProxy;
 #[cfg(feature = "wasm")]
 use crate::core::audio::WebAudioProxy;
 use crate::core::buffers::state::BufferStorage;
-use crate::core::gamepad::state::GamepadBackendState;
 #[cfg(not(feature = "wasm"))]
 use crate::core::input::InputState;
 use crate::core::profiling::TickProfiling;
@@ -18,6 +17,7 @@ use crate::core::resources::{
 use crate::core::window::WindowManager;
 use std::collections::HashMap;
 use vulfram_input::GamepadState;
+use vulfram_platform::PlatformGamepadBackendState;
 pub type EngineRuntimeState = vulfram_runtime::RuntimeState<
     crate::core::cmd::EngineCmdEnvelope,
     crate::core::cmd::EngineEvent,
@@ -53,7 +53,7 @@ pub struct EngineState {
     #[cfg(not(feature = "wasm"))]
     pub input: InputState,
     pub(crate) gamepad: GamepadState,
-    pub(crate) gamepad_backend: GamepadBackendState,
+    pub(crate) gamepad_backend: PlatformGamepadBackendState,
 
     pub(crate) profiling: TickProfiling,
     pub(crate) gpu_profiler: Option<GpuProfiler>,
@@ -101,7 +101,7 @@ impl EngineState {
             #[cfg(not(feature = "wasm"))]
             input: InputState::new(),
             gamepad: GamepadState::new(),
-            gamepad_backend: GamepadBackendState::new(),
+            gamepad_backend: PlatformGamepadBackendState::new(),
             profiling: TickProfiling::default(),
             gpu_profiler: None,
         }

@@ -6,7 +6,10 @@ use crate::core::window::engine_cmd_window_create;
 #[cfg(target_arch = "wasm32")]
 use crate::core::window::engine_cmd_window_create_async;
 use crate::core::window::{CmdResultWindowCreate, CmdWindowCreateArgs};
-use vulfram_platform::{browser_now_ns, should_poll_browser_gamepads};
+use vulfram_input::{
+    connect_gamepad, disconnect_gamepad, update_gamepad_axis, update_gamepad_button,
+};
+use vulfram_platform::{browser_now_ns, poll_browser_gamepads, should_poll_browser_gamepads};
 
 use super::PlatformProxy;
 
@@ -62,7 +65,59 @@ impl PlatformProxy for BrowserProxy {
         if !should_poll_browser_gamepads(!state.window.states.is_empty(), has_focus) {
             return Self::now_ns().saturating_sub(start);
         }
-        crate::core::gamepad::process_web_gamepads(state);
+        let snapshots = poll_browser_gamepads();
+        let connected_ids: std::collections::HashSet<u32> = snapshots
+            .iter()
+            .map(|snapshot| snapshot.gamepad_id)
+            .collect();
+
+        for snapshot in snapshots {
+            if let Some(gamepad_event) =
+                connect_gamepad(&mut state.gamepad.cache, snapshot.gamepad_id, snapshot.name)
+            {
+                state
+                    .runtime
+                    .push_event(crate::core::cmd::EngineEvent::Gamepad(gamepad_event));
+            }
+
+            for (button_idx, value) in snapshot.buttons.into_iter().enumerate() {
+                if let Some(gamepad_event) = update_gamepad_button(
+                    &mut state.gamepad.cache,
+                    snapshot.gamepad_id,
+                    button_idx as u32,
+                    value,
+                ) {
+                    state
+                        .runtime
+                        .push_event(crate::core::cmd::EngineEvent::Gamepad(gamepad_event));
+                }
+            }
+
+            for (axis_idx, value) in snapshot.axes.into_iter().enumerate() {
+                if let Some(gamepad_event) = update_gamepad_axis(
+                    &mut state.gamepad.cache,
+                    snapshot.gamepad_id,
+                    axis_idx as u32,
+                    value,
+                ) {
+                    state
+                        .runtime
+                        .push_event(crate::core::cmd::EngineEvent::Gamepad(gamepad_event));
+                }
+            }
+        }
+
+        let known_ids: Vec<u32> = state.gamepad.cache.gamepads.keys().copied().collect();
+        for gamepad_id in known_ids {
+            if let Some(gamepad_event) = (!connected_ids.contains(&gamepad_id))
+                .then(|| disconnect_gamepad(&mut state.gamepad.cache, gamepad_id))
+                .flatten()
+            {
+                state
+                    .runtime
+                    .push_event(crate::core::cmd::EngineEvent::Gamepad(gamepad_event));
+            }
+        }
         Self::now_ns().saturating_sub(start)
     }
 

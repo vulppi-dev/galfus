@@ -505,8 +505,9 @@ Status:
 - concluída
 - `vulfram-input` já concentra eventos normalizados, listeners, estado/cache de input e a semântica pura de roteamento
 - `vulfram-input` também já concentra os construtores dos eventos normalizados de teclado, ponteiro, touch e gestos, além do mapeamento puro de keycodes web
+- `vulfram-input` passou a concentrar também os helpers semânticos de lifecycle e atualização de gamepad
 - `vulfram-platform` já concentra os mapeamentos específicos de `winit` e o backend/polling de gamepad
-- o que permaneceu no core é captura do evento bruto, acesso ao estado vivo da janela e integração com raycast/cena/runtime
+- o módulo `core/gamepad` foi removido; o que permaneceu no core é captura do evento bruto, acesso ao estado vivo da janela e integração com raycast/cena/runtime
 
 Objetivo:
 - isolar o modelo normalizado de input antes de integrar plataforma e UI
@@ -665,6 +666,7 @@ Status final da fase:
 Status:
 - concluída no escopo arquitetural desta refatoração
 - `vulfram-platform` já concentra redraw planning, lifecycle de janela, bootstrap target semântico, helpers browser de sizing/teclado/ponteiro/cursor, backend de gamepad e operações de polling/mapeamento de `gilrs`
+- o polling/snapshot de gamepad no browser também ficou concentrado no crate
 - o que permanece fora do crate é integração concreta com runtime, janela viva e render, não semântica própria de plataforma
 
 Objetivo:
