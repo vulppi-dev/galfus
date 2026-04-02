@@ -25,8 +25,6 @@ use crate::core::platform::Window;
 use crate::core::profiling::gpu::GpuProfiler;
 #[cfg(all(feature = "wasm", target_arch = "wasm32"))]
 use crate::core::window::WindowState;
-#[cfg(all(feature = "wasm", target_arch = "wasm32"))]
-use glam::UVec2;
 
 #[cfg(all(feature = "wasm", target_arch = "wasm32"))]
 pub fn engine_cmd_window_create_async(
@@ -235,24 +233,20 @@ pub fn engine_cmd_window_create_async(
 
             engine
                 .state
-                .event_queue
-                .push(EngineEvent::Window(WindowEvent::OnCreate {
+                .runtime
+                .push_event(EngineEvent::Window(WindowEvent::OnCreate {
                     window_id: win_id,
                 }));
-            engine
-                .state
-                .runtime
-                .response_queue
-                .push(CommandResponseEnvelope {
-                    id: cmd_id,
-                    response: CommandResponse::WindowCreate(CmdResultWindowCreate {
-                        success: true,
-                        message: "Canvas window created successfully".into(),
-                        realm_id: Some(binding.realm_id.0),
-                        surface_id: Some(binding.surface_id.0),
-                        present_id: Some(binding.present_id.0),
-                    }),
-                });
+            engine.state.runtime.push_response(CommandResponseEnvelope {
+                id: cmd_id,
+                response: CommandResponse::WindowCreate(CmdResultWindowCreate {
+                    success: true,
+                    message: "Canvas window created successfully".into(),
+                    realm_id: Some(binding.realm_id.0),
+                    surface_id: Some(binding.surface_id.0),
+                    present_id: Some(binding.present_id.0),
+                }),
+            });
             {
                 if let (Some(device), Some(queue)) =
                     (engine.state.device.as_ref(), engine.state.queue.as_ref())

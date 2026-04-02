@@ -767,9 +767,11 @@ Critério de aceite:
 Status atual:
 - fase iniciada
 - `vulfram-bindings-ffi` já existe como crate dedicado
+- `vulfram-bindings-wasm` já existe como crate dedicado
 - os símbolos C ABI foram removidos de `src/lib.rs` e passaram para o crate novo
+- os exports `wasm-bindgen` também começaram a sair de `src/lib.rs` para o crate novo
 - `vulfram-core` agora expõe uma superfície `rlib` mínima para os bindings consumirem a API sem reimplementar lógica
-- próximos avanços: repetir o mesmo padrão para `wasm`, `napi`, `lua` e `python`
+- próximos avanços: repetir o mesmo padrão para `napi`, `lua` e `python`
 
 ### Fase 13 — Criação de `vulfram-demo`
 

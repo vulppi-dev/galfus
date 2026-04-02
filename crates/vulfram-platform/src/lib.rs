@@ -23,10 +23,11 @@ pub use desktop::{
     map_winit_key_code, map_winit_key_location, map_winit_mouse_button,
     map_winit_physical_key_code, map_winit_touch_phase,
 };
-pub use gamepad::{PlatformGamepadBackendState, map_gilrs_axis, map_gilrs_button};
+pub use gamepad::PlatformGamepadBackendState;
 #[cfg(not(target_arch = "wasm32"))]
 pub use gamepad::{
-    PlatformGamepadEvent, PlatformGamepadEventType, drain_gilrs_events, resolve_gilrs_gamepad_name,
+    PlatformGamepadEvent, PlatformGamepadEventType, drain_gilrs_events, map_gilrs_axis,
+    map_gilrs_button, resolve_gilrs_gamepad_name,
 };
 pub use window::{
     PlatformFullscreenMode, PlatformWindowLifecycleState, resolve_platform_window_state,

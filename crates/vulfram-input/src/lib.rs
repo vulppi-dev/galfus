@@ -19,7 +19,9 @@ pub use builders::{
     pointer_pinch_gesture_event, pointer_rotation_gesture_event, pointer_scroll_event,
     pointer_touch_event,
 };
-pub use cache::{InputCacheManager, InputState};
+pub use cache::InputCacheManager;
+#[cfg(not(target_arch = "wasm32"))]
+pub use cache::InputState;
 #[cfg(not(target_arch = "wasm32"))]
 pub use cache::{KeyboardStateCache, PointerStateCache};
 pub use gamepad::{

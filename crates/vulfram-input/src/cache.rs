@@ -3,6 +3,7 @@ use glam::Vec2;
 #[cfg(not(target_arch = "wasm32"))]
 use std::collections::HashMap;
 
+#[cfg(not(target_arch = "wasm32"))]
 use crate::ModifiersState;
 
 #[cfg(not(target_arch = "wasm32"))]

@@ -2,6 +2,7 @@
 members = [
     "crates/vulfram-audio",
     "crates/vulfram-bindings-ffi",
+    "crates/vulfram-bindings-wasm",
     "crates/vulfram-input",
     "crates/vulfram-platform",
     "crates/vulfram-protocol",

@@ -21,10 +21,8 @@ use web_sys::{
 };
 
 use crate::core::cmd::EngineEvent;
+use crate::core::input::events::ScrollDelta;
 use crate::core::input::events::{ElementState, ModifiersState, TouchPhase};
-use crate::core::input::events::{
-    KeyboardEvent as CoreKeyboardEvent, PointerEvent as CorePointerEvent, ScrollDelta,
-};
 use crate::core::singleton::with_engine;
 use crate::core::state::EngineState;
 use crate::core::window::{
@@ -358,7 +356,7 @@ pub fn attach_canvas_listeners(
             Ok(ev) => ev,
             Err(_) => return,
         };
-        let pointer_type = map_pointer_type(&event.pointer_type());
+        let pointer_type = map_browser_pointer_type(&event.pointer_type());
         let pointer_id = event.pointer_id() as u64;
         let absolute_position =
             canvas_relative_pos(&canvas_for_pointer, event.client_x(), event.client_y());
@@ -401,7 +399,7 @@ pub fn attach_canvas_listeners(
             Err(_) => return,
         };
         let position = canvas_relative_pos(&canvas_for_pointer, event.client_x(), event.client_y());
-        let pointer_type = map_pointer_type(&event.pointer_type());
+        let pointer_type = map_browser_pointer_type(&event.pointer_type());
         let pointer_id = event.pointer_id() as u64;
         let button = event.button() as u32;
 
@@ -428,7 +426,7 @@ pub fn attach_canvas_listeners(
             Err(_) => return,
         };
         let position = canvas_relative_pos(&canvas_for_pointer, event.client_x(), event.client_y());
-        let pointer_type = map_pointer_type(&event.pointer_type());
+        let pointer_type = map_browser_pointer_type(&event.pointer_type());
         let pointer_id = event.pointer_id() as u64;
         let button = event.button() as u32;
 
@@ -453,7 +451,7 @@ pub fn attach_canvas_listeners(
             Ok(ev) => ev,
             Err(_) => return,
         };
-        let pointer_type = map_pointer_type(&event.pointer_type());
+        let pointer_type = map_browser_pointer_type(&event.pointer_type());
         let pointer_id = event.pointer_id() as u64;
         with_live_window(window_id, |engine| {
             engine
@@ -478,7 +476,7 @@ pub fn attach_canvas_listeners(
             Ok(ev) => ev,
             Err(_) => return,
         };
-        let pointer_type = map_pointer_type(&event.pointer_type());
+        let pointer_type = map_browser_pointer_type(&event.pointer_type());
         let pointer_id = event.pointer_id() as u64;
         with_live_window(window_id, |engine| {
             engine
