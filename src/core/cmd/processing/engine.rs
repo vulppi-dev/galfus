@@ -11,7 +11,7 @@ pub(crate) fn engine_process_batch(
 ) -> VulframResult {
     for pack in batch {
         let deferred_cmd = pack.cmd.clone();
-        let response_count_before = engine.runtime.response_queue.len();
+        let response_count_before = engine.runtime.response_count();
         let command_id = pack.id;
         let command_type = super::defer::command_type_for_cmd(&deferred_cmd);
         let deferred_key = super::defer::deferred_command_key(command_id, &deferred_cmd);
@@ -19,10 +19,10 @@ pub(crate) fn engine_process_batch(
 
         super::dispatch::dispatch_command(engine, platform, pack);
 
-        if engine.runtime.response_queue.len() <= response_count_before {
+        if engine.runtime.response_count() <= response_count_before {
             continue;
         }
-        let Some(last_response) = engine.runtime.response_queue.last().cloned() else {
+        let Some(last_response) = engine.runtime.last_response_cloned() else {
             continue;
         };
 
@@ -58,7 +58,7 @@ pub(crate) fn engine_process_batch(
                 };
 
                 if super::defer::should_drop_deferred(attempts, age_frames) {
-                    let _ = engine.runtime.response_queue.pop();
+                    let _ = engine.runtime.pop_response();
                     let dropped_reason = format!(
                         "deferred command dropped after {} attempts ({} frames): {}",
                         attempts, age_frames, reason
@@ -80,8 +80,7 @@ pub(crate) fn engine_process_batch(
                     engine.runtime.deferred_cmd_meta.remove(&deferred_key);
                     if let Some(response) = engine
                         .runtime
-                        .response_queue
-                        .last()
+                        .last_response()
                         .map(|entry| entry.response.clone())
                     {
                         super::error_events::maybe_emit_response_error_event(
@@ -89,7 +88,7 @@ pub(crate) fn engine_process_batch(
                         );
                     }
                 } else {
-                    let _ = engine.runtime.response_queue.pop();
+                    let _ = engine.runtime.pop_response();
                     engine.runtime.push_deferred_command(EngineCmdEnvelope {
                         id: command_id,
                         cmd: deferred_cmd,

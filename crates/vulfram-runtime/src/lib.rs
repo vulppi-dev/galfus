@@ -116,6 +116,21 @@ impl<TCmd, TEvent, TResponse> RuntimeState<TCmd, TEvent, TResponse> {
         &self.response_queue
     }
 
+    pub fn last_response(&self) -> Option<&TResponse> {
+        self.response_queue.last()
+    }
+
+    pub fn last_response_cloned(&self) -> Option<TResponse>
+    where
+        TResponse: Clone,
+    {
+        self.response_queue.last().cloned()
+    }
+
+    pub fn pop_response(&mut self) -> Option<TResponse> {
+        self.response_queue.pop()
+    }
+
     pub fn take_events(&mut self) -> Vec<TEvent> {
         std::mem::take(&mut self.event_queue)
     }
