@@ -18,8 +18,33 @@ struct ResolvedLayerLayout {
     clip: Option<glam::Vec4>,
 }
 
+#[derive(Debug, Clone)]
+struct PlannedLayerSync {
+    key: (u32, TargetId),
+    layer: TargetLayerState,
+    target: TargetState,
+    realm_kind: RealmKind,
+    current_surface_id: Option<crate::core::realm::SurfaceId>,
+    resolved_layout: ResolvedLayerLayout,
+    is_primary: bool,
+}
+
+#[derive(Debug, Default)]
+struct AutoGraphSyncPlan {
+    removed_keys: Vec<(u32, TargetId)>,
+    layer_syncs: Vec<PlannedLayerSync>,
+    auto_link_failures: Vec<crate::core::realm::TargetAutoLinkFailure>,
+}
+
 pub fn sync_auto_graph(engine_state: &mut EngineState) {
     refresh_target_indexes(&mut engine_state.universal_state);
+
+    let plan = plan_auto_graph_sync(engine_state);
+    apply_auto_graph_sync(engine_state, plan);
+}
+
+fn plan_auto_graph_sync(engine_state: &EngineState) -> AutoGraphSyncPlan {
+    let mut plan = AutoGraphSyncPlan::default();
 
     let mut desired_layers: Vec<TargetLayerState> = engine_state
         .universal_state
@@ -44,17 +69,16 @@ pub fn sync_auto_graph(engine_state: &mut EngineState) {
         .collect();
     for key in existing_keys {
         if !desired_keys.contains(&key) {
-            remove_auto_link(&mut engine_state.universal_state, key);
+            plan.removed_keys.push(key);
         }
     }
 
     let mut primary_targets: HashMap<u32, TargetId> = HashMap::new();
-    let mut auto_link_failures = Vec::new();
 
     for layer in desired_layers {
         let key = (layer.realm_id, layer.target_id);
         let realm_id = RealmId(layer.realm_id);
-        let (realm_kind, mut surface_id) = match engine_state
+        let (realm_kind, surface_id) = match engine_state
             .universal_state
             .composition
             .realms
@@ -63,12 +87,13 @@ pub fn sync_auto_graph(engine_state: &mut EngineState) {
         {
             Some(entry) => (entry.value.kind, entry.value.output_surface),
             None => {
-                auto_link_failures.push(crate::core::realm::TargetAutoLinkFailure {
-                    realm_id: layer.realm_id,
-                    target_id: layer.target_id.0,
-                    reason: "realm-not-found".into(),
-                });
-                remove_auto_link(&mut engine_state.universal_state, key);
+                plan.auto_link_failures
+                    .push(crate::core::realm::TargetAutoLinkFailure {
+                        realm_id: layer.realm_id,
+                        target_id: layer.target_id.0,
+                        reason: "realm-not-found".into(),
+                    });
+                plan.removed_keys.push(key);
                 continue;
             }
         };
@@ -81,12 +106,13 @@ pub fn sync_auto_graph(engine_state: &mut EngineState) {
         {
             Some(target) => target.clone(),
             None => {
-                auto_link_failures.push(crate::core::realm::TargetAutoLinkFailure {
-                    realm_id: layer.realm_id,
-                    target_id: layer.target_id.0,
-                    reason: "target-not-found".into(),
-                });
-                remove_auto_link(&mut engine_state.universal_state, key);
+                plan.auto_link_failures
+                    .push(crate::core::realm::TargetAutoLinkFailure {
+                        realm_id: layer.realm_id,
+                        target_id: layer.target_id.0,
+                        reason: "target-not-found".into(),
+                    });
+                plan.removed_keys.push(key);
                 continue;
             }
         };
@@ -97,210 +123,36 @@ pub fn sync_auto_graph(engine_state: &mut EngineState) {
             .or_insert(layer.target_id);
         let is_primary = *primary_target == layer.target_id;
 
-        if surface_id.is_none() {
-            let desired_surface = surface_state_for_target(engine_state, &target, Some(&layer));
-            surface_id = Some(
-                engine_state
-                    .universal_state
-                    .composition
-                    .surfaces
-                    .alloc(desired_surface),
-            );
-            if let Some(entry) = engine_state
-                .universal_state
-                .composition
-                .realms
-                .entries
-                .get_mut(&realm_id)
-            {
-                entry.value.output_surface = surface_id;
-            }
-        } else if is_primary {
-            let desired_surface = surface_state_for_target(engine_state, &target, Some(&layer));
-            if let Some(surface_id) = surface_id {
-                if let Some(entry) = engine_state
-                    .universal_state
-                    .composition
-                    .surfaces
-                    .entries
-                    .get_mut(&surface_id)
-                {
-                    if !surface_state_matches(&entry.value, &desired_surface) {
-                        entry.value = desired_surface;
-                    }
-                }
-            }
-        }
-
-        let Some(surface_id) = surface_id else {
-            continue;
-        };
-
-        if let Some(link) = engine_state
-            .universal_state
-            .targets
-            .auto_links
-            .get(&key)
-            .cloned()
-        {
-            let host_realm = target
-                .window_id
-                .and_then(|window_id| {
-                    engine_state
-                        .universal_state
-                        .targets
-                        .host_realm_index
-                        .get(&window_id)
-                })
-                .copied();
-            let is_host_layer = host_realm == Some(RealmId(layer.realm_id));
-            let expects_present = matches!(target.kind, TargetKind::Window) && is_host_layer;
-            let expects_connector = matches!(
-                target.kind,
-                TargetKind::WidgetRealmViewport | TargetKind::RealmPlane
-            ) || (matches!(target.kind, TargetKind::Window)
-                && !is_host_layer);
-            let needs_rebuild = link.surface_id != surface_id
-                || (expects_present && link.present_id.is_none())
-                || (expects_connector && link.connector_id.is_none());
-
-            if needs_rebuild {
-                remove_auto_link(&mut engine_state.universal_state, key);
-            } else {
-                if let Some(connector_id) = link.connector_id {
-                    update_auto_link_layout(
-                        &mut engine_state.universal_state,
-                        Some(connector_id),
-                        target.kind,
-                        realm_kind,
-                        resolved_layout,
-                    );
-                }
-                continue;
-            }
-        }
-
-        let mut connector_id = None;
-        let mut present_id = None;
-
-        match target.kind {
-            TargetKind::Window => {
-                if let Some(window_id) = target.window_id {
-                    let host_realm = engine_state
-                        .universal_state
-                        .targets
-                        .host_realm_index
-                        .get(&window_id)
-                        .copied();
-                    if host_realm == Some(realm_id) {
-                        present_id = Some(engine_state.universal_state.composition.presents.alloc(
-                            PresentState {
-                                window_id,
-                                surface: surface_id,
-                            },
-                        ));
-                    } else if let Some(host_realm) = host_realm {
-                        connector_id =
-                            Some(engine_state.universal_state.composition.connectors.alloc(
-                                ConnectorState {
-                                    target_realm: host_realm,
-                                    source_surface: surface_id,
-                                    rect: resolved_layout.rect,
-                                    z_index: resolved_layout.z_index,
-                                    blend_mode: resolved_layout.blend_mode,
-                                    clip: resolved_layout.clip,
-                                    input_flags: infer_layer_input_flags(target.kind, realm_kind),
-                                },
-                            ));
-                    } else {
-                        auto_link_failures.push(crate::core::realm::TargetAutoLinkFailure {
-                            realm_id: layer.realm_id,
-                            target_id: layer.target_id.0,
-                            reason: "host-realm-not-found".into(),
-                        });
-                    }
-                }
-            }
-            TargetKind::WidgetRealmViewport => {
-                if let Some(window_id) = target.window_id {
-                    if let Some(host_realm) = engine_state
-                        .universal_state
-                        .targets
-                        .host_realm_index
-                        .get(&window_id)
-                        .copied()
-                    {
-                        let input_flags = infer_layer_input_flags(target.kind, realm_kind);
-                        connector_id =
-                            Some(engine_state.universal_state.composition.connectors.alloc(
-                                ConnectorState {
-                                    target_realm: host_realm,
-                                    source_surface: surface_id,
-                                    rect: resolved_layout.rect,
-                                    z_index: resolved_layout.z_index,
-                                    blend_mode: resolved_layout.blend_mode,
-                                    clip: resolved_layout.clip,
-                                    input_flags,
-                                },
-                            ));
-                    } else {
-                        auto_link_failures.push(crate::core::realm::TargetAutoLinkFailure {
-                            realm_id: layer.realm_id,
-                            target_id: layer.target_id.0,
-                            reason: "host-realm-not-found".into(),
-                        });
-                    }
-                }
-            }
-            TargetKind::RealmPlane => {
-                if let Some(window_id) = target.window_id {
-                    if let Some(host_realm) = engine_state
-                        .universal_state
-                        .targets
-                        .host_realm_index
-                        .get(&window_id)
-                        .copied()
-                    {
-                        connector_id =
-                            Some(engine_state.universal_state.composition.connectors.alloc(
-                                ConnectorState {
-                                    target_realm: host_realm,
-                                    source_surface: surface_id,
-                                    rect: resolved_layout.rect,
-                                    z_index: resolved_layout.z_index,
-                                    blend_mode: resolved_layout.blend_mode,
-                                    clip: resolved_layout.clip,
-                                    input_flags: infer_layer_input_flags(target.kind, realm_kind),
-                                },
-                            ));
-                    } else {
-                        auto_link_failures.push(crate::core::realm::TargetAutoLinkFailure {
-                            realm_id: layer.realm_id,
-                            target_id: layer.target_id.0,
-                            reason: "host-realm-not-found".into(),
-                        });
-                    }
-                }
-            }
-            TargetKind::Texture => {}
-        }
-
-        engine_state.universal_state.targets.auto_links.insert(
+        plan.layer_syncs.push(PlannedLayerSync {
             key,
-            AutoLink {
-                surface_id,
-                connector_id,
-                present_id,
-            },
-        );
+            layer,
+            target,
+            realm_kind,
+            current_surface_id: surface_id,
+            resolved_layout,
+            is_primary,
+        });
     }
-    if auto_link_failures
+
+    plan
+}
+
+fn apply_auto_graph_sync(engine_state: &mut EngineState, plan: AutoGraphSyncPlan) {
+    for key in plan.removed_keys {
+        remove_auto_link(&mut engine_state.universal_state, key);
+    }
+
+    for planned in plan.layer_syncs {
+        apply_planned_layer_sync(engine_state, planned);
+    }
+
+    if plan.auto_link_failures
         != engine_state
             .universal_state
             .targets
             .target_autolink_failures
     {
-        for failure in &auto_link_failures {
+        for failure in &plan.auto_link_failures {
             push_error_event(
                 engine_state,
                 "target-auto-link",
@@ -316,7 +168,172 @@ pub fn sync_auto_graph(engine_state: &mut EngineState) {
     engine_state
         .universal_state
         .targets
-        .target_autolink_failures = auto_link_failures;
+        .target_autolink_failures = plan.auto_link_failures;
+}
+
+fn apply_planned_layer_sync(engine_state: &mut EngineState, planned: PlannedLayerSync) {
+    let key = planned.key;
+    let realm_id = RealmId(planned.layer.realm_id);
+    let desired_surface =
+        surface_state_for_target(engine_state, &planned.target, Some(&planned.layer));
+    let mut surface_id = planned.current_surface_id;
+
+    if surface_id.is_none() {
+        surface_id = Some(
+            engine_state
+                .universal_state
+                .composition
+                .surfaces
+                .alloc(desired_surface),
+        );
+        if let Some(entry) = engine_state
+            .universal_state
+            .composition
+            .realms
+            .entries
+            .get_mut(&realm_id)
+        {
+            entry.value.output_surface = surface_id;
+        }
+    } else if planned.is_primary {
+        if let Some(surface_id) = surface_id {
+            if let Some(entry) = engine_state
+                .universal_state
+                .composition
+                .surfaces
+                .entries
+                .get_mut(&surface_id)
+            {
+                if !surface_state_matches(&entry.value, &desired_surface) {
+                    entry.value = desired_surface;
+                }
+            }
+        }
+    }
+
+    let Some(surface_id) = surface_id else {
+        return;
+    };
+
+    if let Some(link) = engine_state
+        .universal_state
+        .targets
+        .auto_links
+        .get(&key)
+        .cloned()
+    {
+        let host_realm = planned
+            .target
+            .window_id
+            .and_then(|window_id| {
+                engine_state
+                    .universal_state
+                    .targets
+                    .host_realm_index
+                    .get(&window_id)
+            })
+            .copied();
+        let is_host_layer = host_realm == Some(RealmId(planned.layer.realm_id));
+        let expects_present = matches!(planned.target.kind, TargetKind::Window) && is_host_layer;
+        let expects_connector = matches!(
+            planned.target.kind,
+            TargetKind::WidgetRealmViewport | TargetKind::RealmPlane
+        ) || (matches!(planned.target.kind, TargetKind::Window)
+            && !is_host_layer);
+        let needs_rebuild = link.surface_id != surface_id
+            || (expects_present && link.present_id.is_none())
+            || (expects_connector && link.connector_id.is_none());
+
+        if needs_rebuild {
+            remove_auto_link(&mut engine_state.universal_state, key);
+        } else {
+            if let Some(connector_id) = link.connector_id {
+                update_auto_link_layout(
+                    &mut engine_state.universal_state,
+                    Some(connector_id),
+                    planned.target.kind,
+                    planned.realm_kind,
+                    planned.resolved_layout,
+                );
+            }
+            return;
+        }
+    }
+
+    let mut connector_id = None;
+    let mut present_id = None;
+
+    match planned.target.kind {
+        TargetKind::Window => {
+            if let Some(window_id) = planned.target.window_id {
+                let host_realm = engine_state
+                    .universal_state
+                    .targets
+                    .host_realm_index
+                    .get(&window_id)
+                    .copied();
+                if host_realm == Some(realm_id) {
+                    present_id = Some(engine_state.universal_state.composition.presents.alloc(
+                        PresentState {
+                            window_id,
+                            surface: surface_id,
+                        },
+                    ));
+                } else if let Some(host_realm) = host_realm {
+                    connector_id = Some(engine_state.universal_state.composition.connectors.alloc(
+                        ConnectorState {
+                            target_realm: host_realm,
+                            source_surface: surface_id,
+                            rect: planned.resolved_layout.rect,
+                            z_index: planned.resolved_layout.z_index,
+                            blend_mode: planned.resolved_layout.blend_mode,
+                            clip: planned.resolved_layout.clip,
+                            input_flags: infer_layer_input_flags(
+                                planned.target.kind,
+                                planned.realm_kind,
+                            ),
+                        },
+                    ));
+                }
+            }
+        }
+        TargetKind::WidgetRealmViewport | TargetKind::RealmPlane => {
+            if let Some(window_id) = planned.target.window_id {
+                if let Some(host_realm) = engine_state
+                    .universal_state
+                    .targets
+                    .host_realm_index
+                    .get(&window_id)
+                    .copied()
+                {
+                    connector_id = Some(engine_state.universal_state.composition.connectors.alloc(
+                        ConnectorState {
+                            target_realm: host_realm,
+                            source_surface: surface_id,
+                            rect: planned.resolved_layout.rect,
+                            z_index: planned.resolved_layout.z_index,
+                            blend_mode: planned.resolved_layout.blend_mode,
+                            clip: planned.resolved_layout.clip,
+                            input_flags: infer_layer_input_flags(
+                                planned.target.kind,
+                                planned.realm_kind,
+                            ),
+                        },
+                    ));
+                }
+            }
+        }
+        TargetKind::Texture => {}
+    }
+
+    engine_state.universal_state.targets.auto_links.insert(
+        key,
+        AutoLink {
+            surface_id,
+            connector_id,
+            present_id,
+        },
+    );
 }
 
 pub fn refresh_target_indexes(universal: &mut UniversalState) {
