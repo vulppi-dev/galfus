@@ -1,0 +1,13 @@
+[package]
+name = "vulfram-bindings-napi"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+napi = "3.8"
+napi-derive = "3.5"
+vulfram-core = { path = "../..", default-features = false, features = ["napi"] }

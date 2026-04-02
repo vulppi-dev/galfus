@@ -3949,6 +3949,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "vulfram-bindings-napi"
+version = "0.21.2-alpha"
+dependencies = [
+ "napi",
+ "napi-derive",
+ "vulfram-core",
+]
+
+[[package]]
 name = "vulfram-bindings-wasm"
 version = "0.21.2-alpha"
 dependencies = [
