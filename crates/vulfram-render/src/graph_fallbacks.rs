@@ -1,4 +1,9 @@
 use std::collections::HashMap;
+use vulfram_realm_core::{
+    RENDER_PASS_BLOOM, RENDER_PASS_COMPOSE, RENDER_PASS_FORWARD, RENDER_PASS_LIGHT_CULL,
+    RENDER_PASS_OUTLINE, RENDER_PASS_POST, RENDER_PASS_SHADOW, RENDER_PASS_SKYBOX,
+    RENDER_PASS_SSAO, RENDER_PASS_SSAO_BLUR, RENDER_PASS_UI,
+};
 
 use crate::{
     LogicalId, RenderGraphDesc, RenderGraphEdge, RenderGraphEdgeReason, RenderGraphLifetime,
@@ -10,7 +15,7 @@ pub fn ui_fallback_graph() -> RenderGraphDesc {
         graph_id: LogicalId::Str("ui_fallback".into()),
         nodes: vec![RenderGraphNode {
             node_id: LogicalId::Str("ui_pass".into()),
-            pass_id: "ui".into(),
+            pass_id: RENDER_PASS_UI.into(),
             inputs: Vec::new(),
             outputs: vec![LogicalId::Str("swapchain".into())],
             params: HashMap::new(),
@@ -32,28 +37,28 @@ pub fn fallback_graph() -> RenderGraphDesc {
         nodes: vec![
             RenderGraphNode {
                 node_id: LogicalId::Str("shadow_pass".into()),
-                pass_id: "shadow".into(),
+                pass_id: RENDER_PASS_SHADOW.into(),
                 inputs: Vec::new(),
                 outputs: vec![LogicalId::Str("shadow_atlas".into())],
                 params: HashMap::new(),
             },
             RenderGraphNode {
                 node_id: LogicalId::Str("light_cull_pass".into()),
-                pass_id: "light-cull".into(),
+                pass_id: RENDER_PASS_LIGHT_CULL.into(),
                 inputs: Vec::new(),
                 outputs: Vec::new(),
                 params: HashMap::new(),
             },
             RenderGraphNode {
                 node_id: LogicalId::Str("skybox_pass".into()),
-                pass_id: "skybox".into(),
+                pass_id: RENDER_PASS_SKYBOX.into(),
                 inputs: Vec::new(),
                 outputs: vec![LogicalId::Str("hdr_color".into())],
                 params: HashMap::new(),
             },
             RenderGraphNode {
                 node_id: LogicalId::Str("forward_pass".into()),
-                pass_id: "forward".into(),
+                pass_id: RENDER_PASS_FORWARD.into(),
                 inputs: vec![
                     LogicalId::Str("shadow_atlas".into()),
                     LogicalId::Str("hdr_color".into()),
@@ -66,21 +71,21 @@ pub fn fallback_graph() -> RenderGraphDesc {
             },
             RenderGraphNode {
                 node_id: LogicalId::Str("outline_pass".into()),
-                pass_id: "outline".into(),
+                pass_id: RENDER_PASS_OUTLINE.into(),
                 inputs: vec![LogicalId::Str("depth".into())],
                 outputs: vec![LogicalId::Str("outline_color".into())],
                 params: HashMap::new(),
             },
             RenderGraphNode {
                 node_id: LogicalId::Str("ssao_pass".into()),
-                pass_id: "ssao".into(),
+                pass_id: RENDER_PASS_SSAO.into(),
                 inputs: vec![LogicalId::Str("depth".into())],
                 outputs: vec![LogicalId::Str("ssao_raw".into())],
                 params: HashMap::new(),
             },
             RenderGraphNode {
                 node_id: LogicalId::Str("ssao_blur_pass".into()),
-                pass_id: "ssao-blur".into(),
+                pass_id: RENDER_PASS_SSAO_BLUR.into(),
                 inputs: vec![
                     LogicalId::Str("ssao_raw".into()),
                     LogicalId::Str("depth".into()),
@@ -90,14 +95,14 @@ pub fn fallback_graph() -> RenderGraphDesc {
             },
             RenderGraphNode {
                 node_id: LogicalId::Str("bloom_pass".into()),
-                pass_id: "bloom".into(),
+                pass_id: RENDER_PASS_BLOOM.into(),
                 inputs: vec![LogicalId::Str("hdr_color".into())],
                 outputs: vec![LogicalId::Str("bloom_color".into())],
                 params: HashMap::new(),
             },
             RenderGraphNode {
                 node_id: LogicalId::Str("post_pass".into()),
-                pass_id: "post".into(),
+                pass_id: RENDER_PASS_POST.into(),
                 inputs: vec![
                     LogicalId::Str("hdr_color".into()),
                     LogicalId::Str("outline_color".into()),
@@ -109,14 +114,14 @@ pub fn fallback_graph() -> RenderGraphDesc {
             },
             RenderGraphNode {
                 node_id: LogicalId::Str("compose_pass".into()),
-                pass_id: "compose".into(),
+                pass_id: RENDER_PASS_COMPOSE.into(),
                 inputs: vec![LogicalId::Str("post_color".into())],
                 outputs: vec![LogicalId::Str("swapchain".into())],
                 params: HashMap::new(),
             },
             RenderGraphNode {
                 node_id: LogicalId::Str("ui_pass".into()),
-                pass_id: "ui".into(),
+                pass_id: RENDER_PASS_UI.into(),
                 inputs: vec![LogicalId::Str("swapchain".into())],
                 outputs: vec![LogicalId::Str("swapchain".into())],
                 params: HashMap::new(),

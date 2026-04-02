@@ -3,6 +3,11 @@ use crate::core::render::graph::RenderGraphPlan;
 use crate::core::render::passes;
 use crate::core::render::passes::UiPlatformAction;
 use crate::core::ui::events::UiEvent;
+use vulfram_realm_core::{
+    RENDER_PASS_BLOOM, RENDER_PASS_COMPOSE, RENDER_PASS_FORWARD, RENDER_PASS_LIGHT_CULL,
+    RENDER_PASS_OUTLINE, RENDER_PASS_POST, RENDER_PASS_SHADOW, RENDER_PASS_SKYBOX,
+    RENDER_PASS_SSAO, RENDER_PASS_SSAO_BLUR, RENDER_PASS_UI,
+};
 
 use super::RenderState;
 use super::frame_helpers::write_gpu_timestamp;
@@ -53,7 +58,7 @@ pub(super) fn execute_graph_to_view(
     for &node_idx in &plan.order {
         let node = &plan.nodes[node_idx];
         match node.pass_id.as_str() {
-            "shadow" => {
+            RENDER_PASS_SHADOW => {
                 #[cfg(not(feature = "wasm"))]
                 let shadow_start = std::time::Instant::now();
                 #[cfg(feature = "wasm")]
@@ -73,11 +78,11 @@ pub(super) fn execute_graph_to_view(
                         shadow_cpu_ns_accum.saturating_add(now_ns().saturating_sub(shadow_start));
                 }
             }
-            "skybox" => {
+            RENDER_PASS_SKYBOX => {
                 skybox_done =
                     passes::pass_skybox(render_state, device, queue, encoder, frame_index);
             }
-            "light-cull" => {
+            RENDER_PASS_LIGHT_CULL => {
                 if let Some(base) = gpu_base {
                     write_gpu_timestamp(encoder, gpu_profiler, base, &mut gpu_written);
                 }
@@ -86,7 +91,7 @@ pub(super) fn execute_graph_to_view(
                     write_gpu_timestamp(encoder, gpu_profiler, base + 1, &mut gpu_written);
                 }
             }
-            "forward" => {
+            RENDER_PASS_FORWARD => {
                 if let Some(base) = gpu_base {
                     write_gpu_timestamp(encoder, gpu_profiler, base + 2, &mut gpu_written);
                 }
@@ -102,22 +107,22 @@ pub(super) fn execute_graph_to_view(
                     write_gpu_timestamp(encoder, gpu_profiler, base + 3, &mut gpu_written);
                 }
             }
-            "outline" => {
+            RENDER_PASS_OUTLINE => {
                 passes::pass_outline(render_state, device, queue, encoder, frame_index);
             }
-            "ssao" => {
+            RENDER_PASS_SSAO => {
                 passes::pass_ssao(render_state, device, queue, encoder, frame_index);
             }
-            "ssao-blur" => {
+            RENDER_PASS_SSAO_BLUR => {
                 passes::pass_ssao_blur(render_state, device, queue, encoder, frame_index);
             }
-            "bloom" => {
+            RENDER_PASS_BLOOM => {
                 passes::pass_bloom(render_state, device, queue, encoder, frame_index);
             }
-            "post" => {
+            RENDER_PASS_POST => {
                 passes::pass_post(render_state, device, queue, encoder, frame_index);
             }
-            "compose" => {
+            RENDER_PASS_COMPOSE => {
                 if let Some(base) = gpu_base {
                     write_gpu_timestamp(encoder, gpu_profiler, base + 4, &mut gpu_written);
                 }
@@ -136,7 +141,7 @@ pub(super) fn execute_graph_to_view(
                     write_gpu_timestamp(encoder, gpu_profiler, base + 5, &mut gpu_written);
                 }
             }
-            "ui" => {
+            RENDER_PASS_UI => {
                 let mut actions = passes::pass_ui(
                     render_state,
                     ui_state,

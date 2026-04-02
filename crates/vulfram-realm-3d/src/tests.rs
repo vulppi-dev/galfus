@@ -7,14 +7,22 @@ use crate::{
     plan_light_record_update, plan_material_record_update, plan_model_record_update,
     plan_target_texture_bind_sync, plan_texture_record_sync, supports_render_pass,
 };
+use vulfram_realm_core::{
+    RENDER_PASS_COMPOSE, RENDER_PASS_FORWARD, RENDER_PASS_SHADOW, RENDER_PASS_UI,
+};
 
 #[test]
 fn threed_realm_accepts_full_pipeline_passes() {
-    assert!(supports_render_pass("shadow"));
-    assert!(supports_render_pass("ui"));
+    assert!(supports_render_pass(RENDER_PASS_SHADOW));
+    assert!(supports_render_pass(RENDER_PASS_UI));
     assert!(!supports_render_pass("unknown"));
-    assert!(graph_is_compatible(["shadow", "forward", "compose", "ui"]));
-    assert!(!graph_is_compatible(["shadow", "unknown"]));
+    assert!(graph_is_compatible([
+        RENDER_PASS_SHADOW,
+        RENDER_PASS_FORWARD,
+        RENDER_PASS_COMPOSE,
+        RENDER_PASS_UI,
+    ]));
+    assert!(!graph_is_compatible([RENDER_PASS_SHADOW, "unknown"]));
 }
 
 #[test]

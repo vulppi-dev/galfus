@@ -580,6 +580,7 @@ Status atual:
 - crate criado e já concentra contratos de render graph, fallback graphs e validação semântica
 - helpers de IDs reservados/default e hashing de graph já vivem no crate novo
 - políticas de realm para compatibilidade de passes e `clear_alpha` já vivem no crate novo
+- o wrapper genérico de states por janela do renderer já vive no crate novo
 - políticas concretas de bootstrap gráfico já vivem no crate novo:
   análise de adapter, `DeviceDescriptor`, `InstanceDescriptor`, `SurfaceConfiguration` e máscara de MSAA
 - planners puros de `realm_graph` já foram extraídos:
@@ -591,7 +592,7 @@ Status atual:
   `wgpu`, passes, execução de frame, lifecycle GPU e aplicação de recursos vivos
 - leitura prática:
   a fase semântica e de políticas do `vulfram-render` está essencialmente concluída nesta etapa;
-  o que sobra é backend gráfico concreto, que continua pertencendo ao lado de render do core até a separação final do runtime/platform/bindings
+  o que sobra é backend gráfico concreto e state vivo do renderer, que continua pertencendo ao lado de render do core até a separação final do runtime/platform/bindings
 
 ### Fase 7 — Criação de `vulfram-audio`
 
@@ -707,6 +708,7 @@ Critério de aceite:
 
 Status atual:
 - crate criado e já concentra política de passes compatíveis do realm 3D
+- IDs de passes renderizáveis agora também vêm de `vulfram-realm-core`, evitando duplicação entre realms, render graph e execução
 - fingerprints e sync plans de texturas, atlas, target texture binds e geometria já vivem no crate
 - planners de atualização semântica para câmeras, modelos, luzes e materiais já foram extraídos
 - aplicação genérica de `SyncPlan` em mapas também já vive no crate
@@ -736,6 +738,7 @@ Critério de aceite:
 Status atual:
 - crate criado com responsabilidade concreta mínima, mas real:
   política de compatibilidade de passes para realms 2D
+- IDs de passes também foram centralizados em `vulfram-realm-core`, evitando drift com `realm-3d` e `render`
 - o crate já influencia o fluxo real de render por meio da validação de render graph e das políticas consumidas por `vulfram-render`
 - ainda é um domínio pequeno, porém já útil e integrado ao fluxo de validação e execução
 - próximos avanços em `realm-2d` só fazem sentido quando surgirem tipos/estruturas 2D semânticas de verdade

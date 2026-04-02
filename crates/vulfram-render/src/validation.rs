@@ -161,6 +161,10 @@ mod tests {
         RenderGraphNode, RenderGraphResource, RenderGraphResourceKind, RenderGraphState,
         validate_graph,
     };
+    use vulfram_realm_core::{
+        RENDER_PASS_FORWARD, RENDER_PASS_LIGHT_CULL, RENDER_PASS_POST, RENDER_PASS_SHADOW,
+        RENDER_PASS_SKYBOX,
+    };
 
     fn id(name: &str) -> LogicalId {
         LogicalId::Str(name.into())
@@ -189,7 +193,7 @@ mod tests {
             graph_id: id("g"),
             nodes: vec![RenderGraphNode {
                 node_id: id("n0"),
-                pass_id: "forward".into(),
+                pass_id: RENDER_PASS_FORWARD.into(),
                 inputs: vec![id("missing")],
                 outputs: vec![],
                 params: HashMap::new(),
@@ -209,14 +213,14 @@ mod tests {
             nodes: vec![
                 RenderGraphNode {
                     node_id: id("consume"),
-                    pass_id: "forward".into(),
+                    pass_id: RENDER_PASS_FORWARD.into(),
                     inputs: vec![id("r")],
                     outputs: vec![],
                     params: HashMap::new(),
                 },
                 RenderGraphNode {
                     node_id: id("produce"),
-                    pass_id: "shadow".into(),
+                    pass_id: RENDER_PASS_SHADOW.into(),
                     inputs: vec![],
                     outputs: vec![id("r")],
                     params: HashMap::new(),
@@ -237,14 +241,14 @@ mod tests {
             nodes: vec![
                 RenderGraphNode {
                     node_id: id("w0"),
-                    pass_id: "shadow".into(),
+                    pass_id: RENDER_PASS_SHADOW.into(),
                     inputs: vec![],
                     outputs: vec![id("r")],
                     params: HashMap::new(),
                 },
                 RenderGraphNode {
                     node_id: id("w1"),
-                    pass_id: "post".into(),
+                    pass_id: RENDER_PASS_POST.into(),
                     inputs: vec![],
                     outputs: vec![id("r")],
                     params: HashMap::new(),
@@ -269,14 +273,14 @@ mod tests {
             nodes: vec![
                 RenderGraphNode {
                     node_id: id("a"),
-                    pass_id: "light-cull".into(),
+                    pass_id: RENDER_PASS_LIGHT_CULL.into(),
                     inputs: vec![],
                     outputs: vec![],
                     params: HashMap::new(),
                 },
                 RenderGraphNode {
                     node_id: id("b"),
-                    pass_id: "skybox".into(),
+                    pass_id: RENDER_PASS_SKYBOX.into(),
                     inputs: vec![],
                     outputs: vec![],
                     params: HashMap::new(),

@@ -1,0 +1,11 @@
+pub const RENDER_PASS_SHADOW: &str = "shadow";
+pub const RENDER_PASS_LIGHT_CULL: &str = "light-cull";
+pub const RENDER_PASS_SKYBOX: &str = "skybox";
+pub const RENDER_PASS_FORWARD: &str = "forward";
+pub const RENDER_PASS_OUTLINE: &str = "outline";
+pub const RENDER_PASS_SSAO: &str = "ssao";
+pub const RENDER_PASS_SSAO_BLUR: &str = "ssao-blur";
+pub const RENDER_PASS_BLOOM: &str = "bloom";
+pub const RENDER_PASS_POST: &str = "post";
+pub const RENDER_PASS_COMPOSE: &str = "compose";
+pub const RENDER_PASS_UI: &str = "ui";

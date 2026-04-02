@@ -27,7 +27,7 @@ pub fn supports_render_pass_for_realm_kind(pass_id: &str, realm_kind: RealmKind)
 mod tests {
     use super::{clear_alpha_for_realm_kind, graph_is_compatible_with_realm_kind};
     use crate::{LogicalId, RenderGraphNode, RenderGraphPlan};
-    use vulfram_realm_core::RealmKind;
+    use vulfram_realm_core::{RENDER_PASS_FORWARD, RENDER_PASS_UI, RealmKind};
 
     #[test]
     fn realm_policy_maps_clear_alpha_by_kind() {
@@ -39,8 +39,8 @@ mod tests {
     fn realm_policy_validates_passes_by_kind() {
         let ui_plan = RenderGraphPlan {
             nodes: vec![RenderGraphNode {
-                node_id: LogicalId::Str("ui".into()),
-                pass_id: "ui".into(),
+                node_id: LogicalId::Str(RENDER_PASS_UI.into()),
+                pass_id: RENDER_PASS_UI.into(),
                 inputs: Vec::new(),
                 outputs: Vec::new(),
                 params: Default::default(),
@@ -49,8 +49,8 @@ mod tests {
         };
         let forward_plan = RenderGraphPlan {
             nodes: vec![RenderGraphNode {
-                node_id: LogicalId::Str("forward".into()),
-                pass_id: "forward".into(),
+                node_id: LogicalId::Str(RENDER_PASS_FORWARD.into()),
+                pass_id: RENDER_PASS_FORWARD.into(),
                 inputs: Vec::new(),
                 outputs: Vec::new(),
                 params: Default::default(),

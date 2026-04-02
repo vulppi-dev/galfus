@@ -7,13 +7,14 @@ use crate::core::render::graph::{
 use crate::core::state::EngineState;
 use crate::core::system::SystemEvent;
 use std::collections::HashMap;
+use vulfram_realm_core::{RENDER_PASS_FORWARD, RENDER_PASS_SHADOW, RENDER_PASS_UI};
 
 fn valid_graph(graph_name: &str, resource_name: &str) -> RenderGraphDesc {
     RenderGraphDesc {
         graph_id: LogicalId::Str(graph_name.into()),
         nodes: vec![RenderGraphNode {
             node_id: LogicalId::Str(format!("{graph_name}-shadow")),
-            pass_id: "shadow".into(),
+            pass_id: RENDER_PASS_SHADOW.into(),
             inputs: Vec::new(),
             outputs: vec![LogicalId::Str(resource_name.into())],
             params: HashMap::new(),
@@ -34,7 +35,7 @@ fn invalid_graph_missing_resource(graph_name: &str) -> RenderGraphDesc {
         graph_id: LogicalId::Str(graph_name.into()),
         nodes: vec![RenderGraphNode {
             node_id: LogicalId::Str(format!("{graph_name}-forward")),
-            pass_id: "forward".into(),
+            pass_id: RENDER_PASS_FORWARD.into(),
             inputs: vec![LogicalId::Str("missing".into())],
             outputs: Vec::new(),
             params: HashMap::new(),
@@ -50,7 +51,7 @@ fn ui_only_graph(graph_name: &str, resource_name: &str) -> RenderGraphDesc {
         graph_id: LogicalId::Str(graph_name.into()),
         nodes: vec![RenderGraphNode {
             node_id: LogicalId::Str(format!("{graph_name}-ui")),
-            pass_id: "ui".into(),
+            pass_id: RENDER_PASS_UI.into(),
             inputs: Vec::new(),
             outputs: vec![LogicalId::Str(resource_name.into())],
             params: HashMap::new(),
@@ -121,7 +122,7 @@ fn render_graph_upsert_and_list_includes_desc_hash_and_passes() {
         .expect("custom graph must be listed");
     assert_eq!(entry.desc_hash, expected_hash);
     assert_eq!(entry.pass_count, 1);
-    assert_eq!(entry.pass_ids, vec!["shadow".to_string()]);
+    assert_eq!(entry.pass_ids, vec![RENDER_PASS_SHADOW.to_string()]);
     assert_eq!(entry.bound_realm_ids, Vec::<u32>::new());
 }
 

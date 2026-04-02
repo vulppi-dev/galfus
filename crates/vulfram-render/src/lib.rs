@@ -15,6 +15,7 @@ mod shaders;
 mod target;
 mod ui_actions;
 mod validation;
+mod window_state_map;
 
 pub use bind_group_layouts::{RenderLayoutSizes, create_render_layouts};
 pub use cache::{ComputePipelineKey, PipelineKey, RenderCache, ShaderId};
@@ -57,3 +58,4 @@ pub use samplers::{SamplerSet, create_standard_samplers};
 pub use shaders::{ShaderModules, create_shader_modules};
 pub use target::{RenderTarget, ensure_render_target, ensure_surface_target};
 pub use ui_actions::{UiPlatformAction, collect_platform_actions};
+pub use window_state_map::WindowStateMap;

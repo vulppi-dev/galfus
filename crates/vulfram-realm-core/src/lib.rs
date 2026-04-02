@@ -1,7 +1,14 @@
+mod render_passes;
+
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::collections::{HashSet, VecDeque};
 
+pub use render_passes::{
+    RENDER_PASS_BLOOM, RENDER_PASS_COMPOSE, RENDER_PASS_FORWARD, RENDER_PASS_LIGHT_CULL,
+    RENDER_PASS_OUTLINE, RENDER_PASS_POST, RENDER_PASS_SHADOW, RENDER_PASS_SKYBOX,
+    RENDER_PASS_SSAO, RENDER_PASS_SSAO_BLUR, RENDER_PASS_UI,
+};
 pub use vulfram_types::{ConnectorId, PresentId, RealmId, RealmKind, SurfaceId};
 
 #[derive(Debug, Clone)]
