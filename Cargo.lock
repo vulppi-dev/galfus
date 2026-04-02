@@ -3949,6 +3949,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "vulfram-bindings-lua"
+version = "0.21.2-alpha"
+dependencies = [
+ "mlua",
+ "vulfram-core",
+]
+
+[[package]]
 name = "vulfram-bindings-napi"
 version = "0.21.2-alpha"
 dependencies = [
