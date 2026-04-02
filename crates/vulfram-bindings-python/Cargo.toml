@@ -9,4 +9,4 @@ crate-type = ["cdylib"]
 
 [dependencies]
 pyo3 = { version = "0.27", features = ["extension-module"] }
-vulfram-core = { path = "../..", default-features = false, features = ["python"] }
+vulfram-core = { package = "vulfram-runtime", path = "../vulfram-runtime", default-features = false, features = ["python"] }

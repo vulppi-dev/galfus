@@ -3945,7 +3945,7 @@ dependencies = [
 name = "vulfram-bindings-ffi"
 version = "0.21.2-alpha"
 dependencies = [
- "vulfram-core",
+ "vulfram-runtime",
 ]
 
 [[package]]
@@ -3953,7 +3953,7 @@ name = "vulfram-bindings-lua"
 version = "0.21.2-alpha"
 dependencies = [
  "mlua",
- "vulfram-core",
+ "vulfram-runtime",
 ]
 
 [[package]]
@@ -3962,7 +3962,7 @@ version = "0.21.2-alpha"
 dependencies = [
  "napi",
  "napi-derive",
- "vulfram-core",
+ "vulfram-runtime",
 ]
 
 [[package]]
@@ -3970,7 +3970,7 @@ name = "vulfram-bindings-python"
 version = "0.21.2-alpha"
 dependencies = [
  "pyo3",
- "vulfram-core",
+ "vulfram-runtime",
 ]
 
 [[package]]
@@ -3978,59 +3978,8 @@ name = "vulfram-bindings-wasm"
 version = "0.21.2-alpha"
 dependencies = [
  "console_error_panic_hook",
- "vulfram-core",
- "wasm-bindgen",
-]
-
-[[package]]
-name = "vulfram-core"
-version = "0.21.2-alpha"
-dependencies = [
- "bytemuck",
- "console_error_panic_hook",
- "ctrlc",
- "egui",
- "encase",
- "env_logger",
- "getrandom 0.3.4",
- "gilrs",
- "glam 0.30.10",
- "half",
- "image",
- "js-sys",
- "kira",
- "log",
- "mint",
- "mlua",
- "naga",
- "napi",
- "napi-derive",
- "notify-rust",
- "once_cell",
- "pollster",
- "pyo3",
- "rand",
- "rmp-serde",
- "serde",
- "serde_path_to_error",
- "smallvec",
- "vulfram-audio",
- "vulfram-input",
- "vulfram-platform",
- "vulfram-protocol",
- "vulfram-realm-2d",
- "vulfram-realm-3d",
- "vulfram-realm-core",
- "vulfram-realm-ui",
- "vulfram-render",
  "vulfram-runtime",
- "vulfram-types",
  "wasm-bindgen",
- "wasm-bindgen-futures",
- "web-sys",
- "web-time",
- "wgpu",
- "winit",
 ]
 
 [[package]]
@@ -4040,7 +3989,15 @@ dependencies = [
  "bytemuck",
  "glam 0.30.10",
  "rmp-serde",
- "vulfram-core",
+ "vulfram-runtime",
+]
+
+[[package]]
+name = "vulfram-devtools"
+version = "0.21.2-alpha"
+dependencies = [
+ "naga",
+ "vulfram-runtime",
 ]
 
 [[package]]
@@ -4137,8 +4094,45 @@ dependencies = [
 name = "vulfram-runtime"
 version = "0.21.2-alpha"
 dependencies = [
+ "bytemuck",
+ "console_error_panic_hook",
+ "ctrlc",
+ "egui",
+ "encase",
+ "env_logger",
+ "getrandom 0.3.4",
+ "gilrs",
  "glam 0.30.10",
+ "half",
+ "image",
+ "js-sys",
+ "kira",
+ "log",
+ "mint",
+ "notify-rust",
+ "once_cell",
+ "pollster",
+ "rand",
+ "rmp-serde",
+ "serde",
+ "serde_path_to_error",
+ "smallvec",
+ "vulfram-audio",
+ "vulfram-input",
  "vulfram-platform",
+ "vulfram-protocol",
+ "vulfram-realm-2d",
+ "vulfram-realm-3d",
+ "vulfram-realm-core",
+ "vulfram-realm-ui",
+ "vulfram-render",
+ "vulfram-types",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
+ "web-time",
+ "wgpu",
+ "winit",
 ]
 
 [[package]]

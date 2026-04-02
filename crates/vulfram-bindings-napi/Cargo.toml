@@ -10,4 +10,4 @@ crate-type = ["cdylib"]
 [dependencies]
 napi = "3.8"
 napi-derive = "3.5"
-vulfram-core = { path = "../..", default-features = false, features = ["napi"] }
+vulfram-core = { package = "vulfram-runtime", path = "../vulfram-runtime", default-features = false, features = ["napi"] }

@@ -1,9 +1,16 @@
 mod bootstrap;
+extern crate self as vulfram_runtime;
 
 use std::collections::HashMap;
 
 pub use bootstrap::{
     RenderBootstrapDeviceStrategy, RuntimeRenderBootstrapPlan, plan_render_bootstrap,
+};
+pub mod core;
+
+pub use core::{
+    vulfram_dispose, vulfram_get_profiling, vulfram_init, vulfram_receive_events,
+    vulfram_receive_queue, vulfram_send_queue, vulfram_tick, vulfram_upload_buffer,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

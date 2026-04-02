@@ -1,0 +1,124 @@
+use std::collections::HashMap;
+
+use crate::core::resources::{
+    CameraNode, EnvironmentConfig, ForwardAtlasEntry, GeometryPrimitiveType, LightRecord,
+    MaterialPbrRecord, MaterialStandardRecord, ModelRecord, TargetTextureBinding, TextureRecord,
+};
+use crate::core::target::{TargetGraphCache, TargetLayerTable, TargetTable};
+use crate::core::ui::UiState;
+pub use vulfram_audio::AudioState;
+pub use vulfram_realm_core::{
+    AutoLink, ConnectorState, ConnectorTable, PresentState, PresentTable, RealmState, RealmTable,
+    SurfaceCache, TableEntry,
+};
+pub use vulfram_types::{ConnectorId, PresentId, RealmId, RealmKind, SurfaceId, SurfaceKind};
+
+#[derive(Debug, Clone)]
+pub struct SurfaceState {
+    pub kind: SurfaceKind,
+    pub size: glam::UVec2,
+    pub format_policy: Option<wgpu::TextureFormat>,
+    pub alpha_policy: Option<wgpu::CompositeAlphaMode>,
+    pub msaa_samples: Option<u32>,
+}
+
+#[derive(Debug, Default)]
+pub struct SurfaceTable {
+    pub next_id: u32,
+    pub entries: HashMap<SurfaceId, TableEntry<SurfaceState>>,
+}
+
+impl SurfaceTable {
+    pub fn alloc(&mut self, state: SurfaceState) -> SurfaceId {
+        let id = SurfaceId(self.next_id);
+        self.next_id = self.next_id.saturating_add(1);
+        self.entries.insert(id, TableEntry::new(state));
+        id
+    }
+
+    pub fn get(&self, id: SurfaceId) -> Option<&TableEntry<SurfaceState>> {
+        self.entries.get(&id)
+    }
+
+    pub fn remove(&mut self, id: SurfaceId) -> Option<TableEntry<SurfaceState>> {
+        self.entries.remove(&id)
+    }
+}
+
+#[derive(Debug, Default)]
+pub struct RealmEntities {
+    pub cameras: HashMap<u32, CameraNode>,
+    pub models: HashMap<u32, ModelRecord>,
+    pub lights: HashMap<u32, LightRecord>,
+}
+
+#[derive(Debug, Clone)]
+pub struct UniversalGeometryRecord {
+    pub label: Option<String>,
+    pub entries: Vec<(GeometryPrimitiveType, Vec<u8>)>,
+}
+
+#[derive(Debug, Default)]
+pub struct Realm3dState {
+    pub entities: HashMap<RealmId, RealmEntities>,
+    pub materials_standard: HashMap<u32, MaterialStandardRecord>,
+    pub materials_pbr: HashMap<u32, MaterialPbrRecord>,
+    pub geometries: HashMap<u32, UniversalGeometryRecord>,
+    pub environment_profiles: HashMap<u32, EnvironmentConfig>,
+    pub default_environment_id: Option<u32>,
+}
+
+#[derive(Debug, Default)]
+pub struct RenderResourceState {
+    pub textures: HashMap<u32, TextureRecord>,
+    pub forward_atlas_entries: HashMap<u32, ForwardAtlasEntry>,
+    pub target_texture_binds: HashMap<u32, TargetTextureBinding>,
+}
+
+#[derive(Debug, Default)]
+pub struct RealmCompositionState {
+    pub realms: RealmTable,
+    pub surfaces: SurfaceTable,
+    pub connectors: ConnectorTable,
+    pub presents: PresentTable,
+    pub surface_cache: SurfaceCache,
+    pub frame_report: super::FrameReport,
+}
+
+#[derive(Debug, Default)]
+pub struct TargetRoutingState {
+    pub targets: TargetTable,
+    pub target_layers: TargetLayerTable,
+    pub target_graph_cache: TargetGraphCache,
+    pub auto_links: std::collections::HashMap<(u32, crate::core::target::TargetId), AutoLink>,
+    pub host_realm_index: HashMap<u32, RealmId>,
+    pub target_ui_realm_index: HashMap<crate::core::target::TargetId, RealmId>,
+    pub target_autolink_failures: Vec<super::TargetAutoLinkFailure>,
+}
+
+#[derive(Debug, Default)]
+pub struct InteractionRuntimeState {
+    pub ui: UiState,
+    pub input_routing: InputRoutingState,
+    pub target_listeners: crate::core::input::listeners::InputTargetListenerStore,
+}
+
+#[derive(Debug, Default)]
+pub struct SceneRuntimeState {
+    pub realm3d: Realm3dState,
+    pub render_resources: RenderResourceState,
+    pub render_graphs: HashMap<u32, crate::core::render::graph::RenderGraphRecord>,
+    pub render_graph_plan_cache: HashMap<u64, crate::core::render::graph::RenderGraphState>,
+}
+
+#[derive(Debug, Default)]
+pub struct UniversalState {
+    pub composition: RealmCompositionState,
+    pub targets: TargetRoutingState,
+    pub interaction: InteractionRuntimeState,
+    pub scene: SceneRuntimeState,
+}
+
+pub use vulfram_input::{
+    InputCapture, InputRoutingCache, InputRoutingConnectorHit, InputRoutingState,
+};

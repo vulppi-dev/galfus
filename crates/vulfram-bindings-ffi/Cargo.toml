@@ -8,4 +8,4 @@ license.workspace = true
 crate-type = ["cdylib"]
 
 [dependencies]
-vulfram-core = { path = "../..", default-features = false, features = ["ffi"] }
+vulfram-core = { package = "vulfram-runtime", path = "../vulfram-runtime", default-features = false, features = ["ffi"] }

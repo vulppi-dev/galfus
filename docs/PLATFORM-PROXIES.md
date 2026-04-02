@@ -34,14 +34,14 @@ At a high level, the proxy:
 - Triggers rendering or redraw requests.
 
 In code this is expressed as a Rust trait (`PlatformProxy`) in
-`crates/vulfram-core/src/core/platforms/mod.rs`, with platform-specific helpers
+`crates/vulfram-runtime/src/core/platforms/mod.rs`, with platform-specific helpers
 and policies extracted into the `vulfram-platform` crate.
 
 ---
 
 ## 3. DesktopProxy (Native)
 
-**Location:** `crates/vulfram-core/src/core/platforms/desktop/`
+**Location:** `crates/vulfram-runtime/src/core/platforms/desktop/`
 
 Responsibilities:
 
@@ -58,7 +58,7 @@ This proxy is used by default when **not** compiling with the `wasm` feature.
 
 ## 4. BrowserProxy (WASM)
 
-**Location:** `crates/vulfram-core/src/core/platforms/browser/`
+**Location:** `crates/vulfram-runtime/src/core/platforms/browser/`
 
 Responsibilities:
 
@@ -85,7 +85,7 @@ Selection is compile-time, but the external ABI stays the same.
 ## 6. Extending to New Platforms
 
 To add a new environment, implement a new proxy and wire it into
-`crates/vulfram-core/src/core/platforms/mod.rs` (or a build-time selector).
+`crates/vulfram-runtime/src/core/platforms/mod.rs` (or a build-time selector).
 The public API does not change, and the host logic remains untouched.
 
 Potential future proxies:
