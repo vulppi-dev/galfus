@@ -22,7 +22,7 @@ fn collect_wgsl_files(dir: &Path, files: &mut Vec<PathBuf>) -> io::Result<()> {
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut files = Vec::new();
-    collect_wgsl_files(Path::new("src"), &mut files)?;
+    collect_wgsl_files(Path::new("crates"), &mut files)?;
 
     let mut had_error = false;
     for path in files {

@@ -830,10 +830,16 @@ Critério de aceite:
 - sem duplicação estrutural desnecessária
 - fronteiras de crate respeitadas
 
-Status atual:
-- em andamento
-- a limpeza final já começou pela remoção de módulos-casca do `vulfram-core`
-- `core/input`, `core/audio` e `core/window` já perderam wrappers internos redundantes que apenas reexportavam crates novos
+Status:
+- concluída
+
+Status final da fase:
+- a árvore antiga em `src/` foi removida
+- o pacote `vulfram-core` passou a apontar para `crates/vulfram-core/src`
+- `wgsl_check` foi mantido funcional no novo layout do workspace
+- os paths físicos de shader foram ajustados para o layout final
+- módulos-casca internos redundantes foram removidos antes da migração final
+- o workspace inteiro voltou a compilar e testar no layout novo
 
 ---
 

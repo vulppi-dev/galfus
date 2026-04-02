@@ -18,46 +18,46 @@ pub struct ShaderModules {
 pub fn create_shader_modules(device: &wgpu::Device) -> ShaderModules {
     ShaderModules {
         forward_standard: device.create_shader_module(wgpu::include_wgsl!(
-            "../../../src/core/render/passes/forward/branches/forward_standard.wgsl"
+            "../../vulfram-core/src/core/render/passes/forward/branches/forward_standard.wgsl"
         )),
         forward_pbr: device.create_shader_module(wgpu::include_wgsl!(
-            "../../../src/core/render/passes/forward/branches/forward_pbr.wgsl"
+            "../../vulfram-core/src/core/render/passes/forward/branches/forward_pbr.wgsl"
         )),
         post: device.create_shader_module(wgpu::include_wgsl!(
-            "../../../src/core/render/passes/post/post.wgsl"
+            "../../vulfram-core/src/core/render/passes/post/post.wgsl"
         )),
         compose: device.create_shader_module(wgpu::include_wgsl!(
-            "../../../src/core/render/passes/compose/compose.wgsl"
+            "../../vulfram-core/src/core/render/passes/compose/compose.wgsl"
         )),
         outline: device.create_shader_module(wgpu::include_wgsl!(
-            "../../../src/core/render/passes/outline/outline.wgsl"
+            "../../vulfram-core/src/core/render/passes/outline/outline.wgsl"
         )),
         ssao: device.create_shader_module(wgpu::include_wgsl!(
-            "../../../src/core/render/passes/ssao/ssao.wgsl"
+            "../../vulfram-core/src/core/render/passes/ssao/ssao.wgsl"
         )),
         ssao_blur: device.create_shader_module(wgpu::include_wgsl!(
-            "../../../src/core/render/passes/ssao/ssao_blur.wgsl"
+            "../../vulfram-core/src/core/render/passes/ssao/ssao_blur.wgsl"
         )),
         ssao_msaa: device.create_shader_module(wgpu::include_wgsl!(
-            "../../../src/core/render/passes/ssao/ssao_msaa.wgsl"
+            "../../vulfram-core/src/core/render/passes/ssao/ssao_msaa.wgsl"
         )),
         ssao_blur_msaa: device.create_shader_module(wgpu::include_wgsl!(
-            "../../../src/core/render/passes/ssao/ssao_blur_msaa.wgsl"
+            "../../vulfram-core/src/core/render/passes/ssao/ssao_blur_msaa.wgsl"
         )),
         bloom: device.create_shader_module(wgpu::include_wgsl!(
-            "../../../src/core/render/passes/bloom/bloom.wgsl"
+            "../../vulfram-core/src/core/render/passes/bloom/bloom.wgsl"
         )),
         skybox: device.create_shader_module(wgpu::include_wgsl!(
-            "../../../src/core/render/passes/skybox/skybox.wgsl"
+            "../../vulfram-core/src/core/render/passes/skybox/skybox.wgsl"
         )),
         light_cull: device.create_shader_module(wgpu::include_wgsl!(
-            "../../../src/core/render/passes/light_cull/light_cull.wgsl"
+            "../../vulfram-core/src/core/render/passes/light_cull/light_cull.wgsl"
         )),
         shadow: device.create_shader_module(wgpu::include_wgsl!(
-            "../../../src/core/render/passes/shadow/shadow.wgsl"
+            "../../vulfram-core/src/core/render/passes/shadow/shadow.wgsl"
         )),
         gizmo: device.create_shader_module(wgpu::include_wgsl!(
-            "../../../src/core/render/gizmos/gizmo.wgsl"
+            "../../vulfram-core/src/core/render/gizmos/gizmo.wgsl"
         )),
     }
 }
