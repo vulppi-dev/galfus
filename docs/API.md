@@ -70,20 +70,16 @@ This is a practical integration root, not an ideal domain boundary.
 `UniversalState` is currently a realm-centric aggregate, but it is broader than
 realm composition alone. Today it contains:
 
-- realm composition tables:
-  - `realms`, `surfaces`, `connectors`, `presents`
-- target/auto-graph tables:
-  - `targets`, `target_layers`, `target_graph_cache`, `auto_links`
-- routing/runtime diagnostics:
-  - `host_realm_index`, `target_ui_realm_index`, `target_autolink_failures`
-  - `input_routing`, `target_listeners`
-  - `surface_cache`, `frame_report`
-- realm-attached content/resource registries:
-  - `realm3d`
-  - `render_resources`
-  - `render_graphs`, `render_graph_plan_cache`
-- UI state:
-  - `ui`
+- `composition`
+  - `realms`, `surfaces`, `connectors`, `presents`, `surface_cache`,
+    `frame_report`
+- `targets`
+  - `targets`, `target_layers`, `target_graph_cache`, `auto_links`,
+    `host_realm_index`, `target_ui_realm_index`, `target_autolink_failures`
+- `interaction`
+  - `ui`, `input_routing`, `target_listeners`
+- `scene`
+  - `realm3d`, `render_resources`, `render_graphs`, `render_graph_plan_cache`
 
 Because of that, `UniversalState` should not be moved wholesale into
 `vulfram-realm-core` yet. The name suggests "all runtime world state", but its
@@ -99,18 +95,18 @@ contents mix multiple domains:
 ### 2.2 Recommended Split for `UniversalState`
 
 The cleaner direction is to split by ownership instead of moving the current
-aggregate as-is:
+aggregate as-is. The runtime now follows this shape internally:
 
-1. `RealmCompositionState` in `vulfram-realm-core`
+1. `RealmCompositionState` in `vulfram-runtime/core/realm`
    - `realms`
    - `surfaces`
    - `connectors`
    - `presents`
    - `surface_cache`
    - `frame_report`
-   - target graph / realm graph report DTOs
+   - with DTOs/planners shared by `vulfram-realm-core`
 
-2. `TargetRoutingState` in `vulfram-runtime` or a future `vulfram-target`
+2. `TargetRoutingState` in `vulfram-runtime/core/target`
    - `targets`
    - `target_layers`
    - `target_graph_cache`
@@ -119,16 +115,14 @@ aggregate as-is:
    - `target_ui_realm_index`
    - `target_autolink_failures`
 
-3. `SceneResourceState` in runtime or realm-specific crates
+3. `SceneRuntimeState` in `vulfram-runtime/core/render`
    - `realm3d`
    - `render_resources`
    - `render_graphs`
    - `render_graph_plan_cache`
 
-4. `UiRuntimeState`
+4. `InteractionRuntimeState` in `vulfram-runtime/core/input`
    - `ui`
-
-5. `InputRoutingRuntimeState`
    - `input_routing`
    - `target_listeners`
 

@@ -358,7 +358,7 @@ fn sync_target_texture_binds(
 
 pub(super) fn sync_window_geometry_registry(
     render_state: &mut RenderState,
-    geometries: &std::collections::HashMap<u32, crate::core::realm::UniversalGeometryRecord>,
+    geometries: &std::collections::HashMap<u32, crate::core::render::UniversalGeometryRecord>,
 ) {
     let Some(vertex) = render_state.vertex.as_mut() else {
         return;

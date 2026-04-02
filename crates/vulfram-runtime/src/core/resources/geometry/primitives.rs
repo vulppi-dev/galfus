@@ -256,7 +256,7 @@ pub fn engine_cmd_primitive_geometry_create(
     }
     engine.universal_state.scene.realm3d.geometries.insert(
         args.geometry_id,
-        crate::core::realm::UniversalGeometryRecord {
+        crate::core::render::UniversalGeometryRecord {
             label: args.label.clone(),
             entries: geometry_data.clone(),
         },

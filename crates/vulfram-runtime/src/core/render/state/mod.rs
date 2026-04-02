@@ -11,9 +11,12 @@ pub mod skinning;
 use crate::core::realm::RealmId;
 use crate::core::render::cache::RenderCache;
 use crate::core::render::gizmos::GizmoSystem;
-use crate::core::resources::EnvironmentConfig;
 use crate::core::resources::VertexAllocatorSystem;
 use crate::core::resources::shadow::ShadowManager;
+use crate::core::resources::{
+    CameraNode, EnvironmentConfig, ForwardAtlasEntry, GeometryPrimitiveType, LightRecord,
+    MaterialPbrRecord, MaterialStandardRecord, ModelRecord, TargetTextureBinding, TextureRecord,
+};
 use crate::core::ui::UiRenderer;
 
 pub use self::binding::BindingSystem;
@@ -32,6 +35,46 @@ pub struct SampledTargetBindKey {
     pub ssao_view_ptr: usize,
     pub bloom_view_ptr: usize,
     pub uniform_buffer_ptr: usize,
+}
+
+#[derive(Debug, Default)]
+pub struct RealmEntities {
+    pub cameras: std::collections::HashMap<u32, CameraNode>,
+    pub models: std::collections::HashMap<u32, ModelRecord>,
+    pub lights: std::collections::HashMap<u32, LightRecord>,
+}
+
+#[derive(Debug, Clone)]
+pub struct UniversalGeometryRecord {
+    pub label: Option<String>,
+    pub entries: Vec<(GeometryPrimitiveType, Vec<u8>)>,
+}
+
+#[derive(Debug, Default)]
+pub struct Realm3dState {
+    pub entities: std::collections::HashMap<RealmId, RealmEntities>,
+    pub materials_standard: std::collections::HashMap<u32, MaterialStandardRecord>,
+    pub materials_pbr: std::collections::HashMap<u32, MaterialPbrRecord>,
+    pub geometries: std::collections::HashMap<u32, UniversalGeometryRecord>,
+    pub environment_profiles: std::collections::HashMap<u32, EnvironmentConfig>,
+    pub default_environment_id: Option<u32>,
+}
+
+#[derive(Debug, Default)]
+pub struct RenderResourceState {
+    pub textures: std::collections::HashMap<u32, TextureRecord>,
+    pub forward_atlas_entries: std::collections::HashMap<u32, ForwardAtlasEntry>,
+    pub target_texture_binds: std::collections::HashMap<u32, TargetTextureBinding>,
+}
+
+#[derive(Debug, Default)]
+pub struct SceneRuntimeState {
+    pub realm3d: Realm3dState,
+    pub render_resources: RenderResourceState,
+    pub render_graphs:
+        std::collections::HashMap<u32, crate::core::render::graph::RenderGraphRecord>,
+    pub render_graph_plan_cache:
+        std::collections::HashMap<u64, crate::core::render::graph::RenderGraphState>,
 }
 
 pub struct RenderState {

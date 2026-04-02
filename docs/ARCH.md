@@ -91,14 +91,26 @@ Broadly, it contains:
 `UniversalState` is currently a large aggregate that mixes:
 
 - realm composition tables
-- target/auto-graph state
-- input routing state
-- UI runtime state
+- target routing / auto-graph state
+- interaction state
 - 3D scene/resource registries
 - render graph catalogs
 - frame diagnostics
 
 That makes it useful operationally, but not a clean domain boundary.
+
+After the current refactor phase, ownership inside `vulfram-runtime` is split
+more explicitly even though `UniversalState` still aggregates the sub-states:
+
+- `core/realm/state.rs`
+  - `RealmCompositionState`
+- `core/target/state.rs`
+  - `TargetRoutingState`
+- `core/input/state.rs`
+  - `InteractionRuntimeState`
+- `core/render/state/mod.rs`
+  - `SceneRuntimeState`
+  - realm-attached render/resource registries
 
 ## 5. Recommended State Shape
 
@@ -115,10 +127,8 @@ EngineState
 WorldState
   composition
   targets
-  scene3d
-  render_resources
-  ui
-  input_routing
+  interaction
+  scene
 ```
 
 Key guideline:

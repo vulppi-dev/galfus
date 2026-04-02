@@ -3,6 +3,7 @@ pub mod keycodes;
 pub mod listeners;
 mod raycast;
 pub mod routing;
+pub mod state;
 
 #[cfg(not(target_arch = "wasm32"))]
 #[allow(unused_imports)]
@@ -13,3 +14,4 @@ pub use vulfram_input::InputCacheManager;
 pub use vulfram_input::InputState;
 
 pub use routing::route_pointer_events;
+pub use state::InteractionRuntimeState;

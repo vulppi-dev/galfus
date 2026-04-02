@@ -1,9 +1,13 @@
 use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
+use vulfram_realm_core::AutoLink;
 pub use vulfram_realm_core::{
     DimensionValue, TargetId, TargetKind, TargetLayerLayout, TargetLayerState,
 };
+
+use crate::core::realm::RealmId;
+use crate::core::target::TargetGraphCache;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "kebab-case")]
@@ -72,6 +76,17 @@ pub struct TargetLayerTable {
 }
 
 impl TargetLayerTable {}
+
+#[derive(Debug, Default)]
+pub struct TargetRoutingState {
+    pub targets: TargetTable,
+    pub target_layers: TargetLayerTable,
+    pub target_graph_cache: TargetGraphCache,
+    pub auto_links: HashMap<(u32, TargetId), AutoLink>,
+    pub host_realm_index: HashMap<u32, RealmId>,
+    pub target_ui_realm_index: HashMap<TargetId, RealmId>,
+    pub target_autolink_failures: Vec<crate::core::realm::TargetAutoLinkFailure>,
+}
 
 #[cfg(test)]
 mod tests {

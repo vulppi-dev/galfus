@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::core::realm::UniversalGeometryRecord;
+use crate::core::render::UniversalGeometryRecord;
 use crate::core::resources::vertex::GeometryPrimitiveType;
 use crate::core::state::EngineState;
 
