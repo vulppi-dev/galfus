@@ -37,10 +37,7 @@ pub fn vulfram_tick(time: u64, delta_time: u32) -> VulframResult {
                 let ready = engine
                     .state
                     .runtime
-                    .deferred_cmd_meta
-                    .get(&key)
-                    .map(|meta| meta.next_retry_frame <= engine.state.runtime.frame.frame_index)
-                    .unwrap_or(true);
+                    .deferred_is_ready(&key, engine.state.runtime.frame.frame_index);
                 if ready {
                     batch.push(envelope);
                 } else {

@@ -9,7 +9,7 @@ use crate::core::system::SystemEvent;
 use super::model::InputTargetListenerConfig;
 
 pub fn emit_target_listener_events(engine: &mut EngineState) {
-    let source_events = engine.runtime.event_queue.clone();
+    let source_events = engine.runtime.cloned_events();
     for event in source_events {
         match event {
             EngineEvent::Pointer(pointer_event) => {

@@ -649,6 +649,8 @@ Critério de aceite:
 Status atual:
 - crate criado
 - `RuntimeState` já concentra frame lifecycle, filas, deferreds e metadados de retry
+- o fluxo de deferred/retry já está mais encapsulado no crate:
+  readiness, registro de retry, cleanup de meta e leitura de eventos passam mais pela API do runtime do que pelo shape interno do storage
 - contrato inicial de bootstrap de render já existe no runtime:
   o runtime recebe um alvo vindo de `platform` e decide apenas a estratégia de device compartilhado vs reuse
 - o próximo avanço relevante continua sendo aprofundar a coordenação entre subsistemas sem puxar detalhes internos de render/platform para dentro do runtime

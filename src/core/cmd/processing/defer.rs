@@ -9,9 +9,6 @@ pub(super) enum DeferredFailureKind {
     Transient,
     Permanent,
 }
-
-pub(super) use vulfram_runtime::defer_backoff_frames;
-
 pub(super) fn command_signature(cmd: &EngineCmd) -> u64 {
     let mut hasher = DefaultHasher::new();
     match rmp_serde::to_vec_named(cmd) {

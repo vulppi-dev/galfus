@@ -20,6 +20,13 @@ pub struct DeferredCommandMeta {
     pub last_reason: String,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct DeferredRetryState {
+    pub attempts: u32,
+    pub age_frames: u64,
+    pub next_retry_frame: u64,
+}
+
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct RuntimeFrameState {
     pub time: u64,
@@ -112,7 +119,15 @@ impl<TCmd, TEvent, TResponse> RuntimeState<TCmd, TEvent, TResponse> {
         &self.event_queue
     }
 
+    pub fn events(&self) -> &[TEvent] {
+        &self.event_queue
+    }
+
     pub fn response_queue_ref(&self) -> &Vec<TResponse> {
+        &self.response_queue
+    }
+
+    pub fn responses(&self) -> &[TResponse] {
         &self.response_queue
     }
 
@@ -139,12 +154,60 @@ impl<TCmd, TEvent, TResponse> RuntimeState<TCmd, TEvent, TResponse> {
         self.event_queue = events;
     }
 
+    pub fn cloned_events(&self) -> Vec<TEvent>
+    where
+        TEvent: Clone,
+    {
+        self.event_queue.clone()
+    }
+
     pub fn push_event(&mut self, event: TEvent) {
         self.event_queue.push(event);
     }
 
     pub fn push_response(&mut self, response: TResponse) {
         self.response_queue.push(response);
+    }
+
+    pub fn deferred_contains(&self, key: &DeferredCommandKey) -> bool {
+        self.deferred_cmd_meta.contains_key(key)
+    }
+
+    pub fn deferred_is_ready(&self, key: &DeferredCommandKey, frame_index: u64) -> bool {
+        self.deferred_cmd_meta
+            .get(key)
+            .map(|meta| meta.next_retry_frame <= frame_index)
+            .unwrap_or(true)
+    }
+
+    pub fn record_deferred_retry(
+        &mut self,
+        key: DeferredCommandKey,
+        frame_index: u64,
+        reason: &str,
+    ) -> DeferredRetryState {
+        let meta = self
+            .deferred_cmd_meta
+            .entry(key)
+            .or_insert_with(|| DeferredCommandMeta {
+                first_frame: frame_index,
+                attempts: 0,
+                next_retry_frame: frame_index,
+                last_reason: String::new(),
+            });
+        meta.attempts = meta.attempts.saturating_add(1);
+        meta.last_reason = reason.into();
+        let backoff = defer_backoff_frames(meta.attempts);
+        meta.next_retry_frame = frame_index.saturating_add(backoff);
+        DeferredRetryState {
+            attempts: meta.attempts,
+            age_frames: frame_index.saturating_sub(meta.first_frame),
+            next_retry_frame: meta.next_retry_frame,
+        }
+    }
+
+    pub fn clear_deferred_meta(&mut self, key: &DeferredCommandKey) -> Option<DeferredCommandMeta> {
+        self.deferred_cmd_meta.remove(key)
     }
 }
 
@@ -164,9 +227,9 @@ pub fn should_drop_deferred(attempts: u32, age_frames: u64) -> bool {
 #[cfg(test)]
 mod tests {
     use super::{
-        DEFER_MAX_AGE_FRAMES, DEFER_MAX_ATTEMPTS, RenderBootstrapDeviceStrategy, RuntimeFrameState,
-        RuntimeRenderBootstrapPlan, RuntimeState, defer_backoff_frames, plan_render_bootstrap,
-        should_drop_deferred,
+        DEFER_MAX_AGE_FRAMES, DEFER_MAX_ATTEMPTS, DeferredCommandKey,
+        RenderBootstrapDeviceStrategy, RuntimeFrameState, RuntimeRenderBootstrapPlan, RuntimeState,
+        defer_backoff_frames, plan_render_bootstrap, should_drop_deferred,
     };
     use vulfram_platform::{
         PlatformRenderBootstrapTarget, PlatformRenderSurfaceKind, PlatformSurfaceAlphaMode,
@@ -222,6 +285,8 @@ mod tests {
         assert!(state.has_pending_commands());
         assert_eq!(state.event_count(), 1);
         assert_eq!(state.response_count(), 1);
+        assert_eq!(state.events(), &[7]);
+        assert_eq!(state.responses(), &[11]);
         assert_eq!(state.take_pending_commands(), vec![1, 2, 3]);
         assert_eq!(state.take_deferred_commands(), vec![9]);
         assert_eq!(state.event_queue_ref(), &vec![7]);
@@ -235,6 +300,29 @@ mod tests {
         assert_eq!(state.deferred_cmd_queue, vec![5, 6]);
         assert!(state.event_queue.is_empty());
         assert!(state.response_queue.is_empty());
+    }
+
+    #[test]
+    fn deferred_helpers_track_retry_and_cleanup() {
+        let mut state = RuntimeState::<u8, u16, u32>::default();
+        let key = DeferredCommandKey {
+            command_id: 10,
+            command_signature: 20,
+        };
+
+        assert!(state.deferred_is_ready(&key, 0));
+        let retry = state.record_deferred_retry(key, 12, "transient");
+        assert_eq!(retry.attempts, 1);
+        assert_eq!(retry.age_frames, 0);
+        assert_eq!(retry.next_retry_frame, 13);
+        assert!(state.deferred_contains(&key));
+        assert!(!state.deferred_is_ready(&key, 12));
+        assert!(state.deferred_is_ready(&key, 13));
+        assert_eq!(
+            state.clear_deferred_meta(&key).map(|meta| meta.attempts),
+            Some(1)
+        );
+        assert!(!state.deferred_contains(&key));
     }
 
     #[test]

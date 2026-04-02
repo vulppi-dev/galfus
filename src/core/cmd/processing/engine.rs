@@ -2,8 +2,6 @@ use super::super::*;
 use crate::core::VulframResult;
 use crate::core::platforms::PlatformProxy;
 use crate::core::state::EngineState;
-use vulfram_runtime::DeferredCommandMeta;
-
 pub(crate) fn engine_process_batch(
     engine: &mut EngineState,
     platform: &mut dyn PlatformProxy,
@@ -15,7 +13,7 @@ pub(crate) fn engine_process_batch(
         let command_id = pack.id;
         let command_type = super::defer::command_type_for_cmd(&deferred_cmd);
         let deferred_key = super::defer::deferred_command_key(command_id, &deferred_cmd);
-        let was_deferred = engine.runtime.deferred_cmd_meta.contains_key(&deferred_key);
+        let was_deferred = engine.runtime.deferred_contains(&deferred_key);
 
         super::dispatch::dispatch_command(engine, platform, pack);
 
@@ -30,38 +28,17 @@ pub(crate) fn engine_process_batch(
             super::defer::classify_failed_response(engine, &deferred_cmd, &last_response.response)
         {
             if failure_kind == super::defer::DeferredFailureKind::Transient {
-                let (attempts, age_frames, next_retry_frame) = {
-                    let meta = engine
-                        .runtime
-                        .deferred_cmd_meta
-                        .entry(deferred_key)
-                        .or_insert_with(|| DeferredCommandMeta {
-                            first_frame: engine.runtime.frame.frame_index,
-                            attempts: 0,
-                            next_retry_frame: engine.runtime.frame.frame_index,
-                            last_reason: String::new(),
-                        });
-                    meta.attempts = meta.attempts.saturating_add(1);
-                    meta.last_reason = reason.clone();
-                    let backoff = super::defer::defer_backoff_frames(meta.attempts);
-                    meta.next_retry_frame =
-                        engine.runtime.frame.frame_index.saturating_add(backoff);
-                    (
-                        meta.attempts,
-                        engine
-                            .runtime
-                            .frame
-                            .frame_index
-                            .saturating_sub(meta.first_frame),
-                        meta.next_retry_frame,
-                    )
-                };
+                let retry = engine.runtime.record_deferred_retry(
+                    deferred_key,
+                    engine.runtime.frame.frame_index,
+                    &reason,
+                );
 
-                if super::defer::should_drop_deferred(attempts, age_frames) {
+                if super::defer::should_drop_deferred(retry.attempts, retry.age_frames) {
                     let _ = engine.runtime.pop_response();
                     let dropped_reason = format!(
                         "deferred command dropped after {} attempts ({} frames): {}",
-                        attempts, age_frames, reason
+                        retry.attempts, retry.age_frames, reason
                     );
                     engine.runtime.push_response(CommandResponseEnvelope {
                         id: command_id,
@@ -74,10 +51,10 @@ pub(crate) fn engine_process_batch(
                         engine,
                         command_id,
                         command_type,
-                        attempts,
+                        retry.attempts,
                         dropped_reason,
                     );
-                    engine.runtime.deferred_cmd_meta.remove(&deferred_key);
+                    let _ = engine.runtime.clear_deferred_meta(&deferred_key);
                     if let Some(response) = engine
                         .runtime
                         .last_response()
@@ -97,8 +74,8 @@ pub(crate) fn engine_process_batch(
                         engine,
                         command_id,
                         command_type,
-                        attempts,
-                        format!("{reason} (next retry frame: {next_retry_frame})"),
+                        retry.attempts,
+                        format!("{reason} (next retry frame: {})", retry.next_retry_frame),
                     );
                 }
                 continue;
@@ -108,16 +85,14 @@ pub(crate) fn engine_process_batch(
         if was_deferred && super::response_maps::response_is_success(&last_response.response) {
             let attempts = engine
                 .runtime
-                .deferred_cmd_meta
-                .remove(&deferred_key)
+                .clear_deferred_meta(&deferred_key)
                 .map(|meta| meta.attempts)
                 .unwrap_or(0);
             super::defer::emit_applied_event(engine, command_id, command_type, attempts);
         } else if was_deferred {
             let attempts = engine
                 .runtime
-                .deferred_cmd_meta
-                .remove(&deferred_key)
+                .clear_deferred_meta(&deferred_key)
                 .map(|meta| meta.attempts)
                 .unwrap_or(0);
             super::defer::emit_dropped_event(

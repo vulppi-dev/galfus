@@ -29,7 +29,7 @@ pub fn process_ui_input(engine: &mut EngineState) {
     let focus_updates = &mut scratch.focus_updates;
     let pointer_pos_updates = &mut scratch.pointer_pos_updates;
 
-    for event in engine.runtime.event_queue.iter() {
+    for event in engine.runtime.events() {
         match event {
             EngineEvent::Pointer(pointer_event) => {
                 let focused_realm_id = engine

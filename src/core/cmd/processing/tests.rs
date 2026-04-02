@@ -1,8 +1,7 @@
 use super::super::*;
-use super::defer::{
-    DeferredFailureKind, classify_failed_response, command_signature, defer_backoff_frames,
-};
+use super::defer::{DeferredFailureKind, classify_failed_response, command_signature};
 use crate::core::state::EngineState;
+use vulfram_runtime::defer_backoff_frames;
 
 #[test]
 fn defer_backoff_caps_at_64_frames() {
