@@ -770,12 +770,14 @@ Status atual:
 - `vulfram-bindings-wasm` já existe como crate dedicado
 - `vulfram-bindings-napi` já existe como crate dedicado
 - `vulfram-bindings-lua` já existe como crate dedicado
+- `vulfram-bindings-python` já existe como crate dedicado
 - os símbolos C ABI foram removidos de `src/lib.rs` e passaram para o crate novo
 - os exports `wasm-bindgen` também começaram a sair de `src/lib.rs` para o crate novo
 - os exports `napi` também começaram a sair de `src/lib.rs` para o crate novo
 - os exports `lua` também começaram a sair de `src/lib.rs` para o crate novo
+- os exports `python` também começaram a sair de `src/lib.rs` para o crate novo
 - `vulfram-core` agora expõe uma superfície `rlib` mínima para os bindings consumirem a API sem reimplementar lógica
-- próximos avanços: repetir o mesmo padrão para `python`
+- próximos avanços: consolidar features/entrypoints e reduzir `src/lib.rs` ao mínimo restante
 
 ### Fase 13 — Criação de `vulfram-demo`
 

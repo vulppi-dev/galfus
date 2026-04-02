@@ -3966,6 +3966,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "vulfram-bindings-python"
+version = "0.21.2-alpha"
+dependencies = [
+ "pyo3",
+ "vulfram-core",
+]
+
+[[package]]
 name = "vulfram-bindings-wasm"
 version = "0.21.2-alpha"
 dependencies = [
