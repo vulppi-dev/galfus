@@ -15,6 +15,7 @@ use crate::core::resources::{
     TextureAsyncManager, TextureDecodeResult,
 };
 use crate::core::window::WindowManager;
+use crate::core::{realm, target};
 use std::collections::HashMap;
 use vulfram_input::GamepadState;
 use vulfram_platform::PlatformGamepadBackendState;
@@ -120,95 +121,8 @@ impl EngineState {
             if let Some(mut render_state) = self.render.remove(window_id) {
                 render_state.drop_all();
             }
-            let targets_to_remove: std::collections::HashSet<_> = self
-                .universal_state
-                .targets
-                .targets
-                .entries
-                .iter()
-                .filter_map(|(target_id, target)| {
-                    if target.window_id == Some(window_id) {
-                        Some(*target_id)
-                    } else {
-                        None
-                    }
-                })
-                .collect();
-            if !targets_to_remove.is_empty() {
-                let layers_to_remove: Vec<_> = self
-                    .universal_state
-                    .targets
-                    .target_layers
-                    .entries
-                    .keys()
-                    .filter(|(_, layer_target)| targets_to_remove.contains(layer_target))
-                    .copied()
-                    .collect();
-                for (layer_realm_id, layer_target_id) in layers_to_remove {
-                    self.universal_state
-                        .targets
-                        .target_layers
-                        .entries
-                        .remove(&(layer_realm_id, layer_target_id));
-                    crate::core::target::resolve::remove_auto_link_for_layer(
-                        &mut self.universal_state,
-                        layer_realm_id,
-                        layer_target_id,
-                    );
-                }
-                self.universal_state
-                    .targets
-                    .targets
-                    .entries
-                    .retain(|target_id, _| !targets_to_remove.contains(target_id));
-                self.universal_state
-                    .scene
-                    .render_resources
-                    .target_texture_binds
-                    .retain(|_, binding| !targets_to_remove.contains(&binding.target_id));
-                self.universal_state
-                    .interaction
-                    .ui
-                    .external_textures
-                    .retain(|target_id, _| {
-                        !targets_to_remove.contains(&crate::core::target::TargetId(*target_id))
-                    });
-                self.universal_state
-                    .interaction
-                    .ui
-                    .target_size_requests
-                    .retain(|target_id, _| {
-                        !targets_to_remove.contains(&crate::core::target::TargetId(*target_id))
-                    });
-                self.universal_state
-                    .targets
-                    .target_ui_realm_index
-                    .retain(|target_id, _| !targets_to_remove.contains(target_id));
-                let _ = self
-                    .universal_state
-                    .interaction
-                    .target_listeners
-                    .dispose_targets(targets_to_remove.iter().map(|target_id| target_id.0));
-                self.universal_state
-                    .interaction
-                    .input_routing
-                    .focus_targets
-                    .retain(|_, target_id| !targets_to_remove.contains(target_id));
-            }
+            target::dispose_window_targets(&mut self.universal_state, window_id);
 
-            let surfaces_to_remove: Vec<_> = self
-                .universal_state
-                .composition
-                .presents
-                .entries
-                .values()
-                .filter(|present| present.value.window_id == window_id)
-                .map(|present| present.value.surface)
-                .collect();
-            self.universal_state
-                .composition
-                .presents
-                .remove_by_window(window_id);
             self.universal_state
                 .interaction
                 .input_routing
@@ -219,87 +133,12 @@ impl EngineState {
                 .input_routing
                 .focus_targets
                 .retain(|focus_window, _| *focus_window != window_id);
-            if !surfaces_to_remove.is_empty() {
-                let surface_set: std::collections::HashSet<_> =
-                    surfaces_to_remove.iter().copied().collect();
-                let mut realms_to_remove = Vec::new();
-                for (realm_id, entry) in self.universal_state.composition.realms.entries.iter() {
-                    if entry
-                        .value
-                        .output_surface
-                        .is_some_and(|surface| surface_set.contains(&surface))
-                    {
-                        realms_to_remove.push(*realm_id);
-                    }
-                }
-                let realm_set: std::collections::HashSet<_> =
-                    realms_to_remove.iter().copied().collect();
-                for realm_id in realms_to_remove {
-                    self.universal_state.composition.realms.remove(realm_id);
-                    self.universal_state
-                        .scene
-                        .realm3d
-                        .entities
-                        .remove(&realm_id);
-                    self.universal_state.interaction.ui.remove_realm(realm_id);
-                    self.universal_state
-                        .targets
-                        .host_realm_index
-                        .retain(|_, indexed_realm_id| *indexed_realm_id != realm_id);
-                }
-                for surface_id in &surfaces_to_remove {
-                    self.universal_state
-                        .composition
-                        .surfaces
-                        .remove(*surface_id);
-                    self.surface_targets.remove(surface_id);
-                }
-                self.universal_state
-                    .targets
-                    .auto_links
-                    .retain(|_, link| !surface_set.contains(&link.surface_id));
-                let mut removed_connectors = Vec::new();
-                self.universal_state.composition.connectors.entries.retain(
-                    |connector_id, entry| {
-                        let remove = surface_set.contains(&entry.value.source_surface)
-                            || realm_set.contains(&entry.value.target_realm);
-                        if remove {
-                            removed_connectors.push(*connector_id);
-                        }
-                        !remove
-                    },
-                );
-                if !removed_connectors.is_empty() {
-                    let removed_set: std::collections::HashSet<_> =
-                        removed_connectors.into_iter().collect();
-                    self.universal_state
-                        .interaction
-                        .input_routing
-                        .captures
-                        .retain(|_, capture| {
-                            !removed_set
-                                .contains(&crate::core::realm::ConnectorId(capture.connector_id))
-                        });
-                }
-                self.universal_state
-                    .composition
-                    .surface_cache
-                    .last_good
-                    .retain(|_, source| !surface_set.contains(source));
-                self.universal_state
-                    .composition
-                    .surface_cache
-                    .fallback
-                    .retain(|_, source| !surface_set.contains(source));
-            }
-            self.universal_state
-                .targets
-                .target_graph_cache
-                .prune_dead_entries(
-                    &self.universal_state.targets.targets.entries,
-                    &self.universal_state.targets.target_layers.entries,
-                    &self.universal_state.composition.realms,
-                );
+            realm::dispose_surfaces_for_window(
+                &mut self.universal_state,
+                &mut self.surface_targets,
+                window_id,
+            );
+            target::prune_target_graph_cache(&mut self.universal_state);
         }
         cleaned
     }

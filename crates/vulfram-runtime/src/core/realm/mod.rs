@@ -1,5 +1,6 @@
 pub mod cmd;
 pub mod graph;
+pub mod lifecycle;
 pub mod report;
 pub mod state;
 
@@ -7,6 +8,8 @@ pub mod state;
 pub use cmd::*;
 #[allow(unused_imports)]
 pub use graph::{RealmGraphEdge, RealmGraphPlan, RealmGraphPlanner};
+#[allow(unused_imports)]
+pub use lifecycle::*;
 #[allow(unused_imports)]
 pub use report::{
     FrameCutEdge, FrameReport, SurfaceCacheEntry, TargetAutoLinkFailure, apply_target_graph_stats,

@@ -154,6 +154,14 @@ It should not become a container for:
 
 ## 7. Lifecycle
 
+Lifecycle cleanup should follow the same ownership rule as the steady-state
+tables:
+
+- target disposal and target-layer disposal logic belong in `core/target`
+- realm/surface/connector disposal logic belong in `core/realm`
+- `EngineState` should orchestrate window/GPU/runtime shutdown, not own all
+  teardown details inline
+
 ### Startup
 
 1. Host loads the binding/library.

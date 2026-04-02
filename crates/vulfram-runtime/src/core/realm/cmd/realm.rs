@@ -1,11 +1,14 @@
 use serde::{Deserialize, Serialize};
 
-use crate::core::realm::{RealmId, RealmKind, RealmState};
+use crate::core::realm::{
+    RealmId, RealmKind, RealmState, detach_realm_runtime, dispose_realm_layers,
+    dispose_surface_links, init_realm_runtime, remove_connectors_for_realms,
+};
 use crate::core::render::graph::{
     DEFAULT_2D_RENDER_GRAPH_ID, DEFAULT_3D_RENDER_GRAPH_ID, ensure_default_render_graphs,
 };
 use crate::core::state::EngineState;
-use crate::core::target::resolve::remove_auto_link_for_layer;
+use crate::core::target::prune_target_graph_cache;
 
 use super::RealmKindDto;
 
@@ -67,16 +70,7 @@ pub fn engine_cmd_realm_create(
         cache_policy: args.cache_policy.unwrap_or(0),
         last_render_frame: 0,
     });
-    if kind == RealmKind::TwoD {
-        engine.universal_state.interaction.ui.ensure_realm(realm_id);
-    }
-    engine
-        .universal_state
-        .scene
-        .realm3d
-        .entities
-        .entry(realm_id)
-        .or_default();
+    init_realm_runtime(&mut engine.universal_state, realm_id, kind);
 
     CmdResultRealmCreate {
         success: true,
@@ -96,107 +90,16 @@ pub fn engine_cmd_realm_dispose(
             message: format!("Realm {} not found", args.realm_id),
         };
     };
-    if entry.value.kind == RealmKind::TwoD {
-        engine.universal_state.interaction.ui.remove_realm(realm_id);
-    }
-    engine
-        .universal_state
-        .scene
-        .realm3d
-        .entities
-        .remove(&realm_id);
-    engine
-        .universal_state
-        .targets
-        .host_realm_index
-        .retain(|_, indexed_realm_id| *indexed_realm_id != realm_id);
-
-    let mut removed_connectors = Vec::new();
-    engine
-        .universal_state
-        .composition
-        .connectors
-        .entries
-        .retain(|connector_id, entry| {
-            let remove = entry.value.target_realm == realm_id;
-            if remove {
-                removed_connectors.push(*connector_id);
-            }
-            !remove
-        });
-    if !removed_connectors.is_empty() {
-        let removed_set: std::collections::HashSet<_> = removed_connectors.into_iter().collect();
-        engine
-            .universal_state
-            .interaction
-            .input_routing
-            .captures
-            .retain(|_, capture| {
-                !removed_set.contains(&crate::core::realm::ConnectorId(capture.connector_id))
-            });
-        engine
-            .universal_state
-            .composition
-            .surface_cache
-            .last_good
-            .retain(|connector_id, _| !removed_set.contains(connector_id));
-        engine
-            .universal_state
-            .composition
-            .surface_cache
-            .fallback
-            .retain(|connector_id, _| !removed_set.contains(connector_id));
-    }
-
-    let removed_layers: Vec<_> = engine
-        .universal_state
-        .targets
-        .target_layers
-        .entries
-        .keys()
-        .filter(|(layer_realm, _)| *layer_realm == realm_id.0)
-        .copied()
-        .collect();
-    for (layer_realm, layer_target) in removed_layers {
-        engine
-            .universal_state
-            .targets
-            .target_layers
-            .entries
-            .remove(&(layer_realm, layer_target));
-        remove_auto_link_for_layer(&mut engine.universal_state, layer_realm, layer_target);
-    }
+    detach_realm_runtime(&mut engine.universal_state, realm_id, entry.value.kind);
+    remove_connectors_for_realms(
+        &mut engine.universal_state,
+        &std::collections::HashSet::from([realm_id]),
+        &std::collections::HashSet::new(),
+    );
+    dispose_realm_layers(&mut engine.universal_state, realm_id);
 
     if let Some(surface_id) = entry.value.output_surface {
-        let keys: Vec<_> = engine
-            .universal_state
-            .targets
-            .auto_links
-            .iter()
-            .filter_map(|((layer_realm, layer_target), link)| {
-                if *layer_realm == realm_id.0 || link.surface_id == surface_id {
-                    Some((*layer_realm, *layer_target))
-                } else {
-                    None
-                }
-            })
-            .collect();
-        for (layer_realm, layer_target) in keys {
-            remove_auto_link_for_layer(&mut engine.universal_state, layer_realm, layer_target);
-        }
-
-        engine
-            .universal_state
-            .composition
-            .surface_cache
-            .last_good
-            .retain(|_, source| *source != surface_id);
-        engine
-            .universal_state
-            .composition
-            .surface_cache
-            .fallback
-            .retain(|_, source| *source != surface_id);
+        dispose_surface_links(&mut engine.universal_state, realm_id, surface_id);
         engine.surface_targets.remove(&surface_id);
         engine
             .universal_state
@@ -204,15 +107,7 @@ pub fn engine_cmd_realm_dispose(
             .surfaces
             .remove(surface_id);
     }
-    engine
-        .universal_state
-        .targets
-        .target_graph_cache
-        .prune_dead_entries(
-            &engine.universal_state.targets.targets.entries,
-            &engine.universal_state.targets.target_layers.entries,
-            &engine.universal_state.composition.realms,
-        );
+    prune_target_graph_cache(&mut engine.universal_state);
 
     CmdResultRealmDispose {
         success: true,

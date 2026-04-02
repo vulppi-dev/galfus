@@ -2,10 +2,9 @@ use glam::UVec2;
 use serde::{Deserialize, Serialize};
 
 use crate::core::state::EngineState;
-use crate::core::target::resolve::remove_auto_link_for_layer;
 use crate::core::target::{
     SurfaceAlphaModeDto, SurfaceFormatDto, TargetId, TargetKind, TargetLayerLayout,
-    TargetLayerState, TargetState,
+    TargetLayerState, TargetState, dispose_layer, dispose_target,
 };
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -249,82 +248,12 @@ pub fn engine_cmd_target_dispose(
     args: &CmdTargetDisposeArgs,
 ) -> CmdResultTargetDispose {
     let target_id = TargetId(args.target_id);
-    if engine
-        .universal_state
-        .targets
-        .targets
-        .entries
-        .remove(&target_id)
-        .is_none()
-    {
+    if !dispose_target(&mut engine.universal_state, target_id) {
         return CmdResultTargetDispose {
             success: false,
             message: format!("Target {} not found", args.target_id),
         };
     }
-
-    engine
-        .universal_state
-        .targets
-        .target_layers
-        .entries
-        .retain(|(_, layer_target), _| *layer_target != target_id);
-
-    let remove_keys: Vec<_> = engine
-        .universal_state
-        .targets
-        .auto_links
-        .keys()
-        .filter(|(_, layer_target)| *layer_target == target_id)
-        .copied()
-        .collect();
-    for (realm_id, layer_target) in remove_keys {
-        remove_auto_link_for_layer(&mut engine.universal_state, realm_id, layer_target);
-    }
-
-    engine
-        .universal_state
-        .interaction
-        .input_routing
-        .focus_targets
-        .retain(|_, focus_target_id| *focus_target_id != target_id);
-    engine
-        .universal_state
-        .interaction
-        .ui
-        .external_textures
-        .remove(&target_id.0);
-    engine
-        .universal_state
-        .interaction
-        .ui
-        .target_size_requests
-        .remove(&target_id.0);
-    engine
-        .universal_state
-        .targets
-        .target_ui_realm_index
-        .remove(&target_id);
-    let _ = engine
-        .universal_state
-        .interaction
-        .target_listeners
-        .dispose_target(target_id.0);
-    engine
-        .universal_state
-        .scene
-        .render_resources
-        .target_texture_binds
-        .retain(|_, binding| binding.target_id != target_id);
-    engine
-        .universal_state
-        .targets
-        .target_graph_cache
-        .prune_dead_entries(
-            &engine.universal_state.targets.targets.entries,
-            &engine.universal_state.targets.target_layers.entries,
-            &engine.universal_state.composition.realms,
-        );
 
     CmdResultTargetDispose {
         success: true,
@@ -365,14 +294,7 @@ pub fn engine_cmd_target_layer_dispose(
     args: &CmdTargetLayerDisposeArgs,
 ) -> CmdResultTargetLayerDispose {
     let target_id = TargetId(args.target_id);
-    if engine
-        .universal_state
-        .targets
-        .target_layers
-        .entries
-        .remove(&(args.realm_id, target_id))
-        .is_none()
-    {
+    if !dispose_layer(&mut engine.universal_state, args.realm_id, target_id) {
         return CmdResultTargetLayerDispose {
             success: false,
             message: format!(
@@ -381,32 +303,6 @@ pub fn engine_cmd_target_layer_dispose(
             ),
         };
     }
-
-    remove_auto_link_for_layer(&mut engine.universal_state, args.realm_id, target_id);
-    let has_layer_for_target = engine
-        .universal_state
-        .targets
-        .target_layers
-        .entries
-        .keys()
-        .any(|(_, layer_target)| *layer_target == target_id);
-    if !has_layer_for_target {
-        engine
-            .universal_state
-            .interaction
-            .input_routing
-            .focus_targets
-            .retain(|_, focus_target_id| *focus_target_id != target_id);
-    }
-    engine
-        .universal_state
-        .targets
-        .target_graph_cache
-        .prune_dead_entries(
-            &engine.universal_state.targets.targets.entries,
-            &engine.universal_state.targets.target_layers.entries,
-            &engine.universal_state.composition.realms,
-        );
 
     CmdResultTargetLayerDispose {
         success: true,
