@@ -1,5 +1,7 @@
+mod builders;
 mod cache;
 mod gamepad;
+mod keycodes;
 
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
@@ -9,6 +11,14 @@ use serde::{Deserialize, Serialize};
 use vulfram_realm_core::ConnectorState;
 use vulfram_types::{ConnectorId, RealmId, SurfaceId};
 
+pub use builders::{
+    element_state_from_pressed, keyboard_ime_commit_event, keyboard_ime_disable_event,
+    keyboard_ime_enable_event, keyboard_ime_preedit_event, keyboard_input_event,
+    keyboard_modifiers_event, pointer_button_event, pointer_double_tap_gesture_event,
+    pointer_enter_event, pointer_leave_event, pointer_move_event, pointer_pan_gesture_event,
+    pointer_pinch_gesture_event, pointer_rotation_gesture_event, pointer_scroll_event,
+    pointer_touch_event,
+};
 pub use cache::{InputCacheManager, InputState};
 #[cfg(not(target_arch = "wasm32"))]
 pub use cache::{KeyboardStateCache, PointerStateCache};
@@ -16,6 +26,7 @@ pub use gamepad::{
     GAMEPAD_AXIS_CHANGE_THRESHOLD, GAMEPAD_AXIS_DEAD_ZONE, GAMEPAD_BUTTON_CHANGE_THRESHOLD,
     GamepadCacheManager, GamepadEvent, GamepadState, GamepadStateCache,
 };
+pub use keycodes::{KEY_ESCAPE, KEY_UNIDENTIFIED, KEY_W, map_web_key_code};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "kebab-case")]

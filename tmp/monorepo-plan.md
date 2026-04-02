@@ -504,7 +504,9 @@ Critério de aceite:
 Status:
 - concluída
 - `vulfram-input` já concentra eventos normalizados, listeners, estado/cache de input e a semântica pura de roteamento
-- o que permaneceu no core é adaptador de runtime e integração com raycast/cena/plataforma
+- `vulfram-input` também já concentra os construtores dos eventos normalizados de teclado, ponteiro, touch e gestos, além do mapeamento puro de keycodes web
+- `vulfram-platform` já concentra os mapeamentos específicos de `winit` e o backend/polling de gamepad
+- o que permaneceu no core é captura do evento bruto, acesso ao estado vivo da janela e integração com raycast/cena/runtime
 
 Objetivo:
 - isolar o modelo normalizado de input antes de integrar plataforma e UI

@@ -1,6 +1,12 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
+use vulfram_input::{
+    keyboard_ime_commit_event, keyboard_ime_disable_event, keyboard_ime_enable_event,
+    keyboard_ime_preedit_event, keyboard_input_event, keyboard_modifiers_event,
+    pointer_button_event, pointer_enter_event, pointer_leave_event, pointer_move_event,
+    pointer_scroll_event,
+};
 use vulfram_platform::{
     BrowserPointerMotionInput, PlatformCursorGrabMode, PlatformWindowState,
     map_browser_pointer_type, normalize_browser_key_text, plan_browser_surface_resize,
@@ -92,12 +98,12 @@ pub fn attach_canvas_listeners(
             let mut current_modifiers = modifiers_state_for_blur.borrow_mut();
             if *current_modifiers != next_modifiers {
                 *current_modifiers = next_modifiers;
-                engine.runtime.push_event(EngineEvent::Keyboard(
-                    CoreKeyboardEvent::OnModifiersChange {
+                engine
+                    .runtime
+                    .push_event(EngineEvent::Keyboard(keyboard_modifiers_event(
                         window_id,
-                        modifiers: next_modifiers,
-                    },
-                ));
+                        next_modifiers,
+                    )));
             }
             engine
                 .runtime
@@ -227,24 +233,23 @@ pub fn attach_canvas_listeners(
             let mut current_modifiers = modifiers_state_for_keydown.borrow_mut();
             if *current_modifiers != modifiers {
                 *current_modifiers = modifiers;
-                engine.runtime.push_event(EngineEvent::Keyboard(
-                    CoreKeyboardEvent::OnModifiersChange {
-                        window_id,
-                        modifiers,
-                    },
-                ));
+                engine
+                    .runtime
+                    .push_event(EngineEvent::Keyboard(keyboard_modifiers_event(
+                        window_id, modifiers,
+                    )));
             }
             engine
                 .runtime
-                .push_event(EngineEvent::Keyboard(CoreKeyboardEvent::OnInput {
+                .push_event(EngineEvent::Keyboard(keyboard_input_event(
                     window_id,
                     key_code,
-                    state: ElementState::Pressed,
-                    location: event.location() as u32,
-                    repeat: event.repeat(),
+                    ElementState::Pressed,
+                    event.location() as u32,
+                    event.repeat(),
                     text,
                     modifiers,
-                }));
+                )));
         });
     }) as Box<dyn FnMut(Event)>);
     register_listener(&window_target, "keydown", keydown_closure, &mut listeners);
@@ -269,24 +274,23 @@ pub fn attach_canvas_listeners(
             let mut current_modifiers = modifiers_state_for_keyup.borrow_mut();
             if *current_modifiers != modifiers {
                 *current_modifiers = modifiers;
-                engine.runtime.push_event(EngineEvent::Keyboard(
-                    CoreKeyboardEvent::OnModifiersChange {
-                        window_id,
-                        modifiers,
-                    },
-                ));
+                engine
+                    .runtime
+                    .push_event(EngineEvent::Keyboard(keyboard_modifiers_event(
+                        window_id, modifiers,
+                    )));
             }
             engine
                 .runtime
-                .push_event(EngineEvent::Keyboard(CoreKeyboardEvent::OnInput {
+                .push_event(EngineEvent::Keyboard(keyboard_input_event(
                     window_id,
                     key_code,
-                    state: ElementState::Released,
-                    location: event.location() as u32,
-                    repeat: event.repeat(),
+                    ElementState::Released,
+                    event.location() as u32,
+                    event.repeat(),
                     text,
                     modifiers,
-                }));
+                )));
         });
     }) as Box<dyn FnMut(Event)>);
     register_listener(&window_target, "keyup", keyup_closure, &mut listeners);
@@ -299,9 +303,7 @@ pub fn attach_canvas_listeners(
         with_live_window(window_id, |engine| {
             engine
                 .runtime
-                .push_event(EngineEvent::Keyboard(CoreKeyboardEvent::OnImeEnable {
-                    window_id,
-                }));
+                .push_event(EngineEvent::Keyboard(keyboard_ime_enable_event(window_id)));
         });
     }) as Box<dyn FnMut(Event)>);
     register_listener(
@@ -320,11 +322,9 @@ pub fn attach_canvas_listeners(
         with_live_window(window_id, |engine| {
             engine
                 .runtime
-                .push_event(EngineEvent::Keyboard(CoreKeyboardEvent::OnImePreedit {
-                    window_id,
-                    text,
-                    cursor_range: None,
-                }));
+                .push_event(EngineEvent::Keyboard(keyboard_ime_preedit_event(
+                    window_id, text, None,
+                )));
         });
     }) as Box<dyn FnMut(Event)>);
     register_listener(
@@ -343,15 +343,12 @@ pub fn attach_canvas_listeners(
         with_live_window(window_id, |engine| {
             engine
                 .runtime
-                .push_event(EngineEvent::Keyboard(CoreKeyboardEvent::OnImeCommit {
-                    window_id,
-                    text,
-                }));
+                .push_event(EngineEvent::Keyboard(keyboard_ime_commit_event(
+                    window_id, text,
+                )));
             engine
                 .runtime
-                .push_event(EngineEvent::Keyboard(CoreKeyboardEvent::OnImeDisable {
-                    window_id,
-                }));
+                .push_event(EngineEvent::Keyboard(keyboard_ime_disable_event(window_id)));
         });
     }) as Box<dyn FnMut(Event)>);
     register_listener(&window_target, "compositionend", ime_end, &mut listeners);
@@ -387,18 +384,13 @@ pub fn attach_canvas_listeners(
             engine.window.cursor_positions.insert(window_id, position);
             engine
                 .runtime
-                .push_event(EngineEvent::Pointer(CorePointerEvent::OnMove {
+                .push_event(EngineEvent::Pointer(pointer_move_event(
                     window_id,
-                    window_width: None,
-                    window_height: None,
                     pointer_type,
                     pointer_id,
                     position,
-                    position_target: None,
-                    target_width: None,
-                    target_height: None,
-                    trace: None,
-                }));
+                    None,
+                )));
         });
     }) as Box<dyn FnMut(Event)>);
     register_listener(&canvas_target, "pointermove", pointer_move, &mut listeners);
@@ -417,20 +409,15 @@ pub fn attach_canvas_listeners(
         with_live_window(window_id, |engine| {
             engine
                 .runtime
-                .push_event(EngineEvent::Pointer(CorePointerEvent::OnButton {
+                .push_event(EngineEvent::Pointer(pointer_button_event(
                     window_id,
-                    window_width: None,
-                    window_height: None,
                     pointer_type,
                     pointer_id,
                     button,
-                    state: ElementState::Pressed,
+                    ElementState::Pressed,
                     position,
-                    position_target: None,
-                    target_width: None,
-                    target_height: None,
-                    trace: None,
-                }));
+                    None,
+                )));
         });
     }) as Box<dyn FnMut(Event)>);
     register_listener(&canvas_target, "pointerdown", pointer_down, &mut listeners);
@@ -449,20 +436,15 @@ pub fn attach_canvas_listeners(
         with_live_window(window_id, |engine| {
             engine
                 .runtime
-                .push_event(EngineEvent::Pointer(CorePointerEvent::OnButton {
+                .push_event(EngineEvent::Pointer(pointer_button_event(
                     window_id,
-                    window_width: None,
-                    window_height: None,
                     pointer_type,
                     pointer_id,
                     button,
-                    state: ElementState::Released,
+                    ElementState::Released,
                     position,
-                    position_target: None,
-                    target_width: None,
-                    target_height: None,
-                    trace: None,
-                }));
+                    None,
+                )));
         });
     }) as Box<dyn FnMut(Event)>);
     register_listener(&canvas_target, "pointerup", pointer_up, &mut listeners);
@@ -477,16 +459,12 @@ pub fn attach_canvas_listeners(
         with_live_window(window_id, |engine| {
             engine
                 .runtime
-                .push_event(EngineEvent::Pointer(CorePointerEvent::OnEnter {
+                .push_event(EngineEvent::Pointer(pointer_enter_event(
                     window_id,
-                    window_width: None,
-                    window_height: None,
                     pointer_type,
                     pointer_id,
-                    target_width: None,
-                    target_height: None,
-                    trace: None,
-                }));
+                    None,
+                )));
         });
     }) as Box<dyn FnMut(Event)>);
     register_listener(
@@ -506,16 +484,12 @@ pub fn attach_canvas_listeners(
         with_live_window(window_id, |engine| {
             engine
                 .runtime
-                .push_event(EngineEvent::Pointer(CorePointerEvent::OnLeave {
+                .push_event(EngineEvent::Pointer(pointer_leave_event(
                     window_id,
-                    window_width: None,
-                    window_height: None,
                     pointer_type,
                     pointer_id,
-                    target_width: None,
-                    target_height: None,
-                    trace: None,
-                }));
+                    None,
+                )));
         });
     }) as Box<dyn FnMut(Event)>);
     register_listener(
@@ -543,16 +517,9 @@ pub fn attach_canvas_listeners(
             let _ = &wheel_canvas;
             engine
                 .runtime
-                .push_event(EngineEvent::Pointer(CorePointerEvent::OnScroll {
-                    window_id,
-                    window_width: None,
-                    window_height: None,
-                    delta,
-                    phase,
-                    target_width: None,
-                    target_height: None,
-                    trace: None,
-                }));
+                .push_event(EngineEvent::Pointer(pointer_scroll_event(
+                    window_id, delta, phase, None,
+                )));
         });
     }) as Box<dyn FnMut(Event)>);
     register_listener(&canvas_target, "wheel", wheel_closure, &mut listeners);

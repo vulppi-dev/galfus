@@ -3,14 +3,21 @@ use crate::core::platform::winit::event::DeviceEvent as WinitDeviceEvent;
 use crate::core::platform::winit::event::WindowEvent as WinitWindowEvent;
 use crate::core::platform::{ActiveEventLoop, ApplicationHandler, WindowId};
 use glam::{IVec2, UVec2, Vec2};
+use vulfram_input::{
+    element_state_from_pressed, keyboard_ime_commit_event, keyboard_ime_disable_event,
+    keyboard_ime_enable_event, keyboard_ime_preedit_event, keyboard_input_event,
+    keyboard_modifiers_event, pointer_button_event, pointer_double_tap_gesture_event,
+    pointer_enter_event, pointer_leave_event, pointer_move_event, pointer_pan_gesture_event,
+    pointer_pinch_gesture_event, pointer_rotation_gesture_event, pointer_scroll_event,
+    pointer_touch_event,
+};
 use vulfram_platform::{
-    PlatformFullscreenMode, PlatformWindowLifecycleState, resolve_platform_window_state,
+    PlatformFullscreenMode, PlatformWindowLifecycleState, map_winit_key_location,
+    map_winit_mouse_button, map_winit_physical_key_code, map_winit_touch_phase,
+    resolve_platform_window_state,
 };
 
-use crate::core::input::{
-    ElementState, KeyboardEvent, ModifiersState, PointerEvent, ScrollDelta, convert_key_code,
-    convert_key_location, convert_mouse_button, convert_touch_phase,
-};
+use crate::core::input::{ModifiersState, ScrollDelta};
 use crate::core::render::render_frames;
 use crate::core::system::SystemEvent;
 use crate::core::window::engine_cmd_window_create;
@@ -152,8 +159,7 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
                 }
 
                 self.runtime
-                    .event_queue
-                    .push(EngineEvent::Window(WindowEvent::OnResize {
+                    .push_event(EngineEvent::Window(WindowEvent::OnResize {
                         window_id,
                         width: size.width,
                         height: size.height,
@@ -184,8 +190,7 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
                 }
 
                 self.runtime
-                    .event_queue
-                    .push(EngineEvent::Window(WindowEvent::OnMove {
+                    .push_event(EngineEvent::Window(WindowEvent::OnMove {
                         window_id,
                         position: new_pos,
                     }));
@@ -193,8 +198,7 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
 
             WinitWindowEvent::CloseRequested => {
                 self.runtime
-                    .event_queue
-                    .push(EngineEvent::Window(WindowEvent::OnCloseRequest {
+                    .push_event(EngineEvent::Window(WindowEvent::OnCloseRequest {
                         window_id,
                     }));
             }
@@ -204,8 +208,7 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
                 self.cleanup_window(window_id);
 
                 self.runtime
-                    .event_queue
-                    .push(EngineEvent::Window(WindowEvent::OnDestroy { window_id }));
+                    .push_event(EngineEvent::Window(WindowEvent::OnDestroy { window_id }));
             }
 
             WinitWindowEvent::DroppedFile(path) => {
@@ -218,8 +221,7 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
                     .unwrap_or(Vec2::new(0.0, 0.0));
 
                 self.runtime
-                    .event_queue
-                    .push(EngineEvent::Window(WindowEvent::OnFileDrop {
+                    .push_event(EngineEvent::Window(WindowEvent::OnFileDrop {
                         window_id,
                         path: path.to_string_lossy().into_owned(),
                         position,
@@ -236,8 +238,7 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
                     .unwrap_or(Vec2::new(0.0, 0.0));
 
                 self.runtime
-                    .event_queue
-                    .push(EngineEvent::Window(WindowEvent::OnFileHover {
+                    .push_event(EngineEvent::Window(WindowEvent::OnFileHover {
                         window_id,
                         path: path.to_string_lossy().into_owned(),
                         position,
@@ -264,8 +265,7 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
                 cache.focused = focused;
 
                 self.runtime
-                    .event_queue
-                    .push(EngineEvent::Window(WindowEvent::OnFocus {
+                    .push_event(EngineEvent::Window(WindowEvent::OnFocus {
                         window_id,
                         focused,
                     }));
@@ -301,25 +301,20 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
                     return;
                 }
 
-                let key_code = convert_key_code(&event.physical_key);
-                let location = convert_key_location(event.location);
-                let state = if event.state.is_pressed() {
-                    ElementState::Pressed
-                } else {
-                    ElementState::Released
-                };
+                let key_code = map_winit_physical_key_code(&event.physical_key);
+                let location = map_winit_key_location(event.location);
+                let state = element_state_from_pressed(event.state.is_pressed());
 
                 self.runtime
-                    .event_queue
-                    .push(EngineEvent::Keyboard(KeyboardEvent::OnInput {
+                    .push_event(EngineEvent::Keyboard(keyboard_input_event(
                         window_id,
                         key_code,
                         state,
                         location,
-                        repeat: event.repeat,
-                        text: event.text.map(|s| s.into()),
-                        modifiers: self.input.modifiers,
-                    }));
+                        event.repeat,
+                        event.text.map(|s| s.into()),
+                        self.input.modifiers,
+                    )));
             }
 
             WinitWindowEvent::ModifiersChanged(modifiers) => {
@@ -341,28 +336,22 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
                 self.input.modifiers = new_modifiers;
 
                 self.runtime
-                    .push_event(EngineEvent::Keyboard(KeyboardEvent::OnModifiersChange {
+                    .push_event(EngineEvent::Keyboard(keyboard_modifiers_event(
                         window_id,
-                        modifiers: new_modifiers,
-                    }));
+                        new_modifiers,
+                    )));
             }
 
             WinitWindowEvent::Ime(ime) => {
                 let ime_event = match ime {
-                    winit::event::Ime::Enabled => KeyboardEvent::OnImeEnable { window_id },
-                    winit::event::Ime::Preedit(text, cursor) => KeyboardEvent::OnImePreedit {
-                        window_id,
-                        text,
-                        cursor_range: cursor,
-                    },
-                    winit::event::Ime::Commit(text) => {
-                        KeyboardEvent::OnImeCommit { window_id, text }
+                    winit::event::Ime::Enabled => keyboard_ime_enable_event(window_id),
+                    winit::event::Ime::Preedit(text, cursor) => {
+                        keyboard_ime_preedit_event(window_id, text, cursor)
                     }
-                    winit::event::Ime::Disabled => KeyboardEvent::OnImeDisable { window_id },
+                    winit::event::Ime::Commit(text) => keyboard_ime_commit_event(window_id, text),
+                    winit::event::Ime::Disabled => keyboard_ime_disable_event(window_id),
                 };
-                self.runtime
-                    .event_queue
-                    .push(EngineEvent::Keyboard(ime_event));
+                self.runtime.push_event(EngineEvent::Keyboard(ime_event));
             }
 
             WinitWindowEvent::CursorMoved { position, .. } => {
@@ -379,49 +368,23 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
                 self.window.cursor_positions.insert(window_id, cursor_pos);
 
                 self.runtime
-                    .event_queue
-                    .push(EngineEvent::Pointer(PointerEvent::OnMove {
-                        window_id,
-                        window_width: None,
-                        window_height: None,
-                        pointer_type: 0, // Mouse
-                        pointer_id: 0,
-                        position: cursor_pos,
-                        position_target: None,
-                        target_width: None,
-                        target_height: None,
-                        trace: None,
-                    }));
+                    .push_event(EngineEvent::Pointer(pointer_move_event(
+                        window_id, 0, 0, cursor_pos, None,
+                    )));
             }
 
             WinitWindowEvent::CursorEntered { .. } => {
                 self.runtime
-                    .event_queue
-                    .push(EngineEvent::Pointer(PointerEvent::OnEnter {
-                        window_id,
-                        window_width: None,
-                        window_height: None,
-                        pointer_type: 0, // Mouse
-                        pointer_id: 0,
-                        target_width: None,
-                        target_height: None,
-                        trace: None,
-                    }));
+                    .push_event(EngineEvent::Pointer(pointer_enter_event(
+                        window_id, 0, 0, None,
+                    )));
             }
 
             WinitWindowEvent::CursorLeft { .. } => {
                 self.runtime
-                    .event_queue
-                    .push(EngineEvent::Pointer(PointerEvent::OnLeave {
-                        window_id,
-                        window_width: None,
-                        window_height: None,
-                        pointer_type: 0, // Mouse
-                        pointer_id: 0,
-                        target_width: None,
-                        target_height: None,
-                        trace: None,
-                    }));
+                    .push_event(EngineEvent::Pointer(pointer_leave_event(
+                        window_id, 0, 0, None,
+                    )));
             }
 
             WinitWindowEvent::MouseWheel { delta, phase, .. } => {
@@ -433,29 +396,20 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
                         ScrollDelta::Pixel(Vec2::new(pos.x as f32, pos.y as f32))
                     }
                 };
-                let touch_phase = convert_touch_phase(phase);
+                let touch_phase = map_winit_touch_phase(phase);
 
                 self.runtime
-                    .event_queue
-                    .push(EngineEvent::Pointer(PointerEvent::OnScroll {
+                    .push_event(EngineEvent::Pointer(pointer_scroll_event(
                         window_id,
-                        window_width: None,
-                        window_height: None,
-                        delta: scroll_delta,
-                        phase: touch_phase,
-                        target_width: None,
-                        target_height: None,
-                        trace: None,
-                    }));
+                        scroll_delta,
+                        touch_phase,
+                        None,
+                    )));
             }
 
             WinitWindowEvent::MouseInput { state, button, .. } => {
-                let btn = convert_mouse_button(button);
-                let elem_state = if state.is_pressed() {
-                    ElementState::Pressed
-                } else {
-                    ElementState::Released
-                };
+                let btn = map_winit_mouse_button(button);
+                let elem_state = element_state_from_pressed(state.is_pressed());
 
                 // Get the last known cursor position for this window
                 let position = self
@@ -466,98 +420,61 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
                     .unwrap_or(Vec2::new(0.0, 0.0));
 
                 self.runtime
-                    .event_queue
-                    .push(EngineEvent::Pointer(PointerEvent::OnButton {
-                        window_id,
-                        window_width: None,
-                        window_height: None,
-                        pointer_type: 0, // Mouse
-                        pointer_id: 0,
-                        button: btn,
-                        state: elem_state,
-                        position,
-                        position_target: None,
-                        target_width: None,
-                        target_height: None,
-                        trace: None,
-                    }));
+                    .push_event(EngineEvent::Pointer(pointer_button_event(
+                        window_id, 0, 0, btn, elem_state, position, None,
+                    )));
             }
 
             WinitWindowEvent::PinchGesture { delta, phase, .. } => {
                 self.runtime
-                    .event_queue
-                    .push(EngineEvent::Pointer(PointerEvent::OnPinchGesture {
+                    .push_event(EngineEvent::Pointer(pointer_pinch_gesture_event(
                         window_id,
-                        window_width: None,
-                        window_height: None,
                         delta,
-                        phase: convert_touch_phase(phase),
-                        target_width: None,
-                        target_height: None,
-                        trace: None,
-                    }));
+                        map_winit_touch_phase(phase),
+                        None,
+                    )));
             }
 
             WinitWindowEvent::PanGesture { delta, phase, .. } => {
                 self.runtime
-                    .event_queue
-                    .push(EngineEvent::Pointer(PointerEvent::OnPanGesture {
+                    .push_event(EngineEvent::Pointer(pointer_pan_gesture_event(
                         window_id,
-                        window_width: None,
-                        window_height: None,
-                        delta: Vec2::new(delta.x, delta.y),
-                        phase: convert_touch_phase(phase),
-                        target_width: None,
-                        target_height: None,
-                        trace: None,
-                    }));
+                        Vec2::new(delta.x, delta.y),
+                        map_winit_touch_phase(phase),
+                        None,
+                    )));
             }
 
             WinitWindowEvent::RotationGesture { delta, phase, .. } => {
                 self.runtime
-                    .push_event(EngineEvent::Pointer(PointerEvent::OnRotationGesture {
+                    .push_event(EngineEvent::Pointer(pointer_rotation_gesture_event(
                         window_id,
-                        window_width: None,
-                        window_height: None,
                         delta,
-                        phase: convert_touch_phase(phase),
-                        target_width: None,
-                        target_height: None,
-                        trace: None,
-                    }));
+                        map_winit_touch_phase(phase),
+                        None,
+                    )));
             }
 
             WinitWindowEvent::DoubleTapGesture { .. } => {
                 self.runtime
-                    .push_event(EngineEvent::Pointer(PointerEvent::OnDoubleTapGesture {
-                        window_id,
-                        window_width: None,
-                        window_height: None,
-                        target_width: None,
-                        target_height: None,
-                        trace: None,
-                    }));
+                    .push_event(EngineEvent::Pointer(pointer_double_tap_gesture_event(
+                        window_id, None,
+                    )));
             }
 
             WinitWindowEvent::Touch(touch) => {
-                let phase = convert_touch_phase(touch.phase);
+                let phase = map_winit_touch_phase(touch.phase);
                 let pressure = touch.force.map(|f| f.normalized() as f32);
 
                 self.runtime
-                    .event_queue
-                    .push(EngineEvent::Pointer(PointerEvent::OnTouch {
+                    .push_event(EngineEvent::Pointer(pointer_touch_event(
                         window_id,
-                        window_width: None,
-                        window_height: None,
-                        pointer_id: touch.id,
+                        touch.id,
                         phase,
-                        position: Vec2::new(touch.location.x as f32, touch.location.y as f32),
-                        position_target: None,
-                        target_width: None,
-                        target_height: None,
+                        Vec2::new(touch.location.x as f32, touch.location.y as f32),
                         pressure,
-                        trace: None,
-                    }));
+                        None,
+                    )));
             }
 
             WinitWindowEvent::ScaleFactorChanged {
@@ -607,8 +524,7 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
                 cache.dark_mode = dark_mode;
 
                 self.runtime
-                    .event_queue
-                    .push(EngineEvent::Window(WindowEvent::OnThemeChange {
+                    .push_event(EngineEvent::Window(WindowEvent::OnThemeChange {
                         window_id,
                         dark_mode,
                     }));
@@ -626,8 +542,7 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
                 cache.occluded = occluded;
 
                 self.runtime
-                    .event_queue
-                    .push(EngineEvent::Window(WindowEvent::OnOcclude {
+                    .push_event(EngineEvent::Window(WindowEvent::OnOcclude {
                         window_id,
                         occluded,
                     }));
@@ -711,19 +626,13 @@ impl ApplicationHandler<EngineCustomEvents> for EngineState {
             .insert(window_id, next_position);
 
         self.runtime
-            .event_queue
-            .push(EngineEvent::Pointer(PointerEvent::OnMove {
+            .push_event(EngineEvent::Pointer(pointer_move_event(
                 window_id,
-                window_width: None,
-                window_height: None,
-                pointer_type: 0,
-                pointer_id: 0,
-                position: next_position,
-                position_target: None,
-                target_width: None,
-                target_height: None,
-                trace: None,
-            }));
+                0,
+                0,
+                next_position,
+                None,
+            )));
     }
 
     fn user_event(&mut self, event_loop: &ActiveEventLoop, event: EngineCustomEvents) {

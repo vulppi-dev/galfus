@@ -1,5 +1,6 @@
 pub mod bootstrap;
 pub mod browser;
+pub mod desktop;
 pub mod gamepad;
 pub mod window;
 
@@ -16,6 +17,11 @@ pub use browser::{
     plan_browser_surface_resize, resolve_browser_pointer_position, resolve_browser_window_state,
     resolve_canvas_surface_size, resolve_pointer_lock_change, resolve_pointer_lock_error,
     should_poll_browser_gamepads,
+};
+#[cfg(not(target_arch = "wasm32"))]
+pub use desktop::{
+    map_winit_key_code, map_winit_key_location, map_winit_mouse_button,
+    map_winit_physical_key_code, map_winit_touch_phase,
 };
 pub use gamepad::{PlatformGamepadBackendState, map_gilrs_axis, map_gilrs_button};
 #[cfg(not(target_arch = "wasm32"))]

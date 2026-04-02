@@ -8,6 +8,7 @@ pub use common::ElementState;
 pub use common::ModifiersState;
 pub use common::TouchPhase;
 #[cfg(not(feature = "wasm"))]
+#[allow(unused_imports)]
 pub use converters::{
     convert_key_code, convert_key_location, convert_mouse_button, convert_touch_phase,
 };
