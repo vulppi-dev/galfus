@@ -13,14 +13,14 @@ use super::singleton::with_engine_singleton;
 /// Main engine tick - processes events and updates state
 pub fn vulfram_tick(time: u64, delta_time: u32) -> VulframResult {
     match with_engine_singleton(|engine| {
-        engine.state.runtime.frame.begin_tick(time, delta_time);
+        engine.state.runtime.begin_tick(time, delta_time);
         engine.state.runtime.clear_events();
 
         // Reset profiling counters
         engine
             .state
             .profiling
-            .begin_frame(delta_time, engine.state.runtime.frame.frame_index);
+            .begin_frame(delta_time, engine.state.runtime.frame_index());
 
         if engine.state.runtime.has_pending_commands() {
             // MARK: Command Processing
@@ -32,10 +32,13 @@ pub fn vulfram_tick(time: u64, delta_time: u32) -> VulframResult {
             let batch = engine
                 .state
                 .runtime
-                .take_ready_commands(engine.state.runtime.frame.frame_index, |envelope| {
+                .take_ready_commands(engine.state.runtime.frame_index(), |envelope| {
                     deferred_command_key(envelope.id, &envelope.cmd)
                 });
-            engine.state.runtime.frame.had_commands_this_frame = !batch.is_empty();
+            engine
+                .state
+                .runtime
+                .set_had_commands_this_frame(!batch.is_empty());
             let result = engine_process_batch(&mut engine.state, &mut engine.platform, batch);
             #[cfg(not(feature = "wasm"))]
             {
@@ -106,7 +109,7 @@ pub fn vulfram_tick(time: u64, delta_time: u32) -> VulframResult {
         engine.state.profiling.input.total_events_dispatched = events_after - events_before;
 
         // MARK: Render Frame Lifecycle
-        let frame_index = engine.state.runtime.frame.advance_frame();
+        let frame_index = engine.state.runtime.advance_frame();
         for render_state in engine.state.render.states.values_mut() {
             render_state.begin_frame(frame_index);
         }

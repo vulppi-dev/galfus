@@ -25,8 +25,7 @@ pub(super) fn apply_ui_platform_actions(
             } => {
                 engine_state
                     .runtime
-                    .event_queue
-                    .push(crate::core::cmd::EngineEvent::System(
+                    .push_event(crate::core::cmd::EngineEvent::System(
                         crate::core::system::SystemEvent::UiOpenUrl {
                             window_id,
                             realm_id,
@@ -42,8 +41,7 @@ pub(super) fn apply_ui_platform_actions(
             } => {
                 engine_state
                     .runtime
-                    .event_queue
-                    .push(crate::core::cmd::EngineEvent::System(
+                    .push_event(crate::core::cmd::EngineEvent::System(
                         crate::core::system::SystemEvent::UiClipboardSetText {
                             window_id,
                             realm_id,
@@ -57,8 +55,7 @@ pub(super) fn apply_ui_platform_actions(
             } => {
                 engine_state
                     .runtime
-                    .event_queue
-                    .push(crate::core::cmd::EngineEvent::System(
+                    .push_event(crate::core::cmd::EngineEvent::System(
                         crate::core::system::SystemEvent::UiClipboardRequestCopy {
                             window_id,
                             realm_id,
@@ -71,8 +68,7 @@ pub(super) fn apply_ui_platform_actions(
             } => {
                 engine_state
                     .runtime
-                    .event_queue
-                    .push(crate::core::cmd::EngineEvent::System(
+                    .push_event(crate::core::cmd::EngineEvent::System(
                         crate::core::system::SystemEvent::UiClipboardRequestCut {
                             window_id,
                             realm_id,
@@ -85,8 +81,7 @@ pub(super) fn apply_ui_platform_actions(
             } => {
                 engine_state
                     .runtime
-                    .event_queue
-                    .push(crate::core::cmd::EngineEvent::System(
+                    .push_event(crate::core::cmd::EngineEvent::System(
                         crate::core::system::SystemEvent::UiClipboardRequestPaste {
                             window_id,
                             realm_id,
@@ -135,8 +130,7 @@ pub(super) fn apply_ui_platform_actions(
             } => {
                 engine_state
                     .runtime
-                    .event_queue
-                    .push(crate::core::cmd::EngineEvent::System(
+                    .push_event(crate::core::cmd::EngineEvent::System(
                         crate::core::system::SystemEvent::UiScreenshotRequest {
                             window_id,
                             realm_id,
@@ -285,8 +279,7 @@ pub(super) fn apply_ui_platform_actions(
             } => {
                 engine_state
                     .runtime
-                    .event_queue
-                    .push(crate::core::cmd::EngineEvent::System(
+                    .push_event(crate::core::cmd::EngineEvent::System(
                         crate::core::system::SystemEvent::UiViewportSync {
                             window_id,
                             realm_id,
@@ -305,8 +298,7 @@ pub(super) fn apply_ui_platform_actions(
             } => {
                 engine_state
                     .runtime
-                    .event_queue
-                    .push(crate::core::cmd::EngineEvent::System(
+                    .push_event(crate::core::cmd::EngineEvent::System(
                         crate::core::system::SystemEvent::UiViewportCommand {
                             window_id,
                             realm_id,
@@ -323,8 +315,7 @@ pub(super) fn apply_ui_platform_actions(
             } => {
                 engine_state
                     .runtime
-                    .event_queue
-                    .push(crate::core::cmd::EngineEvent::System(
+                    .push_event(crate::core::cmd::EngineEvent::System(
                         crate::core::system::SystemEvent::UiViewportFallbackEmbedded {
                             window_id,
                             realm_id,

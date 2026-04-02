@@ -45,8 +45,7 @@ fn ui_input_converts_pointer_button_into_egui_pointer_event() {
     }
     engine
         .runtime
-        .event_queue
-        .push(crate::core::cmd::EngineEvent::Pointer(
+        .push_event(crate::core::cmd::EngineEvent::Pointer(
             crate::core::input::events::PointerEvent::OnButton {
                 window_id: 1,
                 window_width: Some(320),

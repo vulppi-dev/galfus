@@ -93,8 +93,7 @@ fn apply_window_cursor(
             .set_pointer_capture_active(args.window_id, active);
         engine
             .runtime
-            .event_queue
-            .push(EngineEvent::Window(WindowEvent::OnPointerCaptureChange {
+            .push_event(EngineEvent::Window(WindowEvent::OnPointerCaptureChange {
                 window_id: args.window_id,
                 capture: WindowPointerCaptureState {
                     mode,

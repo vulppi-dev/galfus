@@ -30,7 +30,7 @@ pub(crate) fn engine_process_batch(
             if failure_kind == super::defer::DeferredFailureKind::Transient {
                 let retry = engine.runtime.record_deferred_retry(
                     deferred_key,
-                    engine.runtime.frame.frame_index,
+                    engine.runtime.frame_index(),
                     &reason,
                 );
 

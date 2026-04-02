@@ -33,8 +33,7 @@ pub fn vulfram_init() -> VulframResult {
                 state.audio_available = false;
                 state
                     .runtime
-                    .event_queue
-                    .push(EngineEvent::System(SystemEvent::Error {
+                    .push_event(EngineEvent::System(SystemEvent::Error {
                         scope: "audio-init".into(),
                         message: format!("Audio init failed, audio disabled: {message}"),
                         command_id: None,

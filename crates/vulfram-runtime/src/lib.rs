@@ -37,12 +37,12 @@ pub struct RuntimeFrameState {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RuntimeState<TCmd, TEvent, TResponse> {
-    pub frame: RuntimeFrameState,
-    pub cmd_queue: Vec<TCmd>,
-    pub deferred_cmd_queue: Vec<TCmd>,
-    pub deferred_cmd_meta: HashMap<DeferredCommandKey, DeferredCommandMeta>,
-    pub event_queue: Vec<TEvent>,
-    pub response_queue: Vec<TResponse>,
+    frame: RuntimeFrameState,
+    cmd_queue: Vec<TCmd>,
+    deferred_cmd_queue: Vec<TCmd>,
+    deferred_cmd_meta: HashMap<DeferredCommandKey, DeferredCommandMeta>,
+    event_queue: Vec<TEvent>,
+    response_queue: Vec<TResponse>,
 }
 
 impl<TCmd, TEvent, TResponse> Default for RuntimeState<TCmd, TEvent, TResponse> {
@@ -72,6 +72,34 @@ impl RuntimeFrameState {
 }
 
 impl<TCmd, TEvent, TResponse> RuntimeState<TCmd, TEvent, TResponse> {
+    pub fn begin_tick(&mut self, time: u64, delta_time: u32) {
+        self.frame.begin_tick(time, delta_time);
+    }
+
+    pub fn frame_index(&self) -> u64 {
+        self.frame.frame_index
+    }
+
+    pub fn time_ms(&self) -> u64 {
+        self.frame.time
+    }
+
+    pub fn delta_time_ms(&self) -> u32 {
+        self.frame.delta_time
+    }
+
+    pub fn had_commands_this_frame(&self) -> bool {
+        self.frame.had_commands_this_frame
+    }
+
+    pub fn set_had_commands_this_frame(&mut self, had_commands: bool) {
+        self.frame.had_commands_this_frame = had_commands;
+    }
+
+    pub fn advance_frame(&mut self) -> u64 {
+        self.frame.advance_frame()
+    }
+
     pub fn has_pending_commands(&self) -> bool {
         !self.cmd_queue.is_empty() || !self.deferred_cmd_queue.is_empty()
     }
@@ -136,19 +164,19 @@ impl<TCmd, TEvent, TResponse> RuntimeState<TCmd, TEvent, TResponse> {
         self.response_queue.len()
     }
 
-    pub fn event_queue_ref(&self) -> &Vec<TEvent> {
-        &self.event_queue
-    }
-
     pub fn events(&self) -> &[TEvent] {
         &self.event_queue
     }
 
-    pub fn response_queue_ref(&self) -> &Vec<TResponse> {
-        &self.response_queue
+    pub fn event_batch(&self) -> &Vec<TEvent> {
+        &self.event_queue
     }
 
     pub fn responses(&self) -> &[TResponse] {
+        &self.response_queue
+    }
+
+    pub fn response_batch(&self) -> &Vec<TResponse> {
         &self.response_queue
     }
 
@@ -310,8 +338,6 @@ mod tests {
         assert_eq!(state.responses(), &[11]);
         assert_eq!(state.take_pending_commands(), vec![1, 2, 3]);
         assert_eq!(state.take_deferred_commands(), vec![9]);
-        assert_eq!(state.event_queue_ref(), &vec![7]);
-        assert_eq!(state.response_queue_ref(), &vec![11]);
         assert_eq!(state.take_events(), vec![7]);
         state.replace_deferred_commands(vec![5, 6]);
         state.replace_events(vec![8]);

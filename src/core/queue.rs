@@ -64,11 +64,11 @@ pub fn vulfram_receive_queue(out_ptr: *mut *const u8, out_length: *mut usize) ->
         let serialization_start = Instant::now();
         #[cfg(feature = "wasm")]
         let serialization_start = now_ns();
-        let serialized_data =
-            match vulfram_protocol::encode_named(engine.runtime.response_queue_ref()) {
-                Ok(data) => data,
-                Err(_) => return VulframResult::UnknownError,
-            };
+        let serialized_data = match vulfram_protocol::encode_named(engine.runtime.response_batch())
+        {
+            Ok(data) => data,
+            Err(_) => return VulframResult::UnknownError,
+        };
         #[cfg(not(feature = "wasm"))]
         {
             engine.profiling.render.serialization_ns =
@@ -114,8 +114,7 @@ pub fn vulfram_receive_events(out_ptr: *mut *const u8, out_length: *mut usize) -
         let serialization_start = Instant::now();
         #[cfg(feature = "wasm")]
         let serialization_start = now_ns();
-        let serialized_data = match vulfram_protocol::encode_named(engine.runtime.event_queue_ref())
-        {
+        let serialized_data = match vulfram_protocol::encode_named(engine.runtime.event_batch()) {
             Ok(data) => data,
             Err(_) => return VulframResult::UnknownError,
         };

@@ -192,8 +192,7 @@ fn apply_decoded_texture_result(engine: &mut EngineState, result: TextureDecodeR
     if engine.texture_async.was_canceled(result.texture_id) {
         engine
             .runtime
-            .event_queue
-            .push(crate::core::cmd::EngineEvent::System(
+            .push_event(crate::core::cmd::EngineEvent::System(
                 SystemEvent::TextureReady {
                     window_id: 0,
                     texture_id: result.texture_id,
@@ -223,8 +222,7 @@ fn apply_decoded_texture_result(engine: &mut EngineState, result: TextureDecodeR
 
     engine
         .runtime
-        .event_queue
-        .push(crate::core::cmd::EngineEvent::System(
+        .push_event(crate::core::cmd::EngineEvent::System(
             SystemEvent::TextureReady {
                 window_id: 0,
                 texture_id: args.texture_id,
@@ -255,8 +253,7 @@ pub fn process_async_texture_results(engine: &mut EngineState) {
             } => {
                 engine
                     .runtime
-                    .event_queue
-                    .push(crate::core::cmd::EngineEvent::System(
+                    .push_event(crate::core::cmd::EngineEvent::System(
                         SystemEvent::TextureProcessingStarted {
                             window_id: 0,
                             texture_id,
@@ -271,8 +268,7 @@ pub fn process_async_texture_results(engine: &mut EngineState) {
             } => {
                 engine
                     .runtime
-                    .event_queue
-                    .push(crate::core::cmd::EngineEvent::System(
+                    .push_event(crate::core::cmd::EngineEvent::System(
                         SystemEvent::TextureProcessingProgress {
                             window_id: 0,
                             texture_id,
@@ -289,8 +285,7 @@ pub fn process_async_texture_results(engine: &mut EngineState) {
             } => {
                 engine
                     .runtime
-                    .event_queue
-                    .push(crate::core::cmd::EngineEvent::System(
+                    .push_event(crate::core::cmd::EngineEvent::System(
                         SystemEvent::TextureProcessingFinished {
                             window_id: 0,
                             texture_id,

@@ -208,8 +208,7 @@ pub fn engine_cmd_window_state(
     {
         engine
             .runtime
-            .event_queue
-            .push(EngineEvent::Window(WindowEvent::OnStateChange {
+            .push_event(EngineEvent::Window(WindowEvent::OnStateChange {
                 window_id: args.window_id,
                 state: current_state,
             }));
@@ -287,8 +286,7 @@ pub fn engine_cmd_window_state(
     {
         _engine
             .runtime
-            .event_queue
-            .push(EngineEvent::Window(WindowEvent::OnStateChange {
+            .push_event(EngineEvent::Window(WindowEvent::OnStateChange {
                 window_id: args.window_id,
                 state: lifecycle_state,
             }));

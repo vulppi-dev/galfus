@@ -12,8 +12,7 @@ pub fn push_error_event(
 ) {
     engine
         .runtime
-        .event_queue
-        .push(EngineEvent::System(SystemEvent::Error {
+        .push_event(EngineEvent::System(SystemEvent::Error {
             scope: scope.to_string(),
             message: message.into(),
             command_id,

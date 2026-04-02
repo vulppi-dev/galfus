@@ -95,8 +95,7 @@ pub fn process_async_ui_image_results(engine: &mut EngineState) {
             } => {
                 engine
                     .runtime
-                    .event_queue
-                    .push(crate::core::cmd::EngineEvent::System(
+                    .push_event(crate::core::cmd::EngineEvent::System(
                         SystemEvent::UiImageProcessingStarted {
                             image_id,
                             total_bytes,
@@ -110,8 +109,7 @@ pub fn process_async_ui_image_results(engine: &mut EngineState) {
             } => {
                 engine
                     .runtime
-                    .event_queue
-                    .push(crate::core::cmd::EngineEvent::System(
+                    .push_event(crate::core::cmd::EngineEvent::System(
                         SystemEvent::UiImageProcessingProgress {
                             image_id,
                             processed_bytes,
@@ -127,8 +125,7 @@ pub fn process_async_ui_image_results(engine: &mut EngineState) {
             } => {
                 engine
                     .runtime
-                    .event_queue
-                    .push(crate::core::cmd::EngineEvent::System(
+                    .push_event(crate::core::cmd::EngineEvent::System(
                         SystemEvent::UiImageProcessingFinished {
                             image_id,
                             success,
@@ -141,8 +138,7 @@ pub fn process_async_ui_image_results(engine: &mut EngineState) {
                 if ui_state.image_async.was_canceled(result.image_id) {
                     engine
                         .runtime
-                        .event_queue
-                        .push(crate::core::cmd::EngineEvent::System(
+                        .push_event(crate::core::cmd::EngineEvent::System(
                             SystemEvent::UiImageReady {
                                 image_id: result.image_id,
                                 success: false,
@@ -165,8 +161,7 @@ pub fn process_async_ui_image_results(engine: &mut EngineState) {
                     );
                     engine
                         .runtime
-                        .event_queue
-                        .push(crate::core::cmd::EngineEvent::System(
+                        .push_event(crate::core::cmd::EngineEvent::System(
                             SystemEvent::UiImageReady {
                                 image_id: result.image_id,
                                 success: true,
@@ -176,8 +171,7 @@ pub fn process_async_ui_image_results(engine: &mut EngineState) {
                 } else {
                     engine
                         .runtime
-                        .event_queue
-                        .push(crate::core::cmd::EngineEvent::System(
+                        .push_event(crate::core::cmd::EngineEvent::System(
                             SystemEvent::UiImageReady {
                                 image_id: result.image_id,
                                 success: false,

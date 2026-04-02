@@ -98,9 +98,9 @@ pub fn render_frames(engine_state: &mut EngineState) {
         gpu_profiler.ensure_capacity(device, queue, engine_state.window.states.len());
     }
 
-    let time = engine_state.runtime.frame.time as f32 / 1000.0;
-    let delta_time = engine_state.runtime.frame.delta_time as f32 / 1000.0;
-    let frame_index = engine_state.runtime.frame.frame_index as u32;
+    let time = engine_state.runtime.time_ms() as f32 / 1000.0;
+    let delta_time = engine_state.runtime.delta_time_ms() as f32 / 1000.0;
+    let frame_index = engine_state.runtime.frame_index() as u32;
     let frame_spec = crate::core::resources::FrameComponent::new(time, delta_time, frame_index);
     let mut gpu_written = false;
 
@@ -181,7 +181,7 @@ pub fn render_frames(engine_state: &mut EngineState) {
                 .entries
                 .get_mut(realm_id)
                 .map(|realm_entry| {
-                    should_render_realm(realm_entry, engine_state.runtime.frame.frame_index)
+                    should_render_realm(realm_entry, engine_state.runtime.frame_index())
                 })
                 .unwrap_or(false);
             if !should_render {
@@ -351,7 +351,7 @@ pub fn render_frames(engine_state: &mut EngineState) {
                 &target_view,
                 target_format,
                 target_size,
-                engine_state.runtime.frame.frame_index,
+                engine_state.runtime.frame_index(),
                 time as f64,
                 *window_id,
                 window_focused,
@@ -373,7 +373,7 @@ pub fn render_frames(engine_state: &mut EngineState) {
                 &target_view,
                 target_format,
                 target_size,
-                engine_state.runtime.frame.frame_index,
+                engine_state.runtime.frame_index(),
                 &mut frame_report,
             );
 
@@ -436,7 +436,7 @@ pub fn render_frames(engine_state: &mut EngineState) {
                     surface_target.texture.size().width,
                     surface_target.texture.size().height,
                 ),
-                engine_state.runtime.frame.frame_index,
+                engine_state.runtime.frame_index(),
             );
 
             queue.submit(Some(encoder.finish()));
@@ -483,15 +483,14 @@ pub fn render_frames(engine_state: &mut EngineState) {
     let soft_cut_diagnostic = build_soft_cut_diagnostic(
         &frame_report,
         previous_cut_edges,
-        engine_state.runtime.frame.frame_index,
+        engine_state.runtime.frame_index(),
     );
 
     engine_state.universal_state.frame_report = frame_report;
     for event in ui_events {
         engine_state
             .runtime
-            .event_queue
-            .push(crate::core::cmd::EngineEvent::Ui(event));
+            .push_event(crate::core::cmd::EngineEvent::Ui(event));
     }
     if gpu_written {
         if let Some(gpu_profiler) = engine_state.gpu_profiler.as_mut() {

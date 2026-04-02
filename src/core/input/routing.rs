@@ -31,7 +31,7 @@ const MAX_ROUTE_STEPS: usize = 32;
 pub fn route_pointer_events(engine_state: &mut EngineState) {
     let mut events = engine_state.runtime.take_events();
     let trace_config = engine_state.universal_state.input_routing.trace;
-    let frame_index = engine_state.runtime.frame.frame_index;
+    let frame_index = engine_state.runtime.frame_index();
     rebuild_input_routing_cache(&mut engine_state.universal_state);
     let mut captures = std::mem::take(&mut engine_state.universal_state.input_routing.captures);
     let mut focus_targets =

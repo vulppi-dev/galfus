@@ -119,8 +119,7 @@ pub(super) fn emit_deferred_event(
 ) {
     engine
         .runtime
-        .event_queue
-        .push(EngineEvent::System(SystemEvent::CommandDeferred {
+        .push_event(EngineEvent::System(SystemEvent::CommandDeferred {
             command_id,
             command_type: command_type.to_string(),
             attempts,
@@ -136,8 +135,7 @@ pub(super) fn emit_applied_event(
 ) {
     engine
         .runtime
-        .event_queue
-        .push(EngineEvent::System(SystemEvent::CommandApplied {
+        .push_event(EngineEvent::System(SystemEvent::CommandApplied {
             command_id,
             command_type: command_type.to_string(),
             attempts,
@@ -153,8 +151,7 @@ pub(super) fn emit_dropped_event(
 ) {
     engine
         .runtime
-        .event_queue
-        .push(EngineEvent::System(SystemEvent::CommandDropped {
+        .push_event(EngineEvent::System(SystemEvent::CommandDropped {
             command_id,
             command_type: command_type.to_string(),
             attempts,

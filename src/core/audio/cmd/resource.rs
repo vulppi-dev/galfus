@@ -113,8 +113,7 @@ fn upsert_stream_resource(
     let complete = stream_update.complete;
     engine
         .runtime
-        .event_queue
-        .push(crate::core::cmd::EngineEvent::System(
+        .push_event(crate::core::cmd::EngineEvent::System(
             crate::core::system::events::SystemEvent::AudioStreamProgress {
                 resource_id: args.resource_id,
                 received_bytes: stream_update.received_bytes,

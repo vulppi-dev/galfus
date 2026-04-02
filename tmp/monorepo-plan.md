@@ -646,15 +646,19 @@ Critério de aceite:
 - runtime coordena, não redefine domínios
 - estado central reduzido ao que for necessário para orquestração
 
-Status atual:
-- crate criado
-- `RuntimeState` já concentra frame lifecycle, filas, deferreds e metadados de retry
-- o fluxo de deferred/retry já está mais encapsulado no crate:
-  readiness, registro de retry, cleanup de meta e leitura de eventos passam mais pela API do runtime do que pelo shape interno do storage
-- o batching de comandos prontos para execução também já começou a sair do tick do core e ir para a API do runtime
+Status:
+- concluída no escopo arquitetural desta refatoração
+
+Status final da fase:
+- crate criado e integrado
+- `RuntimeState` concentra frame lifecycle, filas, deferreds e metadados de retry
+- o fluxo de deferred/retry passou a depender da API do crate, não do shape interno do storage
+- o batching de comandos prontos para execução saiu do tick do core para a API do runtime
+- frame lifecycle (`begin_tick`, `frame_index`, `time_ms`, `delta_time_ms`, `advance_frame`, `had_commands_this_frame`) passou a ser exposto por helpers do crate
+- emissões de eventos e responses no core passaram a usar a API do `RuntimeState`, removendo writers diretos de fila
+- a memória interna do `RuntimeState` ficou privada para o restante do workspace
 - contrato inicial de bootstrap de render já existe no runtime:
   o runtime recebe um alvo vindo de `platform` e decide apenas a estratégia de device compartilhado vs reuse
-- o próximo avanço relevante continua sendo aprofundar a coordenação entre subsistemas sem puxar detalhes internos de render/platform para dentro do runtime
 
 ### Fase 9 — Criação de `vulfram-platform`
 
