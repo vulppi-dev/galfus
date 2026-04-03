@@ -29,8 +29,8 @@ use realm_graph::{
 pub use runtime::RenderManager;
 use scene_sync::{sync_scene_from_realm_and_universal_resources, sync_window_geometry_registry};
 pub use state::{
-    Realm3dState, RealmEntities, RenderResourceState, RenderState, SceneRuntimeState,
-    UniversalGeometryRecord,
+    Realm3dState, RealmEntities, RenderCatalogState, RenderResourceState, RenderState,
+    SceneRuntimeState, UniversalGeometryRecord,
 };
 use std::collections::HashSet;
 use ui_platform_actions::apply_ui_platform_actions;
@@ -53,10 +53,28 @@ fn resolve_realm_render_graph<'a>(
     let realm = universal.composition.realms.entries.get(&realm_id)?;
     let render_graph_id =
         vulfram_render::resolve_render_graph_id(realm.value.render_graph_id, realm.value.kind);
-    if let Some(graph) = universal.scene.render_graphs.get(&render_graph_id) {
+    if let Some(graph) = universal.render_catalog.render_graphs.get(&render_graph_id) {
         return Some(&graph.state);
     }
     None
+}
+
+pub fn ensure_runtime_render_defaults(universal: &mut crate::core::realm::UniversalState) {
+    crate::core::render::graph::ensure_default_render_graphs(
+        &mut universal.render_catalog.render_graphs,
+        &mut universal.render_catalog.render_graph_plan_cache,
+    );
+    universal
+        .scene
+        .realm3d
+        .materials_standard
+        .entry(crate::core::resources::MATERIAL_FALLBACK_ID)
+        .or_insert_with(|| {
+            crate::core::resources::MaterialStandardRecord::new(
+                Some("Fallback Material".into()),
+                crate::core::resources::MaterialStandardParams::default(),
+            )
+        });
 }
 
 pub fn render_frames(engine_state: &mut EngineState) {

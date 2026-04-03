@@ -4,7 +4,8 @@ use crate::core::realm::{
     PresentId, PresentState, RealmId, RealmKind, RealmState, SurfaceId, SurfaceKind, SurfaceState,
 };
 use crate::core::render::RenderState;
-use crate::core::render::graph::{DEFAULT_3D_RENDER_GRAPH_ID, ensure_default_render_graphs};
+use crate::core::render::ensure_runtime_render_defaults;
+use crate::core::render::graph::DEFAULT_3D_RENDER_GRAPH_ID;
 use crate::core::resources::RenderTarget;
 use crate::core::state::EngineState;
 
@@ -25,10 +26,7 @@ pub fn register_window_realm(
     window_id: u32,
     size: UVec2,
 ) -> WindowRealmBinding {
-    ensure_default_render_graphs(
-        &mut engine.universal_state.scene.render_graphs,
-        &mut engine.universal_state.scene.render_graph_plan_cache,
-    );
+    ensure_runtime_render_defaults(&mut engine.universal_state);
     let surface_id = engine
         .universal_state
         .composition

@@ -1,5 +1,6 @@
 mod meta;
 mod passes;
+mod state;
 mod sync;
 
 pub use meta::{
@@ -8,6 +9,7 @@ pub use meta::{
     TargetTextureBindingMeta, TextureRecordMeta,
 };
 pub use passes::{SUPPORTED_RENDER_PASSES, graph_is_compatible, supports_render_pass};
+pub use state::{GeometryRecord, Realm3dState, RealmEntities};
 pub use sync::{
     apply_sync_plan_map, collect_record_meta, hash_forward_atlas_entries, hash_map_by_meta,
     hash_target_texture_binds, hash_texture_records, plan_camera_projection_update,

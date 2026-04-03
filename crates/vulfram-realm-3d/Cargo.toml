@@ -7,3 +7,4 @@ license.workspace = true
 [dependencies]
 bytemuck = "1.25"
 vulfram-realm-core = { path = "../vulfram-realm-core" }
+vulfram-types = { path = "../vulfram-types" }

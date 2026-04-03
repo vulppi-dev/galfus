@@ -27,6 +27,18 @@ pub use self::library::SamplerSet;
 pub use self::light::{FrustumPlane, LightCullingSystem};
 pub use self::scene::RenderScene;
 pub use self::skinning::SkinningSystem;
+pub type RealmEntities = vulfram_realm_3d::RealmEntities<CameraNode, ModelRecord, LightRecord>;
+pub type UniversalGeometryRecord =
+    vulfram_realm_3d::GeometryRecord<(GeometryPrimitiveType, Vec<u8>)>;
+pub type Realm3dState = vulfram_realm_3d::Realm3dState<
+    CameraNode,
+    ModelRecord,
+    LightRecord,
+    MaterialStandardRecord,
+    MaterialPbrRecord,
+    UniversalGeometryRecord,
+    EnvironmentConfig,
+>;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct SampledTargetBindKey {
@@ -35,29 +47,6 @@ pub struct SampledTargetBindKey {
     pub ssao_view_ptr: usize,
     pub bloom_view_ptr: usize,
     pub uniform_buffer_ptr: usize,
-}
-
-#[derive(Debug, Default)]
-pub struct RealmEntities {
-    pub cameras: std::collections::HashMap<u32, CameraNode>,
-    pub models: std::collections::HashMap<u32, ModelRecord>,
-    pub lights: std::collections::HashMap<u32, LightRecord>,
-}
-
-#[derive(Debug, Clone)]
-pub struct UniversalGeometryRecord {
-    pub label: Option<String>,
-    pub entries: Vec<(GeometryPrimitiveType, Vec<u8>)>,
-}
-
-#[derive(Debug, Default)]
-pub struct Realm3dState {
-    pub entities: std::collections::HashMap<RealmId, RealmEntities>,
-    pub materials_standard: std::collections::HashMap<u32, MaterialStandardRecord>,
-    pub materials_pbr: std::collections::HashMap<u32, MaterialPbrRecord>,
-    pub geometries: std::collections::HashMap<u32, UniversalGeometryRecord>,
-    pub environment_profiles: std::collections::HashMap<u32, EnvironmentConfig>,
-    pub default_environment_id: Option<u32>,
 }
 
 #[derive(Debug, Default)]
@@ -71,6 +60,10 @@ pub struct RenderResourceState {
 pub struct SceneRuntimeState {
     pub realm3d: Realm3dState,
     pub render_resources: RenderResourceState,
+}
+
+#[derive(Debug, Default)]
+pub struct RenderCatalogState {
     pub render_graphs:
         std::collections::HashMap<u32, crate::core::render::graph::RenderGraphRecord>,
     pub render_graph_plan_cache:

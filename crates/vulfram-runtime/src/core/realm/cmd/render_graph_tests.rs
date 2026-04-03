@@ -372,7 +372,7 @@ fn upsert_rejects_incompatible_update_for_bound_realms() {
     assert!(
         !engine
             .universal_state
-            .scene
+            .render_catalog
             .render_graph_plan_cache
             .contains_key(&rejected_hash),
         "incompatible upsert must not populate plan cache"
@@ -403,7 +403,7 @@ fn dispose_prunes_orphaned_render_graph_plan_cache() {
     assert!(
         engine
             .universal_state
-            .scene
+            .render_catalog
             .render_graph_plan_cache
             .contains_key(&desc_hash)
     );
@@ -420,7 +420,7 @@ fn dispose_prunes_orphaned_render_graph_plan_cache() {
     assert!(
         !engine
             .universal_state
-            .scene
+            .render_catalog
             .render_graph_plan_cache
             .contains_key(&desc_hash),
         "cache entry should be dropped when no graph references desc hash"

@@ -77,6 +77,8 @@ It should not own broader runtime state such as:
 - texture/material registries
 - render graph catalogs
 - WGPU caches/targets
+- 3D semantic state that belongs to specialized realm crates such as
+  `vulfram-realm-3d`
 
 ## 5. Internal Split Recommendation
 
@@ -140,7 +142,10 @@ A practical future split is:
 - `TargetRoutingState`
   - targets/target-layers/target-graph-cache/auto-links/indexes/failures
 - `SceneResourceState`
-  - scene/resource registries
+  - scene/resource registries instantiated by runtime, with semantic 3D types
+    defined in `vulfram-realm-3d`
+- `RenderCatalogState`
+  - render graph catalog + plan cache
 - `UiRuntimeState`
   - UI runtime
 - `InputRoutingRuntimeState`

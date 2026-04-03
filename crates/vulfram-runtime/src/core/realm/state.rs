@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::core::input::InteractionRuntimeState;
-use crate::core::render::SceneRuntimeState;
+use crate::core::render::{RenderCatalogState, SceneRuntimeState};
 use crate::core::target::TargetRoutingState;
 pub use vulfram_audio::AudioState;
 pub use vulfram_realm_core::{
@@ -58,6 +58,7 @@ pub struct UniversalState {
     pub targets: TargetRoutingState,
     pub interaction: InteractionRuntimeState,
     pub scene: SceneRuntimeState,
+    pub render_catalog: RenderCatalogState,
 }
 
 pub use vulfram_input::{

@@ -4051,6 +4051,7 @@ version = "0.21.2-alpha"
 dependencies = [
  "bytemuck",
  "vulfram-realm-core",
+ "vulfram-types",
 ]
 
 [[package]]

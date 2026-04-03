@@ -10,17 +10,19 @@ flowchart TB
   ES --> RM
   ES --> AS
 
-  USR["realm_entities (realm-owned)"]
-  USG["universal_resources (shared)"]
-  UST["targets and target_layers"]
-  USS["surfaces, connectors, presents"]
+  USC["composition"]
+  UST["targets"]
+  USI["interaction"]
+  USS["scene"]
+  URC["render_catalog"]
   WIN["window.states (native/canvas)"]
   RST["render.states (per window_id)"]
 
-  US --> USR
-  US --> USG
+  US --> USC
   US --> UST
+  US --> USI
   US --> USS
+  US --> URC
   WM --> WIN
   RM --> RST
 

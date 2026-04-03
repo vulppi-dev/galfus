@@ -110,7 +110,14 @@ more explicitly even though `UniversalState` still aggregates the sub-states:
   - `InteractionRuntimeState`
 - `core/render/state/mod.rs`
   - `SceneRuntimeState`
-  - realm-attached render/resource registries
+  - `RenderCatalogState`
+  - scene-attached resource registries and render graph catalogs kept separate
+
+Additionally:
+
+- semantic 3D world state types now live in `vulfram-realm-3d`
+- `vulfram-runtime` instantiates and orchestrates those types instead of
+  defining them locally
 
 ## 5. Recommended State Shape
 
@@ -159,6 +166,8 @@ tables:
 
 - target disposal and target-layer disposal logic belong in `core/target`
 - realm/surface/connector disposal logic belong in `core/realm`
+- when realm teardown affects target-owned derived links, `core/realm` should
+  delegate to `core/target` helpers instead of mutating target tables directly
 - `EngineState` should orchestrate window/GPU/runtime shutdown, not own all
   teardown details inline
 
@@ -197,6 +206,8 @@ The rest of the documentation should assume:
 - render graphs are global resources bound per realm
 - `vulfram-runtime` is the current integration root
 - `vulfram-render` should increasingly own auto-graph planning policy
+- semantic 3D state definitions belong in `vulfram-realm-3d`, while runtime
+  state instantiation/orchestration stays in `vulfram-runtime`
 
 ## 9. Test File Layout
 

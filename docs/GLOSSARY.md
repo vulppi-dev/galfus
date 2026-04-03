@@ -102,7 +102,7 @@ It is realm-centric but not realm-only. It currently mixes:
 - input routing
 - UI state
 - scene/resource registries
-- render graph catalogs
+- render graph catalogs kept in a dedicated `render_catalog` sub-state
 - diagnostics
 
 Because of that, it should be split before any attempt to move it into

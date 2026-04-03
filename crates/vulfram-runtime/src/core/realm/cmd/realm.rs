@@ -4,9 +4,8 @@ use crate::core::realm::{
     RealmId, RealmKind, RealmState, detach_realm_runtime, dispose_realm_layers,
     dispose_surface_links, init_realm_runtime, remove_connectors_for_realms,
 };
-use crate::core::render::graph::{
-    DEFAULT_2D_RENDER_GRAPH_ID, DEFAULT_3D_RENDER_GRAPH_ID, ensure_default_render_graphs,
-};
+use crate::core::render::ensure_runtime_render_defaults;
+use crate::core::render::graph::{DEFAULT_2D_RENDER_GRAPH_ID, DEFAULT_3D_RENDER_GRAPH_ID};
 use crate::core::state::EngineState;
 use crate::core::target::prune_target_graph_cache;
 
@@ -53,10 +52,7 @@ pub fn engine_cmd_realm_create(
         RealmKindDto::ThreeD => RealmKind::ThreeD,
         RealmKindDto::TwoD => RealmKind::TwoD,
     };
-    ensure_default_render_graphs(
-        &mut engine.universal_state.scene.render_graphs,
-        &mut engine.universal_state.scene.render_graph_plan_cache,
-    );
+    ensure_runtime_render_defaults(&mut engine.universal_state);
     let render_graph_id = match kind {
         RealmKind::ThreeD => Some(DEFAULT_3D_RENDER_GRAPH_ID),
         RealmKind::TwoD => Some(DEFAULT_2D_RENDER_GRAPH_ID),

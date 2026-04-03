@@ -9,11 +9,8 @@ use crate::core::input::InputState;
 use crate::core::profiling::TickProfiling;
 use crate::core::profiling::gpu::GpuProfiler;
 use crate::core::realm::{AudioState, UniversalState};
-use crate::core::render::RenderManager;
-use crate::core::resources::{
-    MATERIAL_FALLBACK_ID, MaterialStandardParams, MaterialStandardRecord, RenderTarget,
-    TextureAsyncManager, TextureDecodeResult,
-};
+use crate::core::render::{RenderManager, ensure_runtime_render_defaults};
+use crate::core::resources::{RenderTarget, TextureAsyncManager, TextureDecodeResult};
 use crate::core::window::WindowManager;
 use crate::core::{realm, target};
 use std::collections::HashMap;
@@ -64,17 +61,7 @@ pub struct EngineState {
 impl EngineState {
     pub fn new() -> Self {
         let mut universal_state = UniversalState::default();
-        crate::core::render::graph::ensure_default_render_graphs(
-            &mut universal_state.scene.render_graphs,
-            &mut universal_state.scene.render_graph_plan_cache,
-        );
-        universal_state.scene.realm3d.materials_standard.insert(
-            MATERIAL_FALLBACK_ID,
-            MaterialStandardRecord::new(
-                Some("Fallback Material".into()),
-                MaterialStandardParams::default(),
-            ),
-        );
+        ensure_runtime_render_defaults(&mut universal_state);
 
         Self {
             window: WindowManager::new(),

@@ -128,7 +128,7 @@ pub fn engine_cmd_render_graph_upsert(
     let desc_hash = crate::core::render::graph::render_graph_desc_hash(&args.graph);
     let cached_graph_state = engine
         .universal_state
-        .scene
+        .render_catalog
         .render_graph_plan_cache
         .get(&desc_hash)
         .cloned();
@@ -183,7 +183,7 @@ pub fn engine_cmd_render_graph_upsert(
 
     let existed = engine
         .universal_state
-        .scene
+        .render_catalog
         .render_graphs
         .insert(
             args.render_graph_id,
@@ -199,7 +199,7 @@ pub fn engine_cmd_render_graph_upsert(
     if cached_graph_state.is_none() {
         engine
             .universal_state
-            .scene
+            .render_catalog
             .render_graph_plan_cache
             .insert(desc_hash, graph_state.clone());
     }
@@ -256,20 +256,20 @@ pub fn engine_cmd_render_graph_dispose(
 
     if let Some(removed_graph) = engine
         .universal_state
-        .scene
+        .render_catalog
         .render_graphs
         .remove(&args.render_graph_id)
     {
         let keep_plan_cached = engine
             .universal_state
-            .scene
+            .render_catalog
             .render_graphs
             .values()
             .any(|record| record.desc_hash == removed_graph.desc_hash);
         if !keep_plan_cached {
             engine
                 .universal_state
-                .scene
+                .render_catalog
                 .render_graph_plan_cache
                 .remove(&removed_graph.desc_hash);
         }
@@ -296,7 +296,7 @@ pub fn engine_cmd_render_graph_list(
 ) -> CmdResultRenderGraphList {
     let mut render_graph_ids: Vec<u32> = engine
         .universal_state
-        .scene
+        .render_catalog
         .render_graphs
         .keys()
         .copied()
@@ -306,7 +306,7 @@ pub fn engine_cmd_render_graph_list(
     for render_graph_id in render_graph_ids {
         let Some(graph) = engine
             .universal_state
-            .scene
+            .render_catalog
             .render_graphs
             .get(&render_graph_id)
         else {
@@ -341,7 +341,7 @@ pub fn engine_cmd_realm_render_graph_bind(
 ) -> CmdResultRealmRenderGraphBind {
     let Some(graph) = engine
         .universal_state
-        .scene
+        .render_catalog
         .render_graphs
         .get(&args.render_graph_id)
     else {

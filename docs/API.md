@@ -35,6 +35,7 @@ The workspace is currently organized around these main crates:
   - UI semantic state, documents, interaction and trace planning
 - `vulfram-realm-3d`
   - 3D realm sync and pass-facing semantic helpers
+  - semantic 3D world state definitions used by the runtime
 - `vulfram-realm-2d`
   - reserved 2D realm contract surface
 - `vulfram-audio`
@@ -79,7 +80,9 @@ realm composition alone. Today it contains:
 - `interaction`
   - `ui`, `input_routing`, `target_listeners`
 - `scene`
-  - `realm3d`, `render_resources`, `render_graphs`, `render_graph_plan_cache`
+  - `realm3d`, `render_resources`
+- `render_catalog`
+  - `render_graphs`, `render_graph_plan_cache`
 
 Because of that, `UniversalState` should not be moved wholesale into
 `vulfram-realm-core` yet. The name suggests "all runtime world state", but its
@@ -118,10 +121,13 @@ aggregate as-is. The runtime now follows this shape internally:
 3. `SceneRuntimeState` in `vulfram-runtime/core/render`
    - `realm3d`
    - `render_resources`
+   - with semantic 3D state types defined in `vulfram-realm-3d`
+
+4. `RenderCatalogState` in `vulfram-runtime/core/render`
    - `render_graphs`
    - `render_graph_plan_cache`
 
-4. `InteractionRuntimeState` in `vulfram-runtime/core/input`
+5. `InteractionRuntimeState` in `vulfram-runtime/core/input`
    - `ui`
    - `input_routing`
    - `target_listeners`
@@ -156,6 +162,7 @@ That means the long-term ideal is:
   - command decoding
   - applying the planner result into owned runtime tables
   - emitting diagnostics/events
+  - instantiating domain-owned state for the current runtime session
 
 In other words: the auto-graph should be render-owned in policy, but not
 because it "owns WGPU handles". It should be render-owned because it decides
