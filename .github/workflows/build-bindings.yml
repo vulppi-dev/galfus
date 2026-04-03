@@ -26,13 +26,19 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install Bun dependencies
+        run: bun install --frozen-lockfile
+
       - name: Install Dependencies (Linux)
         run: |
           sudo apt-get update
           sudo apt-get install -y pkg-config libwayland-dev libx11-dev libxkbcommon-dev libasound2-dev libdbus-1-dev libudev-dev libxcb-shape0-dev libxcb-xfixes0-dev
 
       - name: Static checks
-        run: scripts/check.sh
+        run: bun run check
 
       - name: Workspace tests
         run: cargo test --workspace --lib
@@ -191,14 +197,14 @@ jobs:
           if [[ "${{ matrix.os }}" == "windows-latest" ]]; then LIB_PREFIX=""; fi
 
           if [[ "${{ matrix.os }}" == "ubuntu-latest" && "${{ matrix.arch }}" == "arm64" ]]; then
-            SEARCH_PATH="target/aarch64-unknown-linux-gnu/release"
+            SEARCH_PATH="build/cargo-target/aarch64-unknown-linux-gnu/release"
           else
-            SEARCH_PATH="target/${{ steps.build.outputs.target }}/release"
+            SEARCH_PATH="build/cargo-target/${{ steps.build.outputs.target }}/release"
           fi
 
           SOURCE_FILE="${SEARCH_PATH}/${LIB_PREFIX}${{ steps.build.outputs.artifact_stem }}.${EXTENSION}"
           if [[ ! -f "${SOURCE_FILE}" ]]; then
-            SOURCE_FILE="target/release/${LIB_PREFIX}${{ steps.build.outputs.artifact_stem }}.${EXTENSION}"
+            SOURCE_FILE="build/cargo-target/release/${LIB_PREFIX}${{ steps.build.outputs.artifact_stem }}.${EXTENSION}"
           fi
 
           if [[ ! -f "${SOURCE_FILE}" ]]; then
@@ -307,7 +313,7 @@ jobs:
             --target web \
             --out-dir "${DIST_DIR}" \
             --out-name vulfram_core \
-            target/wasm32-unknown-unknown/release/vulfram_bindings_wasm.wasm
+            build/cargo-target/wasm32-unknown-unknown/release/vulfram_bindings_wasm.wasm
 
           # wasm-bindgen emits <out-name>_bg.wasm for web targets.
           DEST_PATH="${DIST_DIR}/vulfram_core_bg.wasm"

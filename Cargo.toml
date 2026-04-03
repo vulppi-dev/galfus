@@ -6,6 +6,7 @@ members = [
     "crates/vulfram-bindings-napi",
     "crates/vulfram-bindings-python",
     "crates/vulfram-bindings-wasm",
+    "crates/vulfram-devtools",
     "crates/vulfram-demo",
     "crates/vulfram-input",
     "crates/vulfram-platform",
@@ -24,32 +25,6 @@ resolver = "3"
 version = "0.21.2-alpha"
 edition = "2024"
 license = "MIT"
-
-[package]
-name = "vulfram-devtools"
-version.workspace = true
-edition.workspace = true
-license.workspace = true
-
-[dependencies]
-vulfram-runtime = { path = "crates/vulfram-runtime", default-features = false }
-naga = { version = "28.0.0", features = ["wgsl-in"] }
-
-[lib]
-crate-type = ["cdylib", "rlib"]
-path = "devtools/src/lib.rs"
-
-[[bin]]
-name = "wgsl_check"
-path = "devtools/src/bin/wgsl_check.rs"
-
-[features]
-default = ["napi"]  # Default to N-API export
-ffi = ["vulfram-runtime/ffi"]
-napi = ["vulfram-runtime/napi"]
-lua = ["vulfram-runtime/lua"]
-python = ["vulfram-runtime/python"]
-wasm = ["vulfram-runtime/wasm"]
 
 [profile.dev]
 opt-level = 0
