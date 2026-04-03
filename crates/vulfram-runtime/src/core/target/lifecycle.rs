@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use crate::core::realm::UniversalState;
+use crate::core::realm::{RealmId, SurfaceId, UniversalState};
 use crate::core::target::{TargetId, resolve::remove_auto_link_for_layer};
 
 pub fn prune_target_graph_cache(universal_state: &mut UniversalState) {
@@ -177,4 +177,46 @@ pub fn dispose_window_targets(
     prune_target_graph_cache(universal_state);
 
     targets_to_remove
+}
+
+pub fn dispose_realm_layers(universal_state: &mut UniversalState, realm_id: RealmId) {
+    let removed_layers: Vec<_> = universal_state
+        .targets
+        .target_layers
+        .entries
+        .keys()
+        .filter(|(layer_realm, _)| *layer_realm == realm_id.0)
+        .copied()
+        .collect();
+    for (layer_realm, layer_target) in removed_layers {
+        universal_state
+            .targets
+            .target_layers
+            .entries
+            .remove(&(layer_realm, layer_target));
+        remove_auto_link_for_layer(universal_state, layer_realm, layer_target);
+    }
+    prune_target_graph_cache(universal_state);
+}
+
+pub fn dispose_surface_auto_links(
+    universal_state: &mut UniversalState,
+    realm_id: RealmId,
+    surface_id: SurfaceId,
+) {
+    let keys: Vec<_> = universal_state
+        .targets
+        .auto_links
+        .iter()
+        .filter_map(|((layer_realm, layer_target), link)| {
+            if *layer_realm == realm_id.0 || link.surface_id == surface_id {
+                Some((*layer_realm, *layer_target))
+            } else {
+                None
+            }
+        })
+        .collect();
+    for (layer_realm, layer_target) in keys {
+        remove_auto_link_for_layer(universal_state, layer_realm, layer_target);
+    }
 }

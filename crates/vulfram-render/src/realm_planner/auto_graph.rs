@@ -25,6 +25,18 @@ pub struct AutoGraphSurfaceSpec {
     pub msaa_samples: Option<u32>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AutoGraphLinkPlan {
+    None,
+    Present {
+        window_id: u32,
+    },
+    Connector {
+        target_realm: RealmId,
+        input_flags: u32,
+    },
+}
+
 pub const AUTO_GRAPH_INPUT_FLAG_RAYCAST: u32 = 1 << 0;
 pub const AUTO_GRAPH_INPUT_FLAG_WIDGET_VIEW: u32 = 1 << 1;
 const DEFAULT_CH_WIDTH: f32 = 8.0;
@@ -223,5 +235,45 @@ pub fn plan_auto_graph_surface_spec(
         format_policy,
         alpha_policy,
         msaa_samples,
+    }
+}
+
+pub fn plan_auto_graph_link(
+    target_kind: TargetKind,
+    target_window_id: Option<u32>,
+    source_realm_id: RealmId,
+    source_realm_kind: RealmKind,
+    host_realm_index: &HashMap<u32, RealmId>,
+) -> AutoGraphLinkPlan {
+    match target_kind {
+        TargetKind::Window => {
+            let Some(window_id) = target_window_id else {
+                return AutoGraphLinkPlan::None;
+            };
+            let Some(host_realm) = host_realm_index.get(&window_id).copied() else {
+                return AutoGraphLinkPlan::None;
+            };
+            if host_realm == source_realm_id {
+                AutoGraphLinkPlan::Present { window_id }
+            } else {
+                AutoGraphLinkPlan::Connector {
+                    target_realm: host_realm,
+                    input_flags: infer_auto_graph_input_flags(target_kind, source_realm_kind),
+                }
+            }
+        }
+        TargetKind::WidgetRealmViewport | TargetKind::RealmPlane => {
+            let Some(window_id) = target_window_id else {
+                return AutoGraphLinkPlan::None;
+            };
+            let Some(host_realm) = host_realm_index.get(&window_id).copied() else {
+                return AutoGraphLinkPlan::None;
+            };
+            AutoGraphLinkPlan::Connector {
+                target_realm: host_realm,
+                input_flags: infer_auto_graph_input_flags(target_kind, source_realm_kind),
+            }
+        }
+        TargetKind::Texture => AutoGraphLinkPlan::None,
     }
 }

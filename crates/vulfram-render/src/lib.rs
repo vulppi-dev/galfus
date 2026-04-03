@@ -34,18 +34,19 @@ pub use layouts::{
 pub use library::ResourceLibrary;
 pub use profiler::{GpuProfiler, GpuTimingReport};
 pub use realm_planner::{
-    AUTO_GRAPH_INPUT_FLAG_RAYCAST, AUTO_GRAPH_INPUT_FLAG_WIDGET_VIEW, AutoGraphResolvedLayout,
-    AutoGraphSurfaceKind, AutoGraphSurfaceSpec, ComposeBlendMode, ComposeConnectorCandidate,
-    ComposeOverlayPlan, ComposeOverlayPlanEntry, EnvironmentLayerBinding,
-    ExternalTextureRefreshPlan, ExternalTextureSource, RealmEnvironmentBindingPlan,
-    ResolvedSurfaceTarget, SurfaceTargetRequest, TargetSizeUpdatePlanEntry,
-    TargetSizeUpdateRequest, build_soft_cut_diagnostic, build_target_surface_map,
-    collect_connectors_by_realm, collect_cut_connectors, collect_window_camera_target_sizes,
-    infer_auto_graph_input_flags, map_realms_to_windows, plan_auto_graph_surface_spec,
-    plan_compose_overlays, plan_external_texture_refresh, plan_host_realm_index,
-    plan_realm_environment_bindings, plan_surface_targets, plan_target_size_updates,
-    plan_target_ui_realm_index, resolve_auto_graph_layout, resolve_connector_surface,
-    resolve_realm_surface, should_render_realm, update_present_size_cache, update_surface_cache,
+    AUTO_GRAPH_INPUT_FLAG_RAYCAST, AUTO_GRAPH_INPUT_FLAG_WIDGET_VIEW, AutoGraphLinkPlan,
+    AutoGraphResolvedLayout, AutoGraphSurfaceKind, AutoGraphSurfaceSpec, ComposeBlendMode,
+    ComposeConnectorCandidate, ComposeOverlayPlan, ComposeOverlayPlanEntry,
+    EnvironmentLayerBinding, ExternalTextureRefreshPlan, ExternalTextureSource,
+    RealmEnvironmentBindingPlan, ResolvedSurfaceTarget, SurfaceTargetRequest,
+    TargetSizeUpdatePlanEntry, TargetSizeUpdateRequest, build_soft_cut_diagnostic,
+    build_target_surface_map, collect_connectors_by_realm, collect_cut_connectors,
+    collect_window_camera_target_sizes, infer_auto_graph_input_flags, map_realms_to_windows,
+    plan_auto_graph_link, plan_auto_graph_surface_spec, plan_compose_overlays,
+    plan_external_texture_refresh, plan_host_realm_index, plan_realm_environment_bindings,
+    plan_surface_targets, plan_target_size_updates, plan_target_ui_realm_index,
+    resolve_auto_graph_layout, resolve_connector_surface, resolve_realm_surface,
+    should_render_realm, update_present_size_cache, update_surface_cache,
 };
 pub use realm_policy::{
     clear_alpha_for_realm_kind, graph_is_compatible_with_realm_kind,

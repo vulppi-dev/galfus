@@ -2,7 +2,9 @@ use std::collections::{HashMap, HashSet};
 
 use crate::core::realm::{RealmId, RealmKind, SurfaceId, UniversalState};
 use crate::core::resources::RenderTarget;
-use crate::core::target::remove_auto_link_for_layer;
+use crate::core::target::{
+    dispose_realm_layers as dispose_target_realm_layers, dispose_surface_auto_links,
+};
 
 pub fn detach_realm_runtime(
     universal_state: &mut UniversalState,
@@ -61,45 +63,12 @@ pub fn remove_connectors_for_realms(
         .retain(|connector_id, _| !removed_set.contains(connector_id));
 }
 
-pub fn dispose_realm_layers(universal_state: &mut UniversalState, realm_id: RealmId) {
-    let removed_layers: Vec<_> = universal_state
-        .targets
-        .target_layers
-        .entries
-        .keys()
-        .filter(|(layer_realm, _)| *layer_realm == realm_id.0)
-        .copied()
-        .collect();
-    for (layer_realm, layer_target) in removed_layers {
-        universal_state
-            .targets
-            .target_layers
-            .entries
-            .remove(&(layer_realm, layer_target));
-        remove_auto_link_for_layer(universal_state, layer_realm, layer_target);
-    }
-}
-
 pub fn dispose_surface_links(
     universal_state: &mut UniversalState,
     realm_id: RealmId,
     surface_id: SurfaceId,
 ) {
-    let keys: Vec<_> = universal_state
-        .targets
-        .auto_links
-        .iter()
-        .filter_map(|((layer_realm, layer_target), link)| {
-            if *layer_realm == realm_id.0 || link.surface_id == surface_id {
-                Some((*layer_realm, *layer_target))
-            } else {
-                None
-            }
-        })
-        .collect();
-    for (layer_realm, layer_target) in keys {
-        remove_auto_link_for_layer(universal_state, layer_realm, layer_target);
-    }
+    dispose_surface_auto_links(universal_state, realm_id, surface_id);
 
     universal_state
         .composition
@@ -111,6 +80,10 @@ pub fn dispose_surface_links(
         .surface_cache
         .fallback
         .retain(|_, source| *source != surface_id);
+}
+
+pub fn dispose_realm_layers(universal_state: &mut UniversalState, realm_id: RealmId) {
+    dispose_target_realm_layers(universal_state, realm_id);
 }
 
 pub fn dispose_surfaces_for_window(

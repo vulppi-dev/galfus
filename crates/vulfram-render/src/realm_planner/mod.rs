@@ -6,10 +6,10 @@ mod targets;
 mod tests;
 
 pub use auto_graph::{
-    AUTO_GRAPH_INPUT_FLAG_RAYCAST, AUTO_GRAPH_INPUT_FLAG_WIDGET_VIEW, AutoGraphResolvedLayout,
-    AutoGraphSurfaceKind, AutoGraphSurfaceSpec, infer_auto_graph_input_flags,
-    plan_auto_graph_surface_spec, plan_host_realm_index, plan_target_ui_realm_index,
-    resolve_auto_graph_layout,
+    AUTO_GRAPH_INPUT_FLAG_RAYCAST, AUTO_GRAPH_INPUT_FLAG_WIDGET_VIEW, AutoGraphLinkPlan,
+    AutoGraphResolvedLayout, AutoGraphSurfaceKind, AutoGraphSurfaceSpec,
+    infer_auto_graph_input_flags, plan_auto_graph_link, plan_auto_graph_surface_spec,
+    plan_host_realm_index, plan_target_ui_realm_index, resolve_auto_graph_layout,
 };
 pub use common::{
     EnvironmentLayerBinding, RealmEnvironmentBindingPlan, build_soft_cut_diagnostic,

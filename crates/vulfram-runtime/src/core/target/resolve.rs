@@ -260,70 +260,41 @@ fn apply_planned_layer_sync(engine_state: &mut EngineState, planned: PlannedLaye
         }
     }
 
+    let link_plan = vulfram_render::plan_auto_graph_link(
+        planned.target.kind,
+        planned.target.window_id,
+        realm_id,
+        planned.realm_kind,
+        &engine_state.universal_state.targets.host_realm_index,
+    );
     let mut connector_id = None;
     let mut present_id = None;
-
-    match planned.target.kind {
-        TargetKind::Window => {
-            if let Some(window_id) = planned.target.window_id {
-                let host_realm = engine_state
-                    .universal_state
-                    .targets
-                    .host_realm_index
-                    .get(&window_id)
-                    .copied();
-                if host_realm == Some(realm_id) {
-                    present_id = Some(engine_state.universal_state.composition.presents.alloc(
-                        PresentState {
-                            window_id,
-                            surface: surface_id,
-                        },
-                    ));
-                } else if let Some(host_realm) = host_realm {
-                    connector_id = Some(engine_state.universal_state.composition.connectors.alloc(
-                        ConnectorState {
-                            target_realm: host_realm,
-                            source_surface: surface_id,
-                            rect: planned.resolved_layout.rect,
-                            z_index: planned.resolved_layout.z_index,
-                            blend_mode: planned.resolved_layout.blend_mode,
-                            clip: planned.resolved_layout.clip,
-                            input_flags: infer_layer_input_flags(
-                                planned.target.kind,
-                                planned.realm_kind,
-                            ),
-                        },
-                    ));
-                }
-            }
+    match link_plan {
+        vulfram_render::AutoGraphLinkPlan::None => {}
+        vulfram_render::AutoGraphLinkPlan::Present { window_id } => {
+            present_id = Some(engine_state.universal_state.composition.presents.alloc(
+                PresentState {
+                    window_id,
+                    surface: surface_id,
+                },
+            ));
         }
-        TargetKind::WidgetRealmViewport | TargetKind::RealmPlane => {
-            if let Some(window_id) = planned.target.window_id {
-                if let Some(host_realm) = engine_state
-                    .universal_state
-                    .targets
-                    .host_realm_index
-                    .get(&window_id)
-                    .copied()
-                {
-                    connector_id = Some(engine_state.universal_state.composition.connectors.alloc(
-                        ConnectorState {
-                            target_realm: host_realm,
-                            source_surface: surface_id,
-                            rect: planned.resolved_layout.rect,
-                            z_index: planned.resolved_layout.z_index,
-                            blend_mode: planned.resolved_layout.blend_mode,
-                            clip: planned.resolved_layout.clip,
-                            input_flags: infer_layer_input_flags(
-                                planned.target.kind,
-                                planned.realm_kind,
-                            ),
-                        },
-                    ));
-                }
-            }
+        vulfram_render::AutoGraphLinkPlan::Connector {
+            target_realm,
+            input_flags,
+        } => {
+            connector_id = Some(engine_state.universal_state.composition.connectors.alloc(
+                ConnectorState {
+                    target_realm,
+                    source_surface: surface_id,
+                    rect: planned.resolved_layout.rect,
+                    z_index: planned.resolved_layout.z_index,
+                    blend_mode: planned.resolved_layout.blend_mode,
+                    clip: planned.resolved_layout.clip,
+                    input_flags,
+                },
+            ));
         }
-        TargetKind::Texture => {}
     }
 
     engine_state.universal_state.targets.auto_links.insert(
