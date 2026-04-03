@@ -158,6 +158,8 @@ That means the long-term ideal is:
   - auto-graph planner and reconciliation planning
   - target/realm composition policy because it directly drives realm ordering,
     surface sizing, composition and WGPU-facing execution constraints
+  - per-layer sync ops that tell runtime when to create, rebuild, keep or
+    update derived internal links/surfaces
 - `vulfram-runtime`
   - command decoding
   - applying the planner result into owned runtime tables

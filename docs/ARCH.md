@@ -67,6 +67,8 @@ Design direction:
 - auto-graph policy belongs conceptually to `vulfram-render`
 - application of commands and emission of diagnostics stay in `vulfram-runtime`
 - realm composition DTOs/state belong in `vulfram-realm-core`
+- per-layer sync decisions such as create/update/keep/rebuild are planned in
+  `vulfram-render` and only applied in `vulfram-runtime`
 
 Reasoning:
 

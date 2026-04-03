@@ -1,13 +1,14 @@
 use super::{
+    AutoGraphExistingLink, AutoGraphLinkPlan, AutoGraphLinkSyncOp, AutoGraphSurfaceSyncOp,
     ComposeBlendMode, ComposeConnectorCandidate, ComposeOverlayPlan, ComposeOverlayPlanEntry,
     EnvironmentLayerBinding, ExternalTextureRefreshPlan, ExternalTextureSource,
     RealmEnvironmentBindingPlan, ResolvedSurfaceTarget, SurfaceTargetRequest,
     TargetSizeUpdatePlanEntry, TargetSizeUpdateRequest, build_soft_cut_diagnostic,
     build_target_surface_map, collect_connectors_by_realm, collect_cut_connectors,
-    collect_window_camera_target_sizes, map_realms_to_windows, plan_compose_overlays,
-    plan_external_texture_refresh, plan_realm_environment_bindings, plan_surface_targets,
-    plan_target_size_updates, resolve_connector_surface, resolve_realm_surface,
-    should_render_realm, update_present_size_cache, update_surface_cache,
+    collect_window_camera_target_sizes, map_realms_to_windows, plan_auto_graph_layer_sync,
+    plan_compose_overlays, plan_external_texture_refresh, plan_realm_environment_bindings,
+    plan_surface_targets, plan_target_size_updates, resolve_connector_surface,
+    resolve_realm_surface, should_render_realm, update_present_size_cache, update_surface_cache,
 };
 use std::collections::{HashMap, HashSet};
 use vulfram_realm_core::{
@@ -36,6 +37,82 @@ fn collects_cut_connectors_from_plan() {
     let cut = collect_cut_connectors(&plan);
     assert!(cut.contains(&ConnectorId(9)));
     assert_eq!(cut.len(), 1);
+}
+
+#[test]
+fn auto_graph_layer_sync_creates_link_when_missing() {
+    let host_realm_index = HashMap::from([(9, RealmId(3))]);
+
+    let plan = plan_auto_graph_layer_sync(
+        TargetKind::Window,
+        Some(9),
+        RealmId(3),
+        vulfram_realm_core::RealmKind::ThreeD,
+        &host_realm_index,
+        None,
+        false,
+        true,
+        None,
+    );
+
+    assert_eq!(plan.surface_op, AutoGraphSurfaceSyncOp::Allocate);
+    assert_eq!(plan.link_op, AutoGraphLinkSyncOp::Create);
+    assert_eq!(
+        plan.desired_link,
+        AutoGraphLinkPlan::Present { window_id: 9 }
+    );
+}
+
+#[test]
+fn auto_graph_layer_sync_rebuilds_when_link_shape_changes() {
+    let host_realm_index = HashMap::from([(9, RealmId(3))]);
+
+    let plan = plan_auto_graph_layer_sync(
+        TargetKind::Window,
+        Some(9),
+        RealmId(7),
+        vulfram_realm_core::RealmKind::ThreeD,
+        &host_realm_index,
+        Some(SurfaceId(44)),
+        true,
+        true,
+        Some(AutoGraphExistingLink {
+            surface_id: SurfaceId(44),
+            has_connector: false,
+            has_present: true,
+        }),
+    );
+
+    assert_eq!(plan.surface_op, AutoGraphSurfaceSyncOp::Keep);
+    assert_eq!(plan.link_op, AutoGraphLinkSyncOp::Rebuild);
+    assert!(matches!(
+        plan.desired_link,
+        AutoGraphLinkPlan::Connector { .. }
+    ));
+}
+
+#[test]
+fn auto_graph_layer_sync_updates_connector_layout_when_shape_is_stable() {
+    let host_realm_index = HashMap::from([(9, RealmId(3))]);
+
+    let plan = plan_auto_graph_layer_sync(
+        TargetKind::WidgetRealmViewport,
+        Some(9),
+        RealmId(7),
+        vulfram_realm_core::RealmKind::ThreeD,
+        &host_realm_index,
+        Some(SurfaceId(44)),
+        true,
+        true,
+        Some(AutoGraphExistingLink {
+            surface_id: SurfaceId(44),
+            has_connector: true,
+            has_present: false,
+        }),
+    );
+
+    assert_eq!(plan.surface_op, AutoGraphSurfaceSyncOp::Keep);
+    assert_eq!(plan.link_op, AutoGraphLinkSyncOp::UpdateConnectorLayout);
 }
 
 #[test]

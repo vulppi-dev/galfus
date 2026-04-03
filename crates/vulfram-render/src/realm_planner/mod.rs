@@ -1,4 +1,5 @@
 mod auto_graph;
+mod auto_graph_sync;
 mod common;
 mod compose;
 mod targets;
@@ -10,6 +11,10 @@ pub use auto_graph::{
     AutoGraphResolvedLayout, AutoGraphSurfaceKind, AutoGraphSurfaceSpec,
     infer_auto_graph_input_flags, plan_auto_graph_link, plan_auto_graph_surface_spec,
     plan_host_realm_index, plan_target_ui_realm_index, resolve_auto_graph_layout,
+};
+pub use auto_graph_sync::{
+    AutoGraphExistingLink, AutoGraphLayerSyncPlan, AutoGraphLinkSyncOp, AutoGraphSurfaceSyncOp,
+    plan_auto_graph_layer_sync,
 };
 pub use common::{
     EnvironmentLayerBinding, RealmEnvironmentBindingPlan, build_soft_cut_diagnostic,

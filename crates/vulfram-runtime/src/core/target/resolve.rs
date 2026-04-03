@@ -176,134 +176,55 @@ fn apply_planned_layer_sync(engine_state: &mut EngineState, planned: PlannedLaye
     let realm_id = RealmId(planned.layer.realm_id);
     let desired_surface =
         surface_state_for_target(engine_state, &planned.target, Some(&planned.layer));
-    let mut surface_id = planned.current_surface_id;
-
-    if surface_id.is_none() {
-        surface_id = Some(
-            engine_state
-                .universal_state
-                .composition
-                .surfaces
-                .alloc(desired_surface),
-        );
-        if let Some(entry) = engine_state
+    let current_surface_matches = planned.current_surface_id.is_some_and(|surface_id| {
+        engine_state
             .universal_state
             .composition
-            .realms
+            .surfaces
             .entries
-            .get_mut(&realm_id)
-        {
-            entry.value.output_surface = surface_id;
-        }
-    } else if planned.is_primary {
-        if let Some(surface_id) = surface_id {
-            if let Some(entry) = engine_state
-                .universal_state
-                .composition
-                .surfaces
-                .entries
-                .get_mut(&surface_id)
-            {
-                if !surface_state_matches(&entry.value, &desired_surface) {
-                    entry.value = desired_surface;
-                }
-            }
-        }
-    }
-
-    let Some(surface_id) = surface_id else {
-        return;
-    };
-
-    if let Some(link) = engine_state
+            .get(&surface_id)
+            .is_some_and(|entry| surface_state_matches(&entry.value, &desired_surface))
+    });
+    let existing_link = engine_state
         .universal_state
         .targets
         .auto_links
         .get(&key)
-        .cloned()
-    {
-        let host_realm = planned
-            .target
-            .window_id
-            .and_then(|window_id| {
-                engine_state
-                    .universal_state
-                    .targets
-                    .host_realm_index
-                    .get(&window_id)
-            })
-            .copied();
-        let is_host_layer = host_realm == Some(RealmId(planned.layer.realm_id));
-        let expects_present = matches!(planned.target.kind, TargetKind::Window) && is_host_layer;
-        let expects_connector = matches!(
-            planned.target.kind,
-            TargetKind::WidgetRealmViewport | TargetKind::RealmPlane
-        ) || (matches!(planned.target.kind, TargetKind::Window)
-            && !is_host_layer);
-        let needs_rebuild = link.surface_id != surface_id
-            || (expects_present && link.present_id.is_none())
-            || (expects_connector && link.connector_id.is_none());
-
-        if needs_rebuild {
-            remove_auto_link(&mut engine_state.universal_state, key);
-        } else {
-            if let Some(connector_id) = link.connector_id {
-                update_auto_link_layout(
-                    &mut engine_state.universal_state,
-                    Some(connector_id),
-                    planned.target.kind,
-                    planned.realm_kind,
-                    planned.resolved_layout,
-                );
-            }
-            return;
-        }
-    }
-
-    let link_plan = vulfram_render::plan_auto_graph_link(
+        .map(|link| vulfram_render::AutoGraphExistingLink {
+            surface_id: link.surface_id,
+            has_connector: link.connector_id.is_some(),
+            has_present: link.present_id.is_some(),
+        });
+    let sync_plan = vulfram_render::plan_auto_graph_layer_sync(
         planned.target.kind,
         planned.target.window_id,
         realm_id,
         planned.realm_kind,
         &engine_state.universal_state.targets.host_realm_index,
+        planned.current_surface_id,
+        current_surface_matches,
+        planned.is_primary,
+        existing_link,
     );
-    let mut connector_id = None;
-    let mut present_id = None;
-    match link_plan {
-        vulfram_render::AutoGraphLinkPlan::None => {}
-        vulfram_render::AutoGraphLinkPlan::Present { window_id } => {
-            present_id = Some(engine_state.universal_state.composition.presents.alloc(
-                PresentState {
-                    window_id,
-                    surface: surface_id,
-                },
-            ));
-        }
-        vulfram_render::AutoGraphLinkPlan::Connector {
-            target_realm,
-            input_flags,
-        } => {
-            connector_id = Some(engine_state.universal_state.composition.connectors.alloc(
-                ConnectorState {
-                    target_realm,
-                    source_surface: surface_id,
-                    rect: planned.resolved_layout.rect,
-                    z_index: planned.resolved_layout.z_index,
-                    blend_mode: planned.resolved_layout.blend_mode,
-                    clip: planned.resolved_layout.clip,
-                    input_flags,
-                },
-            ));
-        }
-    }
+    let surface_id = apply_surface_sync(
+        &mut engine_state.universal_state,
+        realm_id,
+        planned.current_surface_id,
+        desired_surface,
+        sync_plan.surface_op,
+    );
 
-    engine_state.universal_state.targets.auto_links.insert(
+    let Some(surface_id) = surface_id else {
+        return;
+    };
+    apply_link_sync(
+        &mut engine_state.universal_state,
         key,
-        AutoLink {
-            surface_id,
-            connector_id,
-            present_id,
-        },
+        surface_id,
+        planned.target.kind,
+        planned.realm_kind,
+        planned.resolved_layout,
+        sync_plan,
     );
 }
 
@@ -338,6 +259,110 @@ fn update_auto_link_layout(
     entry.value.blend_mode = layout.blend_mode;
     entry.value.clip = layout.clip;
     entry.value.input_flags = infer_layer_input_flags(target_kind, source_realm_kind);
+}
+
+fn apply_surface_sync(
+    universal: &mut UniversalState,
+    realm_id: RealmId,
+    current_surface_id: Option<crate::core::realm::SurfaceId>,
+    desired_surface: SurfaceState,
+    surface_op: vulfram_render::AutoGraphSurfaceSyncOp,
+) -> Option<crate::core::realm::SurfaceId> {
+    match surface_op {
+        vulfram_render::AutoGraphSurfaceSyncOp::Allocate => {
+            let surface_id = universal.composition.surfaces.alloc(desired_surface);
+            if let Some(entry) = universal.composition.realms.entries.get_mut(&realm_id) {
+                entry.value.output_surface = Some(surface_id);
+            }
+            Some(surface_id)
+        }
+        vulfram_render::AutoGraphSurfaceSyncOp::Update => {
+            let surface_id = current_surface_id?;
+            if let Some(entry) = universal.composition.surfaces.entries.get_mut(&surface_id) {
+                entry.value = desired_surface;
+            }
+            Some(surface_id)
+        }
+        vulfram_render::AutoGraphSurfaceSyncOp::Keep => current_surface_id,
+    }
+}
+
+fn apply_link_sync(
+    universal: &mut UniversalState,
+    key: (u32, TargetId),
+    surface_id: crate::core::realm::SurfaceId,
+    target_kind: TargetKind,
+    source_realm_kind: RealmKind,
+    layout: ResolvedLayerLayout,
+    sync_plan: vulfram_render::AutoGraphLayerSyncPlan,
+) {
+    match sync_plan.link_op {
+        vulfram_render::AutoGraphLinkSyncOp::Create => {
+            create_auto_link_from_plan(universal, key, surface_id, layout, sync_plan.desired_link);
+        }
+        vulfram_render::AutoGraphLinkSyncOp::Rebuild => {
+            remove_auto_link(universal, key);
+            create_auto_link_from_plan(universal, key, surface_id, layout, sync_plan.desired_link);
+        }
+        vulfram_render::AutoGraphLinkSyncOp::UpdateConnectorLayout => {
+            let connector_id = universal
+                .targets
+                .auto_links
+                .get(&key)
+                .and_then(|link| link.connector_id);
+            update_auto_link_layout(
+                universal,
+                connector_id,
+                target_kind,
+                source_realm_kind,
+                layout,
+            );
+        }
+        vulfram_render::AutoGraphLinkSyncOp::Keep => {}
+    }
+}
+
+fn create_auto_link_from_plan(
+    universal: &mut UniversalState,
+    key: (u32, TargetId),
+    surface_id: crate::core::realm::SurfaceId,
+    layout: ResolvedLayerLayout,
+    link_plan: vulfram_render::AutoGraphLinkPlan,
+) {
+    let mut connector_id = None;
+    let mut present_id = None;
+    match link_plan {
+        vulfram_render::AutoGraphLinkPlan::None => {}
+        vulfram_render::AutoGraphLinkPlan::Present { window_id } => {
+            present_id = Some(universal.composition.presents.alloc(PresentState {
+                window_id,
+                surface: surface_id,
+            }));
+        }
+        vulfram_render::AutoGraphLinkPlan::Connector {
+            target_realm,
+            input_flags,
+        } => {
+            connector_id = Some(universal.composition.connectors.alloc(ConnectorState {
+                target_realm,
+                source_surface: surface_id,
+                rect: layout.rect,
+                z_index: layout.z_index,
+                blend_mode: layout.blend_mode,
+                clip: layout.clip,
+                input_flags,
+            }));
+        }
+    }
+
+    universal.targets.auto_links.insert(
+        key,
+        AutoLink {
+            surface_id,
+            connector_id,
+            present_id,
+        },
+    );
 }
 
 fn infer_layer_input_flags(target_kind: TargetKind, source_realm_kind: RealmKind) -> u32 {

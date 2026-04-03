@@ -110,6 +110,7 @@ Recommended long-term boundary:
 - `vulfram-render`
   - auto-graph planning policy
   - realm ordering/composition rules related to rendering
+  - layer sync decisions for derived internal links
 - `vulfram-runtime`
   - command handling
   - applying planner results
