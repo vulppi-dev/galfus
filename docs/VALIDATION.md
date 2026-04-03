@@ -6,14 +6,14 @@ This document defines the current quality-validation split between automated che
 
 Primary automated gate:
 
-- `scripts/check.sh`
+- `bun run check`
 - CI workflow `build-bindings.yml`
 
 Current scope:
 
 - `cargo check --lib`
 - WGSL shader validation
-- `cargo test -p vulfram-runtime --lib` via `scripts/check.sh`
+- `cargo test -p vulfram-runtime --lib` via `bun run check`
 - `cargo test --workspace --lib` in CI
 - formatting drift detection in CI (`git diff --exit-code` after checks)
 
@@ -44,4 +44,16 @@ Recommended approach:
 
 ## Rule of Thumb
 
-If a change affects rendering perception, OS/browser policy behavior, or timing-sensitive interactions, it must include manual validation in addition to `scripts/check.sh`.
+If a change affects rendering perception, OS/browser policy behavior, or timing-sensitive interactions, it must include manual validation in addition to `bun run check`.
+
+## Bun Workspace
+
+The repository now includes a Bun workspace at the root for transport packages
+under `packages/`.
+
+Preferred validation entrypoint:
+
+- `bun run check`
+
+That script runs the standard Rust/WGSL validation pipeline previously handled
+by the old shell-based check script.

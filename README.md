@@ -78,6 +78,17 @@ Vulfram follows a **black box** approach where:
 Vulfram uses a queue-based architecture that enables efficient communication between the host and the Rust core:
 
 ```
+
+## Workspace Layout
+
+The monorepo is split by ecosystem:
+
+- `crates/`
+  Rust workspace crates for runtime, render, realms, bindings and demos
+- `packages/`
+  Bun/TypeScript workspace packages for transports and host-facing JS runtimes
+- `scripts/`
+  repository automation executed through Bun
 ┌─────────────────────────────────────┐
 │          Host Layer                 │
 │  (JS/TS, Lua, Python, etc.)         │

@@ -18,7 +18,7 @@
 
 ## Validation
 
-- [ ] `scripts/check.sh`
+- [ ] `bun run check`
 - [ ] Relevant demo(s) manually tested
 - [ ] No unexpected regressions observed
 

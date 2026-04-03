@@ -1,0 +1,17 @@
+{
+  "name": "@vulfram/transport-bun",
+  "version": "0.21.2-alpha",
+  "module": "src/index.ts",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "type": "module",
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@vulfram/transport-types": "^0.3.0"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.3.10"
+  }
+}
