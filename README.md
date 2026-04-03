@@ -89,6 +89,18 @@ The monorepo is split by ecosystem:
   Bun/TypeScript workspace packages for transports and host-facing JS runtimes
 - `scripts/`
   repository automation executed through Bun
+
+### Repository Scripts
+
+- `bun run check`
+  runs the standard Rust/WGSL validation pipeline
+- `bun run artifacts -- --skip-download`
+  skips artifact download explicitly via CLI flag
+- `bun run artifacts -- --base-url <url>`
+  overrides the artifact source URL without environment variables
+- `bun run version -- <semver>`
+  updates Cargo workspace version and transport package versions, except
+  `transport-types`
 ┌─────────────────────────────────────┐
 │          Host Layer                 │
 │  (JS/TS, Lua, Python, etc.)         │

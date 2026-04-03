@@ -1,5 +1,6 @@
 import { readFile, writeFile } from 'fs/promises';
 import { join } from 'path';
+import { Command } from 'commander';
 
 type PackageJson = {
   name?: string;
@@ -13,30 +14,26 @@ const TARGET_PACKAGES = [
   'transport-browser',
 ] as const;
 
-function printUsage(): void {
-  console.log(
-    [
-      'Usage:',
-      '  bun scripts/set-version.ts <version>',
-      '',
-      'Example:',
-      '  bun scripts/set-version.ts 0.21.3-alpha',
-    ].join('\n'),
-  );
-}
+async function parseVersionArg(argv: string[]): Promise<string> {
+  const program = new Command();
+  program
+    .name('set-version')
+    .description(
+      'Update the Cargo workspace version, root package version and transport package versions.',
+    )
+    .argument('<version>', 'Semantic version to apply to the workspace.')
+    .showHelpAfterError();
 
-function parseVersionArg(argv: string[]): string {
-  const raw = argv[2]?.trim();
-  if (!raw || raw === '--help' || raw === '-h') {
-    printUsage();
-    process.exit(raw ? 0 : 1);
+  await program.parseAsync(argv);
+  const [raw] = program.processedArgs as [string | undefined];
+  const version = raw?.trim();
+  if (!version) {
+    throw new Error('Missing required version argument.');
   }
-
-  if (/\s/.test(raw)) {
-    throw new Error(`Invalid version "${raw}": whitespace is not allowed.`);
+  if (/\s/.test(version)) {
+    throw new Error(`Invalid version "${version}": whitespace is not allowed.`);
   }
-
-  return raw;
+  return version;
 }
 
 async function updateCargoWorkspaceVersion(
@@ -114,7 +111,7 @@ async function updatePackageVersion(
 }
 
 async function main(): Promise<void> {
-  const version = parseVersionArg(process.argv);
+  const version = await parseVersionArg(process.argv);
   const rootDir = join(import.meta.dir, '..');
 
   await updateCargoWorkspaceVersion(rootDir, version);

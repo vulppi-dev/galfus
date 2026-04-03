@@ -1,4 +1,5 @@
 import { decode, encode } from '@msgpack/msgpack';
+import { Command } from 'commander';
 import type { EngineTransportFactory } from '../packages/transport-types/src/index';
 
 type CmdEnvelope = {
@@ -20,7 +21,53 @@ type ResponseEnvelope = {
 const RESULT_SUCCESS = 0;
 const RESULT_ALREADY_INITIALIZED = 3;
 
-async function resolveTransportFactory(): Promise<EngineTransportFactory> {
+type CoreVersionOptions = {
+  attempts: number;
+  transport: 'auto' | 'bun' | 'napi';
+};
+
+async function parseOptions(): Promise<CoreVersionOptions> {
+  const program = new Command();
+  program
+    .name('core-version')
+    .description('Query the runtime build version through a transport package.')
+    .option(
+      '--transport <mode>',
+      'Transport selection: auto, bun or napi.',
+      'auto',
+    )
+    .option(
+      '--attempts <count>',
+      'Number of tick attempts before failing.',
+      (value) => {
+        const parsed = Number.parseInt(value, 10);
+        if (!Number.isFinite(parsed) || parsed <= 0) {
+          throw new Error(`Invalid attempts value "${value}".`);
+        }
+        return parsed;
+      },
+      5,
+    );
+
+  await program.parseAsync(process.argv);
+  const options = program.opts<CoreVersionOptions>();
+  return {
+    attempts: options.attempts,
+    transport: options.transport,
+  };
+}
+
+async function resolveTransportFactory(
+  transport: CoreVersionOptions['transport'],
+): Promise<EngineTransportFactory> {
+  if (transport === 'bun') {
+    const bunTransport = await import('../packages/transport-bun/src/index');
+    return bunTransport.transportBunFfi;
+  }
+  if (transport === 'napi') {
+    const napiTransport = await import('../packages/transport-napi/src/index');
+    return napiTransport.transportNapi;
+  }
   if (typeof Bun !== 'undefined') {
     const bunTransport = await import('../packages/transport-bun/src/index');
     return bunTransport.transportBunFfi;
@@ -40,7 +87,8 @@ function decodeResponses(bytes: Uint8Array): ResponseEnvelope[] {
 }
 
 async function main(): Promise<void> {
-  const transportFactory = await resolveTransportFactory();
+  const options = await parseOptions();
+  const transportFactory = await resolveTransportFactory(options.transport);
   const core = transportFactory();
   const commandId = 1;
 
@@ -69,7 +117,7 @@ async function main(): Promise<void> {
       throw new Error(`vulframSendQueue failed with result=${sendResult}`);
     }
 
-    for (let attempt = 0; attempt < 5; attempt += 1) {
+    for (let attempt = 0; attempt < options.attempts; attempt += 1) {
       const tickResult = core.vulframTick(Date.now(), 16);
       if (tickResult !== RESULT_SUCCESS) {
         throw new Error(`vulframTick failed with result=${tickResult}`);
@@ -110,7 +158,7 @@ async function main(): Promise<void> {
     }
 
     throw new Error(
-      'No response for system-build-version-get after 5 tick attempts.',
+      `No response for system-build-version-get after ${options.attempts} tick attempts.`,
     );
   } finally {
     core.vulframDispose();

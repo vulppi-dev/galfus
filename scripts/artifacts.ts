@@ -1,6 +1,7 @@
 import { createHash } from 'crypto';
 import { mkdir, readFile, readdir, rm, writeFile } from 'fs/promises';
 import { dirname, join } from 'path';
+import { Command } from 'commander';
 import {
   VULFRAM_R2_DEFAULT_BASE_URL,
   buildArtifactUrl,
@@ -25,14 +26,11 @@ const ALL_NATIVE_PLATFORMS: Exclude<VulframPlatform, 'browser'>[] = [
   'windows-arm64',
 ];
 
-function env(name: string): string | undefined {
-  return process.env?.[name];
-}
-
-function envBool(name: string): boolean {
-  const raw = env(name)?.toLowerCase();
-  return raw === '1' || raw === 'true' || raw === 'yes';
-}
+type ArtifactsOptions = {
+  baseUrl: string;
+  offline: boolean;
+  skipDownload: boolean;
+};
 
 async function ensureDir(path: string): Promise<void> {
   await mkdir(path, { recursive: true });
@@ -116,18 +114,48 @@ async function ensureArtifact(config: {
   await downloadFile(url, config.destination);
 }
 
+async function parseOptions(): Promise<ArtifactsOptions> {
+  const program = new Command();
+  program
+    .name('artifacts')
+    .description('Download transport artifacts into packages/*/lib.')
+    .option(
+      '--base-url <url>',
+      'Base URL used to resolve transport artifacts.',
+      VULFRAM_R2_DEFAULT_BASE_URL,
+    )
+    .option(
+      '--offline',
+      'Skip downloads and exit successfully without touching local artifacts.',
+      false,
+    )
+    .option(
+      '--skip-download',
+      'Skip downloads and exit successfully without touching local artifacts.',
+      false,
+    );
+
+  await program.parseAsync(process.argv);
+  const options = program.opts<ArtifactsOptions>();
+  return {
+    baseUrl: options.baseUrl,
+    offline: options.offline,
+    skipDownload: options.skipDownload,
+  };
+}
+
 async function main(): Promise<void> {
-  if (envBool('VULFRAM_TRANSPORT_SKIP_DOWNLOAD')) {
-    console.log('[artifacts] Skipping downloads (VULFRAM_TRANSPORT_SKIP_DOWNLOAD=true).');
+  const options = await parseOptions();
+
+  if (options.skipDownload) {
+    console.log('[artifacts] Skipping downloads (--skip-download).');
     return;
   }
 
-  if (envBool('VULFRAM_TRANSPORT_OFFLINE')) {
-    console.log('[artifacts] Offline mode enabled (VULFRAM_TRANSPORT_OFFLINE=true).');
+  if (options.offline) {
+    console.log('[artifacts] Offline mode enabled (--offline).');
     return;
   }
-
-  const baseUrl = env('VULFRAM_TRANSPORT_R2_BASE_URL') ?? VULFRAM_R2_DEFAULT_BASE_URL;
 
   const bunVersion = await readPackageVersion('transport-bun');
   const napiVersion = await readPackageVersion('transport-napi');
@@ -165,7 +193,7 @@ async function main(): Promise<void> {
           platform,
           ffiName,
         ),
-        baseUrl,
+        baseUrl: options.baseUrl,
         packageVersion: bunVersion,
       }),
     );
@@ -183,7 +211,7 @@ async function main(): Promise<void> {
           platform,
           napiName,
         ),
-        baseUrl,
+        baseUrl: options.baseUrl,
         packageVersion: napiVersion,
       }),
     );
@@ -202,7 +230,7 @@ async function main(): Promise<void> {
           'lib',
           artifact,
         ),
-        baseUrl,
+        baseUrl: options.baseUrl,
         packageVersion: browserVersion,
       }),
     );
