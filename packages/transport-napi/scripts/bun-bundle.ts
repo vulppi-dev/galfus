@@ -13,7 +13,7 @@ const result = await build({
   outdir: outDir,
   target: 'node',
   format: 'esm',
-  minify: false,
+  minify: false
 });
 
 if (!result.success) {

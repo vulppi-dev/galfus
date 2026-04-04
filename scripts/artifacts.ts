@@ -8,7 +8,7 @@ import {
   getArtifactFileName,
   parsePackageArtifactTarget,
   type VulframBinding,
-  type VulframPlatform,
+  type VulframPlatform
 } from '../packages/transport-types/src/index';
 
 type PackageJson = {
@@ -23,7 +23,7 @@ const ALL_NATIVE_PLATFORMS: Exclude<VulframPlatform, 'browser'>[] = [
   'macos-x64',
   'macos-arm64',
   'windows-x64',
-  'windows-arm64',
+  'windows-arm64'
 ];
 
 type ArtifactsOptions = {
@@ -46,7 +46,7 @@ async function cleanDirectory(path: string): Promise<void> {
   await Promise.all(
     entries
       .filter((entry) => entry !== '.gitkeep')
-      .map((entry) => rm(join(path, entry), { recursive: true, force: true })),
+      .map((entry) => rm(join(path, entry), { recursive: true, force: true }))
   );
 }
 
@@ -84,9 +84,7 @@ async function downloadFile(url: string, destination: string): Promise<void> {
 
   const actual = await sha256File(destination);
   if (actual !== expected) {
-    throw new Error(
-      `SHA256 mismatch for ${url}: expected=${expected} actual=${actual}`,
-    );
+    throw new Error(`SHA256 mismatch for ${url}: expected=${expected} actual=${actual}`);
   }
 }
 
@@ -98,9 +96,7 @@ async function ensureArtifact(config: {
   baseUrl: string;
   packageVersion: string;
 }): Promise<void> {
-  const { channel, artifactVersion } = parsePackageArtifactTarget(
-    config.packageVersion,
-  );
+  const { channel, artifactVersion } = parsePackageArtifactTarget(config.packageVersion);
 
   const url = buildArtifactUrl({
     baseUrl: config.baseUrl,
@@ -108,7 +104,7 @@ async function ensureArtifact(config: {
     artifactVersion,
     binding: config.binding,
     platform: config.platform,
-    artifact: config.artifact,
+    artifact: config.artifact
   });
 
   await downloadFile(url, config.destination);
@@ -122,17 +118,17 @@ async function parseOptions(): Promise<ArtifactsOptions> {
     .option(
       '--base-url <url>',
       'Base URL used to resolve transport artifacts.',
-      VULFRAM_R2_DEFAULT_BASE_URL,
+      VULFRAM_R2_DEFAULT_BASE_URL
     )
     .option(
       '--offline',
       'Skip downloads and exit successfully without touching local artifacts.',
-      false,
+      false
     )
     .option(
       '--skip-download',
       'Skip downloads and exit successfully without touching local artifacts.',
-      false,
+      false
     );
 
   await program.parseAsync(process.argv);
@@ -140,7 +136,7 @@ async function parseOptions(): Promise<ArtifactsOptions> {
   return {
     baseUrl: options.baseUrl,
     offline: options.offline,
-    skipDownload: options.skipDownload,
+    skipDownload: options.skipDownload
   };
 }
 
@@ -165,13 +161,13 @@ async function main(): Promise<void> {
     'vulfram_core.js',
     'vulfram_core.d.ts',
     'vulfram_core_bg.wasm',
-    'vulfram_core_bg.wasm.d.ts',
+    'vulfram_core_bg.wasm.d.ts'
   ] as const;
 
   await Promise.all([
     cleanDirectory(join(rootDir, 'packages', 'transport-bun', 'lib')),
     cleanDirectory(join(rootDir, 'packages', 'transport-napi', 'lib')),
-    cleanDirectory(join(rootDir, 'packages', 'transport-browser', 'lib')),
+    cleanDirectory(join(rootDir, 'packages', 'transport-browser', 'lib'))
   ]);
 
   const tasks: Array<Promise<void>> = [];
@@ -185,17 +181,10 @@ async function main(): Promise<void> {
         binding: 'ffi',
         platform,
         artifact: ffiName,
-        destination: join(
-          rootDir,
-          'packages',
-          'transport-bun',
-          'lib',
-          platform,
-          ffiName,
-        ),
+        destination: join(rootDir, 'packages', 'transport-bun', 'lib', platform, ffiName),
         baseUrl: options.baseUrl,
-        packageVersion: bunVersion,
-      }),
+        packageVersion: bunVersion
+      })
     );
 
     tasks.push(
@@ -203,17 +192,10 @@ async function main(): Promise<void> {
         binding: 'napi',
         platform,
         artifact: napiName,
-        destination: join(
-          rootDir,
-          'packages',
-          'transport-napi',
-          'lib',
-          platform,
-          napiName,
-        ),
+        destination: join(rootDir, 'packages', 'transport-napi', 'lib', platform, napiName),
         baseUrl: options.baseUrl,
-        packageVersion: napiVersion,
-      }),
+        packageVersion: napiVersion
+      })
     );
   }
 
@@ -223,16 +205,10 @@ async function main(): Promise<void> {
         binding: 'wasm',
         platform: 'browser',
         artifact,
-        destination: join(
-          rootDir,
-          'packages',
-          'transport-browser',
-          'lib',
-          artifact,
-        ),
+        destination: join(rootDir, 'packages', 'transport-browser', 'lib', artifact),
         baseUrl: options.baseUrl,
-        packageVersion: browserVersion,
-      }),
+        packageVersion: browserVersion
+      })
     );
   }
 

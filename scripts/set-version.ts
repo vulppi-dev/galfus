@@ -8,18 +8,14 @@ type PackageJson = {
   [key: string]: unknown;
 };
 
-const TARGET_PACKAGES = [
-  'transport-bun',
-  'transport-napi',
-  'transport-browser',
-] as const;
+const TARGET_PACKAGES = ['transport-bun', 'transport-napi', 'transport-browser'] as const;
 
 async function parseVersionArg(argv: string[]): Promise<string> {
   const program = new Command();
   program
     .name('set-version')
     .description(
-      'Update the Cargo workspace version, root package version and transport package versions.',
+      'Update the Cargo workspace version, root package version and transport package versions.'
     )
     .argument('<version>', 'Semantic version to apply to the workspace.')
     .showHelpAfterError();
@@ -36,10 +32,7 @@ async function parseVersionArg(argv: string[]): Promise<string> {
   return version;
 }
 
-async function updateCargoWorkspaceVersion(
-  rootDir: string,
-  version: string,
-): Promise<void> {
+async function updateCargoWorkspaceVersion(rootDir: string, version: string): Promise<void> {
   const manifestPath = join(rootDir, 'Cargo.toml');
   const raw = await readFile(manifestPath, 'utf8');
   const lines = raw.split('\n');
@@ -73,10 +66,7 @@ async function updateCargoWorkspaceVersion(
   console.log(`cargo workspace: -> ${version}`);
 }
 
-async function updateRootPackageVersion(
-  rootDir: string,
-  version: string,
-): Promise<void> {
+async function updateRootPackageVersion(rootDir: string, version: string): Promise<void> {
   const packagePath = join(rootDir, 'package.json');
   const raw = await readFile(packagePath, 'utf8');
   const pkg = JSON.parse(raw) as PackageJson;
@@ -89,7 +79,7 @@ async function updateRootPackageVersion(
 async function updatePackageVersion(
   rootDir: string,
   packageDirName: string,
-  version: string,
+  version: string
 ): Promise<void> {
   const packagePath = join(rootDir, 'packages', packageDirName, 'package.json');
   const raw = await readFile(packagePath, 'utf8');

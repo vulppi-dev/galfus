@@ -6,24 +6,24 @@ type Command = {
 const COMMANDS: Command[] = [
   {
     label: 'cargo check --lib',
-    args: ['cargo', 'check', '--lib'],
+    args: ['cargo', 'check', '--lib']
   },
   {
     label: 'cargo check -p vulfram-runtime --lib',
-    args: ['cargo', 'check', '-p', 'vulfram-runtime', '--lib'],
+    args: ['cargo', 'check', '-p', 'vulfram-runtime', '--lib']
   },
   {
     label: 'cargo run --bin wgsl_check',
-    args: ['cargo', 'run', '--bin', 'wgsl_check'],
+    args: ['cargo', 'run', '--bin', 'wgsl_check']
   },
   {
     label: 'cargo test -p vulfram-runtime --lib',
-    args: ['cargo', 'test', '-p', 'vulfram-runtime', '--lib'],
+    args: ['cargo', 'test', '-p', 'vulfram-runtime', '--lib']
   },
   {
     label: 'cargo fmt --all',
-    args: ['cargo', 'fmt', '--all'],
-  },
+    args: ['cargo', 'fmt', '--all']
+  }
 ];
 
 async function runCommand(command: Command): Promise<void> {
@@ -33,7 +33,7 @@ async function runCommand(command: Command): Promise<void> {
     cwd: process.cwd(),
     stdout: 'inherit',
     stderr: 'inherit',
-    stdin: 'inherit',
+    stdin: 'inherit'
   });
   const exitCode = await proc.exited;
   if (exitCode !== 0) {

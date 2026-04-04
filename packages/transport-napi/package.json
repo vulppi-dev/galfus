@@ -1,6 +1,6 @@
 {
   "name": "@vulfram/transport-napi",
-  "version": "0.21.2-alpha",
+  "version": "0.22.0-alpha",
   "type": "module",
   "types": "dist/index.d.ts",
   "main": "dist/index.js",

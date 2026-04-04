@@ -31,11 +31,7 @@ async function parseOptions(): Promise<CoreVersionOptions> {
   program
     .name('core-version')
     .description('Query the runtime build version through a transport package.')
-    .option(
-      '--transport <mode>',
-      'Transport selection: auto, bun or napi.',
-      'auto',
-    )
+    .option('--transport <mode>', 'Transport selection: auto, bun or napi.', 'auto')
     .option(
       '--attempts <count>',
       'Number of tick attempts before failing.',
@@ -46,19 +42,19 @@ async function parseOptions(): Promise<CoreVersionOptions> {
         }
         return parsed;
       },
-      5,
+      5
     );
 
   await program.parseAsync(process.argv);
   const options = program.opts<CoreVersionOptions>();
   return {
     attempts: options.attempts,
-    transport: options.transport,
+    transport: options.transport
   };
 }
 
 async function resolveTransportFactory(
-  transport: CoreVersionOptions['transport'],
+  transport: CoreVersionOptions['transport']
 ): Promise<EngineTransportFactory> {
   if (transport === 'bun') {
     const bunTransport = await import('../packages/transport-bun/src/index');
@@ -79,9 +75,7 @@ async function resolveTransportFactory(
 function decodeResponses(bytes: Uint8Array): ResponseEnvelope[] {
   const decoded = decode(bytes);
   if (!Array.isArray(decoded)) {
-    throw new Error(
-      `Invalid response payload type: expected array, got ${typeof decoded}`,
-    );
+    throw new Error(`Invalid response payload type: expected array, got ${typeof decoded}`);
   }
   return decoded as ResponseEnvelope[];
 }
@@ -94,10 +88,7 @@ async function main(): Promise<void> {
 
   try {
     const initResult = core.vulframInit();
-    if (
-      initResult !== RESULT_SUCCESS &&
-      initResult !== RESULT_ALREADY_INITIALIZED
-    ) {
+    if (initResult !== RESULT_SUCCESS && initResult !== RESULT_ALREADY_INITIALIZED) {
       throw new Error(`vulframInit failed with result=${initResult}`);
     }
 
@@ -108,8 +99,8 @@ async function main(): Promise<void> {
       {
         id: commandId,
         type: 'cmd-system-build-version-get',
-        content: {},
-      },
+        content: {}
+      }
     ];
 
     const sendResult = core.vulframSendQueue(encode(payload));
@@ -125,9 +116,7 @@ async function main(): Promise<void> {
 
       const received = core.vulframReceiveQueue();
       if (received.result !== RESULT_SUCCESS) {
-        throw new Error(
-          `vulframReceiveQueue failed with result=${received.result}`,
-        );
+        throw new Error(`vulframReceiveQueue failed with result=${received.result}`);
       }
       if (received.buffer.byteLength === 0) {
         continue;
@@ -135,7 +124,7 @@ async function main(): Promise<void> {
 
       const responses = decodeResponses(received.buffer);
       const response = responses.find(
-        (entry) => entry.id === commandId && entry.type === 'system-build-version-get',
+        (entry) => entry.id === commandId && entry.type === 'system-build-version-get'
       );
 
       if (!response) {
@@ -144,7 +133,7 @@ async function main(): Promise<void> {
 
       if (!response.content?.success) {
         throw new Error(
-          `Core rejected build-version request: ${response.content?.message ?? 'unknown error'}`,
+          `Core rejected build-version request: ${response.content?.message ?? 'unknown error'}`
         );
       }
 
@@ -158,7 +147,7 @@ async function main(): Promise<void> {
     }
 
     throw new Error(
-      `No response for system-build-version-get after ${options.attempts} tick attempts.`,
+      `No response for system-build-version-get after ${options.attempts} tick attempts.`
     );
   } finally {
     core.vulframDispose();

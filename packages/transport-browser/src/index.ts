@@ -1,7 +1,4 @@
-import type {
-  EngineTransport,
-  EngineTransportFactory,
-} from '@vulfram/transport-types';
+import type { EngineTransport, EngineTransportFactory } from '@vulfram/transport-types';
 import { detectRuntime } from '@vulfram/transport-types';
 import initWasmBindings, {
   vulfram_dispose,
@@ -11,7 +8,7 @@ import initWasmBindings, {
   vulfram_receive_queue,
   vulfram_send_queue,
   vulfram_tick,
-  vulfram_upload_buffer,
+  vulfram_upload_buffer
 } from '../lib/vulfram_core.js';
 
 export type InitInput = unknown | Promise<unknown>;
@@ -30,11 +27,7 @@ type WasmBindings = {
   vulfram_receive_queue: () => WasmBufferResult;
   vulfram_send_queue: (data: Uint8Array) => number;
   vulfram_tick: (timeMs: number, deltaMs: number) => number;
-  vulfram_upload_buffer: (
-    id: bigint,
-    uploadType: number,
-    data: Uint8Array,
-  ) => number;
+  vulfram_upload_buffer: (id: bigint, uploadType: number, data: Uint8Array) => number;
 };
 
 let initialized = false;
@@ -46,14 +39,12 @@ const bindings: WasmBindings = {
   vulfram_receive_queue,
   vulfram_send_queue,
   vulfram_tick,
-  vulfram_upload_buffer,
+  vulfram_upload_buffer
 };
 
 function ensureInitialized(): void {
   if (!initialized) {
-    throw new Error(
-      'Browser transport not initialized. Call initBrowserTransport() first.',
-    );
+    throw new Error('Browser transport not initialized. Call initBrowserTransport() first.');
   }
 }
 
@@ -67,9 +58,7 @@ function unwrapBufferResult(result: WasmBufferResult): {
   return { buffer, result: code };
 }
 
-export async function initBrowserTransport(
-  moduleOrPath?: InitInput,
-): Promise<void> {
+export async function initBrowserTransport(moduleOrPath?: InitInput): Promise<void> {
   if (initialized) return;
 
   try {
@@ -77,11 +66,9 @@ export async function initBrowserTransport(
   } catch (error) {
     const runtime = detectRuntime();
     const expectedArtifact =
-      moduleOrPath === undefined
-        ? '../lib/vulfram_core_bg.wasm'
-        : 'custom-init-input';
+      moduleOrPath === undefined ? '../lib/vulfram_core_bg.wasm' : 'custom-init-input';
     throw new Error(
-      `Failed to initialize browser transport (runtime=${runtime.runtime}, platform=${runtime.platform ?? 'unknown'}, arch=${runtime.arch ?? 'unknown'}, expected=${expectedArtifact}): ${String(error)}`,
+      `Failed to initialize browser transport (runtime=${runtime.runtime}, platform=${runtime.platform ?? 'unknown'}, arch=${runtime.arch ?? 'unknown'}, expected=${expectedArtifact}): ${String(error)}`
     );
   }
 
@@ -120,7 +107,7 @@ const transportImpl: EngineTransport = {
   vulframGetProfiling: () => {
     ensureInitialized();
     return unwrapBufferResult(bindings.vulfram_get_profiling());
-  },
+  }
 };
 
 export const transportBrowser: EngineTransportFactory = () => {

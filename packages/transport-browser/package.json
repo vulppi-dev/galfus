@@ -1,6 +1,6 @@
 {
   "name": "@vulfram/transport-browser",
-  "version": "0.21.3-alpha",
+  "version": "0.22.0-alpha",
   "module": "src/index.ts",
   "main": "src/index.ts",
   "types": "src/index.ts",

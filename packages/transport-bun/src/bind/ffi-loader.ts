@@ -4,7 +4,7 @@ import {
   getArtifactFileName,
   resolveNativePlatform,
   selectPlatformLoader,
-  type PlatformLoaderMap,
+  type PlatformLoaderMap
 } from '@vulfram/transport-types';
 import type { BufferResult } from './types';
 
@@ -13,38 +13,38 @@ const loaders: PlatformLoaderMap<{ default: string }> = {
     arm64: () =>
       // @ts-expect-error
       import('../../lib/macos-arm64/vulfram_core.dylib', {
-        with: { type: 'file' },
+        with: { type: 'file' }
       }),
     x64: () =>
       // @ts-expect-error
       import('../../lib/macos-x64/vulfram_core.dylib', {
-        with: { type: 'file' },
-      }),
+        with: { type: 'file' }
+      })
   },
   linux: {
     arm64: () =>
       // @ts-expect-error
       import('../../lib/linux-arm64/vulfram_core.so', {
-        with: { type: 'file' },
+        with: { type: 'file' }
       }),
     x64: () =>
       // @ts-expect-error
       import('../../lib/linux-x64/vulfram_core.so', {
-        with: { type: 'file' },
-      }),
+        with: { type: 'file' }
+      })
   },
   win32: {
     arm64: () =>
       // @ts-expect-error
       import('../../lib/windows-arm64/vulfram_core.dll', {
-        with: { type: 'file' },
+        with: { type: 'file' }
       }),
     x64: () =>
       // @ts-expect-error
       import('../../lib/windows-x64/vulfram_core.dll', {
-        with: { type: 'file' },
-      }),
-  },
+        with: { type: 'file' }
+      })
+  }
 };
 
 function getExpectedLocalArtifact(): string {
@@ -66,7 +66,7 @@ async function resolveNativeLibraryPath(): Promise<string> {
     const runtime = detectRuntime();
     const expectedArtifact = getExpectedLocalArtifact();
     throw new Error(
-      `Failed to load bundled FFI artifact (runtime=${runtime.runtime}, platform=${runtime.platform ?? 'unknown'}, arch=${runtime.arch ?? 'unknown'}, expected=${expectedArtifact}): ${String(error)}`,
+      `Failed to load bundled FFI artifact (runtime=${runtime.runtime}, platform=${runtime.platform ?? 'unknown'}, arch=${runtime.arch ?? 'unknown'}, expected=${expectedArtifact}): ${String(error)}`
     );
   }
 }
@@ -81,10 +81,10 @@ const { symbols: VULFRAM_CORE_DYLIB, close } = dlopen(lib, {
   vulfram_receive_events: { args: ['ptr', 'ptr'], returns: 'u32' },
   vulfram_upload_buffer: {
     args: ['u64', 'u32', 'ptr', 'usize'],
-    returns: 'u32',
+    returns: 'u32'
   },
   vulfram_tick: { args: ['u64', 'u32'], returns: 'u32' },
-  vulfram_get_profiling: { args: ['ptr', 'ptr'], returns: 'u32' },
+  vulfram_get_profiling: { args: ['ptr', 'ptr'], returns: 'u32' }
 });
 
 process.once('beforeExit', () => {
@@ -102,10 +102,7 @@ function vulframInit(): number {
 function vulframReceiveQueue(): BufferResult {
   const ptrHolder = new BigUint64Array(1);
   const sizeHolder = new BigUint64Array(1);
-  const result = VULFRAM_CORE_DYLIB.vulfram_receive_queue(
-    ptr(ptrHolder),
-    ptr(sizeHolder),
-  );
+  const result = VULFRAM_CORE_DYLIB.vulfram_receive_queue(ptr(ptrHolder), ptr(sizeHolder));
   if (!sizeHolder[0]) {
     return { buffer: Buffer.alloc(0), result };
   }
@@ -121,10 +118,7 @@ function vulframReceiveQueue(): BufferResult {
 function vulframReceiveEvents(): BufferResult {
   const ptrHolder = new BigUint64Array(1);
   const sizeHolder = new BigUint64Array(1);
-  const result = VULFRAM_CORE_DYLIB.vulfram_receive_events(
-    ptr(ptrHolder),
-    ptr(sizeHolder),
-  );
+  const result = VULFRAM_CORE_DYLIB.vulfram_receive_events(ptr(ptrHolder), ptr(sizeHolder));
   if (!sizeHolder[0]) {
     return { buffer: Buffer.alloc(0), result };
   }
@@ -146,27 +140,15 @@ function vulframTick(time: number, deltaTime: number): number {
   return VULFRAM_CORE_DYLIB.vulfram_tick(time, deltaTime);
 }
 
-function vulframUploadBuffer(
-  id: number,
-  uploadType: number,
-  data: Uint8Array,
-): number {
+function vulframUploadBuffer(id: number, uploadType: number, data: Uint8Array): number {
   const buffer = Buffer.isBuffer(data) ? data : Buffer.from(data);
-  return VULFRAM_CORE_DYLIB.vulfram_upload_buffer(
-    id,
-    uploadType,
-    ptr(buffer),
-    buffer.length,
-  );
+  return VULFRAM_CORE_DYLIB.vulfram_upload_buffer(id, uploadType, ptr(buffer), buffer.length);
 }
 
 function vulframGetProfiling(): BufferResult {
   const ptrHolder = new BigUint64Array(1);
   const sizeHolder = new BigUint64Array(1);
-  const result = VULFRAM_CORE_DYLIB.vulfram_get_profiling(
-    ptr(ptrHolder),
-    ptr(sizeHolder),
-  );
+  const result = VULFRAM_CORE_DYLIB.vulfram_get_profiling(ptr(ptrHolder), ptr(sizeHolder));
   if (!sizeHolder[0]) {
     return { buffer: Buffer.alloc(0), result };
   }
@@ -187,5 +169,5 @@ export const VULFRAM_CORE = {
   vulframSendQueue,
   vulframTick,
   vulframUploadBuffer,
-  vulframGetProfiling,
+  vulframGetProfiling
 };
