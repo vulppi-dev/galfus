@@ -10,7 +10,7 @@
     "access": "public"
   },
   "peerDependencies": {
-    "@vulfram/engine": "^0.0.0"
+    "@vulfram/engine": "workspace:*"
   },
   "dependencies": {
     "gl-matrix": "^3.4.4"
