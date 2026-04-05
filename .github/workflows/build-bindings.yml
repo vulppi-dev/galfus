@@ -567,10 +567,6 @@ jobs:
             npx jsr publish --allow-dirty
           }
 
-          pushd packages/transport-types >/dev/null
-          publish_jsr_package
-          popd >/dev/null
-
           pushd packages/transport-browser >/dev/null
           publish_jsr_package
           popd >/dev/null

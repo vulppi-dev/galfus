@@ -15,13 +15,16 @@ npm publish flow currently targets:
 
 JSR publish flow currently targets:
 
-- `@vulfram/transport-types`
 - `@vulfram/transport-browser`
 - `@vulfram/transport-bun`
 - `@vulfram/transport-napi`
 - `@vulfram/engine`
 - `@vulfram/gltf-loader`
 - `@vulfram/camera-control`
+
+Manual JSR publish only:
+
+- `@vulfram/transport-types`
 
 The workflow file that publishes them is:
 
@@ -63,6 +66,9 @@ Important notes:
 ## JSR OIDC Setup
 
 Configure JSR package linking once for each JSR package listed above.
+
+`@vulfram/transport-types` is intentionally manual and is not published by the
+GitHub Actions release workflow anymore.
 
 For every package:
 
@@ -107,3 +113,6 @@ Before promoting a release branch, verify:
 4. GitHub Release assets are published.
 5. npm packages are published through OIDC trusted publishing.
 6. JSR packages are published through OIDC using `npx jsr publish`.
+
+For `@vulfram/transport-types`, publish manually when needed from
+`packages/transport-types`.

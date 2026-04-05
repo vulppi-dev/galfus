@@ -81,7 +81,6 @@ npm publishing uses GitHub Actions OIDC trusted publishing and provenance.
 
 After the npm publish step, the workflow publishes to JSR:
 
-- `@vulfram/transport-types`
 - `@vulfram/transport-browser`
 - `@vulfram/transport-bun`
 - `@vulfram/transport-napi`
@@ -90,6 +89,10 @@ After the npm publish step, the workflow publishes to JSR:
 - `@vulfram/camera-control`
 
 JSR publishing also uses GitHub Actions OIDC and does not require a token.
+
+`@vulfram/transport-types` is intentionally excluded from automatic publishing
+and stays manual because its version is stable and no longer changes in the
+normal release flow.
 
 ## OIDC setup guide
 
