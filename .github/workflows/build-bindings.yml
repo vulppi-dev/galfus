@@ -3,22 +3,50 @@ name: Build Bindings
 on:
   push:
     branches:
-      - "alpha/v*"
-      - "beta/v*"
-      - "release/v*"
+      - 'alpha/v*'
+      - 'beta/v*'
+      - 'next/v*'
+      - 'latest/v*'
   pull_request:
     branches:
-      - "alpha/v*"
-      - "beta/v*"
-      - "release/v*"
+      - 'alpha/v*'
+      - 'beta/v*'
+      - 'next/v*'
+      - 'latest/v*'
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
+  pull-requests: read
 
 jobs:
+  resolve-meta:
+    name: Resolve Release Metadata
+    runs-on: ubuntu-latest
+    outputs:
+      artifactVersion: ${{ steps.meta.outputs.artifactVersion }}
+      branchRef: ${{ steps.meta.outputs.branchRef }}
+      channel: ${{ steps.meta.outputs.channel }}
+      npmTag: ${{ steps.meta.outputs.npmTag }}
+      packageVersion: ${{ steps.meta.outputs.packageVersion }}
+      releaseTag: ${{ steps.meta.outputs.releaseTag }}
+      versionCore: ${{ steps.meta.outputs.versionCore }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install Bun dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Resolve metadata
+        id: meta
+        run: bun run release-meta
+
   quality-tests:
     name: Quality Tests (Workspace)
+    needs: resolve-meta
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -43,12 +71,11 @@ jobs:
       - name: Workspace tests
         run: cargo test --workspace --lib
 
-      - name: Verify formatting is clean
-        run: git diff --exit-code
-
-  build:
+  build-native:
     name: Build ${{ matrix.binding }} - ${{ matrix.os }}-${{ matrix.arch }}
-    needs: quality-tests
+    needs:
+      - resolve-meta
+      - quality-tests
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -69,34 +96,22 @@ jobs:
           - os: windows-latest
             arch: arm64
             binding: lua
-
     steps:
       - uses: actions/checkout@v5
-
-      - name: Resolve channel and version
-        id: meta
-        shell: bash
-        run: |
-          REF_NAME="${GITHUB_REF_NAME}"
-          if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
-            REF_NAME="${GITHUB_BASE_REF}"
-          fi
-
-          if [[ "${REF_NAME}" =~ ^(alpha|beta|release)/v([0-9]+\.[0-9]+(\.[0-9]+)?)$ ]]; then
-            CHANNEL="${BASH_REMATCH[1]}"
-            VERSION="v${BASH_REMATCH[2]}"
-          else
-            echo "Invalid branch format for publishing: ${REF_NAME}"
-            exit 1
-          fi
-
-          echo "channel=${CHANNEL}" >> "${GITHUB_OUTPUT}"
-          echo "version=${VERSION}" >> "${GITHUB_OUTPUT}"
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ (matrix.os == 'ubuntu-latest' && matrix.arch == 'arm64' && 'aarch64-unknown-linux-gnu') || (matrix.os == 'windows-latest' && matrix.arch == 'arm64' && 'aarch64-pc-windows-msvc') || (matrix.os == 'macos-latest' && matrix.arch == 'arm64' && 'aarch64-apple-darwin') || (matrix.os == 'macos-latest' && matrix.arch == 'x64' && 'x86_64-apple-darwin') || (matrix.os == 'windows-latest' && matrix.arch == 'x64' && 'x86_64-pc-windows-msvc') || 'x86_64-unknown-linux-gnu' }}
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install Bun dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Apply release version
+        run: bun run version -- ${{ needs.resolve-meta.outputs.packageVersion }}
 
       - name: Install Dependencies (Linux)
         if: matrix.os == 'ubuntu-latest'
@@ -234,8 +249,8 @@ jobs:
 
           cat > "${DIST_DIR}/manifest.json" <<JSON
           {
-            "channel": "${{ steps.meta.outputs.channel }}",
-            "version": "${{ steps.meta.outputs.version }}",
+            "channel": "${{ needs.resolve-meta.outputs.channel }}",
+            "version": "${{ needs.resolve-meta.outputs.packageVersion }}",
             "binding": "${{ matrix.binding }}",
             "platform": "${PLATFORM}",
             "rust_target": "${{ steps.build.outputs.target }}",
@@ -247,54 +262,35 @@ jobs:
           echo "platform=${PLATFORM}" >> "${GITHUB_OUTPUT}"
           echo "dist_dir=${DIST_DIR}" >> "${GITHUB_OUTPUT}"
 
-      - name: Upload to Cloudflare R2
-        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
-        shell: bash
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-          AWS_EC2_METADATA_DISABLED: "true"
-          R2_BUCKET: ${{ secrets.R2_BUCKET }}
-          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
-        run: |
-          BASE_KEY="v1/${{ steps.meta.outputs.channel }}/${{ steps.meta.outputs.version }}/${{ matrix.binding }}/${{ steps.package.outputs.platform }}"
-          aws s3 cp "${{ steps.package.outputs.dist_dir }}/" "s3://${R2_BUCKET}/${BASE_KEY}/" \
-            --endpoint-url "${R2_ENDPOINT}" \
-            --recursive \
-            --only-show-errors
-          echo "Uploaded ${BASE_KEY}"
+      - name: Upload raw artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: raw-binding-${{ matrix.binding }}-${{ steps.package.outputs.platform }}
+          path: ${{ steps.package.outputs.dist_dir }}
+          if-no-files-found: error
 
   build-wasm:
     name: Build wasm32-unknown-unknown
-    needs: quality-tests
+    needs:
+      - resolve-meta
+      - quality-tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-
-      - name: Resolve channel and version
-        id: meta
-        shell: bash
-        run: |
-          REF_NAME="${GITHUB_REF_NAME}"
-          if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
-            REF_NAME="${GITHUB_BASE_REF}"
-          fi
-
-          if [[ "${REF_NAME}" =~ ^(alpha|beta|release)/v([0-9]+\.[0-9]+(\.[0-9]+)?)$ ]]; then
-            CHANNEL="${BASH_REMATCH[1]}"
-            VERSION="v${BASH_REMATCH[2]}"
-          else
-            echo "Invalid branch format for publishing: ${REF_NAME}"
-            exit 1
-          fi
-
-          echo "channel=${CHANNEL}" >> "${GITHUB_OUTPUT}"
-          echo "version=${VERSION}" >> "${GITHUB_OUTPUT}"
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: wasm32-unknown-unknown
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install Bun dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Apply release version
+        run: bun run version -- ${{ needs.resolve-meta.outputs.packageVersion }}
 
       - name: Install wasm-bindgen
         run: cargo install wasm-bindgen-cli --version 0.2.114
@@ -315,7 +311,6 @@ jobs:
             --out-name vulfram_core \
             build/cargo-target/wasm32-unknown-unknown/release/vulfram_bindings_wasm.wasm
 
-          # wasm-bindgen emits <out-name>_bg.wasm for web targets.
           DEST_PATH="${DIST_DIR}/vulfram_core_bg.wasm"
           if [[ ! -f "${DEST_PATH}" ]]; then
             echo "Expected wasm output not found at ${DEST_PATH}"
@@ -328,8 +323,8 @@ jobs:
 
           cat > "${DIST_DIR}/manifest.json" <<JSON
           {
-            "channel": "${{ steps.meta.outputs.channel }}",
-            "version": "${{ steps.meta.outputs.version }}",
+            "channel": "${{ needs.resolve-meta.outputs.channel }}",
+            "version": "${{ needs.resolve-meta.outputs.packageVersion }}",
             "binding": "wasm",
             "platform": "browser",
             "rust_target": "wasm32-unknown-unknown",
@@ -340,19 +335,341 @@ jobs:
 
           echo "dist_dir=${DIST_DIR}" >> "${GITHUB_OUTPUT}"
 
-      - name: Upload to Cloudflare R2
-        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+      - name: Upload raw artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: raw-binding-wasm-browser
+          path: ${{ steps.package.outputs.dist_dir }}
+          if-no-files-found: error
+
+  package-bind-groups:
+    name: Package Bind Groups
+    needs:
+      - resolve-meta
+      - build-native
+      - build-wasm
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download raw artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          pattern: raw-binding-*
+          merge-multiple: false
+
+      - name: Consolidate bind groups
+        shell: bash
+        run: |
+          mkdir -p merged
+          shopt -s nullglob
+
+          for artifact_dir in dist/raw-binding-*; do
+            BASENAME="$(basename "${artifact_dir}")"
+            REST="${BASENAME#raw-binding-}"
+            BINDING="${REST%%-*}"
+            PLATFORM="${REST#${BINDING}-}"
+            mkdir -p "merged/${BINDING}/${PLATFORM}"
+            cp -R "${artifact_dir}/." "merged/${BINDING}/${PLATFORM}/"
+          done
+
+      - name: Build release archives
+        shell: bash
+        run: |
+          mkdir -p release-assets
+
+          for binding in ffi napi wasm python lua; do
+            ARCHIVE="release-assets/vulfram-${binding}-${{ needs.resolve-meta.outputs.packageVersion }}.zip"
+            (
+              cd merged
+              zip -rq "../${ARCHIVE}" "${binding}"
+            )
+
+            sha256sum "${ARCHIVE}" | awk '{print $1}' > "${ARCHIVE}.sha256"
+          done
+
+      - name: Upload grouped assets
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-bind-groups
+          path: release-assets
+          if-no-files-found: error
+
+  publish-github-release:
+    name: Publish GitHub Release
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    needs:
+      - resolve-meta
+      - package-bind-groups
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Download release assets
+        uses: actions/download-artifact@v4
+        with:
+          name: release-bind-groups
+          path: release-assets
+
+      - name: Resolve previous tag
+        id: tags
+        shell: bash
+        run: |
+          git fetch --tags --force
+          CURRENT="${{ needs.resolve-meta.outputs.releaseTag }}"
+          PREVIOUS="$(git tag --sort=-v:refname | grep -Fxv "${CURRENT}" | head -n 1 || true)"
+          echo "previous=${PREVIOUS}" >> "${GITHUB_OUTPUT}"
+
+      - name: Generate release notes
+        uses: actions/github-script@v8
+        env:
+          BRANCH_REF: ${{ needs.resolve-meta.outputs.branchRef }}
+          CHANNEL: ${{ needs.resolve-meta.outputs.channel }}
+          NPM_TAG: ${{ needs.resolve-meta.outputs.npmTag }}
+          PACKAGE_VERSION: ${{ needs.resolve-meta.outputs.packageVersion }}
+          PREVIOUS_TAG: ${{ steps.tags.outputs.previous }}
+          RELEASE_TAG: ${{ needs.resolve-meta.outputs.releaseTag }}
+        with:
+          script: |
+            const fs = require('fs');
+
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const previousTag = process.env.PREVIOUS_TAG || '';
+            const releaseTag = process.env.RELEASE_TAG;
+            const packageVersion = process.env.PACKAGE_VERSION;
+            const channel = process.env.CHANNEL;
+            const branchRef = process.env.BRANCH_REF;
+            const npmTag = process.env.NPM_TAG;
+            const head = context.sha;
+
+            const categories = [
+              ['changelog:breaking', 'Breaking Changes'],
+              ['changelog:feature', 'Features'],
+              ['changelog:fix', 'Fixes'],
+              ['changelog:performance', 'Performance'],
+              ['changelog:docs', 'Documentation']
+            ];
+
+            const categorized = new Map(categories.map(([label, title]) => [label, { title, entries: [] }]));
+            const uncategorized = [];
+            const seenPrs = new Set();
+
+            async function collectPullsForCommit(commitSha) {
+              const response = await github.request(
+                'GET /repos/{owner}/{repo}/commits/{commit_sha}/pulls',
+                {
+                  owner,
+                  repo,
+                  commit_sha: commitSha,
+                  mediaType: {
+                    previews: ['groot']
+                  }
+                }
+              );
+
+              for (const pr of response.data) {
+                if (!pr.merged_at || seenPrs.has(pr.number)) {
+                  continue;
+                }
+
+                seenPrs.add(pr.number);
+                const labels = new Set(pr.labels.map((label) => label.name));
+                const line = `- ${pr.title} (#${pr.number}) @${pr.user.login}`;
+                let matched = false;
+
+                if (labels.has('skip-changelog') || labels.has('changelog:internal')) {
+                  continue;
+                }
+
+                for (const [label] of categories) {
+                  if (!labels.has(label)) {
+                    continue;
+                  }
+                  categorized.get(label).entries.push(line);
+                  matched = true;
+                }
+
+                if (!matched) {
+                  uncategorized.push(line);
+                }
+              }
+            }
+
+            if (previousTag) {
+              const comparison = await github.rest.repos.compareCommitsWithBasehead({
+                owner,
+                repo,
+                basehead: `${previousTag}...${head}`
+              });
+
+              for (const commit of comparison.data.commits) {
+                await collectPullsForCommit(commit.sha);
+              }
+            }
+
+            const body = [];
+            body.push('## Changes');
+
+            let hasChanges = false;
+            for (const [, section] of categorized) {
+              if (section.entries.length === 0) {
+                continue;
+              }
+              hasChanges = true;
+              body.push('');
+              body.push(`### ${section.title}`);
+              body.push(...section.entries);
+            }
+
+            if (uncategorized.length > 0) {
+              hasChanges = true;
+              body.push('');
+              body.push('### Other Changes');
+              body.push(...uncategorized);
+            }
+
+            if (!hasChanges) {
+              body.push('');
+              body.push('- No categorized changes were found for this release window.');
+            }
+
+            body.push('');
+            body.push('## Release Metadata');
+            body.push(`- Channel: \`${channel}\``);
+            body.push(`- Source branch: \`${branchRef}\``);
+            body.push(`- Git tag: \`${releaseTag}\``);
+            body.push(`- Package version: \`${packageVersion}\``);
+            if (previousTag) {
+              body.push(`- Previous tag: \`${previousTag}\``);
+            }
+
+            body.push('');
+            body.push('## Bind Groups');
+            body.push('- `ffi`');
+            body.push('- `napi`');
+            body.push('- `wasm`');
+            body.push('- `python`');
+            body.push('- `lua`');
+
+            body.push('');
+            body.push('## npm Packages');
+            body.push(`- \`@vulfram/transport-browser\` via dist-tag \`${npmTag}\``);
+            body.push(`- \`@vulfram/transport-bun\` via dist-tag \`${npmTag}\``);
+            body.push(`- \`@vulfram/transport-napi\` via dist-tag \`${npmTag}\``);
+
+            fs.writeFileSync('release-notes.md', `${body.join('\n')}\n`, 'utf8');
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          body_path: release-notes.md
+          files: release-assets/*
+          name: ${{ needs.resolve-meta.outputs.releaseTag }}
+          prerelease: ${{ needs.resolve-meta.outputs.channel != 'latest' }}
+          tag_name: ${{ needs.resolve-meta.outputs.releaseTag }}
+          target_commitish: ${{ github.sha }}
+
+  publish-npm-transports:
+    name: Publish npm transports
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    needs:
+      - resolve-meta
+      - publish-github-release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install Bun dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Apply release version
+        run: bun run version -- ${{ needs.resolve-meta.outputs.packageVersion }}
+
+      - name: Download raw artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          pattern: raw-binding-*
+          merge-multiple: false
+
+      - name: Sync transport artifacts from workflow outputs
+        shell: bash
+        run: |
+          clean_dir() {
+            TARGET="$1"
+            mkdir -p "${TARGET}"
+            find "${TARGET}" -mindepth 1 ! -name '.gitkeep' -exec rm -rf {} +
+          }
+
+          clean_dir packages/transport-bun/lib
+          clean_dir packages/transport-napi/lib
+          clean_dir packages/transport-browser/lib
+
+          shopt -s nullglob
+          for artifact_dir in dist/raw-binding-*; do
+            BASENAME="$(basename "${artifact_dir}")"
+            REST="${BASENAME#raw-binding-}"
+            BINDING="${REST%%-*}"
+            PLATFORM="${REST#${BINDING}-}"
+
+            if [[ "${BINDING}" == "ffi" ]]; then
+              mkdir -p "packages/transport-bun/lib/${PLATFORM}"
+              cp -R "${artifact_dir}/." "packages/transport-bun/lib/${PLATFORM}/"
+              continue
+            fi
+
+            if [[ "${BINDING}" == "napi" ]]; then
+              mkdir -p "packages/transport-napi/lib/${PLATFORM}"
+              cp -R "${artifact_dir}/." "packages/transport-napi/lib/${PLATFORM}/"
+              continue
+            fi
+
+            if [[ "${BINDING}" == "wasm" && "${PLATFORM}" == "browser" ]]; then
+              cp -R "${artifact_dir}/." "packages/transport-browser/lib/"
+            fi
+          done
+
+      - name: Bundle N-API transport package
+        run: bun run build
+        working-directory: packages/transport-napi
+
+      - name: Publish transports
         shell: bash
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-          AWS_EC2_METADATA_DISABLED: "true"
-          R2_BUCKET: ${{ secrets.R2_BUCKET }}
-          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          PACKAGE_VERSION: ${{ needs.resolve-meta.outputs.packageVersion }}
+          NPM_TAG: ${{ needs.resolve-meta.outputs.npmTag }}
         run: |
-          BASE_KEY="v1/${{ steps.meta.outputs.channel }}/${{ steps.meta.outputs.version }}/wasm/browser"
-          aws s3 cp "${{ steps.package.outputs.dist_dir }}/" "s3://${R2_BUCKET}/${BASE_KEY}/" \
-            --endpoint-url "${R2_ENDPOINT}" \
-            --recursive \
-            --only-show-errors
-          echo "Uploaded ${BASE_KEY}"
+          publish_if_needed() {
+            PACKAGE_NAME="$(node -p "require('./package.json').name" < /dev/null)"
+
+            if npm view "${PACKAGE_NAME}@${PACKAGE_VERSION}" version >/dev/null 2>&1; then
+              echo "Skipping ${PACKAGE_NAME}@${PACKAGE_VERSION}; already published."
+              return
+            fi
+
+            npm publish --tag "${NPM_TAG}" --access public
+          }
+
+          pushd packages/transport-browser >/dev/null
+          publish_if_needed "packages/transport-browser"
+          popd >/dev/null
+
+          pushd packages/transport-bun >/dev/null
+          publish_if_needed "packages/transport-bun"
+          popd >/dev/null
+
+          pushd packages/transport-napi >/dev/null
+          publish_if_needed "packages/transport-napi"
+          popd >/dev/null

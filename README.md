@@ -101,6 +101,8 @@ The monorepo is split by ecosystem:
 - `bun run version -- <semver>`
   updates Cargo workspace version and transport package versions, except
   `transport-types`
+- `bun run release-meta -- --ref <channel>/vX.Y.Z`
+  resolves the package version, artifact version, npm dist-tag, and GitHub release tag
 ┌─────────────────────────────────────┐
 │          Host Layer                 │
 │  (JS/TS, Lua, Python, etc.)         │

@@ -8,7 +8,8 @@ on:
       - stable/**
       - alpha/**
       - beta/**
-      - release/**
+      - next/**
+      - latest/**
     types:
       - opened
       - synchronize
@@ -234,7 +235,8 @@ jobs:
             const isPromotionBase =
               /^alpha\/.+$/.test(baseRef) ||
               /^beta\/.+$/.test(baseRef) ||
-              /^release\/.+$/.test(baseRef);
+              /^next\/.+$/.test(baseRef) ||
+              /^latest\/.+$/.test(baseRef);
 
             if (isPromotionBase) {
               const isMain = headRef === 'main';

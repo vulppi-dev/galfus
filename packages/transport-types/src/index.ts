@@ -18,7 +18,7 @@ export type EngineTransport = {
 
 export type EngineTransportFactory = () => EngineTransport;
 
-export type VulframChannel = 'alpha' | 'beta' | 'release';
+export type VulframChannel = 'alpha' | 'beta' | 'next' | 'latest';
 export type VulframBinding = 'ffi' | 'napi' | 'wasm';
 export type VulframPlatform =
   | 'linux-x64'
@@ -193,14 +193,16 @@ export function parsePackageArtifactTarget(packageVersion: string): {
 
   const major = match[1]!;
   const minor = match[2]!;
+  const patch = match[3]!;
   const pre = (match[4] ?? '').toLowerCase();
 
-  let channel: VulframChannel = 'release';
+  let channel: VulframChannel = 'latest';
   if (pre.includes('alpha')) channel = 'alpha';
   else if (pre.includes('beta')) channel = 'beta';
+  else if (pre.includes('next')) channel = 'next';
 
   return {
     channel,
-    artifactVersion: `v${major}.${minor}`
+    artifactVersion: `v${major}.${minor}.${patch}`
   };
 }

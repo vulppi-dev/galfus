@@ -21,7 +21,7 @@ Notes:
 
 - This gate validates compilation and shader consistency.
 - CI additionally validates that the refactored workspace still builds/tests across
-  the split crates and bindings packaging workflow.
+  the split crates, grouped bind release packaging, and npm transport publishing workflow.
 - It does not guarantee visual quality, UX behavior, or platform-policy edge cases.
 - After documentation-only architecture work, this script is not required unless
   code or shader files also changed.

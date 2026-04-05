@@ -1,7 +1,7 @@
 {
   "name": "vulfram-monorepo",
   "private": true,
-  "version": "0.22.0-alpha",
+  "version": "0.0.0",
   "workspaces": [
     "packages/*"
   ],
@@ -9,6 +9,7 @@
     "check": "bun scripts/check.ts",
     "artifacts": "bun scripts/artifacts.ts",
     "version": "bun scripts/set-version.ts",
+    "release-meta": "bun scripts/release-meta.ts",
     "core-version": "bun scripts/core-version.ts",
     "format": "prettier --write \"scripts/**/*.ts\" \"packages/**/*.ts\""
   },

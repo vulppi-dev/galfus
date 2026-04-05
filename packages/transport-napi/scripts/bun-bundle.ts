@@ -1,5 +1,5 @@
 import { build } from 'bun';
-import { mkdirSync, rmSync } from 'fs';
+import { mkdirSync, rmSync, writeFileSync } from 'fs';
 import { join } from 'path';
 
 const rootDir = process.cwd();
@@ -21,5 +21,10 @@ if (!result.success) {
   const reason = firstError?.message ?? 'build failed';
   throw new Error(reason);
 }
+
+writeFileSync(
+  join(outDir, 'index.d.ts'),
+  "import type { EngineTransportFactory } from '@vulfram/transport-types';\nexport declare const transportNapi: EngineTransportFactory;\n"
+);
 
 console.log('Bundled transport-napi to dist/.');
