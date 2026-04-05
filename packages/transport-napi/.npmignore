@@ -1,3 +1,5 @@
 scripts/
 src/
 lib/
+jsr.json
+mod.ts

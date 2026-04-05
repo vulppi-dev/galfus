@@ -8,6 +8,13 @@ type PackageJson = {
   [key: string]: unknown;
 };
 
+type JsrJson = {
+  license?: string;
+  name?: string;
+  version?: string;
+  exports?: string;
+};
+
 type DependencyField =
   | 'dependencies'
   | 'devDependencies'
@@ -120,6 +127,30 @@ async function updatePackageVersion(
   console.log(`${pkg.name}: ${previous} -> ${version}`);
 }
 
+async function updateJsrPackageVersion(
+  rootDir: string,
+  packageDirName: string,
+  version: string
+): Promise<void> {
+  const manifestPath = join(rootDir, 'packages', packageDirName, 'jsr.json');
+  const raw = await readFile(manifestPath, 'utf8');
+  const manifest = JSON.parse(raw) as JsrJson;
+
+  if (!manifest.name) {
+    throw new Error(`Missing package name in ${manifestPath}`);
+  }
+
+  if (manifest.name === '@vulfram/transport-types') {
+    throw new Error('transport-types JSR manifest must not be updated by this script.');
+  }
+
+  const previous = manifest.version ?? '(undefined)';
+  manifest.version = version;
+
+  await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
+  console.log(`${manifest.name} (jsr): ${previous} -> ${version}`);
+}
+
 async function listWorkspacePackageDirNames(rootDir: string): Promise<string[]> {
   const packagesDir = join(rootDir, 'packages');
   const entries = await readdir(packagesDir, { withFileTypes: true });
@@ -202,6 +233,7 @@ async function main(): Promise<void> {
 
   for (const packageDirName of TARGET_PACKAGES) {
     await updatePackageVersion(rootDir, packageDirName, version);
+    await updateJsrPackageVersion(rootDir, packageDirName, version);
   }
 
   await updateWorkspaceDependencyVersions(rootDir);

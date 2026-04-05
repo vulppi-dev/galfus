@@ -17,6 +17,7 @@ on:
 
 permissions:
   contents: write
+  id-token: write
   pull-requests: read
 
 jobs:
@@ -446,7 +447,7 @@ jobs:
           target_commitish: ${{ github.sha }}
 
   publish-npm-transports:
-    name: Publish npm transports
+    name: Publish JS packages
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     needs:
       - resolve-meta
@@ -518,10 +519,9 @@ jobs:
         run: bun run build
         working-directory: packages/transport-napi
 
-      - name: Publish packages
+      - name: Publish npm packages
         shell: bash
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           PACKAGE_VERSION: ${{ needs.resolve-meta.outputs.packageVersion }}
           NPM_TAG: ${{ needs.resolve-meta.outputs.npmTag }}
         run: |
@@ -533,7 +533,7 @@ jobs:
               return
             fi
 
-            npm publish --tag "${NPM_TAG}" --access public
+            npm publish --provenance --tag "${NPM_TAG}" --access public
           }
 
           pushd packages/transport-browser >/dev/null
@@ -558,4 +558,39 @@ jobs:
 
           pushd packages/camera-control >/dev/null
           publish_if_needed "packages/camera-control"
+          popd >/dev/null
+
+      - name: Publish JSR packages
+        shell: bash
+        run: |
+          publish_jsr_package() {
+            npx jsr publish --allow-dirty
+          }
+
+          pushd packages/transport-types >/dev/null
+          publish_jsr_package
+          popd >/dev/null
+
+          pushd packages/transport-browser >/dev/null
+          publish_jsr_package
+          popd >/dev/null
+
+          pushd packages/transport-bun >/dev/null
+          publish_jsr_package
+          popd >/dev/null
+
+          pushd packages/transport-napi >/dev/null
+          publish_jsr_package
+          popd >/dev/null
+
+          pushd packages/engine >/dev/null
+          publish_jsr_package
+          popd >/dev/null
+
+          pushd packages/gltf-loader >/dev/null
+          publish_jsr_package
+          popd >/dev/null
+
+          pushd packages/camera-control >/dev/null
+          publish_jsr_package
           popd >/dev/null

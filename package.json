@@ -3,6 +3,10 @@
   "private": true,
   "version": "0.0.0",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vulppi-dev/vulfram.git"
+  },
   "workspaces": [
     "packages/*",
     "apps/*"

@@ -1,7 +1,7 @@
 # CI Release Publish
 
-This project publishes binding outputs from GitHub Actions to GitHub Releases
-and npm transport packages.
+This project publishes binding outputs from GitHub Actions to GitHub Releases,
+npm packages, and JSR packages.
 
 ## Branch convention
 
@@ -64,6 +64,9 @@ After the GitHub Release is published, the workflow syncs transport artifacts an
 - `@vulfram/transport-browser`
 - `@vulfram/transport-bun`
 - `@vulfram/transport-napi`
+- `@vulfram/engine`
+- `@vulfram/gltf-loader`
+- `@vulfram/camera-control`
 
 npm dist-tags are mapped directly from the branch channel:
 
@@ -72,14 +75,30 @@ npm dist-tags are mapped directly from the branch channel:
 - `next` -> `next`
 - `latest` -> `latest`
 
-## Required repository secrets
+npm publishing uses GitHub Actions OIDC trusted publishing and provenance.
 
-- `NPM_TOKEN`
+## JSR publish behavior
+
+After the npm publish step, the workflow publishes to JSR:
+
+- `@vulfram/transport-types`
+- `@vulfram/transport-browser`
+- `@vulfram/transport-bun`
+- `@vulfram/transport-napi`
+- `@vulfram/engine`
+- `@vulfram/gltf-loader`
+- `@vulfram/camera-control`
+
+JSR publishing also uses GitHub Actions OIDC and does not require a token.
+
+## OIDC setup guide
+
+- [OIDC-PUBLISH-SETUP.md](OIDC-PUBLISH-SETUP.md)
 
 ## Publish behavior
 
 - `push` on promotion branches builds, publishes the grouped GitHub Release, and publishes npm
-  transports.
+  and JSR packages.
 - `pull_request` runs build/validation and packages grouped bind archives without publishing.
 - `workflow_dispatch` follows the same publish path as `push`, as long as it runs from a valid
   promotion branch.

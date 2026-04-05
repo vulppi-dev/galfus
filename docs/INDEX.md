@@ -10,6 +10,8 @@
 - render graph resource format: [RENDER-GRAPH.md](RENDER-GRAPH.md)
 - terminology: [GLOSSARY.md](GLOSSARY.md)
 - validation policy: [VALIDATION.md](VALIDATION.md)
+- release and registry publishing: [CI-RELEASE-PUBLISH.md](CI-RELEASE-PUBLISH.md)
+- OIDC setup for npm and JSR: [OIDC-PUBLISH-SETUP.md](OIDC-PUBLISH-SETUP.md)
 
 ## For Binding Authors and Integrators
 
