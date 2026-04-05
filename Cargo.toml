@@ -1,111 +1,30 @@
-[package]
-name = "vulfram-core"
-version = "0.21.2-alpha"
+[workspace]
+members = [
+    "crates/vulfram-audio",
+    "crates/vulfram-bindings-ffi",
+    "crates/vulfram-bindings-lua",
+    "crates/vulfram-bindings-napi",
+    "crates/vulfram-bindings-python",
+    "crates/vulfram-bindings-wasm",
+    "crates/vulfram-devtools",
+    "crates/vulfram-demo",
+    "crates/vulfram-input",
+    "crates/vulfram-platform",
+    "crates/vulfram-protocol",
+    "crates/vulfram-realm-2d",
+    "crates/vulfram-realm-3d",
+    "crates/vulfram-realm-ui",
+    "crates/vulfram-render",
+    "crates/vulfram-runtime",
+    "crates/vulfram-realm-core",
+    "crates/vulfram-types",
+]
+resolver = "3"
+
+[workspace.package]
+version = "0.0.0"
 edition = "2024"
 license = "MIT"
-default-run = "vulfram-core"
-
-[dependencies]
-# Core helpers
-env_logger = "0.11"
-log = "0.4"
-once_cell = "1.21"
-pollster = "0.4"
-smallvec = "1.15"
-
-# Data serialization & layouts
-bytemuck = "1.25"
-encase = "0.12"
-rmp-serde = "1.3"
-serde = { version = "1.0", features = ["derive"] }
-serde_path_to_error = "0.1"
-
-# Math
-glam = { version = "0.30", features = ["serde", "bytemuck", "encase"] }
-
-# Graphics & windowing
-wgpu = "28.0"
-winit = { version = "0.30", optional = true }
-egui = "0.29"
-
-# Input & signals
-ctrlc = { version = "3.5", optional = true }
-gilrs = { version = "0.11", optional = true }
-
-# Notifications
-notify-rust = { version = "4.12", optional = true }
-
-# Images
-image = { version = "0.25", default-features = false, features = ["bmp", "png", "jpeg", "webp", "avif", "exr", "hdr", "ico"] }
-half = "2.7"
-
-# Tooling (WGSL validation)
-naga = { version = "28.0.0", features = ["wgsl-in"] }
-
-# Scripting / bindings (optional)
-mlua = { version = "0.11", features = ["lua54", "module"], optional = true }
-napi = { version = "3.8", optional = true }
-napi-derive = { version = "3.5", optional = true }
-pyo3 = { version = "0.27", features = ["extension-module"], optional = true }
-rand = "0.9.2"
-mint = "0.5"
-
-# Wasm
-js-sys = { version = "0.3", optional = true }
-wasm-bindgen = { version = "0.2", optional = true }
-wasm-bindgen-futures = { version = "0.4", optional = true }
-console_error_panic_hook = { version = "0.1", optional = true }
-web-time = { version = "1.1", optional = true }
-web-sys = { version = "0.3", optional = true, features = [
-    "Window",
-    "Document",
-    "Element",
-    "HtmlCanvasElement",
-    "DomRect",
-    "Event",
-    "EventTarget",
-    "KeyboardEvent",
-    "CompositionEvent",
-    "PointerEvent",
-    "WheelEvent",
-    "FocusEvent",
-    "TouchEvent",
-    "Touch",
-    "TouchList",
-    "MouseEvent",
-    "ResizeObserver",
-    "ResizeObserverEntry",
-    "Navigator",
-    "Gamepad",
-    "GamepadButton",
-    "AudioBuffer",
-    "AudioBufferSourceNode",
-    "AudioContext",
-    "AudioDestinationNode",
-    "AudioListener",
-    "AudioParam",
-    "GainNode",
-    "PannerNode",
-    "PannerOptions",
-] }
-
-[lib]
-crate-type = ["cdylib"]
-path = "src/lib.rs"
-
-[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-kira = "0.9"
-
-[target.'cfg(target_arch = "wasm32")'.dependencies]
-getrandom = { version = "0.3", features = ["wasm_js"] }
-
-[features]
-default = ["napi"]  # Default to N-API export
-ffi = ["dep:winit", "dep:gilrs", "dep:notify-rust", "dep:ctrlc"]  # C ABI / FFI export
-napi = ["dep:napi", "dep:napi-derive", "dep:winit", "dep:gilrs", "dep:notify-rust", "dep:ctrlc"]  # N-API export
-lua = ["dep:mlua", "dep:winit", "dep:gilrs", "dep:notify-rust", "dep:ctrlc"]
-python = ["dep:pyo3", "dep:winit", "dep:gilrs", "dep:notify-rust", "dep:ctrlc"]
-wasm = ["dep:wasm-bindgen", "dep:wasm-bindgen-futures", "dep:console_error_panic_hook", "dep:web-time", "dep:js-sys", "dep:web-sys"]
 
 [profile.dev]
 opt-level = 0
@@ -115,3 +34,5 @@ opt-level = 3
 lto = true
 codegen-units = 1
 strip = "symbols"
+
+

@@ -78,6 +78,31 @@ Vulfram follows a **black box** approach where:
 Vulfram uses a queue-based architecture that enables efficient communication between the host and the Rust core:
 
 ```
+
+## Workspace Layout
+
+The monorepo is split by ecosystem:
+
+- `crates/`
+  Rust workspace crates for runtime, render, realms, bindings and demos
+- `packages/`
+  Bun/TypeScript workspace packages for transports and host-facing JS runtimes
+- `scripts/`
+  repository automation executed through Bun
+
+### Repository Scripts
+
+- `bun run check`
+  runs the standard Rust/WGSL validation pipeline
+- `bun run artifacts -- --skip-download`
+  skips artifact download explicitly via CLI flag
+- `bun run artifacts -- --base-url <url>`
+  overrides the artifact source URL without environment variables
+- `bun run version -- <semver>`
+  updates Cargo workspace version and transport package versions, except
+  `transport-types`
+- `bun run release-meta -- --ref <channel>/vX.Y.Z`
+  resolves the package version, artifact version, npm dist-tag, and GitHub release tag
 ┌─────────────────────────────────────┐
 │          Host Layer                 │
 │  (JS/TS, Lua, Python, etc.)         │
@@ -158,6 +183,8 @@ Vulfram distinguishes between two fundamental types:
 The host manages all logical identifiers:
 
 - `WindowId` - Window instances
+- `RealmId` - Realm instances
+- `TargetId` - Logical composition targets
 - `CameraId` - Camera instances
 - `ModelId` - Model instances
 - `LightId` - Light instances
@@ -167,6 +194,17 @@ The host manages all logical identifiers:
 - `BufferId` - Upload blob identifiers
 
 These are opaque integers to the core. The host ensures uniqueness and consistency.
+
+### Internal Composition Tables
+
+The core derives and owns these runtime tables internally:
+
+- `Surface`
+- `Present`
+- `Connector`
+
+The host composes output through `Realm`, `Target`, and `TargetLayer` commands
+instead of managing these internal tables directly.
 
 ### Asynchronous Resource Linking (Fallback-Driven)
 
@@ -244,18 +282,18 @@ components first and upload data later.
 - **Rust** 1.70+ ([rustup.rs](https://rustup.rs/))
 - **Vulkan**, **Metal**, or **DirectX 12** updated drivers
 
-### Quick Start (Core Test Harness)
+### Quick Start (Demo Harness)
 
 ```bash
 # Clone the repository
 git clone https://github.com/vulppi-dev/vulfram.git
 cd vulfram
 
-# Build and run the test harness
-cargo run
+# Build and run the first demo
+cargo run -p vulfram-demo -- 1
 ```
 
-The test harness lives in `src/main.rs` and exercises:
+The demo harness lives in `crates/vulfram-demo` and exercises:
 
 - window creation
 - primitive geometry creation
@@ -316,8 +354,8 @@ The test harness lives in `src/main.rs` and exercises:
 ## 🛠️ Development
 
 ```bash
-# Build Rust core
-cargo build --release
+# Build the workspace
+cargo build --workspace --release
 
 # Run tests
 cargo test
@@ -347,30 +385,31 @@ cargo fmt
 
 ## 📦 Project Structure
 
-```
+```text
 vulfram/
-├── src/                         # Rust core
-│   ├── lib.rs                   # Crate entry point (cdylib)
-│   └── core/                    # Engine core modules
-│       ├── cmd.rs               # Command routing
-│       ├── lifecycle.rs         # Init/dispose lifecycle
-│       ├── queue.rs             # Command/response/event queues
-│       ├── singleton.rs         # Global state management
-│       ├── state.rs             # Engine state
-│       ├── tick.rs              # Frame update logic
-│       ├── platforms/           # Platform proxies
-│       │   ├── desktop/         # Winit + native input
-│       │   └── browser/         # DOM canvas + web input
-│       ├── window/              # Window commands/events/state
-│       ├── input/               # Keyboard/pointer events + cache
-│       ├── gamepad/             # Gamepad events + cache
-│       ├── render/              # Rendering system
-│       └── resources/           # Camera/model/light/material/texture
-│
-├── docs/                        # Documentation
-├── assets/                      # Visual resources
-├── Cargo.toml                   # Rust dependencies
-└── README.md                    # This file
+├── crates/
+│   ├── vulfram-runtime/         # Integration root, ABI re-exports and frame orchestration
+│   ├── vulfram-types/           # Shared logical/base types
+│   ├── vulfram-protocol/        # Host/runtime contracts + MsgPack codec
+│   ├── vulfram-realm-core/      # Realm composition semantics and graph/report DTOs
+│   ├── vulfram-input/           # Normalized input semantics
+│   ├── vulfram-realm-ui/        # UI semantic layer
+│   ├── vulfram-render/          # WGPU-facing render policy, graphs and planning helpers
+│   ├── vulfram-audio/           # Audio domain + backends
+│   ├── vulfram-platform/        # Desktop/browser integration
+│   ├── vulfram-realm-3d/        # 3D realm semantics + sync plans
+│   ├── vulfram-realm-2d/        # 2D realm placeholder/contracts
+│   ├── vulfram-bindings-ffi/    # C ABI host binding
+│   ├── vulfram-bindings-wasm/   # wasm-bindgen host binding
+│   ├── vulfram-bindings-napi/   # Node.js binding
+│   ├── vulfram-bindings-python/ # Python binding
+│   ├── vulfram-bindings-lua/    # Lua binding
+│   └── vulfram-demo/            # Visual/manual validation demos
+├── docs/
+├── assets/
+├── scripts/
+├── Cargo.toml
+└── README.md
 ```
 
 ---
@@ -390,7 +429,8 @@ Comprehensive documentation is available in the `docs/` folder.
 1. **[OVERVIEW.md](docs/OVERVIEW.md)** - Start here! High-level concepts and design philosophy
 2. **[ABI.md](docs/ABI.md)** - C-ABI functions, usage contract, and calling conventions
 3. **[ARCH.md](docs/ARCH.md)** - Architecture, lifecycle, and main loop patterns
-4. **[GLOSSARY.md](docs/GLOSSARY.md)** - Terminology and naming conventions
+4. **[REALM-ARCH.md](docs/REALM-ARCH.md)** - Realm composition architecture and refactor direction
+5. **[GLOSSARY.md](docs/GLOSSARY.md)** - Terminology and naming conventions
 
 **For Core Contributors (Rust Developers):**
 
@@ -459,8 +499,9 @@ Contributions are welcome! Please follow these guidelines:
 - **`bytemuck`** - Safe type conversions for GPU data
 - **`image`** - Image loading and decoding
 
-Bindings are provided via feature flags (`napi`, `lua`, `python`) and are
-implemented in Rust.
+Bindings now live in dedicated workspace crates:
+`vulfram-bindings-ffi`, `vulfram-bindings-wasm`, `vulfram-bindings-napi`,
+`vulfram-bindings-lua`, and `vulfram-bindings-python`.
 
 ---
 

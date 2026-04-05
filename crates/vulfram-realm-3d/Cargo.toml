@@ -1,0 +1,10 @@
+[package]
+name = "vulfram-realm-3d"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+bytemuck = "1.25"
+vulfram-realm-core = { path = "../vulfram-realm-core" }
+vulfram-types = { path = "../vulfram-types" }

@@ -1,0 +1,8 @@
+[package]
+name = "vulfram-realm-2d"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+vulfram-realm-core = { path = "../vulfram-realm-core" }

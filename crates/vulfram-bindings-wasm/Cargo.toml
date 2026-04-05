@@ -1,0 +1,13 @@
+[package]
+name = "vulfram-bindings-wasm"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+console_error_panic_hook = "0.1"
+wasm-bindgen = "0.2"
+vulfram-core = { package = "vulfram-runtime", path = "../vulfram-runtime", default-features = false, features = ["wasm"] }

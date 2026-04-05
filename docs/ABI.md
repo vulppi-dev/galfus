@@ -187,6 +187,12 @@ Typical flow:
 3. Binding copies and frees the buffer.
 4. Binding decodes events and forwards them into the host-side input system.
 
+Current composition note:
+
+- the host composes the scene through `Realm`, `Target`, and `TargetLayer`
+- the core derives internal `Surface`, `Present`, and `Connector` tables from
+  those maps
+
 ---
 
 ### 2.5 Upload of Raw Blobs
@@ -299,11 +305,35 @@ u32 vulfram_get_profiling(uint8_t** out_ptr, size_t* out_length);
     - `commandProcessingUs`, `gamepadProcessingUs`, `eventLoopPumpUs`
     - `requestRedrawUs`, `serializationUs`
     - `renderTotalUs`, `renderShadowUs`, `renderWindowsUs`
-    - `frameDeltaUs`
+    - `uiInputUs`, `frameDeltaUs`
+  - Domain timings in microseconds:
+    - `commandUs`, `inputUs`, `routingUs`, `renderUs`, `gpuUs`, `uiUs`, `graphUs`
   - Derived:
     - `fpsInstant`
+  - Rolling window:
+    - `sampleCount`
+    - `commandUsAvg`, `inputUsAvg`, `renderUsAvg`, `gpuUsAvg`
+    - `fpsAvg`
+    - `frameUsP50`, `frameUsP95`, `frameUsP99`, `frameUsMax`
+    - `renderUsP95`, `gpuUsP95`
   - Counters:
     - `totalEventsDispatched`, `totalEventsCached`
+  - Memory:
+    - `memoryBytes.ramCurrent`, `memoryBytes.ramPeak`
+    - `memoryBytes.gpuCurrent`, `memoryBytes.gpuPeak`
+  - Utilization:
+    - `utilization.cpuPercent`
+    - `utilization.gpuFramePercent`
+    - `utilization.commandPercent`
+    - `utilization.inputPercent`
+    - `utilization.renderPercent`
+    - `utilization.uiPercent`
+    - `utilization.graphPercent`
+  - Cache efficiency:
+    - `cache.renderPipelineHits`, `cache.renderPipelineMisses`
+    - `cache.computePipelineHits`, `cache.computePipelineMisses`
+    - `cache.composeBindCacheHits`, `cache.composeBindCacheMisses`
+    - `cache.postBindCacheHits`, `cache.postBindCacheMisses`
   - Per-window:
     - `windowFps[]` with `windowId`, `fpsInstant`, `frameDeltaUs`
 
@@ -316,6 +346,12 @@ Contract:
 
 - Same as other `out_ptr` functions:
   - binding copies the data, frees the buffer, then decodes MessagePack.
+- Interpretation rules:
+  - `ram*` and `cpuPercent` are process metrics when supported by the platform.
+  - `gpu*` memory is the amount of GPU memory currently owned/estimated by the
+    engine, not total VRAM usage of the whole system.
+  - `gpuFramePercent` is GPU time divided by the current frame budget, not
+    global GPU utilization reported by the driver.
 
 ---
 

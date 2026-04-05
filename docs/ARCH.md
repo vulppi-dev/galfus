@@ -1,432 +1,223 @@
-# 🦊 Vulfram — Architecture, Lifecycle and Main Loop
+# Vulfram Architecture and Lifecycle
 
-This document explains how the Vulfram core is structured at a high level,
-how its lifecycle works, and how the host is expected to drive the main loop.
-
----
+This document explains the current runtime architecture, the main ownership
+boundaries, and the expected host/core lifecycle.
 
 ## 1. High-Level Architecture
 
-Conceptual data flow:
-
-> **Host** → (commands & uploads) → **Vulfram Core** → **WGPU / GPU**
-
-### 1.1 Host Responsibilities
-
-The host is any runtime that calls the C-ABI functions (or WASM exports), for example:
-
-- Node.js (N-API)
-- Lua
-- Python
-- Any other FFI-capable environment
-- Browser runtimes via WASM (WebGPU + DOM canvas)
-
-The host is responsible for:
-
-- Managing the **game logic** and world state.
-- Generating **logical IDs** (window, camera, model, light, geometry, material, texture, etc.).
-- Building **MessagePack command batches** and sending them to the core.
-- Feeding time (`time`, `delta_time`) into `vulfram_tick`.
-- Reading **events** and **responses** from the core and reacting to them.
-
-The host does **not**:
-
-- Create windows manually (handled by the core via platform proxies).
-- Talk to GPU APIs directly.
-- Manage WGPU devices, queues, or pipelines.
-
-### 1.2 Core Responsibilities
-
-The core is the Rust dynamic library that implements Vulfram.
-It uses:
-
-- `wgpu` for rendering (WebGPU)
-- `winit` for native window + OS events
-- `gilrs` for native gamepad input
-- `web-sys` for browser window/input plumbing (WASM)
-- `image` for texture decoding
-- `glam` + `bytemuck` for math and buffer packing
-- `serde` + `rmp-serde` for MessagePack
-
-Core responsibilities:
-
-- Keep track of **resources**:
-  - Geometries, materials, textures (and shadows).
-- Keep track of **instances** (components) per host ID:
-  - Cameras, models, lights.
-- Maintain **Realm/Surface/RealmGraph** state:
-  - `Realm` references a render graph (`render_graph_id`) and outputs to a `Surface`.
-  - `Present` maps a `Surface` to a window.
-  - `Connector` composes one realm into another.
-- Manage GPU buffers, textures, pipelines, and render passes.
-- Collect and expose input/window events via platform proxies.
-- Perform rendering in `vulfram_tick`.
-
----
-
-## 2. Components, Resources and Instances
-
-### 2.1 Components
-
-Components represent high-level logic and are attached to entities:
-
-- `Camera`
-- `Model` (mesh instance)
-- `Light`
-
-They are created and updated via commands in `vulfram_send_queue`.
-Each component is associated with a host-chosen ID (e.g. `camera_id`, `model_id`, `light_id`).
-Component ownership is realm-scoped (`realmId`).
-
-### 2.2 Resources
-
-Resources are reusable data assets such as:
-
-- Geometries
-- Textures
-- Materials
-
-They are referenced from components via **logical IDs**:
-
-- `GeometryId`, `MaterialId`, `TextureId`, etc.
-
-Some data (static, per-component values like local colors or viewports) live inside
-the component and are **not** standalone resources.
-Resource ownership is global (window-agnostic lifecycle).
-
-### 2.3 Internal Instances
-
-Internally, the core maintains per-entity instances like cameras, models, and lights.
-These instances hold GPU bindings, visibility masks, and render state derived from
-the host payloads.
-
-These internal instances are indexed by host IDs and are not visible to the host.
-The host always refers to entities by their logical IDs, and the core resolves that to
-its internal instance structures.
-
-### 2.4 Realm, Surface and RealmGraph (Current)
-
-The render architecture is split into three layers:
-
-- **Realm**: execution scope with a `RenderGraph` (3D or 2D) and an output `Surface`.
-- **Surface**: renderable + sampleable target (virtual swapchain). The core handles
-  format, size, alpha conversions and MSAA resolve when needed.
-- **RealmGraph**: a DAG generated from `Connectors` + `Presents` that defines
-  cross-realm composition order and cycle breaking.
-
-Each window creates a default `Realm` and `Surface`. `Present` links the window to the
-surface, and `Connector` layers control how realms compose (zIndex, blendMode, resolved rect, clip).
-
-UI rendering uses a `TwoD` realm with a dedicated `ui` render pass. The UI realm outputs to
-regular surfaces (alpha respected via `blendMode`) and is composed through the same
-TargetGraph rules as other realms.
-UI resources are referenced by logical IDs owned by the host: `UiThemeId`, `UiFontId`,
-and `UiImageId`.
-
-### 2.5 Auto-Graph (Experimental)
-
-The host does not construct graphs directly. Instead it provides logical maps:
-
-- `RealmMap`: logical realm IDs and kinds
-- `TargetMap`: logical targets (`Window`, `WidgetRealmViewport`, `RealmPlane`, `Texture`)
-- `TargetLayerMap`: `realmId -> targetId` with `layout` (left/top/width/height, zIndex, clip, blendMode)
-
-The core builds `TargetGraph` and `RealmGraph` automatically and creates or updates
-`Surface`, `Present`, and `Connector` tables based on the layers.
-`Surface`, `Present`, and `Connector` are internal-only and are not exposed as host commands.
-
-**Auto resolution (Phase H)**
-
-- Each `TargetLayer(realm -> target)` produces a `Surface`.
-- The Realm output surface is set automatically from its primary layer.
-- If target is `Window` and the source realm is the window host realm, the core creates a `Present`.
-- If target is `Window` (non-host realm layer), `WidgetRealmViewport`, or `RealmPlane`,
-  the core creates a `Connector`
-  targeting the host realm for that window.
-- Layout (`left/top/width/height`, `zIndex`, `clip`, `blendMode`) is applied on
-  connector creation and updated when layers change.
-- Layers are resolved deterministically: per realm, the smallest `targetId` wins.
-
-**Resolution rules**
-
-- `Window` targets act as presentation roots.
-- `Texture` targets are offscreen roots.
-- `Window` connectors, `WidgetRealmViewport`, and `RealmPlane` are resolved automatically by the core.
-- Conflicts are resolved deterministically and surfaced via diagnostics/events.
-
----
-
-## 3. Asynchronous Resource Linking (Fallback-Driven)
-
-Vulfram allows resources to be created out of order:
-
-- Models can reference geometry or material IDs that do not exist yet.
-- Materials can reference texture IDs that do not exist yet.
-
-When a referenced resource is missing, the core uses fallback resources so
-rendering continues. When the real resource appears later with the same ID,
-the core picks it up automatically on the next frame.
-
-This enables async streaming, independent loading pipelines, and decoupled
-creation order.
-
-## 4. LayerMask and Visibility
-
-The core uses a `u32` bitmask to filter visibility:
-
-- Each camera has a `layerMaskCamera`.
-- Each model/mesh has a `layerMaskComponent`.
-- (Future) Each light may have a `layerMaskLight`.
-
-Visibility rule for a given camera/model pair:
+Conceptual flow:
 
 ```text
-Visible if:
-
-    (layerMaskCamera & layerMaskComponent) > 0
+Host -> commands/uploads -> vulfram-runtime -> platform/render/audio/UI subsystems -> GPU/OS
 ```
 
-This enables:
+Current crate roles:
 
-- World-only or UI-only cameras.
-- Team or category-based rendering.
-- Dedicated special passes (e.g. picking, debug-only geometry).
+- `vulfram-runtime`
+  - integration root
+  - command processing
+  - frame loop and deferred lifecycle
+- `vulfram-render`
+  - rendering policy and WGPU-facing helpers
+  - render graph validation/cache
+  - realm/target planning helpers
+- `vulfram-realm-core`
+  - realm composition semantics and reports
+- `vulfram-platform`
+  - platform-specific bootstrap/policies
 
----
+## 2. Ownership Boundaries
 
-## 4.1 Resource Reuse Semantics
+### Host-visible IDs
 
-- A single geometry can be referenced by many models.
-- A single material can be referenced by many models.
-- A single texture can be referenced by many materials.
+The host owns and manages:
 
-There is no ownership tracking. The host is responsible for disposing resources
-when no longer needed; if a resource is disposed while still referenced,
-rendering falls back gracefully.
+- window IDs
+- realm IDs
+- target IDs
+- camera/model/light IDs
+- resource IDs
+- UI IDs
+- upload buffer IDs
 
----
+### Core-owned Internal Tables
 
-## 4.2 Render Ordering & Batching (Per Camera)
+The core owns:
 
-- Opaque/masked objects are sorted by `(material_id, geometry_id)` to reduce
-  state changes and batch draw calls.
-- Transparent objects are sorted by depth for correct blending.
+- `Surface`
+- `Present`
+- `Connector`
+- GPU resources/handles
+- render targets and compiled plans
 
-Draw calls are batched by runs of `(material_id, geometry_id)` after sorting.
+The host does not create internal composition tables directly.
 
-## 4.3 Forward Shading (Standard vs PBR)
+## 3. Auto-Graph
 
-- The Standard branch favors cheaper shading; the PBR branch favors realism.
-- Light evaluation only runs the relevant path per light kind to avoid wasted work.
-- Specular in the Standard branch only applies to directional/point/spot lights.
+The current auto-graph model is:
 
----
+- host upserts `Target`
+- host upserts `TargetLayer`
+- runtime reconciles logical maps
+- core derives `Surface`, `Present`, and `Connector`
+- render execution consumes the derived composition
 
-## 5. Core Lifecycle
+Design direction:
 
-### 5.1 Startup
+- auto-graph policy belongs conceptually to `vulfram-render`
+- application of commands and emission of diagnostics stay in `vulfram-runtime`
+- realm composition DTOs/state belong in `vulfram-realm-core`
+- per-layer sync decisions such as create/update/keep/rebuild are planned in
+  `vulfram-render` and only applied in `vulfram-runtime`
 
-1. The host loads the Vulfram dynamic library.
+Reasoning:
 
-2. The host calls:
+- auto-graph is not just routing metadata
+- it determines realm composition, sizing, overlay ordering and renderability
+- those are render-policy concerns, even when the runtime still applies them
 
-   ```c
-   vulfram_init();
-   ```
+## 4. Runtime State Today
 
-3. The core initializes:
-   - Platform proxy (desktop or browser)
-   - WGPU instance (device/queue created on first window)
-   - Gilrs (native gamepad) and web gamepad polling (WASM)
-   - Internal resource/component tables
-   - Profiling and internal queues
+`EngineState` is still the top integration root.
 
-### 5.2 Loading / Initial Configuration
+Broadly, it contains:
 
-In the loading phase, the host typically:
+- platform/window state
+- GPU bootstrap state
+- render manager state
+- audio/upload/decode services
+- `UniversalState`
+- runtime queues/deferreds
+- profiling
 
-- Uploads heavy data (meshes, textures) via `vulfram_upload_buffer`.
-- Sends one or more command batches via `vulfram_send_queue` to:
-  - upsert resources (`CmdGeometryUpsert`, `CmdTextureCreateFromBuffer`, `CmdMaterialUpsert`, etc.)
-  - upsert components (`CmdCameraUpsert`, `CmdModelUpsert`, `CmdLightUpsert`, …)
+`UniversalState` is currently a large aggregate that mixes:
 
-The core processes these commands on subsequent calls to `vulfram_tick`.
+- realm composition tables
+- target routing / auto-graph state
+- interaction state
+- 3D scene/resource registries
+- render graph catalogs
+- frame diagnostics
 
-### 5.3 Main Loop
+That makes it useful operationally, but not a clean domain boundary.
 
-Once the initial state is ready, the host enters its main loop, where:
+After the current refactor phase, ownership inside `vulfram-runtime` is split
+more explicitly even though `UniversalState` still aggregates the sub-states:
 
-- `vulfram_tick` drives the core each frame and consumes queued commands.
-- The host sends updates and receives events/responses.
+- `core/realm/state.rs`
+  - `RealmCompositionState`
+- `core/target/state.rs`
+  - `TargetRoutingState`
+- `core/input/state.rs`
+  - `InteractionRuntimeState`
+- `core/render/state/mod.rs`
+  - `SceneRuntimeState`
+  - `RenderCatalogState`
+  - scene-attached resource registries and render graph catalogs kept separate
 
-Inside each tick, the core:
+Additionally:
 
-- Builds a `RealmGraphPlan` from `Connectors` + `Presents`.
-- Executes render graphs per realm (3D/2D).
-- Composes inter-realm surfaces in zIndex order.
-- Routes input events through connectors and emits `eventTrace` (including `targetId`).
+- semantic 3D world state types now live in `vulfram-realm-3d`
+- `vulfram-runtime` instantiates and orchestrates those types instead of
+  defining them locally
 
-### 5.4 Shutdown
+## 5. Recommended State Shape
 
-When the application is closing:
-
-1. The host stops calling `vulfram_tick`.
-
-2. The host calls:
-
-   ```c
-   vulfram_dispose();
-   ```
-
-3. The core releases:
-   - GPU resources
-   - Window and OS handles
-   - Internal allocations
-
----
-
-## 6. Recommended Main Loop (Host Side)
-
-The exact structure of the host loop is flexible, but a recommended pattern is:
+The preferred medium-term organization is:
 
 ```text
-while (running) {
-    1. Update host-side logic
-    2. Perform uploads (optional)
-    3. Send command batch
-    4. Call vulfram_tick (processes queued commands)
-    5. Receive responses (consumes response queue)
-    6. Receive events
-    7. (Optional) Receive profiling
-}
+EngineState
+  platform
+  gpu
+  runtime_loop
+  world
+  profiling
+
+WorldState
+  composition
+  targets
+  interaction
+  scene
 ```
 
-In more detail:
+Key guideline:
 
-### 6.1 Update Host Logic
+- move by ownership, not by convenience
+- do not move the current `UniversalState` wholesale into `vulfram-realm-core`
 
-- Compute new game state (ECS systems, scripts, AI, etc.).
-- Decide which entities/components/resources need:
-  - to be created
-  - to be updated
-  - to be destroyed (future).
+## 6. Realm-Core Scope
 
-### 6.2 Upload Heavy Data (Optional)
+`vulfram-realm-core` should be the home of:
 
-For any new or replaced heavy asset:
+- realm composition state/types
+- graph/report DTOs
+- pure planners with no runtime side effects
 
-- Call:
+It should not become a container for:
 
-  ```c
-  vulfram_upload_buffer(buffer_id, type, ptr, length);
-  ```
+- UI runtime state
+- input listener stores
+- render graph catalogs
+- texture/material registries
+- command queues or runtime services
 
-- Typical uploaded data:
-  - Vertex/index buffers
-  - Texture images
+## 7. Lifecycle
 
-These uploads will later be consumed by `Create*` commands referenced by `buffer_id`.
+Lifecycle cleanup should follow the same ownership rule as the steady-state
+tables:
 
-### 6.3 Send Command Batch
+- target disposal and target-layer disposal logic belong in `core/target`
+- realm/surface/connector disposal logic belong in `core/realm`
+- when realm teardown affects target-owned derived links, `core/realm` should
+  delegate to `core/target` helpers instead of mutating target tables directly
+- `EngineState` should orchestrate window/GPU/runtime shutdown, not own all
+  teardown details inline
 
-- Build a batch of commands describing what changed this frame:
-  - Component create/update
-  - Resource create/update
-  - Maintenance (e.g. `CmdUploadBufferDiscardAll`)
+### Startup
 
-- Serialize this to MessagePack.
-- Call:
+1. Host loads the binding/library.
+2. Host calls `vulfram_init()`.
+3. Runtime initializes core state and platform integration roots.
+4. GPU device/queue are created lazily when the first compatible window/surface
+   is ready.
 
-  ```c
-  vulfram_send_queue(buffer, length);
-  ```
+### Frame
 
-The core will copy the buffer and queue the commands for processing.
+1. Host prepares logical state and uploads if needed.
+2. Host sends command batch through `vulfram_send_queue()`.
+3. Host calls `vulfram_tick(time, delta_time)`.
+4. Runtime:
+   - processes ready commands
+   - retries deferred commands when applicable
+   - refreshes auto-graph derived state
+   - renders realms according to realm graph order
+   - collects events, responses and profiling
+5. Host receives responses/events.
 
-### 6.4 Advance the Core (`vulfram_tick`)
+### Shutdown
 
-- Call:
+1. Host calls `vulfram_dispose()`.
+2. Runtime tears down windows, render state, audio and runtime tables.
 
-  ```c
-  vulfram_tick(time, delta_time);
-  ```
+## 8. Documentation Truths
 
-The core will:
+The rest of the documentation should assume:
 
-- Process all queued commands.
-- Update internal component state (camera matrices, transforms, etc.).
-- Collect input/window events.
-- Execute rendering using WGPU.
-- Fill internal queues for responses, events and profiling.
+- `Surface`, `Present`, and `Connector` are internal-only runtime tables
+- `Target` and `TargetLayer` are the host-facing composition API
+- render graphs are global resources bound per realm
+- `vulfram-runtime` is the current integration root
+- `vulfram-render` should increasingly own auto-graph planning policy
+- semantic 3D state definitions belong in `vulfram-realm-3d`, while runtime
+  state instantiation/orchestration stays in `vulfram-runtime`
 
-### 6.5 Receive Responses (Optional)
+## 9. Test File Layout
 
-- Call:
+Automated tests should live in dedicated test source files, not inline in the
+same file as functional code.
 
-  ```c
-  uint8_t* ptr = NULL;
-  size_t len = 0;
-  vulfram_receive_queue(&ptr, &len);
-  ```
+Preferred pattern:
 
-- If `len > 0`:
-  - Copy the bytes to host memory (JS Buffer / Python bytes / Lua string, etc.).
-  - Free the core buffer via the mechanism defined in the binding.
-  - Deserialize MessagePack and process the responses.
-
-`vulfram_receive_queue` consumes and clears the internal response queue.
-
-### 6.6 Receive Events
-
-- Call:
-
-  ```c
-  uint8_t* ptr = NULL;
-  size_t len = 0;
-  vulfram_receive_events(&ptr, &len);
-  ```
-
-- If `len > 0`:
-  - Copy the bytes.
-  - Free the core buffer.
-  - Deserialize MessagePack into an event list.
-  - Integrate these into the host’s own input/window systems.
-
-### 6.7 Profiling (Optional)
-
-For debug or tooling:
-
-- Call:
-
-  ```c
-  uint8_t* ptr = NULL;
-  size_t len = 0;
-  vulfram_get_profiling(&ptr, &len);
-  ```
-
-- If `len > 0`:
-  - Copy the bytes.
-  - Free the core buffer.
-  - Deserialize MessagePack into profiling data.
-  - Display or log via in-engine tools, overlays, or external tools.
-
----
-
-## 7. One-shot Uploads and Cleanup
-
-Heavy binary uploads use `vulfram_upload_buffer` and `BufferId`:
-
-1. The host calls `vulfram_upload_buffer(buffer_id, type, bytes, len)`.
-2. The core stores the blob in an internal upload table as:
-   `BufferId → { type, bytes, used_flag }`.
-3. A `Create*` engine command (via `send_queue`) references `buffer_id` and uses
-   its data to create a resource (geometry buffers, textures, etc.).
-4. Once consumed, the upload entry is marked as used and can be removed.
-5. A maintenance command (`CmdUploadBufferDiscardAll`) may be used to clean up
-   any remaining, never-used uploads.
-
-This model:
-
-- Avoids shared `BufferId`s.
-- Keeps memory usage predictable.
-- Fits well with load phases and streaming scenarios.
+- keep runtime code in the primary module file
+- reference sibling test files with `#[cfg(test)]` and `#[path = "..."] mod tests;`
+- keep larger grouped test suites in dedicated `tests.rs`/`*_tests.rs` modules

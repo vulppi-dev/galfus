@@ -1,0 +1,11 @@
+[package]
+name = "vulfram-bindings-ffi"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+vulfram-core = { package = "vulfram-runtime", path = "../vulfram-runtime", default-features = false, features = ["ffi"] }

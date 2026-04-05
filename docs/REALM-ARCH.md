@@ -1,69 +1,155 @@
-# Realm/Surface/RealmGraph — Planejamento de Base
+# Realm Composition Architecture
 
-Este documento consolida os itens da Fase 0 do replace de arquitetura: contratos, IDs e regras
-fundamentais para Realm/Surface/RealmGraph.
+This document records the current realm-composition model and the recommended
+refactor direction for `vulfram-realm-core`.
 
-## 1. Contratos internos (campos, defaults e lifecycle)
+It replaces the old "phase 0 planning" description as the architecture
+reference for realms, surfaces, presents, connectors and reports.
+
+## 1. Current Model
+
+### Host-visible inputs
 
 - `Realm`
-  - `kind`: `ThreeD` ou `TwoD`.
-  - `output_surface`: `SurfaceId` principal do realm.
-  - `render_graph_id`: referência lógica para um graph no catálogo global.
-  - `flags`: reservado para políticas de execução.
+- `Target`
+- `TargetLayer`
+- `render_graph_id` bound per realm
+
+### Core-owned derived tables
+
 - `Surface`
-  - `kind`: `Onscreen` ou `Offscreen`.
-  - `size`: dimensão lógica em pixels.
-  - `format_policy`: opcional; o core define padrões quando ausente.
-  - `alpha_policy`: opcional; o core define padrões quando ausente.
-  - `msaa_samples`: opcional; o core resolve quando ausente.
 - `Present`
-  - `windowId -> surfaceId` (virtual swapchain).
 - `Connector`
-  - `sourceSurfaceId`
-  - `rect`
-  - `zIndex`
-  - `blendMode`
-  - `clip`
-  - `inputFlags`
 
-## 2. IDs lógicos e generation
+### Runtime diagnostics
 
-Todas as tabelas (`Realm`, `Surface`, `Connector`, `Present`) usam IDs lógicos com generation.
-O objetivo é impedir uso de IDs expirados e garantir remoção segura.
+- `RealmGraphPlan`
+- `TargetGraphPlan`
+- `FrameReport`
+- auto-link failure records
 
-## 3. Buffering de Surface e `PreviousFrame`
+## 2. Composition Rules
 
-Cada `Surface` deve manter pelo menos 2 imagens (current/previous) para permitir:
-- leitura do `PreviousFrame` em efeitos dependentes de histórico;
-- bloqueio de leitura do output corrente do próprio realm.
+Each `TargetLayer(realm -> target)` participates in runtime composition.
 
-## 4. Composição multi-janela
+Current practical behavior:
 
-Uma mesma `Surface` pode ser apresentada em múltiplas janelas no mesmo frame:
-- ordenação por `zIndex`;
-- `rect` com regras tipo `position: fixed` (coordenadas relativas ao viewport);
-- `clip` aplicado por conector.
+- one realm chooses one primary target deterministically
+- the primary target defines the realm output surface characteristics
+- host window roots create `Present`
+- non-root window composition, viewport composition and realm planes create
+  `Connector`
+- target graph and realm graph diagnostics are refreshed from these maps
 
-## 5. Regras do `rect` (connector)
+## 3. Ownership Rules
 
-`rect` é definido por conector, seguindo comportamento tipo CSS `position: fixed`:
-- coordenadas relativas ao viewport da janela;
-- clipping e alinhamento por height com corte por width.
+### Host owns
 
-## 6. Impacto no profiling e GPU timestamps
+- `RealmId`
+- `TargetId`
+- resource/component IDs
+- correctness/uniqueness of logical IDs
 
-O profiling deve refletir execução multi-realm:
-- ordem de execução por realm;
-- edges cortadas por ciclo;
-- surfaces em cache/fallback;
-- timestamps por realm/compositor.
+### Core owns
 
-## 7. RealmGraph minimo (Fase B)
+- `SurfaceId`
+- `PresentId`
+- `ConnectorId`
+- auto-link reconciliation
+- cycle-breaking caches and reports
 
-- O `RealmGraphPlanner` constroi o grafo a partir de `Connectors` e `Presents`.
-- Edges `Hard` protegem presents; edges `Soft` podem ser cortadas para quebrar ciclos.
-- O plano registra `cut_edges` para diagnostico e cache de `LastGoodSurface`/`FallbackSurface`.
-- O compositor do Realm aplica `Connector` por ordem de `zIndex`, com `rect` estilo `position: fixed`,
-  alinhamento por altura e clip por largura quando necessario.
-- O output do Realm e sempre renderavel/sampleavel (targets float), com composicao convertendo tamanho
-  e formato conforme o target final.
+## 4. What Belongs in `vulfram-realm-core`
+
+`vulfram-realm-core` should own realm-composition semantics:
+
+- `RealmState`
+- `ConnectorState`
+- `PresentState`
+- composition tables
+- realm graph and target graph DTOs/plans
+- frame report DTOs
+- small shared composition math/value types
+
+It should not own broader runtime state such as:
+
+- UI document state
+- input routing captures/listeners
+- texture/material registries
+- render graph catalogs
+- WGPU caches/targets
+- 3D semantic state that belongs to specialized realm crates such as
+  `vulfram-realm-3d`
+
+## 5. Internal Split Recommendation
+
+Recommended file/module layout:
+
+```text
+vulfram-realm-core/
+  types.rs
+  state.rs
+  tables.rs
+  realm_graph.rs
+  target_graph.rs
+  report.rs
+  render_passes.rs
+```
+
+Why:
+
+- composition state becomes easier to audit
+- planners stop sharing a mega-file with unrelated DTOs
+- future extraction of auto-graph planning policy becomes simpler
+
+## 6. Auto-Graph Boundary
+
+Recommended long-term boundary:
+
+- `vulfram-realm-core`
+  - composition state and DTOs
+- `vulfram-render`
+  - auto-graph planning policy
+  - realm ordering/composition rules related to rendering
+  - layer sync decisions for derived internal links
+- `vulfram-runtime`
+  - command handling
+  - applying planner results
+  - emitting events/diagnostics
+
+This boundary is preferable to putting the whole auto-graph in runtime because
+the planner exists to support render composition, not generic command routing.
+
+## 7. UniversalState Decision
+
+`UniversalState` should not move into `vulfram-realm-core` in its current form.
+
+Reason:
+
+- it contains much more than realm composition
+- moving it as-is would make `realm-core` a misleading "misc runtime state"
+  crate
+
+Safer direction:
+
+- extract a smaller composition-only state into `vulfram-realm-core`
+- keep runtime-specific aggregates in `vulfram-runtime`
+
+## 8. Target State Recommendation
+
+A practical future split is:
+
+- `RealmCompositionState`
+  - realm/surface/present/connector/surface-cache/frame-report
+- `TargetRoutingState`
+  - targets/target-layers/target-graph-cache/auto-links/indexes/failures
+- `SceneResourceState`
+  - scene/resource registries instantiated by runtime, with semantic 3D types
+    defined in `vulfram-realm-3d`
+- `RenderCatalogState`
+  - render graph catalog + plan cache
+- `UiRuntimeState`
+  - UI runtime
+- `InputRoutingRuntimeState`
+  - captures/focus/listeners
+
+That preserves a clean meaning for each state tree.
