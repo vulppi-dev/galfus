@@ -5,6 +5,7 @@ area:core:
           - 'crates/vulfram-protocol/**'
           - 'crates/vulfram-types/**'
           - 'packages/transport-types/**'
+          - 'packages/engine/**'
 
 area:render:
   - changed-files:
@@ -41,6 +42,7 @@ area:demo:
   - changed-files:
       - any-glob-to-any-file:
           - 'crates/vulfram-demo/**'
+          - 'apps/demos/**'
 
 area:tooling:
   - changed-files:
@@ -54,9 +56,9 @@ area:tooling:
           - 'bun.lock'
           - 'Cargo.toml'
           - 'Cargo.lock'
-          - 'packages/transport-bun/**'
-          - 'packages/transport-napi/**'
-          - 'packages/transport-browser/**'
+          - 'packages/transport-*/**'
+          - 'packages/gltf-loader/**'
+          - 'packages/camera-control/**'
 
 area:docs:
   - changed-files:

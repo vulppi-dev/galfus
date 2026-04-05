@@ -8,14 +8,21 @@ type PackageJson = {
   [key: string]: unknown;
 };
 
-const TARGET_PACKAGES = ['transport-bun', 'transport-napi', 'transport-browser'] as const;
+const TARGET_PACKAGES = [
+  'transport-bun',
+  'transport-napi',
+  'transport-browser',
+  'engine',
+  'gltf-loader',
+  'camera-control'
+] as const;
 
 async function parseVersionArg(argv: string[]): Promise<string> {
   const program = new Command();
   program
     .name('set-version')
     .description(
-      'Update the Cargo workspace version, root package version and transport package versions.'
+      'Update the Cargo workspace version, root package version and publishable workspace package versions.'
     )
     .argument('<version>', 'Semantic version to apply to the workspace.')
     .showHelpAfterError();

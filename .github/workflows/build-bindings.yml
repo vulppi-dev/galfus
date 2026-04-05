@@ -518,7 +518,7 @@ jobs:
         run: bun run build
         working-directory: packages/transport-napi
 
-      - name: Publish transports
+      - name: Publish packages
         shell: bash
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -546,4 +546,16 @@ jobs:
 
           pushd packages/transport-napi >/dev/null
           publish_if_needed "packages/transport-napi"
+          popd >/dev/null
+
+          pushd packages/engine >/dev/null
+          publish_if_needed "packages/engine"
+          popd >/dev/null
+
+          pushd packages/gltf-loader >/dev/null
+          publish_if_needed "packages/gltf-loader"
+          popd >/dev/null
+
+          pushd packages/camera-control >/dev/null
+          publish_if_needed "packages/camera-control"
           popd >/dev/null

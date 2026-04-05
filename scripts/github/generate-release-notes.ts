@@ -127,7 +127,10 @@ async function main(): Promise<void> {
     '## npm Packages',
     `- \`@vulfram/transport-browser\` via dist-tag \`${npmTag}\``,
     `- \`@vulfram/transport-bun\` via dist-tag \`${npmTag}\``,
-    `- \`@vulfram/transport-napi\` via dist-tag \`${npmTag}\``
+    `- \`@vulfram/transport-napi\` via dist-tag \`${npmTag}\``,
+    `- \`@vulfram/engine\` via dist-tag \`${npmTag}\``,
+    `- \`@vulfram/gltf-loader\` via dist-tag \`${npmTag}\``,
+    `- \`@vulfram/camera-control\` via dist-tag \`${npmTag}\``
   );
 
   await Bun.write('release-notes.md', `${body.join('\n')}\n`);

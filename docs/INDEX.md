@@ -27,6 +27,13 @@ Important current truths:
 - `Surface`, `Present` and `Connector` are internal runtime tables
 - render graphs are global resources bound per realm
 
+## JavaScript Workspace
+
+- transport packages live under `packages/transport-*`
+- the source-first engine packages live under `packages/engine`,
+  `packages/gltf-loader` and `packages/camera-control`
+- browser-facing demos live under `apps/demos`
+
 ## For Core Contributors
 
 Read in this order:
