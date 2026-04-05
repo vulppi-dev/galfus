@@ -1,4 +1,4 @@
-import { readFile, writeFile } from 'fs/promises';
+import { readFile, readdir, writeFile } from 'fs/promises';
 import { join } from 'path';
 import { Command } from 'commander';
 
@@ -8,14 +8,41 @@ type PackageJson = {
   [key: string]: unknown;
 };
 
-const TARGET_PACKAGES = ['transport-bun', 'transport-napi', 'transport-browser'] as const;
+type JsrJson = {
+  license?: string;
+  name?: string;
+  version?: string;
+  exports?: string;
+};
+
+type DependencyField =
+  | 'dependencies'
+  | 'devDependencies'
+  | 'peerDependencies'
+  | 'optionalDependencies';
+
+const DEPENDENCY_FIELDS: DependencyField[] = [
+  'dependencies',
+  'devDependencies',
+  'peerDependencies',
+  'optionalDependencies'
+];
+
+const TARGET_PACKAGES = [
+  'transport-bun',
+  'transport-napi',
+  'transport-browser',
+  'engine',
+  'gltf-loader',
+  'camera-control'
+] as const;
 
 async function parseVersionArg(argv: string[]): Promise<string> {
   const program = new Command();
   program
     .name('set-version')
     .description(
-      'Update the Cargo workspace version, root package version and transport package versions.'
+      'Update the Cargo workspace version, root package version and publishable workspace package versions.'
     )
     .argument('<version>', 'Semantic version to apply to the workspace.')
     .showHelpAfterError();
@@ -100,6 +127,103 @@ async function updatePackageVersion(
   console.log(`${pkg.name}: ${previous} -> ${version}`);
 }
 
+async function updateJsrPackageVersion(
+  rootDir: string,
+  packageDirName: string,
+  version: string
+): Promise<void> {
+  const manifestPath = join(rootDir, 'packages', packageDirName, 'jsr.json');
+  const raw = await readFile(manifestPath, 'utf8');
+  const manifest = JSON.parse(raw) as JsrJson;
+
+  if (!manifest.name) {
+    throw new Error(`Missing package name in ${manifestPath}`);
+  }
+
+  if (manifest.name === '@vulfram/transport-types') {
+    throw new Error('transport-types JSR manifest must not be updated by this script.');
+  }
+
+  const previous = manifest.version ?? '(undefined)';
+  manifest.version = version;
+
+  await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
+  console.log(`${manifest.name} (jsr): ${previous} -> ${version}`);
+}
+
+async function listWorkspacePackageDirNames(rootDir: string): Promise<string[]> {
+  const packagesDir = join(rootDir, 'packages');
+  const entries = await readdir(packagesDir, { withFileTypes: true });
+  return entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name).sort();
+}
+
+async function readWorkspacePackageVersions(rootDir: string): Promise<Map<string, string>> {
+  const packageDirNames = await listWorkspacePackageDirNames(rootDir);
+  const versions = new Map<string, string>();
+
+  for (const packageDirName of packageDirNames) {
+    const packagePath = join(rootDir, 'packages', packageDirName, 'package.json');
+    const raw = await readFile(packagePath, 'utf8');
+    const pkg = JSON.parse(raw) as PackageJson;
+    if (!pkg.name || !pkg.version) {
+      throw new Error(`Missing package name or version in ${packagePath}`);
+    }
+    versions.set(pkg.name, pkg.version);
+  }
+
+  return versions;
+}
+
+function rewriteWorkspaceDependencies(
+  pkg: PackageJson,
+  workspaceVersions: ReadonlyMap<string, string>
+): boolean {
+  let changed = false;
+
+  for (const field of DEPENDENCY_FIELDS) {
+    const deps = pkg[field];
+    if (!deps || typeof deps !== 'object' || Array.isArray(deps)) {
+      continue;
+    }
+
+    const dependencyMap = deps as Record<string, unknown>;
+    for (const [dependencyName, dependencyValue] of Object.entries(dependencyMap)) {
+      if (dependencyValue !== 'workspace:*') {
+        continue;
+      }
+
+      const dependencyVersion = workspaceVersions.get(dependencyName);
+      if (!dependencyVersion) {
+        continue;
+      }
+
+      dependencyMap[dependencyName] = `^${dependencyVersion}`;
+      changed = true;
+    }
+  }
+
+  return changed;
+}
+
+async function updateWorkspaceDependencyVersions(rootDir: string): Promise<void> {
+  const packageDirNames = await listWorkspacePackageDirNames(rootDir);
+  const workspaceVersions = await readWorkspacePackageVersions(rootDir);
+
+  for (const packageDirName of packageDirNames) {
+    const packagePath = join(rootDir, 'packages', packageDirName, 'package.json');
+    const raw = await readFile(packagePath, 'utf8');
+    const pkg = JSON.parse(raw) as PackageJson;
+    const changed = rewriteWorkspaceDependencies(pkg, workspaceVersions);
+
+    if (!changed) {
+      continue;
+    }
+
+    await writeFile(packagePath, `${JSON.stringify(pkg, null, 2)}\n`, 'utf8');
+    console.log(`${pkg.name ?? packageDirName}: updated workspace dependency ranges`);
+  }
+}
+
 async function main(): Promise<void> {
   const version = await parseVersionArg(process.argv);
   const rootDir = join(import.meta.dir, '..');
@@ -109,7 +233,10 @@ async function main(): Promise<void> {
 
   for (const packageDirName of TARGET_PACKAGES) {
     await updatePackageVersion(rootDir, packageDirName, version);
+    await updateJsrPackageVersion(rootDir, packageDirName, version);
   }
+
+  await updateWorkspaceDependencyVersions(rootDir);
 
   console.log('Done.');
 }

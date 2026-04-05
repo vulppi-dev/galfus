@@ -1,0 +1,57 @@
+# @vulfram/camera-control
+
+Standard camera controllers for `@vulfram/engine`.
+
+## Included Controllers
+
+- `createOrbitController`
+- `createSpectatorController`
+- `createFirstPersonController` (cinematic, without physics/collision)
+- `createThirdPersonController`
+- `createTopViewController`
+
+## Core Behavior
+
+- Pointer input is internally coupled for all controllers.
+- Current pointer gesture model is mouse-based (`left/middle/right`).
+- Every controller config accepts `pointerDeltaSensitivity` (`1` default) to scale
+  pointer-driven rotation/look speed.
+- Every controller config accepts `invertPointerX` / `invertPointerY` (`false` by
+  default) to invert pointer axis response.
+- `Orbit`, `ThirdPerson`, and `TopView` accept `zoomSensitivity` (`1` default) to
+  scale zoom response (pointer gesture and `toZoom()` impulse).
+- `translationStrategy` and `easing` are optional in every controller config.
+- Without `translationStrategy`/`easing`, movement is linear.
+- All controllers support `lookAt(position, weight?)`.
+  - Negative weight rotates by the longest arc.
+- `Orbit` gesture split:
+  - rotate: right button or left button (without middle button)
+  - pan: middle button (without right button)
+- `Orbit` supports enable/disable flow:
+  - `enable()`
+  - `disable()`
+  - `setEnabled(boolean)`
+  - `isEnabled()`
+- `TopView` supports focus lock:
+  - `focusLocked` (config)
+  - `setFocusLocked(boolean)`
+  - `isFocusLocked()`
+
+## Motion Actions (Spectator / FirstPerson)
+
+Use weighted triggers (`1.0` default):
+
+```ts
+controller.pressForward();       // persistent while pressed
+controller.releaseForward();
+
+controller.toForward(2.0);       // one-frame impulse
+controller.look(3, -2, 1.5);     // weighted look delta
+```
+
+Negative weights are accepted:
+
+```ts
+controller.toForward(-1.0);      // opposite direction
+controller.lookAt([0, 1, 0], -1); // longest-arc look rotation
+```

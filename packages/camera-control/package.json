@@ -1,0 +1,27 @@
+{
+  "name": "@vulfram/camera-control",
+  "version": "0.0.0",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vulppi-dev/vulfram.git",
+    "directory": "packages/camera-control"
+  },
+  "module": "src/index.ts",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "type": "module",
+  "publishConfig": {
+    "access": "public"
+  },
+  "peerDependencies": {
+    "@vulfram/engine": "^0.0.0"
+  },
+  "dependencies": {
+    "gl-matrix": "^3.4.4"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.3.10",
+    "@vulfram/engine": "workspace:*"
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "@vulfram/transport-bun",
+  "version": "0.0.0",
+  "license": "MIT",
+  "exports": "./mod.ts"
+}

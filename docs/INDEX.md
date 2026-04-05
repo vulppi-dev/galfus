@@ -10,6 +10,8 @@
 - render graph resource format: [RENDER-GRAPH.md](RENDER-GRAPH.md)
 - terminology: [GLOSSARY.md](GLOSSARY.md)
 - validation policy: [VALIDATION.md](VALIDATION.md)
+- release and registry publishing: [CI-RELEASE-PUBLISH.md](CI-RELEASE-PUBLISH.md)
+- OIDC setup for npm and JSR: [OIDC-PUBLISH-SETUP.md](OIDC-PUBLISH-SETUP.md)
 
 ## For Binding Authors and Integrators
 
@@ -26,6 +28,13 @@ Important current truths:
 - the host composes through `Realm`, `Target` and `TargetLayer`
 - `Surface`, `Present` and `Connector` are internal runtime tables
 - render graphs are global resources bound per realm
+
+## JavaScript Workspace
+
+- transport packages live under `packages/transport-*`
+- the source-first engine packages live under `packages/engine`,
+  `packages/gltf-loader` and `packages/camera-control`
+- browser-facing demos live under `apps/demos`
 
 ## For Core Contributors
 

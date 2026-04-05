@@ -1,6 +1,12 @@
 {
   "name": "@vulfram/transport-napi",
   "version": "0.0.0",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vulppi-dev/vulfram.git",
+    "directory": "packages/transport-napi"
+  },
   "type": "module",
   "types": "dist/index.d.ts",
   "main": "dist/index.js",

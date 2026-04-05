@@ -121,7 +121,7 @@ export function selectPlatformLoader<T>(
 }
 
 export function resolveNativePlatform(
-  runtime = detectRuntime()
+  runtime: RuntimeInfo = detectRuntime()
 ): Exclude<VulframPlatform, 'browser'> {
   const platform = runtime.platform;
   const arch = runtime.arch;

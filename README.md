@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="./assets/brand.svg" alt="Vulfram" width="400" />
+  <img src="https://www.vulppi.dev/images/vulfram/brand.png" alt="Vulfram" width="400" />
   
   # Vulfram
   

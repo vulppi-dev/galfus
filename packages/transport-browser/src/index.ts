@@ -1,5 +1,6 @@
 import type { EngineTransport, EngineTransportFactory } from '@vulfram/transport-types';
 import { detectRuntime } from '@vulfram/transport-types';
+import type { InitInput as WasmInitInput } from '../lib/vulfram_core.js';
 import initWasmBindings, {
   vulfram_dispose,
   vulfram_get_profiling,
@@ -11,7 +12,7 @@ import initWasmBindings, {
   vulfram_upload_buffer
 } from '../lib/vulfram_core.js';
 
-export type InitInput = unknown | Promise<unknown>;
+export type InitInput = WasmInitInput | Promise<WasmInitInput>;
 
 type WasmBufferResult = {
   result: number;
