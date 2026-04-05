@@ -421,145 +421,19 @@ jobs:
           PREVIOUS="$(git tag --sort=-v:refname | grep -Fxv "${CURRENT}" | head -n 1 || true)"
           echo "previous=${PREVIOUS}" >> "${GITHUB_OUTPUT}"
 
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
       - name: Generate release notes
-        uses: actions/github-script@v8
         env:
           BRANCH_REF: ${{ needs.resolve-meta.outputs.branchRef }}
           CHANNEL: ${{ needs.resolve-meta.outputs.channel }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TAG: ${{ needs.resolve-meta.outputs.npmTag }}
           PACKAGE_VERSION: ${{ needs.resolve-meta.outputs.packageVersion }}
           PREVIOUS_TAG: ${{ steps.tags.outputs.previous }}
           RELEASE_TAG: ${{ needs.resolve-meta.outputs.releaseTag }}
-        with:
-          script: |
-            const fs = require('fs');
-
-            const owner = context.repo.owner;
-            const repo = context.repo.repo;
-            const previousTag = process.env.PREVIOUS_TAG || '';
-            const releaseTag = process.env.RELEASE_TAG;
-            const packageVersion = process.env.PACKAGE_VERSION;
-            const channel = process.env.CHANNEL;
-            const branchRef = process.env.BRANCH_REF;
-            const npmTag = process.env.NPM_TAG;
-            const head = context.sha;
-
-            const categories = [
-              ['changelog:breaking', 'Breaking Changes'],
-              ['changelog:feature', 'Features'],
-              ['changelog:fix', 'Fixes'],
-              ['changelog:performance', 'Performance'],
-              ['changelog:docs', 'Documentation']
-            ];
-
-            const categorized = new Map(categories.map(([label, title]) => [label, { title, entries: [] }]));
-            const uncategorized = [];
-            const seenPrs = new Set();
-
-            async function collectPullsForCommit(commitSha) {
-              const response = await github.request(
-                'GET /repos/{owner}/{repo}/commits/{commit_sha}/pulls',
-                {
-                  owner,
-                  repo,
-                  commit_sha: commitSha,
-                  mediaType: {
-                    previews: ['groot']
-                  }
-                }
-              );
-
-              for (const pr of response.data) {
-                if (!pr.merged_at || seenPrs.has(pr.number)) {
-                  continue;
-                }
-
-                seenPrs.add(pr.number);
-                const labels = new Set(pr.labels.map((label) => label.name));
-                const line = `- ${pr.title} (#${pr.number}) @${pr.user.login}`;
-                let matched = false;
-
-                if (labels.has('skip-changelog') || labels.has('changelog:internal')) {
-                  continue;
-                }
-
-                for (const [label] of categories) {
-                  if (!labels.has(label)) {
-                    continue;
-                  }
-                  categorized.get(label).entries.push(line);
-                  matched = true;
-                }
-
-                if (!matched) {
-                  uncategorized.push(line);
-                }
-              }
-            }
-
-            if (previousTag) {
-              const comparison = await github.rest.repos.compareCommitsWithBasehead({
-                owner,
-                repo,
-                basehead: `${previousTag}...${head}`
-              });
-
-              for (const commit of comparison.data.commits) {
-                await collectPullsForCommit(commit.sha);
-              }
-            }
-
-            const body = [];
-            body.push('## Changes');
-
-            let hasChanges = false;
-            for (const [, section] of categorized) {
-              if (section.entries.length === 0) {
-                continue;
-              }
-              hasChanges = true;
-              body.push('');
-              body.push(`### ${section.title}`);
-              body.push(...section.entries);
-            }
-
-            if (uncategorized.length > 0) {
-              hasChanges = true;
-              body.push('');
-              body.push('### Other Changes');
-              body.push(...uncategorized);
-            }
-
-            if (!hasChanges) {
-              body.push('');
-              body.push('- No categorized changes were found for this release window.');
-            }
-
-            body.push('');
-            body.push('## Release Metadata');
-            body.push(`- Channel: \`${channel}\``);
-            body.push(`- Source branch: \`${branchRef}\``);
-            body.push(`- Git tag: \`${releaseTag}\``);
-            body.push(`- Package version: \`${packageVersion}\``);
-            if (previousTag) {
-              body.push(`- Previous tag: \`${previousTag}\``);
-            }
-
-            body.push('');
-            body.push('## Bind Groups');
-            body.push('- `ffi`');
-            body.push('- `napi`');
-            body.push('- `wasm`');
-            body.push('- `python`');
-            body.push('- `lua`');
-
-            body.push('');
-            body.push('## npm Packages');
-            body.push(`- \`@vulfram/transport-browser\` via dist-tag \`${npmTag}\``);
-            body.push(`- \`@vulfram/transport-bun\` via dist-tag \`${npmTag}\``);
-            body.push(`- \`@vulfram/transport-napi\` via dist-tag \`${npmTag}\``);
-
-            fs.writeFileSync('release-notes.md', `${body.join('\n')}\n`, 'utf8');
+        run: bun scripts/github/generate-release-notes.ts
 
       - name: Publish release
         uses: softprops/action-gh-release@v2
@@ -652,7 +526,7 @@ jobs:
           NPM_TAG: ${{ needs.resolve-meta.outputs.npmTag }}
         run: |
           publish_if_needed() {
-            PACKAGE_NAME="$(node -p "require('./package.json').name" < /dev/null)"
+            PACKAGE_NAME="$(bun --print "require('./package.json').name")"
 
             if npm view "${PACKAGE_NAME}@${PACKAGE_VERSION}" version >/dev/null 2>&1; then
               echo "Skipping ${PACKAGE_NAME}@${PACKAGE_VERSION}; already published."

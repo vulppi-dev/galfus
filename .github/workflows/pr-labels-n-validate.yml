@@ -27,6 +27,11 @@ jobs:
   labels:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
       - name: Label PR by changed files
         uses: actions/labeler@v5
         with:
@@ -49,70 +54,9 @@ jobs:
           github_api_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Sync changelog labels from checked checklist
-        uses: actions/github-script@v8
-        with:
-          script: |
-            const pr = context.payload.pull_request;
-            if (!pr) return;
-
-            const managed = new Set([
-              "changelog:breaking",
-              "changelog:feature",
-              "changelog:fix",
-              "changelog:performance",
-              "changelog:docs",
-              "changelog:internal",
-            ]);
-
-            const checked = new Set();
-            const body = pr.body || "";
-            const checkedPattern = /-\s*\[(x|X)\]\s*`([^`]+)`/g;
-            let match;
-            while ((match = checkedPattern.exec(body)) !== null) {
-              const label = match[2].trim();
-              if (managed.has(label)) checked.add(label);
-            }
-
-            const currentPrLabels = new Set(pr.labels.map((label) => label.name));
-            const existingRepoLabels = await github.paginate(
-              github.rest.issues.listLabelsForRepo,
-              {
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                per_page: 100,
-              }
-            );
-            const repoLabelSet = new Set(existingRepoLabels.map((label) => label.name));
-
-            const toAdd = [...checked].filter(
-              (label) => repoLabelSet.has(label) && !currentPrLabels.has(label)
-            );
-            const toRemove = [...managed].filter(
-              (label) =>
-                repoLabelSet.has(label) &&
-                currentPrLabels.has(label) &&
-                !checked.has(label)
-            );
-
-            if (toAdd.length > 0) {
-              await github.rest.issues.addLabels({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: pr.number,
-                labels: toAdd,
-              });
-            }
-
-            for (const label of toRemove) {
-              await github.rest.issues.removeLabel({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: pr.number,
-                name: label,
-              });
-            }
-
-            core.info(`changelog labels added=[${toAdd.join(", ")}], removed=[${toRemove.join(", ")}]`);
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bun scripts/github/sync-changelog-labels.ts
 
   validate:
     needs:
@@ -124,130 +68,12 @@ jobs:
       pull-requests: read
       issues: read
     steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
       - name: Validate PR policy
-        uses: actions/github-script@v8
-        with:
-          script: |
-            const pr = context.payload.pull_request;
-            if (!pr) {
-              core.setFailed('No pull_request payload found.');
-              return;
-            }
-
-            const errors = [];
-
-            const title = (pr.title || '').trim();
-            const semanticTitle = /^(feat|fix|perf|docs|chore|refactor|test|build|ci)(\([^)]+\))?!?:\s+.+$/;
-            if (!semanticTitle.test(title)) {
-              errors.push(
-                'Invalid PR title. Use semantic format: type(scope): summary (types: feat, fix, perf, docs, chore, refactor, test, build, ci).'
-              );
-            }
-
-            const body = pr.body || '';
-            const linkedTargetRegex =
-              /\b(?:close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved)\s+(#\d+|https:\/\/github\.com\/[^\s)]+\/[^\s)]+\/(?:issues|pull)\/\d+)\b/gi;
-            const linkedIssues = [];
-
-            for (const match of body.matchAll(linkedTargetRegex)) {
-              const target = match[1];
-              const shortRef = /^#(\d+)$/i.exec(target);
-              if (shortRef) {
-                linkedIssues.push({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: Number(shortRef[1]),
-                  raw: target,
-                });
-                continue;
-              }
-
-              const urlRef = /^https:\/\/github\.com\/([^/\s]+)\/([^/\s]+)\/(issues|pull)\/(\d+)$/i.exec(target);
-              if (!urlRef) {
-                errors.push(`Invalid linked issue reference: "${target}".`);
-                continue;
-              }
-
-              const [, owner, repo, kind, number] = urlRef;
-              if (kind.toLowerCase() !== 'issues') {
-                errors.push(`Linked reference "${target}" must point to an issue, not a pull request.`);
-                continue;
-              }
-
-              linkedIssues.push({
-                owner,
-                repo,
-                issue_number: Number(number),
-                raw: target,
-              });
-            }
-
-            if (linkedIssues.length > 0) {
-              const seen = new Set();
-              for (const ref of linkedIssues) {
-                const key = `${ref.owner}/${ref.repo}#${ref.issue_number}`;
-                if (seen.has(key)) continue;
-                seen.add(key);
-
-                try {
-                  const { data: issue } = await github.rest.issues.get({
-                    owner: ref.owner,
-                    repo: ref.repo,
-                    issue_number: ref.issue_number,
-                  });
-                  if (issue.pull_request) {
-                    errors.push(
-                      `Linked reference "${ref.raw}" resolves to PR #${ref.issue_number}, not an issue.`
-                    );
-                  }
-                } catch (error) {
-                  if (error?.status === 404) {
-                    errors.push(`Linked issue "${ref.raw}" was not found.`);
-                  } else {
-                    throw error;
-                  }
-                }
-              }
-            } else {
-              core.info('No linked issues found in PR body; skipping linked issue validation.');
-            }
-
-            const allowedChangelog = new Set([
-              'changelog:breaking',
-              'changelog:feature',
-              'changelog:fix',
-              'changelog:performance',
-              'changelog:docs',
-              'changelog:internal',
-            ]);
-            const { data: currentPr } = await github.rest.pulls.get({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: pr.number,
-            });
-            const labels = currentPr.labels.map((l) => l.name);
-            if (!labels.some((name) => allowedChangelog.has(name))) {
-              errors.push('Missing changelog label. Add one of: ' + [...allowedChangelog].join(', '));
-            }
-
-            const baseRef = pr.base.ref;
-            const headRef = pr.head.ref;
-            const isPromotionBase =
-              /^alpha\/.+$/.test(baseRef) ||
-              /^beta\/.+$/.test(baseRef) ||
-              /^next\/.+$/.test(baseRef) ||
-              /^latest\/.+$/.test(baseRef);
-
-            if (isPromotionBase) {
-              const isMain = headRef === 'main';
-              const isStable = /^stable\/.+$/.test(headRef);
-              if (!isMain && !isStable) {
-                errors.push(
-                  `Invalid promotion source "${headRef}". Allowed sources for ${baseRef}: main or stable/*`
-                );
-              }
-            }
-
-            if (errors.length > 0) {
-              core.setFailed(errors.map((msg) => `- ${msg}`).join('\n'));
-            }
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bun scripts/github/validate-pr-policy.ts
