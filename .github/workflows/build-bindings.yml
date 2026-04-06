@@ -446,8 +446,8 @@ jobs:
           tag_name: ${{ needs.resolve-meta.outputs.releaseTag }}
           target_commitish: ${{ github.sha }}
 
-  publish-npm-transports:
-    name: Publish JS packages
+  publish-npm-packages:
+    name: Publish npm packages
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     needs:
       - resolve-meta
@@ -525,15 +525,30 @@ jobs:
           PACKAGE_VERSION: ${{ needs.resolve-meta.outputs.packageVersion }}
           NPM_TAG: ${{ needs.resolve-meta.outputs.npmTag }}
         run: |
+          npm_version_exists() {
+            PACKAGE_NAME="$1"
+            npm view "${PACKAGE_NAME}@${PACKAGE_VERSION}" version >/dev/null 2>&1
+          }
+
           publish_if_needed() {
             PACKAGE_NAME="$(bun --print "require('./package.json').name")"
 
-            if npm view "${PACKAGE_NAME}@${PACKAGE_VERSION}" version >/dev/null 2>&1; then
+            if npm_version_exists "${PACKAGE_NAME}"; then
               echo "Skipping ${PACKAGE_NAME}@${PACKAGE_VERSION}; already published."
               return
             fi
 
-            npm publish --provenance --tag "${NPM_TAG}" --access public
+            if npm publish --provenance --tag "${NPM_TAG}" --access public; then
+              return
+            fi
+
+            if npm_version_exists "${PACKAGE_NAME}"; then
+              echo "Skipping ${PACKAGE_NAME}@${PACKAGE_VERSION}; already published during this run."
+              return
+            fi
+
+            echo "npm publish failed for ${PACKAGE_NAME}@${PACKAGE_VERSION}."
+            exit 1
           }
 
           pushd packages/transport-browser >/dev/null
@@ -560,22 +575,99 @@ jobs:
           publish_if_needed "packages/camera-control"
           popd >/dev/null
 
-      - name: Publish JSR packages
+  publish-jsr-packages:
+    name: Publish JSR packages
+    if: false # Temporarily disabled: current JSR package payload is ~90MB and exceeds the 20MB limit.
+    needs:
+      - resolve-meta
+      - publish-github-release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install Bun dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Apply release version
+        run: bun run version -- ${{ needs.resolve-meta.outputs.packageVersion }}
+
+      - name: Download raw artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          pattern: raw-binding-*
+          merge-multiple: false
+
+      - name: Sync browser transport artifacts from workflow outputs
         shell: bash
         run: |
+          clean_dir() {
+            TARGET="$1"
+            mkdir -p "${TARGET}"
+            find "${TARGET}" -mindepth 1 ! -name '.gitkeep' -exec rm -rf {} +
+          }
+
+          clean_dir packages/transport-browser/lib
+
+          shopt -s nullglob
+          for artifact_dir in dist/raw-binding-*; do
+            BASENAME="$(basename "${artifact_dir}")"
+            REST="${BASENAME#raw-binding-}"
+            BINDING="${REST%%-*}"
+            PLATFORM="${REST#${BINDING}-}"
+
+            if [[ "${BINDING}" == "wasm" && "${PLATFORM}" == "browser" ]]; then
+              cp -R "${artifact_dir}/." "packages/transport-browser/lib/"
+            fi
+          done
+
+      - name: Publish JSR packages
+        shell: bash
+        env:
+          PACKAGE_VERSION: ${{ needs.resolve-meta.outputs.packageVersion }}
+        run: |
+          jsr_version_status() {
+            PACKAGE_NAME="$1"
+            curl -s -o /dev/null -w '%{http_code}' "https://jsr.io/${PACKAGE_NAME}/${PACKAGE_VERSION}_meta.json"
+          }
+
           publish_jsr_package() {
-            npx jsr publish --allow-dirty
+            PACKAGE_NAME="$(bun --print "require('./jsr.json').name")"
+            VERSION_STATUS="$(jsr_version_status "${PACKAGE_NAME}")"
+
+            if [[ "${VERSION_STATUS}" == "200" ]]; then
+              echo "Skipping ${PACKAGE_NAME}@${PACKAGE_VERSION}; already published."
+              return
+            fi
+
+            if [[ "${VERSION_STATUS}" != "404" ]]; then
+              echo "Unable to verify JSR version for ${PACKAGE_NAME}@${PACKAGE_VERSION}; HTTP ${VERSION_STATUS}."
+              exit 1
+            fi
+
+            if npx jsr publish --allow-dirty; then
+              return
+            fi
+
+            VERSION_STATUS="$(jsr_version_status "${PACKAGE_NAME}")"
+            if [[ "${VERSION_STATUS}" == "200" ]]; then
+              echo "Skipping ${PACKAGE_NAME}@${PACKAGE_VERSION}; already published during this run."
+              return
+            fi
+
+            echo "JSR publish failed for ${PACKAGE_NAME}@${PACKAGE_VERSION}."
+            exit 1
           }
 
           pushd packages/transport-browser >/dev/null
-          publish_jsr_package
-          popd >/dev/null
-
-          pushd packages/transport-bun >/dev/null
-          publish_jsr_package
-          popd >/dev/null
-
-          pushd packages/transport-napi >/dev/null
           publish_jsr_package
           popd >/dev/null
 

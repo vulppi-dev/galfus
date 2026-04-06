@@ -1,7 +1,8 @@
 # CI Release Publish
 
-This project publishes binding outputs from GitHub Actions to GitHub Releases,
-npm packages, and JSR packages.
+This project publishes binding outputs from GitHub Actions to GitHub Releases
+and npm packages. JSR publishing is temporarily disabled in the release
+workflow.
 
 ## Branch convention
 
@@ -59,7 +60,7 @@ Each group is uploaded as:
 
 ## npm publish behavior
 
-After the GitHub Release is published, the workflow syncs transport artifacts and publishes:
+After the GitHub Release is published, the npm job syncs transport artifacts and publishes:
 
 - `@vulfram/transport-browser`
 - `@vulfram/transport-bun`
@@ -79,20 +80,17 @@ npm publishing uses GitHub Actions OIDC trusted publishing and provenance.
 
 ## JSR publish behavior
 
-After the npm publish step, the workflow publishes to JSR:
+The JSR publish job is temporarily disabled in the workflow.
 
-- `@vulfram/transport-browser`
-- `@vulfram/transport-bun`
-- `@vulfram/transport-napi`
-- `@vulfram/engine`
-- `@vulfram/gltf-loader`
-- `@vulfram/camera-control`
-
-JSR publishing also uses GitHub Actions OIDC and does not require a token.
+Reason: the current publish payload is about 90 MB, while JSR currently accepts
+up to 20 MB per package version.
 
 `@vulfram/transport-types` is intentionally excluded from automatic publishing
 and stays manual because its version is stable and no longer changes in the
 normal release flow.
+
+The temporary JSR disablement will be revisited after the package layout is
+adjusted to fit the current registry limit.
 
 ## OIDC setup guide
 
@@ -100,8 +98,8 @@ normal release flow.
 
 ## Publish behavior
 
-- `push` on promotion branches builds, publishes the grouped GitHub Release, and publishes npm
-  and JSR packages.
+- `push` on promotion branches builds, publishes the grouped GitHub Release, and
+  runs the npm publish job.
 - `pull_request` runs build/validation and packages grouped bind archives without publishing.
 - `workflow_dispatch` follows the same publish path as `push`, as long as it runs from a valid
   promotion branch.
