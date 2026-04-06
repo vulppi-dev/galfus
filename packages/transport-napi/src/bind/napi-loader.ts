@@ -3,14 +3,17 @@ import {
   getArtifactFileName,
   resolveNativePlatform,
   selectPlatformLoader,
-  type PlatformLoaderMap
+  type PlatformLoaderMap,
 } from '@vulfram/transport-types';
 import type { BufferResult } from './types';
 import { createRequire } from 'module';
+import { dirname, join } from 'path';
+import { existsSync } from 'fs';
+import { fileURLToPath } from 'url';
 
 const requireNative = createRequire(import.meta.url);
 
-const loaders: PlatformLoaderMap<{ default: string }> = {
+const bundledLoaders: PlatformLoaderMap<{ default: string }> = {
   darwin: {
     arm64: () =>
       // @ts-expect-error
@@ -60,9 +63,22 @@ function getExpectedLocalArtifact(): string {
 }
 
 async function resolveNativeModulePath(): Promise<string> {
-  const importLoader = selectPlatformLoader(loaders, 'N-API');
+  const platform = resolveNativePlatform();
+  const filename = getArtifactFileName('napi', platform);
+  const moduleDir = dirname(fileURLToPath(import.meta.url));
+  const candidates = [
+    join(moduleDir, '..', '..', 'dist', platform, filename),
+    join(moduleDir, platform, filename),
+    join(moduleDir, '..', platform, filename),
+  ];
 
   try {
+    const resolved = candidates.find((candidate) => existsSync(candidate));
+    if (resolved) {
+      return resolved;
+    }
+
+    const importLoader = selectPlatformLoader(bundledLoaders, 'N-API');
     return (await importLoader()).default;
   } catch (error) {
     const runtime = detectRuntime();
