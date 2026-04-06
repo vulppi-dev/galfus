@@ -20,12 +20,12 @@ export interface CmdCameraCreateArgs {
   label?: string;
   transform: number[]; // Mat4 (16 elements)
   kind: CameraKind;
-  flags: number;
+  flags?: number;
   nearFar: [number, number]; // Vec2
-  layerMask: number;
-  order: number;
+  layerMask?: number;
+  order?: number;
   viewPosition?: ViewPosition;
-  orthoScale: number;
+  orthoScale?: number;
 }
 
 /** Command payload for updating a camera. */

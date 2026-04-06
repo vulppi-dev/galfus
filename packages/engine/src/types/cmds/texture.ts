@@ -3,8 +3,8 @@ import type { ResourceEntry } from './resources';
 
 /** Options for forward atlas texture packing. */
 export interface ForwardAtlasOptions {
-  tilePx: number;
-  layers: number;
+  tilePx?: number;
+  layers?: number;
 }
 
 /** Command payload for creating a texture from an uploaded buffer. */

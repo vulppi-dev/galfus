@@ -2,18 +2,18 @@ import type { SkyboxMode } from '../kinds';
 
 /** MSAA configuration for the renderer. */
 export interface MsaaConfig {
-  enabled: boolean;
-  sampleCount: number;
+  enabled?: boolean;
+  sampleCount?: number;
 }
 
 /** Skybox configuration for the environment. */
 export interface SkyboxConfig {
-  mode: SkyboxMode;
-  intensity: number;
-  rotation: number;
-  groundColor: [number, number, number];
-  horizonColor: [number, number, number];
-  skyColor: [number, number, number];
+  mode?: SkyboxMode;
+  intensity?: number;
+  rotation?: number;
+  groundColor?: [number, number, number];
+  horizonColor?: [number, number, number];
+  skyColor?: [number, number, number];
   horizonGroundThreshold?: number;
   horizonSkyThreshold?: number;
   directionalLights?: SkyboxDirectionalLightSun[];
@@ -28,44 +28,44 @@ export interface SkyboxDirectionalLightSun {
 
 /** Post-processing configuration. */
 export interface PostProcessConfig {
-  filterEnabled: boolean;
-  filterExposure: number;
-  filterGamma: number;
-  filterSaturation: number;
-  filterContrast: number;
-  filterVignette: number;
-  filterGrain: number;
-  filterChromaticAberration: number;
-  filterBlur: number;
-  filterSharpen: number;
-  filterTonemapMode: number;
-  outlineEnabled: boolean;
-  outlineStrength: number;
-  outlineThreshold: number;
-  outlineWidth: number;
-  outlineQuality: number;
-  filterPosterizeSteps: number;
-  cellShading: boolean;
-  ssaoEnabled: boolean;
-  ssaoStrength: number;
-  ssaoRadius: number;
-  ssaoBias: number;
-  ssaoPower: number;
-  ssaoBlurRadius: number;
-  ssaoBlurDepthThreshold: number;
-  bloomEnabled: boolean;
-  bloomThreshold: number;
-  bloomKnee: number;
-  bloomIntensity: number;
-  bloomScatter: number;
+  filterEnabled?: boolean;
+  filterExposure?: number;
+  filterGamma?: number;
+  filterSaturation?: number;
+  filterContrast?: number;
+  filterVignette?: number;
+  filterGrain?: number;
+  filterChromaticAberration?: number;
+  filterBlur?: number;
+  filterSharpen?: number;
+  filterTonemapMode?: number;
+  outlineEnabled?: boolean;
+  outlineStrength?: number;
+  outlineThreshold?: number;
+  outlineWidth?: number;
+  outlineQuality?: number;
+  filterPosterizeSteps?: number;
+  cellShading?: boolean;
+  ssaoEnabled?: boolean;
+  ssaoStrength?: number;
+  ssaoRadius?: number;
+  ssaoBias?: number;
+  ssaoPower?: number;
+  ssaoBlurRadius?: number;
+  ssaoBlurDepthThreshold?: number;
+  bloomEnabled?: boolean;
+  bloomThreshold?: number;
+  bloomKnee?: number;
+  bloomIntensity?: number;
+  bloomScatter?: number;
 }
 
 /** Environment configuration for a window. */
 export interface EnvironmentConfig {
-  msaa: MsaaConfig;
-  skybox: SkyboxConfig;
-  clearColor: [number, number, number, number];
-  post: PostProcessConfig;
+  msaa?: MsaaConfig;
+  skybox?: SkyboxConfig;
+  clearColor?: [number, number, number, number];
+  post?: PostProcessConfig;
 }
 
 /** Command payload for creating environment settings. */

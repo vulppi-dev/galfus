@@ -115,7 +115,7 @@ export const ResourceUploadSystem: System = (world, context) => {
 
       enqueueCommand(context.worldId, 'cmd-material-upsert', {
         materialId: intent.resourceId,
-        label: intent.props.label || `Mat ${intent.resourceId}`,
+        label: intent.props.label,
         kind: intent.props.kind ?? 'standard',
         options: options,
       });
@@ -131,14 +131,14 @@ export const ResourceUploadSystem: System = (world, context) => {
 
         enqueueCommand(context.worldId, 'cmd-primitive-geometry-create', {
           geometryId: intent.resourceId,
-          label: intent.props.label || `Geo ${intent.resourceId}`,
+          label: intent.props.label,
           shape: intent.props.shape,
           options: options,
         });
       } else {
         enqueueCommand(context.worldId, 'cmd-geometry-upsert', {
           geometryId: intent.resourceId,
-          label: intent.props.label || `Geo ${intent.resourceId}`,
+          label: intent.props.label,
           entries: intent.props.entries,
         });
       }
@@ -150,21 +150,21 @@ export const ResourceUploadSystem: System = (world, context) => {
       if (intent.props.source.type === 'color') {
         const cmd: {
           textureId: number;
-          label: string;
+          label?: string;
           color: [number, number, number, number];
-          srgb: boolean;
+          srgb?: boolean;
           mode?: TextureCreateMode;
-          atlasOptions?: { tilePx: number; layers: number };
+          atlasOptions?: { tilePx?: number; layers?: number };
         } = {
           textureId: intent.resourceId,
-          label: intent.props.label || `Tex ${intent.resourceId}`,
+          label: intent.props.label,
           color: Array.from(intent.props.source.color) as [
             number,
             number,
             number,
             number,
           ],
-          srgb: intent.props.srgb ?? true,
+          srgb: intent.props.srgb,
         };
         if (intent.props.mode !== undefined) {
           cmd.mode = intent.props.mode;
@@ -176,16 +176,16 @@ export const ResourceUploadSystem: System = (world, context) => {
       } else {
         const cmd: {
           textureId: number;
-          label: string;
+          label?: string;
           bufferId: number;
-          srgb: boolean;
+          srgb?: boolean;
           mode?: TextureCreateMode;
-          atlasOptions?: { tilePx: number; layers: number };
+          atlasOptions?: { tilePx?: number; layers?: number };
         } = {
           textureId: intent.resourceId,
-          label: intent.props.label || `Tex ${intent.resourceId}`,
+          label: intent.props.label,
           bufferId: intent.props.source.bufferId,
-          srgb: intent.props.srgb ?? true,
+          srgb: intent.props.srgb,
         };
         if (intent.props.mode !== undefined) {
           cmd.mode = intent.props.mode;

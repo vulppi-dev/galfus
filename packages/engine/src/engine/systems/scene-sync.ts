@@ -71,11 +71,10 @@ export const SceneSyncSystem: System = (world, context) => {
         geometryId: intent.props.geometryId,
         materialId: intent.props.materialId,
         transform: copyMatrixToScratch(world, intent.entityId, transform),
-        layerMask: 0x7fffffff,
-        castShadow,
-        receiveShadow,
-        castOutline,
-        outlineColor: [...outlineColor] as [number, number, number, number],
+        castShadow: intent.props.castShadow,
+        receiveShadow: intent.props.receiveShadow,
+        castOutline: intent.props.castOutline,
+        outlineColor: intent.props.outlineColor,
       });
 
       let store = world.components.get(intent.entityId);
@@ -102,14 +101,12 @@ export const SceneSyncSystem: System = (world, context) => {
       enqueueCommand(context.worldId, 'cmd-camera-upsert', {
         realmId,
         cameraId,
-        label: `Cam ${cameraId}`,
         kind: intent.props.kind ?? ('perspective' as CameraKind),
-        flags: 0,
         nearFar: [intent.props.near ?? 0.1, intent.props.far ?? 1000],
-        order: intent.props.order ?? 0,
+        order: intent.props.order,
         transform: copyMatrixToScratch(world, intent.entityId, transform),
-        layerMask: 0x7fffffff,
-        orthoScale: 1.0,
+        orthoScale: intent.props.orthoScale,
+        viewPosition: intent.props.viewPosition,
       });
 
       let store = world.components.get(intent.entityId);
@@ -164,7 +161,7 @@ export const SceneSyncSystem: System = (world, context) => {
         range: number;
         castShadow: boolean;
         position: [number, number, number, number];
-        layerMask: number;
+        layerMask?: number;
         direction?: [number, number, number, number];
         spotInnerOuter?: [number, number];
       } = {
@@ -176,7 +173,6 @@ export const SceneSyncSystem: System = (world, context) => {
         range: intent.props.range ?? 10.0,
         castShadow: intent.props.castShadow ?? true,
         position: [pos[0], pos[1], pos[2], 1],
-        layerMask: 0x7fffffff,
       };
       if (direction) {
         const [dirX, dirY, dirZ] = direction;

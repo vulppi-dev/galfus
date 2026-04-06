@@ -3,7 +3,6 @@ import { join } from 'path';
 const JSR_PACKAGE_DIRS = [
   'packages/transport-types',
   'packages/transport-browser',
-  'packages/transport-napi',
   'packages/engine',
   'packages/gltf-loader',
   'packages/camera-control'

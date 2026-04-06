@@ -25,8 +25,6 @@ const world = World3D.create3DWorld();
 const { windowId } = createWindow({
   title: 'Vulfram Engine - Simple Demo',
   size: [1280, 720],
-  position: [100, 100],
-  initialState: 'windowed',
 });
 
 mountWorldToWindow(world, windowId);
@@ -98,6 +96,12 @@ requestAnimationFrame(frame);
 - `@vulfram/engine/types`: command/event types
 
 ## Documentation
+
+Defaults and sparse command payloads:
+
+- `createWindow()` now accepts sparse props; omitted fields use core defaults.
+- `configure3DEnvironment()` and `configure3DShadows()` accept partial configs and only send the fields you set.
+- Core-backed create commands for camera/light/model/texture/audio accept more omitted fields, reducing serialized payload size.
 
 Temporary documentation URL:
 

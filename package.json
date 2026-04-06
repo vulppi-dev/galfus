@@ -14,6 +14,7 @@
   "scripts": {
     "check": "bun scripts/check.ts",
     "lint": "bun scripts/lint.ts",
+    "build:local-bindings": "bun scripts/build-local-bindings.ts",
     "artifacts": "bun scripts/artifacts.ts",
     "version": "bun scripts/set-version.ts",
     "release-meta": "bun scripts/release-meta.ts",

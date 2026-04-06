@@ -26,9 +26,9 @@ bun.lockb
 
 # build
 /target/
-/build/
-/dist/
 /pkg/
+build/
+dist/
 *.gem
 *.egg
 

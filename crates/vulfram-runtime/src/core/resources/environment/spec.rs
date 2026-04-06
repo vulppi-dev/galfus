@@ -10,7 +10,7 @@ pub enum SkyboxMode {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(default, rename_all = "camelCase")]
 pub struct MsaaConfig {
     pub enabled: bool,
     pub sample_count: u32,
@@ -54,13 +54,19 @@ impl Default for SkyboxDirectionalLightSun {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(default, rename_all = "camelCase")]
 pub struct SkyboxConfig {
+    #[serde(default = "default_skybox_mode")]
     pub mode: SkyboxMode,
+    #[serde(default = "default_skybox_intensity")]
     pub intensity: f32,
+    #[serde(default)]
     pub rotation: f32,
+    #[serde(default = "default_ground_color")]
     pub ground_color: Vec3,
+    #[serde(default = "default_horizon_color")]
     pub horizon_color: Vec3,
+    #[serde(default = "default_sky_color")]
     pub sky_color: Vec3,
     #[serde(default = "default_horizon_ground_threshold")]
     pub horizon_ground_threshold: f32,
@@ -78,6 +84,26 @@ fn default_horizon_ground_threshold() -> f32 {
 
 fn default_horizon_sky_threshold() -> f32 {
     0.55
+}
+
+fn default_skybox_mode() -> SkyboxMode {
+    SkyboxMode::None
+}
+
+fn default_skybox_intensity() -> f32 {
+    1.0
+}
+
+fn default_ground_color() -> Vec3 {
+    Vec3::new(0.02, 0.03, 0.04)
+}
+
+fn default_horizon_color() -> Vec3 {
+    Vec3::new(0.12, 0.16, 0.22)
+}
+
+fn default_sky_color() -> Vec3 {
+    Vec3::new(0.2, 0.35, 0.6)
 }
 
 impl Default for SkyboxConfig {
@@ -98,12 +124,20 @@ impl Default for SkyboxConfig {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(default, rename_all = "camelCase")]
 pub struct EnvironmentConfig {
+    #[serde(default)]
     pub msaa: MsaaConfig,
+    #[serde(default)]
     pub skybox: SkyboxConfig,
+    #[serde(default = "default_clear_color")]
     pub clear_color: Vec4,
+    #[serde(default)]
     pub post: PostProcessConfig,
+}
+
+fn default_clear_color() -> Vec4 {
+    Vec4::new(0.0, 0.0, 0.0, 0.0)
 }
 
 impl Default for EnvironmentConfig {
@@ -118,7 +152,7 @@ impl Default for EnvironmentConfig {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(default, rename_all = "camelCase")]
 pub struct PostProcessConfig {
     pub filter_enabled: bool,
     pub filter_exposure: f32,

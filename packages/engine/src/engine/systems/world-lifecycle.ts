@@ -10,6 +10,81 @@ const WORLD_LIFECYCLE_INTENT_TYPES = [
   'send-notification',
 ] as const;
 
+function normalizeEnvironmentConfig(config: EnvironmentConfig): EnvironmentConfig {
+  const payload: EnvironmentConfig = {};
+
+  if (config.msaa) {
+    payload.msaa = {
+      enabled: config.msaa.enabled,
+      sampleCount: config.msaa.sampleCount,
+    };
+  }
+
+  if (config.skybox) {
+    payload.skybox = {
+      mode: config.skybox.mode,
+      intensity: config.skybox.intensity,
+      rotation: config.skybox.rotation,
+      groundColor: config.skybox.groundColor
+        ? toVec3(config.skybox.groundColor)
+        : undefined,
+      horizonColor: config.skybox.horizonColor
+        ? toVec3(config.skybox.horizonColor)
+        : undefined,
+      skyColor: config.skybox.skyColor ? toVec3(config.skybox.skyColor) : undefined,
+      horizonGroundThreshold: config.skybox.horizonGroundThreshold,
+      horizonSkyThreshold: config.skybox.horizonSkyThreshold,
+      directionalLights: config.skybox.directionalLights?.map((light) => ({
+        lightId: light.lightId,
+        solidSize: light.solidSize,
+        gradientSize: light.gradientSize,
+      })),
+      cubemapTextureId: config.skybox.cubemapTextureId,
+    };
+  }
+
+  if (config.clearColor) {
+    payload.clearColor = toVec4(config.clearColor);
+  }
+
+  if (config.post) {
+    payload.post = {
+      filterEnabled: config.post.filterEnabled,
+      filterExposure: config.post.filterExposure,
+      filterGamma: config.post.filterGamma,
+      filterSaturation: config.post.filterSaturation,
+      filterContrast: config.post.filterContrast,
+      filterVignette: config.post.filterVignette,
+      filterGrain: config.post.filterGrain,
+      filterChromaticAberration: config.post.filterChromaticAberration,
+      filterBlur: config.post.filterBlur,
+      filterSharpen: config.post.filterSharpen,
+      filterTonemapMode: config.post.filterTonemapMode,
+      outlineEnabled: config.post.outlineEnabled,
+      outlineStrength: config.post.outlineStrength,
+      outlineThreshold: config.post.outlineThreshold,
+      outlineWidth: config.post.outlineWidth,
+      outlineQuality: config.post.outlineQuality,
+      filterPosterizeSteps: config.post.filterPosterizeSteps,
+      cellShading: config.post.cellShading,
+      ssaoEnabled: config.post.ssaoEnabled,
+      ssaoStrength: config.post.ssaoStrength,
+      ssaoRadius: config.post.ssaoRadius,
+      ssaoBias: config.post.ssaoBias,
+      ssaoPower: config.post.ssaoPower,
+      ssaoBlurRadius: config.post.ssaoBlurRadius,
+      ssaoBlurDepthThreshold: config.post.ssaoBlurDepthThreshold,
+      bloomEnabled: config.post.bloomEnabled,
+      bloomThreshold: config.post.bloomThreshold,
+      bloomKnee: config.post.bloomKnee,
+      bloomIntensity: config.post.bloomIntensity,
+      bloomScatter: config.post.bloomScatter,
+    };
+  }
+
+  return payload;
+}
+
 /**
  * Applies world-scoped lifecycle/configuration intents.
  *
@@ -26,55 +101,7 @@ export const WorldLifecycleSystem: System = (world, context) => {
     if (!intent) continue;
 
     if (intent.type === 'configure-environment') {
-      const config = intent.config as EnvironmentConfig;
-      const payload: EnvironmentConfig = {
-        msaa: {
-          enabled: config.msaa.enabled,
-          sampleCount: config.msaa.sampleCount,
-        },
-        skybox: {
-          mode: config.skybox.mode,
-          intensity: config.skybox.intensity,
-          rotation: config.skybox.rotation,
-          groundColor: toVec3(config.skybox.groundColor),
-          horizonColor: toVec3(config.skybox.horizonColor),
-          skyColor: toVec3(config.skybox.skyColor),
-          cubemapTextureId: config.skybox.cubemapTextureId ?? null,
-        },
-        clearColor: toVec4(config.clearColor ?? [0, 0, 0, 0]),
-        post: {
-          filterEnabled: config.post.filterEnabled,
-          filterExposure: config.post.filterExposure,
-          filterGamma: config.post.filterGamma,
-          filterSaturation: config.post.filterSaturation,
-          filterContrast: config.post.filterContrast,
-          filterVignette: config.post.filterVignette,
-          filterGrain: config.post.filterGrain,
-          filterChromaticAberration: config.post.filterChromaticAberration,
-          filterBlur: config.post.filterBlur,
-          filterSharpen: config.post.filterSharpen,
-          filterTonemapMode: config.post.filterTonemapMode,
-          outlineEnabled: config.post.outlineEnabled,
-          outlineStrength: config.post.outlineStrength,
-          outlineThreshold: config.post.outlineThreshold,
-          outlineWidth: config.post.outlineWidth,
-          outlineQuality: config.post.outlineQuality,
-          filterPosterizeSteps: config.post.filterPosterizeSteps,
-          cellShading: config.post.cellShading,
-          ssaoEnabled: config.post.ssaoEnabled,
-          ssaoStrength: config.post.ssaoStrength,
-          ssaoRadius: config.post.ssaoRadius,
-          ssaoBias: config.post.ssaoBias,
-          ssaoPower: config.post.ssaoPower,
-          ssaoBlurRadius: config.post.ssaoBlurRadius,
-          ssaoBlurDepthThreshold: config.post.ssaoBlurDepthThreshold,
-          bloomEnabled: config.post.bloomEnabled,
-          bloomThreshold: config.post.bloomThreshold,
-          bloomKnee: config.post.bloomKnee,
-          bloomIntensity: config.post.bloomIntensity,
-          bloomScatter: config.post.bloomScatter,
-        },
-      };
+      const payload = normalizeEnvironmentConfig(intent.config as EnvironmentConfig);
       enqueueCommand(context.worldId, 'cmd-environment-upsert', {
         environmentId: context.worldId,
         config: payload,
@@ -100,19 +127,9 @@ export const WorldLifecycleSystem: System = (world, context) => {
         }
       }
       if (windowId === undefined) continue;
-      const c = intent.config || {};
-      const config: ShadowConfig = {
-        tileResolution: c.tileResolution ?? 1024,
-        atlasTilesW: c.atlasTilesW ?? 8,
-        atlasTilesH: c.atlasTilesH ?? 8,
-        atlasLayers: c.atlasLayers ?? 2,
-        virtualGridSize: c.virtualGridSize ?? 1,
-        smoothing: c.smoothing ?? 2,
-        normalBias: c.normalBias ?? 0.01,
-      };
       enqueueCommand(context.worldId, 'cmd-shadow-configure', {
         windowId,
-        config,
+        config: intent.config || {},
       });
     } else if (intent.type === 'send-notification') {
       enqueueCommand(context.worldId, 'cmd-notification-send', {

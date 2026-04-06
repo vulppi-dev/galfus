@@ -1,12 +1,12 @@
 import type { AudioPlayMode } from '../kinds';
 
 export interface AudioSpatialParams {
-  minDistance: number;
-  maxDistance: number;
-  rolloff: number;
-  coneInner: number;
-  coneOuter: number;
-  coneOuterGain: number;
+  minDistance?: number;
+  maxDistance?: number;
+  rolloff?: number;
+  coneInner?: number;
+  coneOuter?: number;
+  coneOuterGain?: number;
 }
 
 /** Command payload for updating the listener transform explicitly. */
@@ -73,12 +73,12 @@ export interface CmdAudioSourceCreateArgs {
   realmId: number;
   sourceId: number;
   modelId: number;
-  position: [number, number, number];
-  velocity: [number, number, number];
-  orientation: [number, number, number, number];
-  gain: number;
-  pitch: number;
-  spatial: AudioSpatialParams;
+  position?: [number, number, number];
+  velocity?: [number, number, number];
+  orientation?: [number, number, number, number];
+  gain?: number;
+  pitch?: number;
+  spatial?: AudioSpatialParams;
 }
 
 export interface CmdResultAudioSourceCreate {

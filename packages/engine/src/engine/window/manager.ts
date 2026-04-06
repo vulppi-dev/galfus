@@ -25,9 +25,9 @@ export interface WindowProps {
 }
 
 export interface CreateWindowProps {
-  title: string;
-  size: [number, number];
-  position: [number, number];
+  title?: string;
+  size?: [number, number];
+  position?: [number, number];
   canvasId?: string;
   borderless?: boolean;
   resizable?: boolean;
@@ -65,10 +65,10 @@ export function createWindow(
     size: props.size,
     position: props.position,
     canvasId: props.canvasId,
-    borderless: props.borderless ?? false,
-    resizable: props.resizable ?? true,
-    transparent: props.transparent ?? false,
-    initialState: props.initialState ?? 'windowed',
+    borderless: props.borderless,
+    resizable: props.resizable,
+    transparent: props.transparent,
+    initialState: props.initialState,
   };
   const commandId = enqueueGlobalCommand('cmd-window-create', payload);
   engineState.pendingWindowCreateByCommandId.set(

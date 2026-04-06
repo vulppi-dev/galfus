@@ -3,3 +3,6 @@ src/
 lib/
 jsr.json
 mod.ts
+dist/linux-*/
+dist/macos-*/
+dist/windows-*/

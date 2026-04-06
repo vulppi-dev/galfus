@@ -1,12 +1,17 @@
 import { build } from 'bun';
-import { mkdirSync, rmSync, writeFileSync } from 'fs';
+import { mkdirSync, readdirSync, rmSync, writeFileSync } from 'fs';
 import { join } from 'path';
 
 const rootDir = process.cwd();
 const outDir = join(rootDir, 'dist');
 
-rmSync(outDir, { recursive: true, force: true });
 mkdirSync(outDir, { recursive: true });
+
+for (const entry of readdirSync(outDir, { withFileTypes: true })) {
+  if (entry.isDirectory()) continue;
+  if (!entry.name.startsWith('index.') && !entry.name.startsWith('vulfram_core-')) continue;
+  rmSync(join(outDir, entry.name), { recursive: true, force: true });
+}
 
 const result = await build({
   entrypoints: [join(rootDir, 'src', 'index.ts')],

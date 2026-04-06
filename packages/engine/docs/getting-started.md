@@ -15,8 +15,6 @@ const worldId = World3D.create3DWorld();
 const { windowId } = createWindow({
   title: 'Hello Vulfram',
   size: [1024, 640],
-  position: [0, 0],
-  initialState: 'windowed',
 });
 
 mountWorldToWindow(worldId, windowId);
@@ -84,3 +82,4 @@ requestAnimationFrame(frame);
 - Call `initEngine()` once before any other API calls.
 - World mounting is async-friendly internally; for strict boot sequencing you can poll with `waitWorldReady(...)` from `@vulfram/engine/mount`.
 - `tick()` must be called once per frame with a monotonic timestamp.
+- Most command-style helpers now support sparse payloads; omitted fields are not serialized and fall back to core defaults when supported.

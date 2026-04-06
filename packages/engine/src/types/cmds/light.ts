@@ -14,7 +14,7 @@ export interface CmdLightCreateArgs {
   intensity?: number;
   range?: number;
   spotInnerOuter?: [number, number]; // Vec2
-  layerMask: number;
+  layerMask?: number;
   castShadow?: boolean;
 }
 

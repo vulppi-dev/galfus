@@ -12,36 +12,36 @@ const loaders: PlatformLoaderMap<{ default: string }> = {
   darwin: {
     arm64: () =>
       // @ts-expect-error
-      import('../../lib/macos-arm64/vulfram_core.dylib', {
+      import('../../dist/macos-arm64/vulfram_core.dylib', {
         with: { type: 'file' }
       }),
     x64: () =>
       // @ts-expect-error
-      import('../../lib/macos-x64/vulfram_core.dylib', {
+      import('../../dist/macos-x64/vulfram_core.dylib', {
         with: { type: 'file' }
       })
   },
   linux: {
     arm64: () =>
       // @ts-expect-error
-      import('../../lib/linux-arm64/vulfram_core.so', {
+      import('../../dist/linux-arm64/vulfram_core.so', {
         with: { type: 'file' }
       }),
     x64: () =>
       // @ts-expect-error
-      import('../../lib/linux-x64/vulfram_core.so', {
+      import('../../dist/linux-x64/vulfram_core.so', {
         with: { type: 'file' }
       })
   },
   win32: {
     arm64: () =>
       // @ts-expect-error
-      import('../../lib/windows-arm64/vulfram_core.dll', {
+      import('../../dist/windows-arm64/vulfram_core.dll', {
         with: { type: 'file' }
       }),
     x64: () =>
       // @ts-expect-error
-      import('../../lib/windows-x64/vulfram_core.dll', {
+      import('../../dist/windows-x64/vulfram_core.dll', {
         with: { type: 'file' }
       })
   }
@@ -51,9 +51,9 @@ function getExpectedLocalArtifact(): string {
   try {
     const platform = resolveNativePlatform();
     const filename = getArtifactFileName('ffi', platform);
-    return `../../lib/${platform}/${filename}`;
+    return `../../dist/${platform}/${filename}`;
   } catch {
-    return '../../lib/<platform>/vulfram_core.<dll|dylib|so>';
+    return '../../dist/<platform>/vulfram_core.<dll|dylib|so>';
   }
 }
 

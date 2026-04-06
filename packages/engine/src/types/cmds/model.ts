@@ -8,11 +8,11 @@ export interface CmdModelCreateArgs {
   geometryId: number;
   materialId?: number;
   transform: number[]; // Mat4
-  layerMask: number;
-  castShadow: boolean;
-  receiveShadow: boolean;
-  castOutline: boolean;
-  outlineColor: [number, number, number, number];
+  layerMask?: number;
+  castShadow?: boolean;
+  receiveShadow?: boolean;
+  castOutline?: boolean;
+  outlineColor?: [number, number, number, number];
 }
 
 /** Command payload for updating a model. */

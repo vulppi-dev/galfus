@@ -26,17 +26,27 @@ pub struct CmdResultTextureCreateFromBuffer {
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ForwardAtlasOptions {
+    #[serde(default = "default_atlas_tile_px")]
     pub tile_px: u32,
+    #[serde(default = "default_atlas_layers")]
     pub layers: u32,
 }
 
 impl Default for ForwardAtlasOptions {
     fn default() -> Self {
         Self {
-            tile_px: 256,
-            layers: 1,
+            tile_px: default_atlas_tile_px(),
+            layers: default_atlas_layers(),
         }
     }
+}
+
+fn default_atlas_tile_px() -> u32 {
+    256
+}
+
+fn default_atlas_layers() -> u32 {
+    1
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, Copy)]
