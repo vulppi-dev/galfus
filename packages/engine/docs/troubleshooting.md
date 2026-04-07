@@ -11,6 +11,7 @@ Make sure `tick()` is called exactly once per frame with a monotonic timestamp a
 ## MessagePack serialization errors
 
 If you see `vulframSendQueue failed`, the host/core command schema might be out of sync. Ensure all packages are built from compatible versions.
+The most common causes are stale TypeScript command shapes, invalid nested UI/audio payloads, or render graph payloads that do not match the current engine/core contract.
 
 ## MSAA errors
 

@@ -4,6 +4,7 @@
 
 Use `configureEnvironment()` to control skybox and MSAA.
 The payload is sparse: omit anything you do not want to override.
+If a value already matches the core default, the engine also avoids serializing it.
 
 ```ts
 configureEnvironment(WINDOW_ID, {
@@ -13,14 +14,12 @@ configureEnvironment(WINDOW_ID, {
     groundColor: [0.02, 0.03, 0.04],
     horizonColor: [0.12, 0.16, 0.22],
     skyColor: [0.2, 0.35, 0.6],
-    directionalLights: [
-      { lightId: 1, solidSize: 0.0018, gradientSize: 0.0287 },
-    ],
+    directionalLights: [{ lightId: 1, solidSize: 0.0018, gradientSize: 0.0287 }]
   },
   post: {
     outlineEnabled: false,
-    outlineThreshold: 0.2,
-  },
+    outlineThreshold: 0.2
+  }
 });
 ```
 
@@ -40,6 +39,6 @@ Configure shadows via `configureShadows()`:
 
 ```ts
 configureShadows(WINDOW_ID, {
-  tileResolution: 1024,
+  tileResolution: 1024
 });
 ```
