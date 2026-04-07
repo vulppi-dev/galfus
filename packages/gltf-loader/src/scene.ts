@@ -1,4 +1,5 @@
 import type { Node, Scene } from '@gltf-transform/core';
+import type { quat as Quat, vec3 as Vec3 } from 'gl-matrix';
 import {
   create3DEntity,
   create3DModel,
@@ -8,15 +9,15 @@ import {
   type EntityId,
   type World3DId
 } from '@vulfram/engine/world3d';
-import { toArray3, toArray4 } from './convert';
+import { toQuat, toVec3 } from './convert';
 import { ensureMaterial, ensurePrimitiveGeometry } from './resources';
 import type { GltfInstance, GltfInstantiateOptions, LoaderContext, SceneTemplate } from './types';
 
-function isIdentityVec3(value: [number, number, number], identity: number): boolean {
+function isIdentityVec3(value: Vec3, identity: number): boolean {
   return value[0] === identity && value[1] === identity && value[2] === identity;
 }
 
-function isIdentityQuat(value: [number, number, number, number]): boolean {
+function isIdentityQuat(value: Quat): boolean {
   return value[0] === 0 && value[1] === 0 && value[2] === 0 && value[3] === 1;
 }
 
@@ -36,9 +37,9 @@ function createNodeTemplate(ctx: LoaderContext, node: Node, nodes: SceneTemplate
   const nodeIndex = nodes.length;
   nodes.push({
     name: node.getName() || undefined,
-    translation: toArray3(node.getTranslation()),
-    rotation: toArray4(node.getRotation(), 1),
-    scale: toArray3(node.getScale()),
+    translation: toVec3(node.getTranslation()),
+    rotation: toQuat(node.getRotation(), 1),
+    scale: toVec3(node.getScale()),
     children: [],
     primitives
   });

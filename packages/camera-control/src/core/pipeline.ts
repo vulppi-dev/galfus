@@ -1,42 +1,31 @@
-import {
-  update3DTransform,
-  type EntityId,
-  type World3DId,
-} from '@vulfram/engine/world3d';
+import { update3DTransform, type EntityId, type World3DId } from '@vulfram/engine/world3d';
 import { quat, vec3, type ReadonlyQuat, type ReadonlyVec3 } from 'gl-matrix';
-import {
-  makeLookRotation,
-  slerpArc,
-  smoothStepAlpha,
-} from './math';
+import { makeLookRotation, slerpArc, smoothStepAlpha } from './math';
 import type {
   CameraControllerContext,
   CameraControllerOptions,
   CameraTarget,
-  LookAtState,
+  LookAtState
 } from './types';
 
-export function createCameraTarget(
-  position: ReadonlyVec3,
-  rotation: ReadonlyQuat,
-): CameraTarget {
+export function createCameraTarget(position: ReadonlyVec3, rotation: ReadonlyQuat): CameraTarget {
   return {
     position: vec3.fromValues(position[0], position[1], position[2]),
-    rotation: quat.fromValues(rotation[0], rotation[1], rotation[2], rotation[3]),
+    rotation: quat.fromValues(rotation[0], rotation[1], rotation[2], rotation[3])
   };
 }
 
 export function cloneCameraTarget(target: CameraTarget): CameraTarget {
   return {
     position: vec3.clone(target.position),
-    rotation: quat.clone(target.rotation),
+    rotation: quat.clone(target.rotation)
   };
 }
 
 export function applyLookAtIfEnabled(
   next: CameraTarget,
   lookAtState: LookAtState,
-  dtSeconds: number,
+  dtSeconds: number
 ): void {
   if (!lookAtState.enabled || lookAtState.weight === 0) {
     return;
@@ -54,24 +43,22 @@ export function runPipeline(
   nextRaw: CameraTarget,
   prevApplied: CameraTarget,
   options: CameraControllerOptions,
-  context: CameraControllerContext,
+  context: CameraControllerContext
 ): CameraTarget {
   const strategized = options.translationStrategy
     ? options.translationStrategy(nextRaw, prevApplied, context)
     : nextRaw;
 
-  return options.easing
-    ? options.easing(strategized, prevApplied, context)
-    : strategized;
+  return options.easing ? options.easing(strategized, prevApplied, context) : strategized;
 }
 
 export function applyToWorld(
   worldId: World3DId,
   cameraEntityId: EntityId,
-  next: CameraTarget,
+  next: CameraTarget
 ): void {
   update3DTransform(worldId, cameraEntityId, {
-    position: [next.position[0], next.position[1], next.position[2]],
-    rotation: [next.rotation[0], next.rotation[1], next.rotation[2], next.rotation[3]],
+    position: next.position,
+    rotation: next.rotation
   });
 }

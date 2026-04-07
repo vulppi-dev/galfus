@@ -1,10 +1,11 @@
 import type { Accessor, Material, Node, Primitive, Texture } from '@gltf-transform/core';
+import type { quat, vec3 } from 'gl-matrix';
 import type {
   EntityId,
   GeometryId,
   MaterialId,
   TextureId,
-  World3DId,
+  World3DId
 } from '@vulfram/engine/world3d';
 
 /** Supported source formats for glTF scene loading. */
@@ -15,9 +16,9 @@ export type BinaryLike = Uint8Array | ArrayBuffer | ArrayBufferView;
 
 /** Optional root transform applied to the imported scene root entity. */
 export type RootTransform = {
-  position?: [number, number, number];
-  rotation?: [number, number, number, number];
-  scale?: [number, number, number];
+  position?: vec3;
+  rotation?: quat;
+  scale?: vec3;
 };
 
 /** Instantiation options for a loaded glTF asset template. */
@@ -35,9 +36,9 @@ export interface GltfInstance {
 /** Static template node with local transform and mesh primitive bindings. */
 export interface NodeTemplate {
   name?: string;
-  translation: [number, number, number];
-  rotation: [number, number, number, number];
-  scale: [number, number, number];
+  translation: vec3;
+  rotation: quat;
+  scale: vec3;
   children: number[];
   primitives: Array<{
     geometryId: GeometryId;

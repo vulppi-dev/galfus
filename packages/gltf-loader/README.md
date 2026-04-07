@@ -2,4 +2,5 @@
 
 Loads `.gltf` and `.glb` content into `@vulfram/engine` 3D worlds.
 
-Status: initial package scaffold. Runtime loading is not implemented yet.
+The loader follows the engine host-side math convention and exposes transforms as
+`gl-matrix` `vec3` / `quat`.
