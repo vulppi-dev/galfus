@@ -1,3 +1,4 @@
+import type { quat, vec3 } from 'gl-matrix';
 import type { AudioPlayMode } from '../kinds';
 
 export interface AudioSpatialParams {
@@ -11,10 +12,10 @@ export interface AudioSpatialParams {
 
 /** Command payload for updating the listener transform explicitly. */
 export interface CmdAudioListenerUpdateArgs {
-  position: [number, number, number];
-  velocity: [number, number, number];
-  forward: [number, number, number];
-  up: [number, number, number];
+  position: vec3;
+  velocity: vec3;
+  forward: vec3;
+  up: vec3;
 }
 
 /** Command payload for binding the listener to a model. */
@@ -71,9 +72,9 @@ export interface CmdAudioSourceCreateArgs {
   realmId: number;
   sourceId: number;
   modelId: number;
-  position?: [number, number, number];
-  velocity?: [number, number, number];
-  orientation?: [number, number, number, number];
+  position?: vec3;
+  velocity?: vec3;
+  orientation?: quat;
   gain?: number;
   pitch?: number;
   spatial?: AudioSpatialParams;
@@ -89,9 +90,9 @@ export interface CmdAudioSourceUpdateArgs {
   sourceId: number;
   realmId?: number;
   modelId?: number;
-  position?: [number, number, number];
-  velocity?: [number, number, number];
-  orientation?: [number, number, number, number];
+  position?: vec3;
+  velocity?: vec3;
+  orientation?: quat;
   gain?: number;
   pitch?: number;
   spatial?: AudioSpatialParams;
@@ -162,9 +163,9 @@ export interface AudioSourceStateEntry {
   sourceId: number;
   realmId?: number;
   modelId?: number;
-  position: [number, number, number];
-  velocity: [number, number, number];
-  orientation: [number, number, number, number];
+  position: vec3;
+  velocity: vec3;
+  orientation: quat;
   gain: number;
   pitch: number;
 }

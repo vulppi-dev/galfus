@@ -1,6 +1,6 @@
+import { quat, vec3, vec4 } from 'gl-matrix';
 import { EngineError } from '../../errors';
 import { getWorldOrThrow, requireInitialized } from '../../bridge/guards';
-import { createQuatTuple, createVec3Tuple, createVec4Tuple } from '../../math/tuples';
 import { engineState } from '../../state';
 import type {
   CameraProps,
@@ -30,9 +30,9 @@ function hasTransformPatch(props: TransformProps): boolean {
 export function drawGizmoLine(
   worldId: number,
   props: {
-    start: [number, number, number];
-    end: [number, number, number];
-    color?: [number, number, number, number];
+    start: vec3;
+    end: vec3;
+    color?: vec4;
     thickness?: number;
   }
 ): void {
@@ -40,7 +40,7 @@ export function drawGizmoLine(
     type: 'gizmo-draw-line',
     start: props.start,
     end: props.end,
-    color: props.color || createVec4Tuple(1, 1, 1, 1),
+    color: props.color || vec4.fromValues(1, 1, 1, 1),
     thickness: props.thickness
   });
 }
@@ -49,9 +49,9 @@ export function drawGizmoLine(
 export function drawGizmoAabb(
   worldId: number,
   props: {
-    min: [number, number, number];
-    max: [number, number, number];
-    color?: [number, number, number, number];
+    min: vec3;
+    max: vec3;
+    color?: vec4;
     thickness?: number;
   }
 ): void {
@@ -59,7 +59,7 @@ export function drawGizmoAabb(
     type: 'gizmo-draw-aabb',
     min: props.min,
     max: props.max,
-    color: props.color || createVec4Tuple(1, 1, 1, 1),
+    color: props.color || vec4.fromValues(1, 1, 1, 1),
     thickness: props.thickness
   });
 }
@@ -68,8 +68,8 @@ export function drawGizmoAabb(
 export function drawGizmoPolyline(
   worldId: number,
   props: {
-    points: [number, number, number][];
-    color?: [number, number, number, number];
+    points: vec3[];
+    color?: vec4;
     closed?: boolean;
     thickness?: number;
   }
@@ -77,7 +77,7 @@ export function drawGizmoPolyline(
   emitIntent(worldId, {
     type: 'gizmo-draw-polyline',
     points: props.points,
-    color: props.color || createVec4Tuple(1, 1, 1, 1),
+    color: props.color || vec4.fromValues(1, 1, 1, 1),
     closed: props.closed,
     thickness: props.thickness
   });
@@ -149,14 +149,14 @@ export function updateTransform(worldId: number, entityId: number, props: Transf
   const transform = store?.get('Transform') as TransformComponent | undefined;
   if (transform) {
     if (props.position) {
-      transform.position = createVec3Tuple(
+      transform.position = vec3.fromValues(
         props.position[0] ?? transform.position[0],
         props.position[1] ?? transform.position[1],
         props.position[2] ?? transform.position[2]
       );
     }
     if (props.rotation) {
-      transform.rotation = createQuatTuple(
+      transform.rotation = quat.fromValues(
         props.rotation[0] ?? transform.rotation[0],
         props.rotation[1] ?? transform.rotation[1],
         props.rotation[2] ?? transform.rotation[2],
@@ -164,7 +164,7 @@ export function updateTransform(worldId: number, entityId: number, props: Transf
       );
     }
     if (props.scale) {
-      transform.scale = createVec3Tuple(
+      transform.scale = vec3.fromValues(
         props.scale[0] ?? transform.scale[0],
         props.scale[1] ?? transform.scale[1],
         props.scale[2] ?? transform.scale[2]

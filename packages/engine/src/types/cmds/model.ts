@@ -1,5 +1,5 @@
+import type { mat4, vec4 } from 'gl-matrix';
 import type { ResourceEntry } from './resources';
-import type { Matrix4 } from './camera';
 
 /** Command payload for creating a model. */
 export interface CmdModelCreateArgs {
@@ -8,12 +8,12 @@ export interface CmdModelCreateArgs {
   label?: string;
   geometryId: number;
   materialId?: number;
-  transform: Matrix4;
+  transform: mat4;
   layerMask?: number;
   castShadow?: boolean;
   receiveShadow?: boolean;
   castOutline?: boolean;
-  outlineColor?: [number, number, number, number];
+  outlineColor?: vec4;
 }
 
 /** Command payload for updating a model. */
@@ -23,12 +23,12 @@ export interface CmdModelUpdateArgs {
   label?: string;
   geometryId?: number;
   materialId?: number;
-  transform?: Matrix4;
+  transform?: mat4;
   layerMask?: number;
   castShadow?: boolean;
   receiveShadow?: boolean;
   castOutline?: boolean;
-  outlineColor?: [number, number, number, number];
+  outlineColor?: vec4;
 }
 
 /** Result payload for model upsert. */

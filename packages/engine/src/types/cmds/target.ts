@@ -1,8 +1,5 @@
-export type TargetKind =
-  | 'window'
-  | 'widget-realm-viewport'
-  | 'realm-plane'
-  | 'texture';
+import type { vec2, vec4 } from 'gl-matrix';
+export type TargetKind = 'window' | 'widget-realm-viewport' | 'realm-plane' | 'texture';
 
 export type SurfaceFormat =
   | 'rgba16-float'
@@ -11,12 +8,7 @@ export type SurfaceFormat =
   | 'depth32-float'
   | 'depth24-plus';
 
-export type SurfaceAlphaMode =
-  | 'auto'
-  | 'opaque'
-  | 'pre-multiplied'
-  | 'post-multiplied'
-  | 'inherit';
+export type SurfaceAlphaMode = 'auto' | 'opaque' | 'pre-multiplied' | 'post-multiplied' | 'inherit';
 
 export type DimensionValue =
   | { unit: 'px'; value: number }
@@ -31,14 +23,14 @@ export interface TargetLayerLayout {
   height: DimensionValue;
   zIndex: number;
   blendMode: number;
-  clip?: [number, number, number, number] | null;
+  clip?: vec4 | null;
 }
 
 export interface CmdTargetUpsertArgs {
   targetId: number;
   kind: TargetKind;
   windowId?: number;
-  size?: [number, number];
+  size?: vec2;
   formatPolicy?: SurfaceFormat;
   alphaPolicy?: SurfaceAlphaMode;
   msaaSamples?: number;
@@ -58,8 +50,8 @@ export interface CmdTargetMeasurementArgs {
 export interface CmdResultTargetMeasurement {
   success: boolean;
   message: string;
-  size?: [number, number];
-  windowSize?: [number, number];
+  size?: vec2;
+  windowSize?: vec2;
   sourceKind?: string;
 }
 

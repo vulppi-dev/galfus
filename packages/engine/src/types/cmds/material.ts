@@ -1,22 +1,23 @@
+import type { vec4 } from 'gl-matrix';
 import type {
   MaterialKind,
   TransparencyMode,
   SamplerMode,
   PrimitiveTopology,
   PolygonMode,
-  RenderSide,
+  RenderSide
 } from '../kinds';
 import type { ResourceEntry } from './resources';
 
 /** Standard material options. */
 export interface StandardOptions {
-  baseColor?: [number, number, number, number];
+  baseColor?: vec4;
   surfaceType?: TransparencyMode;
   topology?: PrimitiveTopology;
   polygonMode?: PolygonMode;
   renderSide?: RenderSide;
-  emissiveColor?: [number, number, number, number] | null;
-  specColor?: [number, number, number, number] | null;
+  emissiveColor?: vec4 | null;
+  specColor?: vec4 | null;
   specPower?: number | null;
   baseTexId?: number | null;
   baseSampler?: SamplerMode | null;
@@ -29,17 +30,17 @@ export interface StandardOptions {
   emissiveTexId?: number | null;
   emissiveSampler?: SamplerMode | null;
   flags?: number;
-  toonParams?: [number, number, number, number] | null;
+  toonParams?: vec4 | null;
 }
 
 /** PBR material options. */
 export interface PbrOptions {
-  baseColor?: [number, number, number, number];
+  baseColor?: vec4;
   surfaceType?: TransparencyMode;
   topology?: PrimitiveTopology;
   polygonMode?: PolygonMode;
   renderSide?: RenderSide;
-  emissiveColor?: [number, number, number, number];
+  emissiveColor?: vec4;
   metallic?: number;
   roughness?: number;
   ao?: number;

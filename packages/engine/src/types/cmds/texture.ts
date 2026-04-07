@@ -1,3 +1,4 @@
+import type { vec4 } from 'gl-matrix';
 import type { TextureCreateMode } from '../kinds';
 import type { ResourceEntry } from './resources';
 
@@ -28,7 +29,7 @@ export interface CmdResultTextureCreateFromBuffer {
 export interface CmdTextureCreateSolidColorArgs {
   textureId: number;
   label?: string;
-  color: [number, number, number, number];
+  color: vec4;
   srgb?: boolean;
   mode?: TextureCreateMode;
   atlasOptions?: ForwardAtlasOptions;

@@ -1,8 +1,8 @@
+import { vec3, type vec4 } from 'gl-matrix';
 import type { TextureCreateMode } from '../../types/kinds';
 import type { PrimitiveOptions } from '../../types/cmds/geometry';
 import { enqueueCommand } from '../bridge/dispatch';
 import type { GeometryProps, System } from '../ecs';
-import { createVec3Tuple } from '../math/tuples';
 import { normalizeMaterialOptions, normalizePrimitiveOptions } from './utils';
 
 const RESOURCE_INTENT_TYPES = [
@@ -26,7 +26,7 @@ function resolvePrimitiveOptions(
     return {
       type: 'cube',
       content: {
-        size: options?.size ?? createVec3Tuple(1, 1, 1),
+        size: options?.size ?? vec3.fromValues(1, 1, 1),
         subdivisions: 1
       }
     };
@@ -35,7 +35,7 @@ function resolvePrimitiveOptions(
     return {
       type: 'plane',
       content: {
-        size: options?.size ?? createVec3Tuple(1, 1, 1),
+        size: options?.size ?? vec3.fromValues(1, 1, 1),
         subdivisions: options?.subdivisions ?? 1
       }
     };
@@ -85,7 +85,7 @@ function resolvePrimitiveOptions(
   return {
     type: 'pyramid',
     content: {
-      size: options?.size ?? createVec3Tuple(1, 1, 1),
+      size: options?.size ?? vec3.fromValues(1, 1, 1),
       subdivisions: options?.subdivisions ?? 1
     }
   };
@@ -170,14 +170,14 @@ export const ResourceUploadSystem: System = (world, context) => {
         const cmd: {
           textureId: number;
           label?: string;
-          color: [number, number, number, number];
+          color: vec4;
           srgb?: boolean;
           mode?: TextureCreateMode;
           atlasOptions?: { tilePx?: number; layers?: number };
         } = {
           textureId: intent.resourceId,
           label: intent.props.label,
-          color: Array.from(intent.props.source.color) as [number, number, number, number],
+          color: intent.props.source.color,
           srgb: intent.props.srgb
         };
         if (intent.props.mode !== undefined) {

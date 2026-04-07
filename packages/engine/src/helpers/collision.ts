@@ -1,5 +1,5 @@
-import { mat4, vec3, vec4 } from 'gl-matrix';
-import { createQuatTuple, createVec3Tuple, createVec4Tuple } from '../engine/math/tuples';
+import { mat4, quat, vec2, vec3, vec4 } from 'gl-matrix';
+import type { quat as Quat, vec2 as Vec2, vec3 as Vec3, vec4 as Vec4 } from 'gl-matrix';
 import { getWorldOrThrow, requireInitialized } from '../engine/bridge/guards';
 import { getResolvedEntityTransformMatrix } from '../engine/systems/utils';
 import {
@@ -21,9 +21,9 @@ import {
 } from './raycast';
 
 export interface CollisionRelativeTransform {
-  position?: [number, number, number];
-  rotation?: [number, number, number, number];
-  scale?: [number, number, number];
+  position?: Vec3;
+  rotation?: Quat;
+  scale?: Vec3;
 }
 
 export interface CollisionEntityBase {
@@ -36,26 +36,17 @@ export interface CollisionEntityBase {
 
 export interface CollisionAabbEntity extends CollisionEntityBase {
   kind: 'aabb';
-  halfExtents: [number, number, number];
+  halfExtents: Vec3;
   debugGizmoAabb: boolean;
-  debugGizmoColor: [number, number, number, number];
+  debugGizmoColor: Vec4;
 }
 
 export interface CollisionAabbWorldBounds {
-  min: [number, number, number];
-  max: [number, number, number];
+  min: Vec3;
+  max: Vec3;
 }
 
-type CollisionAabbWorldCorners = [
-  [number, number, number],
-  [number, number, number],
-  [number, number, number],
-  [number, number, number],
-  [number, number, number],
-  [number, number, number],
-  [number, number, number],
-  [number, number, number]
-];
+type CollisionAabbWorldCorners = [Vec3, Vec3, Vec3, Vec3, Vec3, Vec3, Vec3, Vec3];
 
 export interface CollisionSphereEntity extends CollisionEntityBase {
   kind: 'sphere';
@@ -64,7 +55,7 @@ export interface CollisionSphereEntity extends CollisionEntityBase {
 
 export interface CollisionPlaneEntity extends CollisionEntityBase {
   kind: 'plane';
-  normal: [number, number, number];
+  normal: Vec3;
 }
 
 export type CollisionEntity = CollisionAabbEntity | CollisionSphereEntity | CollisionPlaneEntity;
@@ -78,9 +69,9 @@ export interface CollisionAttachBaseArgs {
 }
 
 export interface AttachCollisionAabbArgs extends CollisionAttachBaseArgs {
-  halfExtents: [number, number, number];
+  halfExtents: Vec3;
   debugGizmoAabb?: boolean;
-  debugGizmoColor?: [number, number, number, number];
+  debugGizmoColor?: Vec4;
 }
 
 export interface AttachCollisionSphereArgs extends CollisionAttachBaseArgs {
@@ -88,16 +79,16 @@ export interface AttachCollisionSphereArgs extends CollisionAttachBaseArgs {
 }
 
 export interface AttachCollisionPlaneArgs extends CollisionAttachBaseArgs {
-  normal?: [number, number, number];
+  normal?: Vec3;
 }
 
 function normalizeTransform(
   transform?: CollisionRelativeTransform
 ): Required<CollisionRelativeTransform> {
   return {
-    position: transform?.position ?? createVec3Tuple(),
-    rotation: transform?.rotation ?? createQuatTuple(),
-    scale: transform?.scale ?? createVec3Tuple(1, 1, 1)
+    position: transform?.position ?? vec3.create(),
+    rotation: transform?.rotation ?? quat.create(),
+    scale: transform?.scale ?? vec3.fromValues(1, 1, 1)
   };
 }
 
@@ -162,7 +153,7 @@ export function attachCollisionAabb(args: AttachCollisionAabbArgs): CollisionAab
     relativeTransform,
     halfExtents: args.halfExtents,
     debugGizmoAabb: args.debugGizmoAabb ?? false,
-    debugGizmoColor: args.debugGizmoColor ?? createVec4Tuple(0.2, 0.9, 0.2, 1)
+    debugGizmoColor: args.debugGizmoColor ?? vec4.fromValues(0.2, 0.9, 0.2, 1)
   };
 }
 
@@ -250,7 +241,7 @@ export function getCollisionAabbWorldCorners(
   const worldTransform = getCollisionWorldTransformMatrix(collision);
   const [hx, hy, hz] = collision.halfExtents;
 
-  const localCorners: [number, number, number][] = [
+  const localCorners: Vec3[] = [
     [-hx, -hy, -hz],
     [-hx, -hy, hz],
     [-hx, hy, -hz],
@@ -261,7 +252,7 @@ export function getCollisionAabbWorldCorners(
     [hx, hy, hz]
   ];
 
-  const corners: [number, number, number][] = [];
+  const corners: Vec3[] = [];
   for (let i = 0; i < localCorners.length; i++) {
     const [x, y, z] = localCorners[i]!;
     const worldCorner = vec4.transformMat4(
@@ -339,7 +330,7 @@ export interface PointerCollisionAabbInput extends PointerEventRaycastInput {
   edgePaddingPixels?: number;
 }
 
-function resolvePointerViewportSize(input: PointerEventRaycastInput): [number, number] | null {
+function resolvePointerViewportSize(input: PointerEventRaycastInput): Vec2 | null {
   const event = input.pointerEvent;
   if (
     event.positionTarget &&
@@ -348,7 +339,7 @@ function resolvePointerViewportSize(input: PointerEventRaycastInput): [number, n
     event.targetWidth > 0 &&
     event.targetHeight > 0
   ) {
-    return [event.targetWidth, event.targetHeight];
+    return vec2.fromValues(event.targetWidth, event.targetHeight);
   }
   if (
     typeof event.windowWidth === 'number' &&
@@ -356,12 +347,12 @@ function resolvePointerViewportSize(input: PointerEventRaycastInput): [number, n
     event.windowWidth > 0 &&
     event.windowHeight > 0
   ) {
-    return [event.windowWidth, event.windowHeight];
+    return vec2.fromValues(event.windowWidth, event.windowHeight);
   }
   if (input.fallbackViewportSize) {
     const w = input.fallbackViewportSize[0] ?? 0;
     const h = input.fallbackViewportSize[1] ?? 0;
-    if (w > 0 && h > 0) return [w, h];
+    if (w > 0 && h > 0) return vec2.fromValues(w, h);
   }
   return null;
 }
@@ -439,7 +430,7 @@ export function attachCollisionPlane(args: AttachCollisionPlaneArgs): CollisionP
     entityId,
     modelEntityId: args.modelEntityId,
     relativeTransform,
-    normal: args.normal ?? createVec3Tuple(0, 1, 0)
+    normal: args.normal ?? vec3.fromValues(0, 1, 0)
   };
 }
 

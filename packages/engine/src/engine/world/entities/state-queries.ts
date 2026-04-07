@@ -1,7 +1,7 @@
+import { vec2, type vec2 as Vec2 } from 'gl-matrix';
 import type { GamepadEvent, SystemEvent, UiEvent } from '../../../types/events';
 import type { InputStateComponent, WindowStateComponent } from '../../ecs';
 import { getWorldOrThrow, requireInitialized } from '../../bridge/guards';
-import { createVec2Tuple } from '../../math/tuples';
 import { WORLD_ENTITY_ID } from './common';
 
 /**
@@ -45,37 +45,37 @@ export function isKeyJustReleased(worldId: number, keyCode: number): boolean {
 }
 
 /** Gets the current pointer position in window space. */
-export function getPointerPosition(worldId: number): [number, number] {
+export function getPointerPosition(worldId: number): Vec2 {
   const state = getInputState(worldId);
-  return state?.pointerPosition ?? createVec2Tuple();
+  return state?.pointerPosition ?? vec2.create();
 }
 
 /** Gets the real drawn window area associated with the latest pointer event. */
-export function getPointerWindowSize(worldId: number): [number, number] | null {
+export function getPointerWindowSize(worldId: number): Vec2 | null {
   const state = getInputState(worldId);
   return state?.pointerWindowSize ?? null;
 }
 
 /** Gets the pointer movement delta for this frame in window space. */
-export function getPointerDelta(worldId: number): [number, number] {
+export function getPointerDelta(worldId: number): Vec2 {
   const state = getInputState(worldId);
-  return state?.pointerDelta ?? createVec2Tuple();
+  return state?.pointerDelta ?? vec2.create();
 }
 
 /** Gets the pointer position relative to the current routed target. */
-export function getPointerTargetPosition(worldId: number): [number, number] | null {
+export function getPointerTargetPosition(worldId: number): Vec2 | null {
   const state = getInputState(worldId);
   return state?.pointerPositionTarget ?? null;
 }
 
 /** Gets the real drawn target area associated with the latest pointer event. */
-export function getPointerTargetSize(worldId: number): [number, number] | null {
+export function getPointerTargetSize(worldId: number): Vec2 | null {
   const state = getInputState(worldId);
   return state?.pointerTargetSize ?? null;
 }
 
 /** Gets the pointer movement delta relative to the current routed target. */
-export function getPointerTargetDelta(worldId: number): [number, number] | null {
+export function getPointerTargetDelta(worldId: number): Vec2 | null {
   const state = getInputState(worldId);
   return state?.pointerTargetDelta ?? null;
 }
@@ -87,7 +87,7 @@ export function getPointerTargetId(worldId: number): number | null {
 }
 
 /** Gets pointer UV (0..1) in routed target space, when available. */
-export function getPointerTargetUv(worldId: number): [number, number] | null {
+export function getPointerTargetUv(worldId: number): Vec2 | null {
   const state = getInputState(worldId);
   return state?.pointerTargetUv ?? null;
 }
@@ -105,9 +105,9 @@ export function isPointerButtonJustPressed(worldId: number, button: number): boo
 }
 
 /** Gets the scroll delta for this frame. */
-export function getScrollDelta(worldId: number): [number, number] {
+export function getScrollDelta(worldId: number): Vec2 {
   const state = getInputState(worldId);
-  return state?.scrollDelta ?? createVec2Tuple();
+  return state?.scrollDelta ?? vec2.create();
 }
 
 /** Returns true while IME composition is active for this world. */
@@ -123,7 +123,7 @@ export function getImePreeditText(worldId: number): string | null {
 }
 
 /** Returns current IME cursor range inside preedit text, if available. */
-export function getImeCursorRange(worldId: number): [number, number] | null {
+export function getImeCursorRange(worldId: number): Vec2 | null {
   const state = getInputState(worldId);
   return state?.imeCursorRange ?? null;
 }
@@ -135,15 +135,15 @@ export function getImeCommitText(worldId: number): string | null {
 }
 
 /** Gets the current window size. */
-export function getWindowSize(worldId: number): [number, number] {
+export function getWindowSize(worldId: number): Vec2 {
   const state = getWindowState(worldId);
-  return state?.size ?? createVec2Tuple(800, 600);
+  return state?.size ?? vec2.fromValues(800, 600);
 }
 
 /** Gets the current window position. */
-export function getWindowPosition(worldId: number): [number, number] {
+export function getWindowPosition(worldId: number): Vec2 {
   const state = getWindowState(worldId);
-  return state?.position ?? createVec2Tuple();
+  return state?.position ?? vec2.create();
 }
 
 /** Checks if the window is focused. */

@@ -1,16 +1,12 @@
-import type {
-  WindowState,
-  CursorGrabMode,
-  CursorIcon,
-  UserAttentionType,
-} from '../kinds';
+import type { vec2 } from 'gl-matrix';
+import type { WindowState, CursorGrabMode, CursorIcon, UserAttentionType } from '../kinds';
 
 /** Command payload for creating a window. */
 export interface CmdWindowCreateArgs {
   windowId: number;
   title?: string;
-  size?: [number, number]; // UVec2
-  position?: [number, number]; // IVec2
+  size?: vec2;
+  position?: vec2;
   canvasId?: string;
   borderless?: boolean;
   resizable?: boolean;
@@ -41,8 +37,8 @@ export interface CmdResultWindowClose {
 /** Command payload for changing and/or querying window measurements. */
 export interface CmdWindowMeasurementArgs {
   windowId: number;
-  position?: [number, number];
-  size?: [number, number];
+  position?: vec2;
+  size?: vec2;
   getPosition?: boolean;
   getSize?: boolean;
   getOuterSize?: boolean;
@@ -53,10 +49,10 @@ export interface CmdWindowMeasurementArgs {
 export interface CmdResultWindowMeasurement {
   success: boolean;
   message: string;
-  position?: [number, number];
-  size?: [number, number];
-  outerSize?: [number, number];
-  surfaceSize?: [number, number];
+  position?: vec2;
+  size?: vec2;
+  outerSize?: vec2;
+  surfaceSize?: vec2;
 }
 
 /** Command payload for cursor updates. */

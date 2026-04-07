@@ -1,14 +1,12 @@
+import type { vec2 } from 'gl-matrix';
 import type { PointerEvent } from '../../../types/events/pointer';
 import type { InputStateComponent } from '../../ecs/components';
 
 function resolveWindowSize(data: {
   windowWidth?: number;
   windowHeight?: number;
-}): [number, number] | undefined {
-  if (
-    typeof data.windowWidth === 'number' &&
-    typeof data.windowHeight === 'number'
-  ) {
+}): vec2 | undefined {
+  if (typeof data.windowWidth === 'number' && typeof data.windowHeight === 'number') {
     return [data.windowWidth, data.windowHeight];
   }
   return undefined;
@@ -16,13 +14,13 @@ function resolveWindowSize(data: {
 
 function applyPointerPosition(
   inputState: InputStateComponent,
-  globalPosition: [number, number],
-  windowSize?: [number, number],
+  globalPosition: vec2,
+  windowSize?: vec2
 ): void {
   const oldGlobalPosition = inputState.pointerPosition;
   inputState.pointerDelta = [
     globalPosition[0] - oldGlobalPosition[0],
-    globalPosition[1] - oldGlobalPosition[1],
+    globalPosition[1] - oldGlobalPosition[1]
   ];
   inputState.pointerPosition = globalPosition;
   inputState.pointerWindowSize = windowSize;
@@ -30,14 +28,14 @@ function applyPointerPosition(
 
 export function applyPointerEvent(
   inputState: InputStateComponent,
-  pointerEvent: PointerEvent,
+  pointerEvent: PointerEvent
 ): void {
   if (pointerEvent.event === 'on-move') {
     inputState.pointerWindowId = pointerEvent.data.windowId;
     applyPointerPosition(
       inputState,
       pointerEvent.data.position,
-      resolveWindowSize(pointerEvent.data),
+      resolveWindowSize(pointerEvent.data)
     );
     return;
   }
@@ -60,7 +58,7 @@ export function applyPointerEvent(
     applyPointerPosition(
       inputState,
       pointerEvent.data.position,
-      resolveWindowSize(pointerEvent.data),
+      resolveWindowSize(pointerEvent.data)
     );
     return;
   }
@@ -83,7 +81,7 @@ export function applyPointerEvent(
     applyPointerPosition(
       inputState,
       pointerEvent.data.position,
-      resolveWindowSize(pointerEvent.data),
+      resolveWindowSize(pointerEvent.data)
     );
     return;
   }

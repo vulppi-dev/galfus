@@ -1,3 +1,4 @@
+import type { vec3, vec4 } from 'gl-matrix';
 import type { SkyboxMode } from '../kinds';
 
 /** MSAA configuration for the renderer. */
@@ -11,9 +12,9 @@ export interface SkyboxConfig {
   mode?: SkyboxMode;
   intensity?: number;
   rotation?: number;
-  groundColor?: [number, number, number];
-  horizonColor?: [number, number, number];
-  skyColor?: [number, number, number];
+  groundColor?: vec3;
+  horizonColor?: vec3;
+  skyColor?: vec3;
   horizonGroundThreshold?: number;
   horizonSkyThreshold?: number;
   directionalLights?: SkyboxDirectionalLightSun[];
@@ -64,7 +65,7 @@ export interface PostProcessConfig {
 export interface EnvironmentConfig {
   msaa?: MsaaConfig;
   skybox?: SkyboxConfig;
-  clearColor?: [number, number, number, number];
+  clearColor?: vec4;
   post?: PostProcessConfig;
 }
 
@@ -81,9 +82,7 @@ export interface CmdEnvironmentUpdateArgs {
 }
 
 /** Upsert payload accepted by the core (`create` or `update`). */
-export type CmdEnvironmentUpsertArgs =
-  | CmdEnvironmentCreateArgs
-  | CmdEnvironmentUpdateArgs;
+export type CmdEnvironmentUpsertArgs = CmdEnvironmentCreateArgs | CmdEnvironmentUpdateArgs;
 
 /** Command payload for disposing environment settings. */
 export interface CmdEnvironmentDisposeArgs {

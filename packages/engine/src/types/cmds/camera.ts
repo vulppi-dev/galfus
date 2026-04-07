@@ -1,24 +1,6 @@
+import type { mat4, vec2 } from 'gl-matrix';
 import type { CameraKind } from '../kinds';
 import type { ResourceEntry } from './resources';
-
-export type Matrix4 = [
-  number,
-  number,
-  number,
-  number,
-  number,
-  number,
-  number,
-  number,
-  number,
-  number,
-  number,
-  number,
-  number,
-  number,
-  number,
-  number
-];
 
 /** Viewport value expressed as relative (0..1) or absolute pixels. */
 export interface ViewValue {
@@ -37,10 +19,10 @@ export interface CmdCameraCreateArgs {
   realmId: number;
   cameraId: number;
   label?: string;
-  transform: Matrix4; // Mat4
+  transform: mat4;
   kind: CameraKind;
   flags?: number;
-  nearFar: [number, number]; // Vec2
+  nearFar: vec2;
   layerMask?: number;
   order?: number;
   viewPosition?: ViewPosition;
@@ -52,12 +34,12 @@ export interface CmdCameraUpdateArgs {
   realmId: number;
   cameraId: number;
   label?: string;
-  transform?: Matrix4;
+  transform?: mat4;
   kind?: CameraKind;
   flags?: number;
   layerMask?: number;
   order?: number;
-  nearFar?: [number, number];
+  nearFar?: vec2;
   viewPosition?: ViewPosition;
   orthoScale?: number;
 }

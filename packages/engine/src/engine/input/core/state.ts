@@ -1,3 +1,4 @@
+import { vec2 } from 'gl-matrix';
 import type {
   GamepadStateComponent,
   InputStateComponent,
@@ -5,7 +6,6 @@ import type {
   UiEventStateComponent,
   WindowStateComponent
 } from '../../ecs/components';
-import { createVec2Tuple } from '../../math/tuples';
 import type { WorldState } from '../../state';
 import { resetRoutedPointerFrame } from '../routing/pointer-routing';
 
@@ -18,13 +18,13 @@ function createInputState(): InputStateComponent {
     keysJustPressed: new Set(),
     keysJustReleased: new Set(),
     pointerButtons: new Set(),
-    pointerPosition: createVec2Tuple(),
-    pointerDelta: createVec2Tuple(),
+    pointerPosition: vec2.create(),
+    pointerDelta: vec2.create(),
     pointerJustPressed: new Set(),
     pointerJustReleased: new Set(),
     pointerWindowSize: undefined,
     pointerTargetSize: undefined,
-    scrollDelta: createVec2Tuple(),
+    scrollDelta: vec2.create(),
     imeEnabled: false
   };
 }
@@ -33,8 +33,8 @@ function createWindowState(): WindowStateComponent {
   return {
     type: 'WindowState',
     focused: true,
-    size: createVec2Tuple(800, 600),
-    position: createVec2Tuple(),
+    size: vec2.fromValues(800, 600),
+    position: vec2.create(),
     scaleFactor: 1.0,
     lifecycleState: undefined,
     pointerCapture: undefined,
@@ -131,9 +131,9 @@ export function resetInputMirrorFrame(state: InputMirrorStateStore): void {
   state.inputState.keysJustReleased.clear();
   state.inputState.pointerJustPressed.clear();
   state.inputState.pointerJustReleased.clear();
-  state.inputState.pointerDelta = createVec2Tuple();
+  state.inputState.pointerDelta = vec2.create();
   resetRoutedPointerFrame(state.inputState);
-  state.inputState.scrollDelta = createVec2Tuple();
+  state.inputState.scrollDelta = vec2.create();
   state.inputState.imeCommitText = undefined;
 
   state.windowState.resizedThisFrame = false;

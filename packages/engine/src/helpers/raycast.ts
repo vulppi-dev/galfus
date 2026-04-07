@@ -1,5 +1,6 @@
 import {
   mat4,
+  vec2,
   vec3,
   vec4,
   type ReadonlyMat4,
@@ -7,7 +8,6 @@ import {
   type ReadonlyVec3,
   type vec3 as Vec3
 } from 'gl-matrix';
-import { createVec2Tuple } from '../engine/math/tuples';
 
 export interface Ray3 {
   origin: Vec3;
@@ -259,8 +259,8 @@ export function createPointerRayFromEvent(input: PointerEventRaycastInput): Ray3
       pointer: event.positionTarget,
       viewMatrix: input.viewMatrix,
       projectionMatrix: input.projectionMatrix,
-      viewportSize: createVec2Tuple(targetWidth, targetHeight),
-      viewportOrigin: createVec2Tuple()
+      viewportSize: vec2.fromValues(targetWidth, targetHeight),
+      viewportOrigin: vec2.create()
     });
   }
 
@@ -274,7 +274,7 @@ export function createPointerRayFromEvent(input: PointerEventRaycastInput): Ray3
       pointer: event.position,
       viewMatrix: input.viewMatrix,
       projectionMatrix: input.projectionMatrix,
-      viewportSize: createVec2Tuple(windowWidth, windowHeight),
+      viewportSize: vec2.fromValues(windowWidth, windowHeight),
       viewportOrigin: input.viewportOrigin
     });
   }

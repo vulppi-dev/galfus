@@ -1,9 +1,10 @@
+import type { vec2 } from 'gl-matrix';
 export type RoutedPointerSnapshot = {
   pointerTargetId?: number;
-  pointerTargetPosition?: [number, number];
-  pointerTargetDelta?: [number, number];
-  pointerTargetUv?: [number, number];
-  pointerTargetSize?: [number, number];
+  pointerTargetPosition?: vec2;
+  pointerTargetDelta?: vec2;
+  pointerTargetUv?: vec2;
+  pointerTargetSize?: vec2;
 };
 
 export type RoutedPointerReadScope = 'world' | 'target';
@@ -19,5 +20,5 @@ export const ROUTED_POINTER_FRAME_SEMANTICS: RoutedPointerFrameSemantics = {
   source: 'mirrored-pointer-event',
   captureStep: 'input',
   captureMoment: 'on-event-application',
-  sameTargetContinuityRequiredForDelta: true,
+  sameTargetContinuityRequiredForDelta: true
 };

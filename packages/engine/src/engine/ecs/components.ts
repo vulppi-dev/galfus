@@ -1,3 +1,4 @@
+import type { quat, vec2, vec3, vec4 } from 'gl-matrix';
 import type { ViewPosition } from '../../types/cmds/camera';
 import type { GeometryPrimitiveEntry } from '../../types/cmds/geometry';
 import type { MaterialOptions } from '../../types/cmds/material';
@@ -9,15 +10,15 @@ import type {
   LightKind,
   MaterialKind,
   TextureCreateMode,
-  WindowState,
+  WindowState
 } from '../../types/kinds';
 import type { JsonObject, JsonValue } from '../../types/json';
 
 /** Transform component data used to position entities. */
 export interface TransformProps {
-  position?: [number, number, number];
-  rotation?: [number, number, number, number];
-  scale?: [number, number, number];
+  position?: vec3;
+  rotation?: quat;
+  scale?: vec3;
   layerMask?: number;
   visible?: boolean;
 }
@@ -58,12 +59,12 @@ export interface CameraComponent extends Required<Omit<CameraProps, 'viewPositio
 /** Light component configuration. */
 export interface LightProps {
   kind?: LightKind;
-  color?: [number, number, number];
+  color?: vec3;
   intensity?: number;
   range?: number;
   castShadow?: boolean;
-  direction?: [number, number, number];
-  spotInnerOuter?: [number, number];
+  direction?: vec3;
+  spotInnerOuter?: vec2;
 }
 
 /** Light component stored in the ECS. */
@@ -80,7 +81,7 @@ export interface ModelProps {
   castShadow?: boolean;
   receiveShadow?: boolean;
   castOutline?: boolean;
-  outlineColor?: [number, number, number, number];
+  outlineColor?: vec4;
 }
 
 /** Model component stored in the ECS. */
@@ -111,21 +112,21 @@ export interface InputStateComponent {
   keysJustPressed: Set<number>;
   keysJustReleased: Set<number>;
   pointerButtons: Set<number>;
-  pointerPosition: [number, number];
-  pointerDelta: [number, number];
+  pointerPosition: vec2;
+  pointerDelta: vec2;
   pointerJustPressed: Set<number>;
   pointerJustReleased: Set<number>;
   pointerWindowId?: number;
-  pointerWindowSize?: [number, number];
+  pointerWindowSize?: vec2;
   pointerTargetId?: number;
-  pointerPositionTarget?: [number, number];
-  pointerTargetSize?: [number, number];
-  pointerTargetUv?: [number, number];
-  pointerTargetDelta?: [number, number];
-  scrollDelta: [number, number];
+  pointerPositionTarget?: vec2;
+  pointerTargetSize?: vec2;
+  pointerTargetUv?: vec2;
+  pointerTargetDelta?: vec2;
+  scrollDelta: vec2;
   imeEnabled: boolean;
   imePreeditText?: string;
-  imeCursorRange?: [number, number];
+  imeCursorRange?: vec2;
   imeCommitText?: string;
 }
 
@@ -133,8 +134,8 @@ export interface InputStateComponent {
 export interface WindowStateComponent {
   type: 'WindowState';
   focused: boolean;
-  size: [number, number];
-  position: [number, number];
+  size: vec2;
+  position: vec2;
   scaleFactor: number;
   lifecycleState?: WindowState;
   pointerCapture?: {
@@ -230,12 +231,12 @@ export interface MaterialProps extends BaseResourceProps {
 
 /** Options for cube primitive geometry. */
 export interface CubeOptions {
-  size?: [number, number, number];
+  size?: vec3;
 }
 
 /** Options for plane primitive geometry. */
 export interface PlaneOptions {
-  size?: [number, number, number];
+  size?: vec3;
   subdivisions?: number;
 }
 
@@ -266,7 +267,7 @@ export interface TorusOptions {
 
 /** Options for pyramid primitive geometry. */
 export interface PyramidOptions {
-  size?: [number, number, number];
+  size?: vec3;
   subdivisions?: number;
 }
 
@@ -279,30 +280,29 @@ export interface PillOptions {
 }
 
 /** Geometry resource configuration (primitive or custom). */
-export type GeometryProps = BaseResourceProps & (
-  | {
-      type: 'custom';
-      entries: GeometryPrimitiveEntry[];
-    }
-  | ({ type: 'primitive' } & (
-      | { shape: 'cube'; options?: CubeOptions }
-      | { shape: 'plane'; options?: PlaneOptions }
-      | { shape: 'sphere'; options?: SphereOptions }
-      | { shape: 'cylinder'; options?: CylinderOptions }
-      | { shape: 'torus'; options?: TorusOptions }
-      | { shape: 'pyramid'; options?: PyramidOptions }
-      | { shape: 'pill'; options?: PillOptions }
-    ))
-);
+export type GeometryProps = BaseResourceProps &
+  (
+    | {
+        type: 'custom';
+        entries: GeometryPrimitiveEntry[];
+      }
+    | ({ type: 'primitive' } & (
+        | { shape: 'cube'; options?: CubeOptions }
+        | { shape: 'plane'; options?: PlaneOptions }
+        | { shape: 'sphere'; options?: SphereOptions }
+        | { shape: 'cylinder'; options?: CylinderOptions }
+        | { shape: 'torus'; options?: TorusOptions }
+        | { shape: 'pyramid'; options?: PyramidOptions }
+        | { shape: 'pill'; options?: PillOptions }
+      ))
+  );
 
 /** Texture resource configuration. */
 export interface TextureProps extends BaseResourceProps {
   srgb?: boolean;
   mode?: TextureCreateMode;
   atlasOptions?: ForwardAtlasOptions;
-  source:
-    | { type: 'buffer'; bufferId: number }
-    | { type: 'color'; color: [number, number, number, number] };
+  source: { type: 'buffer'; bufferId: number } | { type: 'color'; color: vec4 };
 }
 
 /** Custom component payload stored in the ECS. */

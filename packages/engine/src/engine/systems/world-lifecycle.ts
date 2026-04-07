@@ -1,8 +1,8 @@
 import type { EnvironmentConfig } from '../../types/cmds/environment';
 import type { ShadowConfig } from '../../types/cmds/shadow';
+import { vec3, vec4 } from 'gl-matrix';
 import { enqueueCommand } from '../bridge/dispatch';
 import type { System } from '../ecs';
-import { createVec3Tuple, createVec4Tuple } from '../math/tuples';
 import { toVec3, toVec4 } from './utils';
 
 const WORLD_LIFECYCLE_INTENT_TYPES = [
@@ -11,14 +11,14 @@ const WORLD_LIFECYCLE_INTENT_TYPES = [
   'send-notification'
 ] as const;
 
-const DEFAULT_CLEAR_COLOR = createVec4Tuple();
+const DEFAULT_CLEAR_COLOR = vec4.create();
 const DEFAULT_MSAA_ENABLED = true;
 const DEFAULT_MSAA_SAMPLE_COUNT = 4;
 const DEFAULT_SKYBOX_INTENSITY = 1;
 const DEFAULT_SKYBOX_ROTATION = 0;
-const DEFAULT_GROUND_COLOR = createVec3Tuple(0.02, 0.03, 0.04);
-const DEFAULT_HORIZON_COLOR = createVec3Tuple(0.12, 0.16, 0.22);
-const DEFAULT_SKY_COLOR = createVec3Tuple(0.2, 0.35, 0.6);
+const DEFAULT_GROUND_COLOR = vec3.fromValues(0.02, 0.03, 0.04);
+const DEFAULT_HORIZON_COLOR = vec3.fromValues(0.12, 0.16, 0.22);
+const DEFAULT_SKY_COLOR = vec3.fromValues(0.2, 0.35, 0.6);
 const DEFAULT_HORIZON_GROUND_THRESHOLD = 0.45;
 const DEFAULT_HORIZON_SKY_THRESHOLD = 0.55;
 const DEFAULT_SUN_SOLID_SIZE = 0.0018;

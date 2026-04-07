@@ -1,10 +1,11 @@
-import { mat4, quat, vec3 } from 'gl-matrix';
+import { mat4, quat, vec2, vec3, vec4 } from 'gl-matrix';
+import type { quat as Quat, vec2 as Vec2, vec3 as Vec3, vec4 as Vec4 } from 'gl-matrix';
 import type { MaterialOptions, PbrOptions, StandardOptions } from '../../types/cmds/material';
 import type {
   CubeOptions,
   PlaneOptions,
   PrimitiveOptions,
-  PyramidOptions,
+  PyramidOptions
 } from '../../types/cmds/geometry';
 import type { TransformComponent } from '../ecs';
 import type { WorldState } from '../state';
@@ -19,31 +20,27 @@ export function toTuple(value: ArrayLike<number>, length: number): number[] {
 }
 
 /** Normalizes arbitrary 2D vector input to a strict tuple. */
-export function toVec2(value: ArrayLike<number>): [number, number] {
+export function toVec2(value: ArrayLike<number>): Vec2 {
   const result = toTuple(value, 2);
-  return [result[0] ?? 0, result[1] ?? 0];
+  return vec2.fromValues(result[0] ?? 0, result[1] ?? 0);
 }
 
 /** Normalizes arbitrary 3D vector input to a strict tuple. */
-export function toVec3(value: ArrayLike<number>): [number, number, number] {
+export function toVec3(value: ArrayLike<number>): Vec3 {
   const result = toTuple(value, 3);
-  return [result[0] ?? 0, result[1] ?? 0, result[2] ?? 0];
+  return vec3.fromValues(result[0] ?? 0, result[1] ?? 0, result[2] ?? 0);
 }
 
 /** Normalizes arbitrary 4D vector input to a strict tuple. */
-export function toVec4(value: ArrayLike<number>): [number, number, number, number] {
+export function toVec4(value: ArrayLike<number>): Vec4 {
   const result = toTuple(value, 4);
-  return [
-    result[0] ?? 0,
-    result[1] ?? 0,
-    result[2] ?? 0,
-    result[3] ?? 0,
-  ];
+  return vec4.fromValues(result[0] ?? 0, result[1] ?? 0, result[2] ?? 0, result[3] ?? 0);
 }
 
 /** Normalizes arbitrary quaternion-like input to a strict `[x, y, z, w]` tuple. */
-export function toQuat(value: ArrayLike<number>): [number, number, number, number] {
-  return toVec4(value);
+export function toQuat(value: ArrayLike<number>): Quat {
+  const result = toTuple(value, 4);
+  return quat.fromValues(result[0] ?? 0, result[1] ?? 0, result[2] ?? 0, result[3] ?? 1);
 }
 
 /** Normalizes standard-material option payload for command serialization. */
@@ -53,9 +50,7 @@ export function normalizeStandardOptions(options: StandardOptions): StandardOpti
     normalized.baseColor = toVec4(options.baseColor);
   }
   if (options.emissiveColor !== undefined) {
-    normalized.emissiveColor = options.emissiveColor
-      ? toVec4(options.emissiveColor)
-      : null;
+    normalized.emissiveColor = options.emissiveColor ? toVec4(options.emissiveColor) : null;
   }
   if (options.specColor !== undefined) {
     normalized.specColor = options.specColor ? toVec4(options.specColor) : null;
@@ -80,18 +75,18 @@ export function normalizePbrOptions(options: PbrOptions): PbrOptions {
 
 /** Normalizes polymorphic material options into strict tuple-backed values. */
 export function normalizeMaterialOptions(
-  options: MaterialOptions | undefined,
+  options: MaterialOptions | undefined
 ): MaterialOptions | undefined {
   if (!options) return options;
   if (options.type === 'standard') {
     return {
       type: 'standard',
-      content: normalizeStandardOptions(options.content),
+      content: normalizeStandardOptions(options.content)
     };
   }
   return {
     type: 'pbr',
-    content: normalizePbrOptions(options.content),
+    content: normalizePbrOptions(options.content)
   };
 }
 
@@ -103,8 +98,8 @@ export function normalizePrimitiveOptions(options: PrimitiveOptions): PrimitiveO
       type: 'cube',
       content: {
         ...content,
-        size: content.size ? toVec3(content.size) : content.size,
-      },
+        size: content.size ? toVec3(content.size) : content.size
+      }
     };
   }
   if (options.type === 'plane') {
@@ -113,8 +108,8 @@ export function normalizePrimitiveOptions(options: PrimitiveOptions): PrimitiveO
       type: 'plane',
       content: {
         ...content,
-        size: content.size ? toVec3(content.size) : content.size,
-      },
+        size: content.size ? toVec3(content.size) : content.size
+      }
     };
   }
   if (options.type === 'pyramid') {
@@ -123,8 +118,8 @@ export function normalizePrimitiveOptions(options: PrimitiveOptions): PrimitiveO
       type: 'pyramid',
       content: {
         ...content,
-        size: content.size ? toVec3(content.size) : content.size,
-      },
+        size: content.size ? toVec3(content.size) : content.size
+      }
     };
   }
   return options;
@@ -134,10 +129,7 @@ export function normalizePrimitiveOptions(options: PrimitiveOptions): PrimitiveO
  * Resolves the local transform matrix for an entity, without applying constraints
  * (for example parent hierarchy composition).
  */
-export function getEntityLocalTransformMatrix(
-  world: WorldState,
-  entityId: number,
-): mat4 {
+export function getEntityLocalTransformMatrix(world: WorldState, entityId: number): mat4 {
   const store = world.components.get(entityId);
   if (!store) return mat4.create();
 
@@ -149,18 +141,14 @@ export function getEntityLocalTransformMatrix(
       transform.rotation[0],
       transform.rotation[1],
       transform.rotation[2],
-      transform.rotation[3],
+      transform.rotation[3]
     );
     const position = vec3.fromValues(
       transform.position[0],
       transform.position[1],
-      transform.position[2],
+      transform.position[2]
     );
-    const scale = vec3.fromValues(
-      transform.scale[0],
-      transform.scale[1],
-      transform.scale[2],
-    );
+    const scale = vec3.fromValues(transform.scale[0], transform.scale[1], transform.scale[2]);
     mat4.fromRotationTranslationScale(m, rotation, position, scale);
   }
   return m;
@@ -170,10 +158,7 @@ export function getEntityLocalTransformMatrix(
  * Returns the latest constraint-resolved world matrix for an entity.
  * Falls back to local transform when no resolved matrix is cached yet.
  */
-export function getResolvedEntityTransformMatrix(
-  world: WorldState,
-  entityId: number,
-): mat4 {
+export function getResolvedEntityTransformMatrix(world: WorldState, entityId: number): mat4 {
   const resolved = world.resolvedEntityTransforms.get(entityId);
   if (resolved && !hasDirtyConstraintPath(world, entityId)) {
     return mat4.clone(resolved);
@@ -195,10 +180,7 @@ function hasDirtyConstraintPath(world: WorldState, entityId: number): boolean {
   return false;
 }
 
-function resolveEntityWorldTransformImmediate(
-  world: WorldState,
-  entityId: number,
-): mat4 {
+function resolveEntityWorldTransformImmediate(world: WorldState, entityId: number): mat4 {
   const visiting = new Set<number>();
 
   const resolveRecursive = (currentId: number): mat4 => {
@@ -228,7 +210,7 @@ function resolveEntityWorldTransformImmediate(
 export function mat4EqualsApprox(
   a: ArrayLike<number>,
   b: ArrayLike<number>,
-  epsilon = 1e-6,
+  epsilon = 1e-6
 ): boolean {
   for (let i = 0; i < 16; i++) {
     if (Math.abs((a[i] ?? 0) - (b[i] ?? 0)) > epsilon) {

@@ -1,13 +1,13 @@
+import { vec2, type vec2 as Vec2 } from 'gl-matrix';
 import type { PointerEvent } from '../../../types/events/pointer';
 import type { InputStateComponent } from '../../ecs/components';
-import { createVec2Tuple } from '../../math/tuples';
 
 function resolveTargetSize(data: {
   targetWidth?: number;
   targetHeight?: number;
-}): [number, number] | undefined {
+}): Vec2 | undefined {
   if (typeof data.targetWidth === 'number' && typeof data.targetHeight === 'number') {
-    return createVec2Tuple(data.targetWidth, data.targetHeight);
+    return vec2.fromValues(data.targetWidth, data.targetHeight);
   }
   return undefined;
 }
@@ -21,15 +21,15 @@ export function clearRoutedPointerState(inputState: InputStateComponent): void {
 }
 
 export function resetRoutedPointerFrame(inputState: InputStateComponent): void {
-  inputState.pointerTargetDelta = inputState.pointerPositionTarget ? createVec2Tuple() : undefined;
+  inputState.pointerTargetDelta = inputState.pointerPositionTarget ? vec2.create() : undefined;
 }
 
 function applyRoutedPointerPosition(
   inputState: InputStateComponent,
-  targetPosition?: [number, number],
+  targetPosition?: Vec2,
   targetId?: number,
-  targetUv?: [number, number],
-  targetSize?: [number, number]
+  targetUv?: Vec2,
+  targetSize?: Vec2
 ): void {
   if (!targetPosition) {
     clearRoutedPointerState(inputState);
@@ -39,12 +39,12 @@ function applyRoutedPointerPosition(
   const previousTargetId = inputState.pointerTargetId;
   const previousTargetPosition = inputState.pointerPositionTarget;
   if (previousTargetId === targetId && previousTargetPosition !== undefined) {
-    inputState.pointerTargetDelta = createVec2Tuple(
+    inputState.pointerTargetDelta = vec2.fromValues(
       targetPosition[0] - previousTargetPosition[0],
       targetPosition[1] - previousTargetPosition[1]
     );
   } else {
-    inputState.pointerTargetDelta = createVec2Tuple();
+    inputState.pointerTargetDelta = vec2.create();
   }
 
   inputState.pointerPositionTarget = targetPosition;

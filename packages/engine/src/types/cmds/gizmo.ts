@@ -1,23 +1,24 @@
+import type { vec3, vec4 } from 'gl-matrix';
 /** Command payload for drawing a debug line gizmo. */
 export interface CmdGizmoDrawLineArgs {
-  start: [number, number, number];
-  end: [number, number, number];
-  color: [number, number, number, number];
+  start: vec3;
+  end: vec3;
+  color: vec4;
   thickness?: number;
 }
 
 /** Command payload for drawing a debug AABB gizmo. */
 export interface CmdGizmoDrawAabbArgs {
-  min: [number, number, number];
-  max: [number, number, number];
-  color: [number, number, number, number];
+  min: vec3;
+  max: vec3;
+  color: vec4;
   thickness?: number;
 }
 
 /** Command payload for drawing a debug polyline gizmo. */
 export interface CmdGizmoDrawPolylineArgs {
-  points: [number, number, number][];
-  color: [number, number, number, number];
+  points: vec3[];
+  color: vec4;
   closed?: boolean;
   thickness?: number;
 }

@@ -1,8 +1,8 @@
-import { mat4, vec3 } from 'gl-matrix';
+import { mat4, vec2, vec3, vec4 } from 'gl-matrix';
+import type { vec2 as Vec2, vec4 as Vec4 } from 'gl-matrix';
 import type { CameraKind, LightKind } from '../../types/kinds';
 import { enqueueCommand } from '../bridge/dispatch';
 import type { CameraComponent, Component, LightComponent, ModelComponent, System } from '../ecs';
-import { createVec2Tuple, createVec3Tuple, createVec4Tuple } from '../math/tuples';
 import { getResolvedEntityTransformMatrix, toVec2, toVec3, toVec4 } from './utils';
 
 const SCENE_SYNC_INTENT_TYPES = [
@@ -55,7 +55,7 @@ export const SceneSyncSystem: System = (world, context) => {
       const modelId = world.nextCoreId++;
       const transform = getResolvedEntityTransformMatrix(world, intent.entityId);
       const castOutline = intent.props.castOutline ?? false;
-      const outlineColor = intent.props.outlineColor ?? createVec4Tuple();
+      const outlineColor = intent.props.outlineColor ?? vec4.create();
 
       enqueueCommand(context.worldId, 'cmd-model-upsert', {
         realmId,
@@ -93,7 +93,7 @@ export const SceneSyncSystem: System = (world, context) => {
         realmId,
         cameraId,
         kind: intent.props.kind ?? ('perspective' as CameraKind),
-        nearFar: createVec2Tuple(intent.props.near ?? 0.1, intent.props.far ?? 1000),
+        nearFar: vec2.fromValues(intent.props.near ?? 0.1, intent.props.far ?? 1000),
         order: intent.props.order,
         transform: copyMatrixToScratch(world, intent.entityId, transform),
         orthoScale: intent.props.orthoScale,
@@ -139,13 +139,13 @@ export const SceneSyncSystem: System = (world, context) => {
         realmId: number;
         lightId: number;
         kind?: LightKind;
-        color?: [number, number, number, number];
+        color?: Vec4;
         intensity?: number;
         range?: number;
         castShadow?: boolean;
-        position?: [number, number, number, number];
-        direction?: [number, number, number, number];
-        spotInnerOuter?: [number, number];
+        position?: Vec4;
+        direction?: Vec4;
+        spotInnerOuter?: Vec2;
       } = {
         realmId,
         lightId
@@ -156,7 +156,7 @@ export const SceneSyncSystem: System = (world, context) => {
       }
       if (intent.props.color !== undefined) {
         const color = toVec3(intent.props.color);
-        lightCmd.color = createVec4Tuple(color[0], color[1], color[2], 1);
+        lightCmd.color = vec4.fromValues(color[0], color[1], color[2], 1);
       }
       if (intent.props.intensity !== undefined) {
         lightCmd.intensity = intent.props.intensity;
@@ -168,11 +168,11 @@ export const SceneSyncSystem: System = (world, context) => {
         lightCmd.castShadow = intent.props.castShadow;
       }
       if (hasNonZeroTranslation(pos)) {
-        lightCmd.position = createVec4Tuple(pos[0], pos[1], pos[2], 1);
+        lightCmd.position = vec4.fromValues(pos[0], pos[1], pos[2], 1);
       }
       if (intent.props.direction !== undefined) {
         const [dirX, dirY, dirZ] = toVec3(intent.props.direction);
-        lightCmd.direction = createVec4Tuple(dirX, dirY, dirZ, 0);
+        lightCmd.direction = vec4.fromValues(dirX, dirY, dirZ, 0);
       }
       if (intent.props.spotInnerOuter) {
         lightCmd.spotInnerOuter = toVec2(intent.props.spotInnerOuter);
@@ -188,16 +188,16 @@ export const SceneSyncSystem: System = (world, context) => {
         type: 'Light',
         id: lightId,
         kind: intent.props.kind ?? ('point' as LightKind),
-        color: intent.props.color ? toVec3(intent.props.color) : createVec3Tuple(1, 1, 1),
+        color: intent.props.color ? toVec3(intent.props.color) : vec3.fromValues(1, 1, 1),
         intensity: intent.props.intensity ?? 1.0,
         range: intent.props.range ?? 10.0,
         castShadow: intent.props.castShadow ?? true,
         direction: intent.props.direction
           ? toVec3(intent.props.direction)
-          : createVec3Tuple(0, -1, 0),
+          : vec3.fromValues(0, -1, 0),
         spotInnerOuter: intent.props.spotInnerOuter
           ? toVec2(intent.props.spotInnerOuter)
-          : createVec2Tuple(0.5, 0.8),
+          : vec2.fromValues(0.5, 0.8),
         skipUpdate: true
       });
     } else if (intent.type === 'detach-component') {
@@ -296,7 +296,7 @@ export const SceneSyncSystem: System = (world, context) => {
         enqueueCommand(context.worldId, 'cmd-light-upsert', {
           realmId,
           lightId: light.id,
-          position: createVec4Tuple(pos[0], pos[1], pos[2], 1)
+          position: vec4.fromValues(pos[0], pos[1], pos[2], 1)
         });
       }
     }

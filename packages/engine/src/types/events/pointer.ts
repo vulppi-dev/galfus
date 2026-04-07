@@ -1,8 +1,7 @@
+import type { vec2 } from 'gl-matrix';
 import type { ElementState, TouchPhase } from '../kinds';
 
-export type ScrollDelta =
-  | { type: 'line'; value: [number, number] }
-  | { type: 'pixel'; value: [number, number] };
+export type ScrollDelta = { type: 'line'; value: vec2 } | { type: 'pixel'; value: vec2 };
 
 export type PointerTraceStage =
   | 'root-window'
@@ -23,7 +22,7 @@ export interface PointerTraceHop {
   connectorId?: number;
   surfaceId?: number;
   cameraId?: number;
-  uv?: [number, number];
+  uv?: vec2;
 }
 
 export interface PointerEventTrace {
@@ -32,7 +31,7 @@ export interface PointerEventTrace {
   targetId?: number;
   connectorId?: number;
   sourceRealmId?: number;
-  uv?: [number, number];
+  uv?: vec2;
   hops: PointerTraceHop[];
 }
 
@@ -42,8 +41,8 @@ export interface PointerEventOnMoveData {
   windowHeight?: number;
   pointerType: number;
   pointerId: number;
-  position: [number, number];
-  positionTarget?: [number, number];
+  position: vec2;
+  positionTarget?: vec2;
   targetWidth?: number;
   targetHeight?: number;
   trace?: PointerEventTrace;
@@ -79,8 +78,8 @@ export interface PointerEventOnButtonData {
   pointerId: number;
   button: MouseButton;
   state: ElementState;
-  position: [number, number];
-  positionTarget?: [number, number];
+  position: vec2;
+  positionTarget?: vec2;
   targetWidth?: number;
   targetHeight?: number;
   trace?: PointerEventTrace;
@@ -103,8 +102,8 @@ export interface PointerEventOnTouchData {
   windowHeight?: number;
   pointerId: number;
   phase: TouchPhase;
-  position: [number, number];
-  positionTarget?: [number, number];
+  position: vec2;
+  positionTarget?: vec2;
   targetWidth?: number;
   targetHeight?: number;
   pressure?: number;
@@ -126,7 +125,7 @@ export interface PointerEventOnPanGestureData {
   windowId: number;
   windowWidth?: number;
   windowHeight?: number;
-  delta: [number, number];
+  delta: vec2;
   phase: TouchPhase;
   targetWidth?: number;
   targetHeight?: number;
@@ -173,5 +172,5 @@ export enum MouseButton {
   Right = 1,
   Middle = 2,
   Back = 3,
-  Forward = 4,
+  Forward = 4
 }

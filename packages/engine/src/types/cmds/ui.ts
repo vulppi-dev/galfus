@@ -1,3 +1,4 @@
+import type { vec2, vec4 } from 'gl-matrix';
 export type UiThemeValue = boolean | number | string;
 export type UiByteArray = Uint8Array | number[];
 
@@ -111,23 +112,23 @@ export type UiPaintOp =
   | {
       type: 'line-segment';
       content: {
-        from: [number, number];
-        to: [number, number];
+        from: vec2;
+        to: vec2;
         stroke: UiPaintStroke;
       };
     }
   | {
       type: 'polyline';
       content: {
-        points: [number, number][];
+        points: vec2[];
         stroke: UiPaintStroke;
       };
     }
   | {
       type: 'rect';
       content: {
-        min: [number, number];
-        max: [number, number];
+        min: vec2;
+        max: vec2;
         rounding?: number;
         stroke: UiPaintStroke;
       };
@@ -135,8 +136,8 @@ export type UiPaintOp =
   | {
       type: 'rect-filled';
       content: {
-        min: [number, number];
-        max: [number, number];
+        min: vec2;
+        max: vec2;
         rounding?: number;
         fill: UiColor;
       };
@@ -144,7 +145,7 @@ export type UiPaintOp =
   | {
       type: 'circle';
       content: {
-        center: [number, number];
+        center: vec2;
         radius: number;
         stroke: UiPaintStroke;
       };
@@ -152,7 +153,7 @@ export type UiPaintOp =
   | {
       type: 'circle-filled';
       content: {
-        center: [number, number];
+        center: vec2;
         radius: number;
         fill: UiColor;
       };
@@ -160,7 +161,7 @@ export type UiPaintOp =
   | {
       type: 'convex-polygon';
       content: {
-        points: [number, number][];
+        points: vec2[];
         fill: UiColor;
         stroke?: UiPaintStroke;
       };
@@ -168,9 +169,9 @@ export type UiPaintOp =
   | {
       type: 'quadratic-bezier';
       content: {
-        from: [number, number];
-        ctrl: [number, number];
-        to: [number, number];
+        from: vec2;
+        ctrl: vec2;
+        to: vec2;
         steps?: number;
         stroke: UiPaintStroke;
       };
@@ -178,10 +179,10 @@ export type UiPaintOp =
   | {
       type: 'cubic-bezier';
       content: {
-        from: [number, number];
-        ctrl1: [number, number];
-        ctrl2: [number, number];
-        to: [number, number];
+        from: vec2;
+        ctrl1: vec2;
+        ctrl2: vec2;
+        to: vec2;
         steps?: number;
         stroke: UiPaintStroke;
       };
@@ -189,7 +190,7 @@ export type UiPaintOp =
   | {
       type: 'text';
       content: {
-        position: [number, number];
+        position: vec2;
         text: string;
         size?: number;
         color: UiColor;
@@ -584,7 +585,7 @@ export interface CmdResultUiThemeDispose {
 export interface CmdUiDocumentCreateArgs {
   documentId: number;
   realmId: number;
-  rect: [number, number, number, number];
+  rect: vec4;
   themeId?: number;
 }
 
@@ -605,7 +606,7 @@ export interface CmdResultUiDocumentDispose {
 
 export interface CmdUiDocumentSetRectArgs {
   documentId: number;
-  rect: [number, number, number, number];
+  rect: vec4;
 }
 
 export interface CmdResultUiDocumentSetRect {
@@ -648,7 +649,7 @@ export interface CmdUiDocumentGetLayoutRectsArgs {
 
 export interface UiNodeLayoutRect {
   nodeId: number;
-  rect: [number, number, number, number];
+  rect: vec4;
 }
 
 export interface CmdResultUiDocumentGetLayoutRects {

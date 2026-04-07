@@ -1,4 +1,5 @@
 import { enqueueCommand } from '../bridge/dispatch';
+import { quat, vec3 } from 'gl-matrix';
 import type {
   CameraComponent,
   Component,
@@ -7,7 +8,6 @@ import type {
   System,
   TransformComponent
 } from '../ecs';
-import { createQuatTuple, createVec3Tuple } from '../math/tuples';
 import { toQuat, toVec3 } from './utils';
 
 const COMMAND_INTENT_TYPES = [
@@ -65,9 +65,9 @@ export const CommandIntentSystem: System = (world, context) => {
       if (!store.has('Transform')) {
         store.set('Transform', {
           type: 'Transform',
-          position: createVec3Tuple(),
-          rotation: createQuatTuple(),
-          scale: createVec3Tuple(1, 1, 1),
+          position: vec3.create(),
+          rotation: quat.create(),
+          scale: vec3.fromValues(1, 1, 1),
           layerMask: 0xffffffff,
           visible: true
         });

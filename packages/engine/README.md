@@ -99,7 +99,7 @@ Defaults and sparse command payloads:
 - Primitive geometry creation now omits `options` entirely when the resolved shape config matches the core default, and material creation omits empty option payloads.
 - Notifications no longer force host-generated ids or timeout defaults; the core owns those defaults.
 - Public TS command types for UI, audio, render graph, bytes, and fixed-size matrix payloads now mirror the core serialization contract more closely, reducing cases where invalid nested payloads were type-accepted on the host.
-- Internal vector and matrix defaults in the engine now come from `gl-matrix`-backed tuple helpers instead of hand-written array literals, keeping math-shaped defaults consistent across systems.
+- Internal vector and matrix defaults in the engine now come directly from `gl-matrix` initializers instead of hand-written array literals, keeping math-shaped defaults consistent across systems.
 - Before each batch is serialized, mergeable scene and target-layer upserts are compacted so repeated same-frame updates send only the latest effective patch.
 
 Temporary documentation URL:
