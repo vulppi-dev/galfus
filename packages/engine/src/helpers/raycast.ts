@@ -5,8 +5,9 @@ import {
   type ReadonlyMat4,
   type ReadonlyVec2,
   type ReadonlyVec3,
-  type vec3 as Vec3,
+  type vec3 as Vec3
 } from 'gl-matrix';
+import { createVec2Tuple } from '../engine/math/tuples';
 
 export interface Ray3 {
   origin: Vec3;
@@ -38,7 +39,7 @@ export function createPerspectiveRhZo(
   fovYRadians: number,
   aspect: number,
   near: number,
-  far: number,
+  far: number
 ): mat4 {
   const f = 1 / Math.tan(fovYRadians / 2);
   const out = mat4.create();
@@ -87,7 +88,7 @@ function pointOnRay(ray: Ray3, distance: number): Vec3 {
   return vec3.fromValues(
     ray.origin[0]! + ray.direction[0]! * distance,
     ray.origin[1]! + ray.direction[1]! * distance,
-    ray.origin[2]! + ray.direction[2]! * distance,
+    ray.origin[2]! + ray.direction[2]! * distance
   );
 }
 
@@ -112,11 +113,7 @@ export function createPointerRay(input: PointerRaycastInput): Ray3 | null {
   const normalizedX = ((pointerX - viewportX) / viewportWidth) * 2 - 1;
   const normalizedY = 1 - ((pointerY - viewportY) / viewportHeight) * 2;
 
-  const viewProjection = mat4.multiply(
-    mat4.create(),
-    input.projectionMatrix,
-    input.viewMatrix,
-  );
+  const viewProjection = mat4.multiply(mat4.create(), input.projectionMatrix, input.viewMatrix);
   const inverseViewProjection = mat4.invert(mat4.create(), viewProjection);
   if (!inverseViewProjection) {
     return null;
@@ -134,22 +131,22 @@ export function createPointerRay(input: PointerRaycastInput): Ray3 | null {
   const nearWorld = vec3.fromValues(
     nearWorld4[0] / nearWorld4[3],
     nearWorld4[1] / nearWorld4[3],
-    nearWorld4[2] / nearWorld4[3],
+    nearWorld4[2] / nearWorld4[3]
   );
   const farWorld = vec3.fromValues(
     farWorld4[0] / farWorld4[3],
     farWorld4[1] / farWorld4[3],
-    farWorld4[2] / farWorld4[3],
+    farWorld4[2] / farWorld4[3]
   );
 
   const direction = vec3.normalize(
     vec3.create(),
-    vec3.subtract(vec3.create(), farWorld, nearWorld),
+    vec3.subtract(vec3.create(), farWorld, nearWorld)
   );
 
   return {
     origin: nearWorld,
-    direction,
+    direction
   };
 }
 
@@ -160,9 +157,7 @@ export function createPointerRay(input: PointerRaycastInput): Ray3 | null {
  * - NDC depth near=1 and far=0
  * - direction corrected to follow camera forward when needed
  */
-export function createPointerRayWgpuReverseZ(
-  input: PointerRaycastWgpuInput,
-): Ray3 | null {
+export function createPointerRayWgpuReverseZ(input: PointerRaycastWgpuInput): Ray3 | null {
   const pointerX = input.pointer[0]!;
   const pointerY = input.pointer[1]!;
   const viewportWidth = input.viewportSize[0]!;
@@ -178,11 +173,7 @@ export function createPointerRayWgpuReverseZ(
   const normalizedX = ((pointerX - viewportX) / viewportWidth) * 2 - 1;
   const normalizedY = 1 - ((pointerY - viewportY) / viewportHeight) * 2;
 
-  const viewProjection = mat4.multiply(
-    mat4.create(),
-    input.projectionMatrix,
-    input.viewMatrix,
-  );
+  const viewProjection = mat4.multiply(mat4.create(), input.projectionMatrix, input.viewMatrix);
   const inverseViewProjection = mat4.invert(mat4.create(), viewProjection);
   if (!inverseViewProjection) {
     return null;
@@ -200,45 +191,34 @@ export function createPointerRayWgpuReverseZ(
   const nearWorld = vec3.fromValues(
     nearWorld4[0] / nearWorld4[3],
     nearWorld4[1] / nearWorld4[3],
-    nearWorld4[2] / nearWorld4[3],
+    nearWorld4[2] / nearWorld4[3]
   );
   const farWorld = vec3.fromValues(
     farWorld4[0] / farWorld4[3],
     farWorld4[1] / farWorld4[3],
-    farWorld4[2] / farWorld4[3],
+    farWorld4[2] / farWorld4[3]
   );
 
-  let direction = vec3.normalize(
-    vec3.create(),
-    vec3.subtract(vec3.create(), farWorld, nearWorld),
-  );
+  let direction = vec3.normalize(vec3.create(), vec3.subtract(vec3.create(), farWorld, nearWorld));
 
   const inverseView = mat4.invert(mat4.create(), input.viewMatrix);
   if (!inverseView) {
     return null;
   }
-  const origin4 = vec4.transformMat4(
-    vec4.create(),
-    vec4.fromValues(0, 0, 0, 1),
-    inverseView,
-  );
+  const origin4 = vec4.transformMat4(vec4.create(), vec4.fromValues(0, 0, 0, 1), inverseView);
   if (origin4[3] === 0) {
     return null;
   }
   const origin = vec3.fromValues(
     origin4[0] / origin4[3],
     origin4[1] / origin4[3],
-    origin4[2] / origin4[3],
+    origin4[2] / origin4[3]
   );
 
-  const forward4 = vec4.transformMat4(
-    vec4.create(),
-    vec4.fromValues(0, 0, -1, 0),
-    inverseView,
-  );
+  const forward4 = vec4.transformMat4(vec4.create(), vec4.fromValues(0, 0, -1, 0), inverseView);
   const cameraForward = vec3.normalize(
     vec3.create(),
-    vec3.fromValues(forward4[0], forward4[1], forward4[2]),
+    vec3.fromValues(forward4[0], forward4[1], forward4[2])
   );
   if (vec3.squaredLength(cameraForward) > 1e-8 && vec3.dot(direction, cameraForward) < 0) {
     direction = vec3.scale(vec3.create(), direction, -1);
@@ -261,9 +241,7 @@ export function createPointerRayWgpuReverseZ(
  *
  * Uses WGPU reverse-Z conventions to match core picking.
  */
-export function createPointerRayFromEvent(
-  input: PointerEventRaycastInput,
-): Ray3 | null {
+export function createPointerRayFromEvent(input: PointerEventRaycastInput): Ray3 | null {
   const event = input.pointerEvent;
   const targetWidth = event.targetWidth;
   const targetHeight = event.targetHeight;
@@ -281,8 +259,8 @@ export function createPointerRayFromEvent(
       pointer: event.positionTarget,
       viewMatrix: input.viewMatrix,
       projectionMatrix: input.projectionMatrix,
-      viewportSize: [targetWidth, targetHeight],
-      viewportOrigin: [0, 0],
+      viewportSize: createVec2Tuple(targetWidth, targetHeight),
+      viewportOrigin: createVec2Tuple()
     });
   }
 
@@ -296,8 +274,8 @@ export function createPointerRayFromEvent(
       pointer: event.position,
       viewMatrix: input.viewMatrix,
       projectionMatrix: input.projectionMatrix,
-      viewportSize: [windowWidth, windowHeight],
-      viewportOrigin: input.viewportOrigin,
+      viewportSize: createVec2Tuple(windowWidth, windowHeight),
+      viewportOrigin: input.viewportOrigin
     });
   }
 
@@ -307,7 +285,7 @@ export function createPointerRayFromEvent(
       viewMatrix: input.viewMatrix,
       projectionMatrix: input.projectionMatrix,
       viewportSize: input.fallbackViewportSize,
-      viewportOrigin: input.viewportOrigin,
+      viewportOrigin: input.viewportOrigin
     });
   }
 
@@ -322,13 +300,13 @@ export function createPointerRayFromEvent(
 export function intersectRayPlane(
   ray: Ray3,
   planePoint: ReadonlyVec3,
-  planeNormal: ReadonlyVec3,
+  planeNormal: ReadonlyVec3
 ): RayHit | null {
   const origin = vec3.fromValues(ray.origin[0], ray.origin[1], ray.origin[2]);
   const direction = vec3.fromValues(ray.direction[0], ray.direction[1], ray.direction[2]);
   const normal = vec3.normalize(
     vec3.create(),
-    vec3.fromValues(planeNormal[0], planeNormal[1], planeNormal[2]),
+    vec3.fromValues(planeNormal[0], planeNormal[1], planeNormal[2])
   );
   const point = vec3.fromValues(planePoint[0], planePoint[1], planePoint[2]);
 
@@ -337,26 +315,21 @@ export function intersectRayPlane(
     return null;
   }
 
-  const distance =
-    vec3.dot(vec3.subtract(vec3.create(), point, origin), normal) / denominator;
+  const distance = vec3.dot(vec3.subtract(vec3.create(), point, origin), normal) / denominator;
   if (distance < 0) {
     return null;
   }
 
   return {
     distance,
-    point: pointOnRay(ray, distance),
+    point: pointOnRay(ray, distance)
   };
 }
 
 /**
  * Intersects a ray with a sphere and returns the closest hit in front of the ray origin.
  */
-export function intersectRaySphere(
-  ray: Ray3,
-  center: ReadonlyVec3,
-  radius: number,
-): RayHit | null {
+export function intersectRaySphere(ray: Ray3, center: ReadonlyVec3, radius: number): RayHit | null {
   const origin = vec3.fromValues(ray.origin[0], ray.origin[1], ray.origin[2]);
   const direction = vec3.fromValues(ray.direction[0], ray.direction[1], ray.direction[2]);
   const sphereCenter = vec3.fromValues(center[0], center[1], center[2]);
@@ -382,18 +355,14 @@ export function intersectRaySphere(
 
   return {
     distance,
-    point: pointOnRay(ray, distance),
+    point: pointOnRay(ray, distance)
   };
 }
 
 /**
  * Intersects a ray with an axis-aligned bounding box.
  */
-export function intersectRayAabb(
-  ray: Ray3,
-  min: ReadonlyVec3,
-  max: ReadonlyVec3,
-): RayHit | null {
+export function intersectRayAabb(ray: Ray3, min: ReadonlyVec3, max: ReadonlyVec3): RayHit | null {
   const origin = ray.origin;
   const direction = ray.direction;
 
@@ -437,6 +406,6 @@ export function intersectRayAabb(
 
   return {
     distance,
-    point: pointOnRay(ray, distance),
+    point: pointOnRay(ray, distance)
   };
 }

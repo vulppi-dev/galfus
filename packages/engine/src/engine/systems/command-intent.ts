@@ -5,8 +5,9 @@ import type {
   LightComponent,
   ModelComponent,
   System,
-  TransformComponent,
+  TransformComponent
 } from '../ecs';
+import { createQuatTuple, createVec3Tuple } from '../math/tuples';
 import { toQuat, toVec3 } from './utils';
 
 const COMMAND_INTENT_TYPES = [
@@ -14,13 +15,13 @@ const COMMAND_INTENT_TYPES = [
   'attach-tag',
   'set-parent',
   'update-transform',
-  'remove-entity',
+  'remove-entity'
 ] as const;
 
 function wouldCreateParentCycle(
   world: Parameters<System>[0],
   childEntityId: number,
-  parentEntityId: number,
+  parentEntityId: number
 ): boolean {
   let cursor: number | null = parentEntityId;
   const visited = new Set<number>();
@@ -64,11 +65,11 @@ export const CommandIntentSystem: System = (world, context) => {
       if (!store.has('Transform')) {
         store.set('Transform', {
           type: 'Transform',
-          position: [0, 0, 0],
-          rotation: [0, 0, 0, 1],
-          scale: [1, 1, 1],
+          position: createVec3Tuple(),
+          rotation: createQuatTuple(),
+          scale: createVec3Tuple(1, 1, 1),
           layerMask: 0xffffffff,
-          visible: true,
+          visible: true
         });
       }
       world.constraintDirtyEntities.add(intent.entityId);
@@ -81,7 +82,7 @@ export const CommandIntentSystem: System = (world, context) => {
       store.set('Tag', {
         type: 'Tag',
         name: intent.props.name ?? '',
-        labels: new Set(intent.props.labels ?? []),
+        labels: new Set(intent.props.labels ?? [])
       });
     } else if (intent.type === 'set-parent') {
       let store = world.components.get(intent.entityId);
@@ -103,19 +104,19 @@ export const CommandIntentSystem: System = (world, context) => {
       } else {
         if (intent.parentId === intent.entityId) {
           console.error(
-            `[World ${context.worldId}] Invalid parent constraint: entity ${intent.entityId} cannot parent itself.`,
+            `[World ${context.worldId}] Invalid parent constraint: entity ${intent.entityId} cannot parent itself.`
           );
           continue;
         }
         if (wouldCreateParentCycle(world, intent.entityId, intent.parentId)) {
           console.error(
-            `[World ${context.worldId}] Invalid parent constraint: cycle detected for child ${intent.entityId} and parent ${intent.parentId}.`,
+            `[World ${context.worldId}] Invalid parent constraint: cycle detected for child ${intent.entityId} and parent ${intent.parentId}.`
           );
           continue;
         }
         store.set('Parent', {
           type: 'Parent',
-          parentId: intent.parentId,
+          parentId: intent.parentId
         });
 
         const oldParentId = world.constraintParentByChild.get(intent.entityId);
@@ -191,19 +192,19 @@ export const CommandIntentSystem: System = (world, context) => {
               const modelComp = comp as ModelComponent;
               enqueueCommand(context.worldId, 'cmd-model-dispose', {
                 realmId,
-                modelId: modelComp.id,
+                modelId: modelComp.id
               });
             } else if (type === 'Camera') {
               const cameraComp = comp as CameraComponent;
               enqueueCommand(context.worldId, 'cmd-camera-dispose', {
                 realmId,
-                cameraId: cameraComp.id,
+                cameraId: cameraComp.id
               });
             } else if (type === 'Light') {
               const lightComp = comp as LightComponent;
               enqueueCommand(context.worldId, 'cmd-light-dispose', {
                 realmId,
-                lightId: lightComp.id,
+                lightId: lightComp.id
               });
             }
           }

@@ -3,8 +3,9 @@ import type {
   InputStateComponent,
   SystemEventStateComponent,
   UiEventStateComponent,
-  WindowStateComponent,
+  WindowStateComponent
 } from '../../ecs/components';
+import { createVec2Tuple } from '../../math/tuples';
 import type { WorldState } from '../../state';
 import { resetRoutedPointerFrame } from '../routing/pointer-routing';
 
@@ -17,14 +18,14 @@ function createInputState(): InputStateComponent {
     keysJustPressed: new Set(),
     keysJustReleased: new Set(),
     pointerButtons: new Set(),
-    pointerPosition: [0, 0],
-    pointerDelta: [0, 0],
+    pointerPosition: createVec2Tuple(),
+    pointerDelta: createVec2Tuple(),
     pointerJustPressed: new Set(),
     pointerJustReleased: new Set(),
     pointerWindowSize: undefined,
     pointerTargetSize: undefined,
-    scrollDelta: [0, 0],
-    imeEnabled: false,
+    scrollDelta: createVec2Tuple(),
+    imeEnabled: false
   };
 }
 
@@ -32,15 +33,15 @@ function createWindowState(): WindowStateComponent {
   return {
     type: 'WindowState',
     focused: true,
-    size: [800, 600],
-    position: [0, 0],
+    size: createVec2Tuple(800, 600),
+    position: createVec2Tuple(),
     scaleFactor: 1.0,
     lifecycleState: undefined,
     pointerCapture: undefined,
     closeRequested: false,
     resizedThisFrame: false,
     movedThisFrame: false,
-    focusChangedThisFrame: false,
+    focusChangedThisFrame: false
   };
 }
 
@@ -50,21 +51,21 @@ function createGamepadState(): GamepadStateComponent {
     connected: new Map(),
     buttons: new Map(),
     axes: new Map(),
-    eventsThisFrame: [],
+    eventsThisFrame: []
   };
 }
 
 function createSystemEventState(): SystemEventStateComponent {
   return {
     type: 'SystemEventState',
-    eventsThisFrame: [],
+    eventsThisFrame: []
   };
 }
 
 function createUiEventState(): UiEventStateComponent {
   return {
     type: 'UiEventState',
-    eventsThisFrame: [],
+    eventsThisFrame: []
   };
 }
 
@@ -121,7 +122,7 @@ export function ensureInputMirrorState(world: WorldState): InputMirrorStateStore
     windowState,
     gamepadState,
     systemEventState,
-    uiEventState,
+    uiEventState
   };
 }
 
@@ -130,9 +131,9 @@ export function resetInputMirrorFrame(state: InputMirrorStateStore): void {
   state.inputState.keysJustReleased.clear();
   state.inputState.pointerJustPressed.clear();
   state.inputState.pointerJustReleased.clear();
-  state.inputState.pointerDelta = [0, 0];
+  state.inputState.pointerDelta = createVec2Tuple();
   resetRoutedPointerFrame(state.inputState);
-  state.inputState.scrollDelta = [0, 0];
+  state.inputState.scrollDelta = createVec2Tuple();
   state.inputState.imeCommitText = undefined;
 
   state.windowState.resizedThisFrame = false;

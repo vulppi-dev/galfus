@@ -1,15 +1,13 @@
 import type { PointerEvent } from '../../../types/events/pointer';
 import type { InputStateComponent } from '../../ecs/components';
+import { createVec2Tuple } from '../../math/tuples';
 
 function resolveTargetSize(data: {
   targetWidth?: number;
   targetHeight?: number;
 }): [number, number] | undefined {
-  if (
-    typeof data.targetWidth === 'number' &&
-    typeof data.targetHeight === 'number'
-  ) {
-    return [data.targetWidth, data.targetHeight];
+  if (typeof data.targetWidth === 'number' && typeof data.targetHeight === 'number') {
+    return createVec2Tuple(data.targetWidth, data.targetHeight);
   }
   return undefined;
 }
@@ -23,9 +21,7 @@ export function clearRoutedPointerState(inputState: InputStateComponent): void {
 }
 
 export function resetRoutedPointerFrame(inputState: InputStateComponent): void {
-  inputState.pointerTargetDelta = inputState.pointerPositionTarget
-    ? [0, 0]
-    : undefined;
+  inputState.pointerTargetDelta = inputState.pointerPositionTarget ? createVec2Tuple() : undefined;
 }
 
 function applyRoutedPointerPosition(
@@ -33,7 +29,7 @@ function applyRoutedPointerPosition(
   targetPosition?: [number, number],
   targetId?: number,
   targetUv?: [number, number],
-  targetSize?: [number, number],
+  targetSize?: [number, number]
 ): void {
   if (!targetPosition) {
     clearRoutedPointerState(inputState);
@@ -43,12 +39,12 @@ function applyRoutedPointerPosition(
   const previousTargetId = inputState.pointerTargetId;
   const previousTargetPosition = inputState.pointerPositionTarget;
   if (previousTargetId === targetId && previousTargetPosition !== undefined) {
-    inputState.pointerTargetDelta = [
+    inputState.pointerTargetDelta = createVec2Tuple(
       targetPosition[0] - previousTargetPosition[0],
-      targetPosition[1] - previousTargetPosition[1],
-    ];
+      targetPosition[1] - previousTargetPosition[1]
+    );
   } else {
-    inputState.pointerTargetDelta = [0, 0];
+    inputState.pointerTargetDelta = createVec2Tuple();
   }
 
   inputState.pointerPositionTarget = targetPosition;
@@ -59,7 +55,7 @@ function applyRoutedPointerPosition(
 
 export function applyRoutedPointerEvent(
   inputState: InputStateComponent,
-  pointerEvent: PointerEvent,
+  pointerEvent: PointerEvent
 ): void {
   if (pointerEvent.event === 'on-move') {
     applyRoutedPointerPosition(
@@ -67,7 +63,7 @@ export function applyRoutedPointerEvent(
       pointerEvent.data.positionTarget,
       pointerEvent.data.trace?.targetId,
       pointerEvent.data.trace?.uv,
-      resolveTargetSize(pointerEvent.data),
+      resolveTargetSize(pointerEvent.data)
     );
     return;
   }
@@ -78,7 +74,7 @@ export function applyRoutedPointerEvent(
       pointerEvent.data.positionTarget,
       pointerEvent.data.trace?.targetId,
       pointerEvent.data.trace?.uv,
-      resolveTargetSize(pointerEvent.data),
+      resolveTargetSize(pointerEvent.data)
     );
     return;
   }
@@ -89,7 +85,7 @@ export function applyRoutedPointerEvent(
       pointerEvent.data.positionTarget,
       pointerEvent.data.trace?.targetId,
       pointerEvent.data.trace?.uv,
-      resolveTargetSize(pointerEvent.data),
+      resolveTargetSize(pointerEvent.data)
     );
     return;
   }
