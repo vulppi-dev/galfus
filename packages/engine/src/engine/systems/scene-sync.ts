@@ -171,8 +171,13 @@ export const SceneSyncSystem: System = (world, context) => {
         lightCmd.position = vec4.fromValues(pos[0], pos[1], pos[2], 1);
       }
       if (intent.props.direction !== undefined) {
-        const [dirX, dirY, dirZ] = toVec3(intent.props.direction);
-        lightCmd.direction = vec4.fromValues(dirX, dirY, dirZ, 0);
+        const direction = toVec3(intent.props.direction);
+        lightCmd.direction = vec4.fromValues(
+          direction[0] ?? 0,
+          direction[1] ?? 0,
+          direction[2] ?? 0,
+          0
+        );
       }
       if (intent.props.spotInnerOuter) {
         lightCmd.spotInnerOuter = toVec2(intent.props.spotInnerOuter);

@@ -69,7 +69,7 @@ function hasOwnKeys(value: object): boolean {
   return Object.keys(value).length > 0;
 }
 
-function sameTuple(value: ArrayLike<number>, expected: readonly number[], epsilon = 1e-6): boolean {
+function sameTuple(value: ArrayLike<number>, expected: ArrayLike<number>, epsilon = 1e-6): boolean {
   if (value.length !== expected.length) return false;
   for (let i = 0; i < expected.length; i++) {
     const expectedValue = expected[i];
