@@ -20,6 +20,7 @@
     "release-meta": "bun scripts/release-meta.ts",
     "core-version": "bun scripts/core-version.ts",
     "demo": "bun run --cwd apps/demos demo",
+    "demo:web": "bun run --cwd apps/demos dev",
     "format": "prettier --write \"scripts/**/*.ts\" \"packages/**/*.ts\" \"apps/**/*.ts\""
   },
   "devDependencies": {
