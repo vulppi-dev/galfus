@@ -45,6 +45,13 @@ export type CoreCommandBatch = EngineCmdEnvelope[];
 const packr = new Packr({ useRecords: false });
 const unpackr = new Unpackr({ useRecords: false });
 
+function normalizeArrayBufferView(value: ArrayBufferView): unknown {
+  if (value instanceof Uint8Array) {
+    return value;
+  }
+  return Array.from(value as unknown as Iterable<number>);
+}
+
 function normalizeForMsgpack(value: unknown): unknown {
   if (value === undefined || value === null) return value;
   if (Array.isArray(value)) {
@@ -64,7 +71,10 @@ function normalizeForMsgpack(value: unknown): unknown {
     }
     return out ?? value;
   }
-  if (ArrayBuffer.isView(value) || value instanceof ArrayBuffer) {
+  if (ArrayBuffer.isView(value)) {
+    return normalizeArrayBufferView(value);
+  }
+  if (value instanceof ArrayBuffer) {
     return value;
   }
   if (typeof value === 'object') {

@@ -8,7 +8,7 @@ import {
   focusWindow,
   initEngine,
   tick,
-  updateWindow,
+  updateWindow
 } from '@vulfram/engine';
 import {
   createFirstPersonController,
@@ -20,7 +20,7 @@ import {
   type MotionCameraControllerHandle,
   type OrbitControllerHandle,
   type ThirdPersonControllerHandle,
-  type TopViewControllerHandle,
+  type TopViewControllerHandle
 } from '@vulfram/camera-control';
 import { transportBunFfi } from '@vulfram/transport-bun';
 import { vec3 } from 'gl-matrix';
@@ -33,13 +33,7 @@ const UI_NODE_AREA_ID = 7002;
 const UI_NODE_COMBO_ID = 7003;
 const UI_NODE_TITLE_ID = 7004;
 const UI_NODE_POINTER_DELTA_ID = 7005;
-const UI_OPTIONS = [
-  'orbit',
-  'spectator',
-  'first-person',
-  'third-person',
-  'top-view',
-] as const;
+const UI_OPTIONS = ['orbit', 'spectator', 'first-person', 'third-person', 'top-view'] as const;
 type ControllerKind = (typeof UI_OPTIONS)[number];
 type ActiveController =
   | BaseCameraControllerHandle
@@ -53,30 +47,24 @@ type ZoomControllerHandle =
   | TopViewControllerHandle;
 
 function isMotionController(
-  controller: ActiveController,
+  controller: ActiveController
 ): controller is MotionCameraControllerHandle {
   return 'pressForward' in controller;
 }
 function isThirdPersonController(
-  controller: ActiveController,
+  controller: ActiveController
 ): controller is ThirdPersonControllerHandle {
   return 'setTarget' in controller;
 }
 
-function isTopViewController(
-  controller: ActiveController,
-): controller is TopViewControllerHandle {
+function isTopViewController(controller: ActiveController): controller is TopViewControllerHandle {
   return 'setFocus' in controller;
 }
-function isOrbitController(
-  controller: ActiveController,
-): controller is OrbitControllerHandle {
+function isOrbitController(controller: ActiveController): controller is OrbitControllerHandle {
   return 'setEnabled' in controller;
 }
 
-function isZoomController(
-  controller: ActiveController,
-): controller is ZoomControllerHandle {
+function isZoomController(controller: ActiveController): controller is ZoomControllerHandle {
   return 'toZoom' in controller;
 }
 
@@ -88,9 +76,9 @@ function makeUiAreaOp(windowWidth: number) {
       label: 'camera-controller-picker',
       x,
       y: 12,
-      draggable: false,
-    },
-  };
+      draggable: false
+    }
+  } as const;
 }
 
 async function main() {
@@ -103,7 +91,7 @@ async function main() {
     borderless: false,
     resizable: true,
     transparent: false,
-    initialState: 'maximized',
+    initialState: 'maximized'
   });
 
   let totalMs = 0;
@@ -124,8 +112,8 @@ async function main() {
       width: { unit: 'percent', value: 100 },
       height: { unit: 'percent', value: 100 },
       zIndex: 0,
-      blendMode: 0,
-    },
+      blendMode: 0
+    }
   });
 
   const uiWorldId = WorldUI.createUIWorld();
@@ -138,8 +126,8 @@ async function main() {
       // Keep UI in a top strip so it doesn't block 3D clicks on the whole viewport.
       height: { unit: 'percent', value: 18 },
       zIndex: 10,
-      blendMode: 0,
-    },
+      blendMode: 0
+    }
   });
   const worldMountTargetId = world3dMount.targetId as unknown as number;
   const uiMountTargetId = uiMount.targetId as unknown as number;
@@ -153,7 +141,7 @@ async function main() {
       groundColor: [0.02, 0.03, 0.04],
       horizonColor: [0.11, 0.14, 0.2],
       skyColor: [0.2, 0.27, 0.37],
-      cubemapTextureId: null,
+      cubemapTextureId: null
     },
     clearColor: [0.02, 0.03, 0.04, 1],
     post: {
@@ -186,8 +174,8 @@ async function main() {
       bloomThreshold: 1,
       bloomKnee: 0.5,
       bloomIntensity: 0.8,
-      bloomScatter: 0.7,
-    },
+      bloomScatter: 0.7
+    }
   });
   World3D.configure3DShadows(world3dId, {
     tileResolution: 1024,
@@ -196,7 +184,7 @@ async function main() {
     atlasLayers: 2,
     virtualGridSize: 1,
     smoothing: 2,
-    normalBias: 0.02,
+    normalBias: 0.02
   });
 
   const cameraEntityId = World3D.create3DEntity(world3dId);
@@ -204,23 +192,23 @@ async function main() {
     kind: 'perspective',
     near: 0.1,
     far: 300,
-    order: 0,
+    order: 0
   });
 
   const geometryId = World3D.create3DGeometry(world3dId, {
     type: 'primitive',
     shape: 'cube',
-    label: 'Demo007Cube',
+    label: 'Demo007Cube'
   });
   const floorTex = World3D.create3DTexture(world3dId, {
     source: { type: 'color', color: [0.25, 0.35, 0.45, 1] },
     srgb: true,
-    label: 'Demo007FloorTex',
+    label: 'Demo007FloorTex'
   });
   const focusTex = World3D.create3DTexture(world3dId, {
     source: { type: 'color', color: [0.95, 0.55, 0.25, 1] },
     srgb: true,
-    label: 'Demo007FocusTex',
+    label: 'Demo007FocusTex'
   });
   const floorMat = World3D.create3DMaterial(world3dId, {
     kind: 'standard',
@@ -232,9 +220,9 @@ async function main() {
         baseTexId: floorTex,
         baseSampler: 'linear-clamp',
         flags: 0,
-        surfaceType: 'opaque',
-      },
-    },
+        surfaceType: 'opaque'
+      }
+    }
   });
   const focusMat = World3D.create3DMaterial(world3dId, {
     kind: 'standard',
@@ -246,21 +234,21 @@ async function main() {
         baseTexId: focusTex,
         baseSampler: 'linear-clamp',
         flags: 0,
-        surfaceType: 'opaque',
-      },
-    },
+        surfaceType: 'opaque'
+      }
+    }
   });
 
   const floorEntityId = World3D.create3DEntity(world3dId);
   World3D.update3DTransform(world3dId, floorEntityId, {
     position: [0, -1.6, 0],
-    scale: [24, 0.1, 24],
+    scale: [24, 0.1, 24]
   });
   World3D.create3DModel(world3dId, floorEntityId, {
     geometryId,
     materialId: floorMat,
     castShadow: false,
-    receiveShadow: true,
+    receiveShadow: true
   });
 
   const focusEntityId = World3D.create3DEntity(world3dId);
@@ -268,7 +256,7 @@ async function main() {
     geometryId,
     materialId: focusMat,
     castShadow: true,
-    receiveShadow: true,
+    receiveShadow: true
   });
 
   const keyLightId = World3D.create3DEntity(world3dId);
@@ -278,7 +266,7 @@ async function main() {
     color: [1, 1, 1],
     intensity: 12,
     range: 30,
-    castShadow: true,
+    castShadow: true
   });
 
   function createController(kind: ControllerKind): ActiveController {
@@ -287,42 +275,42 @@ async function main() {
         target: [0, 0, 0],
         radius: 8,
         enabled: false,
-        rotateSpeed: 0.02,
+        rotateSpeed: 0.02
       });
     if (kind === 'spectator')
       return createSpectatorController(world3dId, cameraEntityId, {
         alwaysLook: true,
-        lookSpeed: 0.02,
+        lookSpeed: 0.02
       });
     if (kind === 'first-person')
       return createFirstPersonController(world3dId, cameraEntityId, {
         alwaysLook: true,
-        lookSpeed: 0.02,
+        lookSpeed: 0.02
       });
     if (kind === 'third-person')
       return createThirdPersonController(world3dId, cameraEntityId, {
         target: [0, 0, 0],
         distance: 6,
         alwaysLook: true,
-        rotateSpeed: 0.02,
+        rotateSpeed: 0.02
       });
     return createTopViewController(world3dId, cameraEntityId, {
       focus: [0, 0, 0],
       height: 12,
       focusLocked: topViewFocusLocked,
-      rotateSpeed: 0.02,
+      rotateSpeed: 0.02
     });
   }
 
   let controller = createController(selectedKind);
 
-  let previousWindowSize: [number, number] = World3D.get3DWindowSize(world3dId);
+  let previousWindowSize = World3D.get3DWindowSize(world3dId);
   let lastPointerDebugText = '';
   let nextPointerDebugAtMs = 0;
   const focus = vec3.fromValues(0, 0, 0);
   World3D.update3DTransform(world3dId, focusEntityId, {
     position: [focus[0], focus[1], focus[2]],
-    scale: [0.75, 0.75, 0.75],
+    scale: [0.75, 0.75, 0.75]
   });
   let last = performance.now();
   let shouldExit = false;
@@ -335,8 +323,7 @@ async function main() {
     const t = totalMs / 1000;
 
     const animateFocus =
-      selectedKind === 'third-person' ||
-      (selectedKind === 'top-view' && topViewFocusLocked);
+      selectedKind === 'third-person' || (selectedKind === 'top-view' && topViewFocusLocked);
     if (animateFocus) {
       vec3.set(focus, Math.cos(t * 0.65) * 3.5, 0, Math.sin(t * 0.65) * 2.4);
     } else {
@@ -344,7 +331,7 @@ async function main() {
     }
     World3D.update3DTransform(world3dId, focusEntityId, {
       position: [focus[0], focus[1], focus[2]],
-      scale: [0.75, 0.75, 0.75],
+      scale: [0.75, 0.75, 0.75]
     });
 
     if (isThirdPersonController(controller)) controller.setTarget(focus);
@@ -353,10 +340,8 @@ async function main() {
       controller.setFocusLocked(topViewFocusLocked);
     }
 
-    const pointerCaptureState =
-      World3D.get3DWindowPointerCaptureState(world3dId);
-    const isMouseLocked =
-      pointerCaptureState?.mode === 'locked' && pointerCaptureState.active;
+    const pointerCaptureState = World3D.get3DWindowPointerCaptureState(world3dId);
+    const isMouseLocked = pointerCaptureState?.mode === 'locked' && pointerCaptureState.active;
     const requiresLockedControl =
       selectedKind === 'spectator' ||
       selectedKind === 'first-person' ||
@@ -384,9 +369,7 @@ async function main() {
         World3D.is3DKeyPressed(world3dId, k.KeyD)
           ? controller.pressRight()
           : controller.releaseRight();
-        World3D.is3DKeyPressed(world3dId, k.KeyE)
-          ? controller.pressUp()
-          : controller.releaseUp();
+        World3D.is3DKeyPressed(world3dId, k.KeyE) ? controller.pressUp() : controller.releaseUp();
         World3D.is3DKeyPressed(world3dId, k.KeyQ)
           ? controller.pressDown()
           : controller.releaseDown();
@@ -413,9 +396,7 @@ async function main() {
       World3D.is3DKeyJustPressed(world3dId, World3D.KeyCode.KeyL)
     ) {
       topViewFocusLocked = !topViewFocusLocked;
-      console.info(
-        `[Demo007][TopView] focusLocked=${topViewFocusLocked} (toggle: key L)`,
-      );
+      console.info(`[Demo007][TopView] focusLocked=${topViewFocusLocked} (toggle: key L)`);
       if (isTopViewController(controller)) {
         controller.setFocusLocked(topViewFocusLocked);
       }
@@ -423,9 +404,7 @@ async function main() {
 
     if (World3D.is3DKeyJustPressed(world3dId, World3D.KeyCode.Space)) {
       confinementEnabled = !confinementEnabled;
-      console.info(
-        `[Demo007][Pointer] confinementEnabled=${confinementEnabled} (toggle: Space)`,
-      );
+      console.info(`[Demo007][Pointer] confinementEnabled=${confinementEnabled} (toggle: Space)`);
     }
 
     const confinementAllowedByMode =
@@ -438,26 +417,21 @@ async function main() {
       }
       updateWindow(windowId, {
         cursorGrab: desiredCursorGrab,
-        cursorVisible: desiredCursorGrab === 'none',
+        cursorVisible: desiredCursorGrab === 'none'
       });
       lastAppliedCursorGrab = desiredCursorGrab;
     }
 
     if (isOrbitController(controller)) {
       const targetIdUnderPointer = World3D.get3DPointerTargetId(world3dId);
-      const clickedThisFrame = World3D.is3DPointerButtonJustPressed(
-        world3dId,
-        0,
-      );
+      const clickedThisFrame = World3D.is3DPointerButtonJustPressed(world3dId, 0);
       if (clickedThisFrame) {
         if (targetIdUnderPointer === worldMountTargetId) {
           controller.enable();
           console.info('[Demo007][Orbit] enabled=true (click on 3D realm)');
         } else {
           controller.disable();
-          console.info(
-            '[Demo007][Orbit] enabled=false (click outside 3D realm)',
-          );
+          console.info('[Demo007][Orbit] enabled=false (click outside 3D realm)');
         }
       }
     }
@@ -466,8 +440,7 @@ async function main() {
       const scrollDelta = World3D.get3DScrollDelta(world3dId);
       if (scrollDelta[1] !== 0) {
         const targetIdUnderPointer = World3D.get3DPointerTargetId(world3dId);
-        const canZoomWithScroll =
-          !isThirdPersonController(controller) || isMouseLocked;
+        const canZoomWithScroll = !isThirdPersonController(controller) || isMouseLocked;
         if (targetIdUnderPointer === worldMountTargetId && canZoomWithScroll) {
           controller.toZoom(-scrollDelta[1]);
         }
@@ -495,9 +468,7 @@ async function main() {
       const _gamepadEvents = World3D.get3DGamepadEvents(world3dId);
       const firstGamepadId = connectedGamepads[0]?.gamepadId;
       const gamepadAxis0 =
-        firstGamepadId !== undefined
-          ? World3D.get3DGamepadAxis(world3dId, firstGamepadId, 0)
-          : 0;
+        firstGamepadId !== undefined ? World3D.get3DGamepadAxis(world3dId, firstGamepadId, 0) : 0;
       const gamepadButton0Pressed =
         firstGamepadId !== undefined
           ? World3D.is3DGamepadButtonPressed(world3dId, firstGamepadId, 0)
@@ -510,7 +481,7 @@ async function main() {
           `tDelta=${pointerTargetDelta ? `${pointerTargetDelta[0].toFixed(3)},${pointerTargetDelta[1].toFixed(3)}` : 'none'} ` +
           `tUv=${pointerTargetUv ? `${pointerTargetUv[0].toFixed(3)},${pointerTargetUv[1].toFixed(3)}` : 'none'} ` +
           `winPos=${windowPos[0]},${windowPos[1]} focus=${isWindowFocused ? '1' : '0'} scale=${windowScaleFactor.toFixed(2)} ` +
-          `gp=${connectedGamepads.length} gpAxis0=${gamepadAxis0.toFixed(3)} gpB0=${gamepadButton0Pressed ? '1' : '0'}`,
+          `gp=${connectedGamepads.length} gpAxis0=${gamepadAxis0.toFixed(3)} gpB0=${gamepadButton0Pressed ? '1' : '0'}`
       );
 
       const systemError = World3D.get3DLastSystemError(world3dId);
@@ -531,8 +502,7 @@ async function main() {
         previousWindowSize = windowSize;
         WorldUI.createUIDocument(uiWorldId, {
           documentId: UI_DOCUMENT_ID,
-          realmId: uiRealmId,
-          rect: [0, 0, windowSize[0], windowSize[1]],
+          rect: [0, 0, windowSize[0], windowSize[1]]
         });
         WorldUI.applyUIOps(uiWorldId, {
           documentId: UI_DOCUMENT_ID,
@@ -544,9 +514,9 @@ async function main() {
                 node: {
                   id: UI_NODE_AREA_ID,
                   kind: 'area',
-                  props: makeUiAreaOp(windowSize[0]),
-                },
-              },
+                  props: makeUiAreaOp(windowSize[0])
+                }
+              }
             },
             {
               type: 'add',
@@ -557,10 +527,10 @@ async function main() {
                   kind: 'text',
                   props: {
                     type: 'text',
-                    content: { text: 'Camera Controller' },
-                  },
-                },
-              },
+                    content: { text: 'Camera Controller' }
+                  }
+                }
+              }
             },
             {
               type: 'add',
@@ -575,11 +545,11 @@ async function main() {
                       label: 'Type',
                       selected: selectedKind,
                       options: [...UI_OPTIONS],
-                      enabled: true,
-                    },
-                  },
-                },
-              },
+                      enabled: true
+                    }
+                  }
+                }
+              }
             },
             {
               type: 'add',
@@ -591,13 +561,13 @@ async function main() {
                   props: {
                     type: 'text',
                     content: {
-                      text: 'dG: 0.000, 0.000 | dT: none',
-                    },
-                  },
-                },
-              },
-            },
-          ],
+                      text: 'dG: 0.000, 0.000 | dT: none'
+                    }
+                  }
+                }
+              }
+            }
+          ]
         });
         uiReady = true;
       }
@@ -616,7 +586,7 @@ async function main() {
         previousWindowSize = sizeNow;
         WorldUI.setUIDocumentRect(uiWorldId, {
           documentId: UI_DOCUMENT_ID,
-          rect: [0, 0, sizeNow[0], sizeNow[1]],
+          rect: [0, 0, sizeNow[0], sizeNow[1]]
         });
         WorldUI.applyUIOps(uiWorldId, {
           documentId: UI_DOCUMENT_ID,
@@ -626,10 +596,10 @@ async function main() {
               type: 'set',
               content: {
                 node_id: UI_NODE_AREA_ID,
-                props: makeUiAreaOp(sizeNow[0]),
-              },
-            },
-          ],
+                props: makeUiAreaOp(sizeNow[0])
+              }
+            }
+          ]
         });
       }
 
@@ -645,20 +615,18 @@ async function main() {
                 node_id: UI_NODE_POINTER_DELTA_ID,
                 props: {
                   type: 'text',
-                  content: { text: pointerDebugText },
-                },
-              },
-            },
-          ],
+                  content: { text: pointerDebugText }
+                }
+              }
+            }
+          ]
         });
       }
 
       for (const uiEvent of WorldUI.getUIEvents(uiWorldId)) {
-        if (uiEvent.nodeId !== UI_NODE_COMBO_ID || uiEvent.kind !== 'changed')
-          continue;
+        if (uiEvent.nodeId !== UI_NODE_COMBO_ID || uiEvent.kind !== 'changed') continue;
         const next = uiEvent.label as ControllerKind | undefined;
-        if (!next || next === selectedKind || !UI_OPTIONS.includes(next))
-          continue;
+        if (!next || next === selectedKind || !UI_OPTIONS.includes(next)) continue;
         selectedKind = next;
         controller = createController(selectedKind);
       }
@@ -667,7 +635,7 @@ async function main() {
     tick(totalMs, dtMs);
     const frameElapsed = performance.now() - now;
     await new Promise((resolve) =>
-      setTimeout(resolve, Math.max(0, FRAME_TARGET_MS - frameElapsed)),
+      setTimeout(resolve, Math.max(0, FRAME_TARGET_MS - frameElapsed))
     );
   }
 

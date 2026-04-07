@@ -209,17 +209,20 @@ export function getCollisionAabbWorldBounds(
 
   for (let i = 0; i < corners.length; i++) {
     const [x, y, z] = corners[i]!;
-    if (x < minX) minX = x;
-    if (y < minY) minY = y;
-    if (z < minZ) minZ = z;
-    if (x > maxX) maxX = x;
-    if (y > maxY) maxY = y;
-    if (z > maxZ) maxZ = z;
+    const safeX = x ?? 0;
+    const safeY = y ?? 0;
+    const safeZ = z ?? 0;
+    if (safeX < minX) minX = safeX;
+    if (safeY < minY) minY = safeY;
+    if (safeZ < minZ) minZ = safeZ;
+    if (safeX > maxX) maxX = safeX;
+    if (safeY > maxY) maxY = safeY;
+    if (safeZ > maxZ) maxZ = safeZ;
   }
 
   return {
-    min: [minX, minY, minZ],
-    max: [maxX, maxY, maxZ]
+    min: vec3.fromValues(minX, minY, minZ),
+    max: vec3.fromValues(maxX, maxY, maxZ)
   };
 }
 
@@ -239,17 +242,19 @@ export function getCollisionAabbWorldCorners(
   collision: CollisionAabbEntity
 ): CollisionAabbWorldCorners {
   const worldTransform = getCollisionWorldTransformMatrix(collision);
-  const [hx, hy, hz] = collision.halfExtents;
+  const hx = collision.halfExtents[0] ?? 0;
+  const hy = collision.halfExtents[1] ?? 0;
+  const hz = collision.halfExtents[2] ?? 0;
 
   const localCorners: Vec3[] = [
-    [-hx, -hy, -hz],
-    [-hx, -hy, hz],
-    [-hx, hy, -hz],
-    [-hx, hy, hz],
-    [hx, -hy, -hz],
-    [hx, -hy, hz],
-    [hx, hy, -hz],
-    [hx, hy, hz]
+    vec3.fromValues(-hx, -hy, -hz),
+    vec3.fromValues(-hx, -hy, hz),
+    vec3.fromValues(-hx, hy, -hz),
+    vec3.fromValues(-hx, hy, hz),
+    vec3.fromValues(hx, -hy, -hz),
+    vec3.fromValues(hx, -hy, hz),
+    vec3.fromValues(hx, hy, -hz),
+    vec3.fromValues(hx, hy, hz)
   ];
 
   const corners: Vec3[] = [];
@@ -257,10 +262,10 @@ export function getCollisionAabbWorldCorners(
     const [x, y, z] = localCorners[i]!;
     const worldCorner = vec4.transformMat4(
       vec4.create(),
-      vec4.fromValues(x, y, z, 1),
+      vec4.fromValues(x ?? 0, y ?? 0, z ?? 0, 1),
       worldTransform as mat4
     );
-    corners.push([worldCorner[0]!, worldCorner[1]!, worldCorner[2]!]);
+    corners.push(vec3.fromValues(worldCorner[0] ?? 0, worldCorner[1] ?? 0, worldCorner[2] ?? 0));
   }
   return corners as CollisionAabbWorldCorners;
 }
@@ -296,7 +301,9 @@ export function raycastCollisionAabb(
     direction: localDirection
   };
 
-  const [hx, hy, hz] = collision.halfExtents;
+  const hx = collision.halfExtents[0] ?? 0;
+  const hy = collision.halfExtents[1] ?? 0;
+  const hz = collision.halfExtents[2] ?? 0;
   const px = Math.max(0, localPadding);
   const py = Math.max(0, localPadding);
   const pz = Math.max(0, localPadding);
@@ -360,7 +367,7 @@ function resolvePointerViewportSize(input: PointerEventRaycastInput): Vec2 | nul
 function computeLocalEdgePadding(input: PointerCollisionAabbInput, ray: Ray3): number {
   const viewport = resolvePointerViewportSize(input);
   if (!viewport) return 0;
-  const [, viewportHeight] = viewport;
+  const viewportHeight = viewport[1] ?? 0;
   if (viewportHeight <= 0) return 0;
 
   const projection = input.projectionMatrix;
