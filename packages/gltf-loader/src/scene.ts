@@ -1,4 +1,5 @@
 import type { Node, Scene } from '@gltf-transform/core';
+import type { quat as Quat, vec3 as Vec3 } from 'gl-matrix';
 import {
   create3DEntity,
   create3DModel,
@@ -6,16 +7,19 @@ import {
   set3DParent,
   update3DTransform,
   type EntityId,
-  type World3DId,
+  type World3DId
 } from '@vulfram/engine/world3d';
-import { toArray3, toArray4 } from './convert';
+import { toQuat, toVec3 } from './convert';
 import { ensureMaterial, ensurePrimitiveGeometry } from './resources';
-import type {
-  GltfInstance,
-  GltfInstantiateOptions,
-  LoaderContext,
-  SceneTemplate,
-} from './types';
+import type { GltfInstance, GltfInstantiateOptions, LoaderContext, SceneTemplate } from './types';
+
+function isIdentityVec3(value: Vec3, identity: number): boolean {
+  return value[0] === identity && value[1] === identity && value[2] === identity;
+}
+
+function isIdentityQuat(value: Quat): boolean {
+  return value[0] === 0 && value[1] === 0 && value[2] === 0 && value[3] === 1;
+}
 
 function createNodeTemplate(ctx: LoaderContext, node: Node, nodes: SceneTemplate['nodes']): number {
   const mesh = node.getMesh();
@@ -33,11 +37,11 @@ function createNodeTemplate(ctx: LoaderContext, node: Node, nodes: SceneTemplate
   const nodeIndex = nodes.length;
   nodes.push({
     name: node.getName() || undefined,
-    translation: toArray3(node.getTranslation()),
-    rotation: toArray4(node.getRotation(), 1),
-    scale: toArray3(node.getScale()),
+    translation: toVec3(node.getTranslation()),
+    rotation: toQuat(node.getRotation(), 1),
+    scale: toVec3(node.getScale()),
     children: [],
-    primitives,
+    primitives
   });
 
   for (const child of node.listChildren()) {
@@ -63,21 +67,18 @@ export function buildSceneTemplate(ctx: LoaderContext, scene: Scene): SceneTempl
 function setInstanceRootTransform(
   worldId: World3DId,
   rootEntityId: EntityId,
-  options: GltfInstantiateOptions | undefined,
+  options: GltfInstantiateOptions | undefined
 ): void {
   const rootTransform = options?.rootTransform;
-  update3DTransform(worldId, rootEntityId, {
-    position: rootTransform?.position ?? [0, 0, 0],
-    rotation: rootTransform?.rotation ?? [0, 0, 0, 1],
-    scale: rootTransform?.scale ?? [1, 1, 1],
-  });
+  if (!rootTransform) return;
+  update3DTransform(worldId, rootEntityId, rootTransform);
 }
 
 /** Instantiates entities/models/parents from a previously built scene template. */
 export function instantiateTemplate(
   worldId: World3DId,
   template: SceneTemplate,
-  options?: GltfInstantiateOptions,
+  options?: GltfInstantiateOptions
 ): GltfInstance {
   const entityIds: EntityId[] = [];
   let disposed = false;
@@ -96,11 +97,12 @@ export function instantiateTemplate(
     nodeEntityIds[i] = nodeEntityId;
     entityIds.push(nodeEntityId);
 
-    update3DTransform(worldId, nodeEntityId, {
-      position: node.translation,
-      rotation: node.rotation,
-      scale: node.scale,
-    });
+    const transformPatch = {
+      position: isIdentityVec3(node.translation, 0) ? undefined : node.translation,
+      rotation: isIdentityQuat(node.rotation) ? undefined : node.rotation,
+      scale: isIdentityVec3(node.scale, 1) ? undefined : node.scale
+    };
+    update3DTransform(worldId, nodeEntityId, transformPatch);
   }
 
   for (const rootIndex of template.roots) {
@@ -126,7 +128,7 @@ export function instantiateTemplate(
       const primitive = node.primitives[0]!;
       create3DModel(worldId, parentEntity, {
         geometryId: primitive.geometryId,
-        materialId: primitive.materialId,
+        materialId: primitive.materialId
       });
       continue;
     }
@@ -134,15 +136,10 @@ export function instantiateTemplate(
     for (const primitive of node.primitives) {
       const modelEntity = create3DEntity(worldId);
       entityIds.push(modelEntity);
-      update3DTransform(worldId, modelEntity, {
-        position: [0, 0, 0],
-        rotation: [0, 0, 0, 1],
-        scale: [1, 1, 1],
-      });
       set3DParent(worldId, modelEntity, parentEntity);
       create3DModel(worldId, modelEntity, {
         geometryId: primitive.geometryId,
-        materialId: primitive.materialId,
+        materialId: primitive.materialId
       });
     }
   }
@@ -159,6 +156,6 @@ export function instantiateTemplate(
           remove3DEntity(worldId, entityId);
         }
       }
-    },
+    }
   };
 }

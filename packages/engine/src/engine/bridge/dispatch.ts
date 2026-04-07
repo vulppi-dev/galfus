@@ -58,6 +58,167 @@ function maybeCompactQueue<T>(queue: T[], head: number): number {
   return head;
 }
 
+function mergeNestedRecord(previous: unknown, next: unknown): Record<string, unknown> | undefined {
+  const previousRecord =
+    previous && typeof previous === 'object' ? (previous as Record<string, unknown>) : undefined;
+  const nextRecord =
+    next && typeof next === 'object' ? (next as Record<string, unknown>) : undefined;
+
+  if (previousRecord && nextRecord) {
+    return {
+      ...previousRecord,
+      ...nextRecord
+    };
+  }
+  return nextRecord ?? previousRecord;
+}
+
+function mergeCommandContent(
+  type: string,
+  previous: Record<string, unknown>,
+  next: Record<string, unknown>
+): Record<string, unknown> {
+  if (type === 'cmd-environment-upsert' || type === 'cmd-shadow-configure') {
+    return {
+      ...previous,
+      ...next,
+      config: mergeNestedRecord(previous.config, next.config)
+    };
+  }
+
+  return {
+    ...previous,
+    ...next
+  };
+}
+
+function isMergeableWindowStateContent(content: Record<string, unknown>): boolean {
+  return (
+    content.action === undefined &&
+    content.getState !== true &&
+    content.getDecorations !== true &&
+    content.getResizable !== true
+  );
+}
+
+function getMergeableCommandKey(envelope: { type: string; content: unknown }): string | null {
+  const content =
+    envelope.content && typeof envelope.content === 'object'
+      ? (envelope.content as Record<string, unknown>)
+      : null;
+  if (!content) return null;
+
+  if (envelope.type === 'cmd-model-upsert') {
+    const realmId = content.realmId;
+    const modelId = content.modelId;
+    if (typeof realmId === 'number' && typeof modelId === 'number') {
+      return `${envelope.type}:${realmId}:${modelId}`;
+    }
+  }
+  if (envelope.type === 'cmd-camera-upsert') {
+    const realmId = content.realmId;
+    const cameraId = content.cameraId;
+    if (typeof realmId === 'number' && typeof cameraId === 'number') {
+      return `${envelope.type}:${realmId}:${cameraId}`;
+    }
+  }
+  if (envelope.type === 'cmd-light-upsert') {
+    const realmId = content.realmId;
+    const lightId = content.lightId;
+    if (typeof realmId === 'number' && typeof lightId === 'number') {
+      return `${envelope.type}:${realmId}:${lightId}`;
+    }
+  }
+  if (envelope.type === 'cmd-target-layer-upsert') {
+    const realmId = content.realmId;
+    const targetId = content.targetId;
+    if (typeof realmId === 'number' && typeof targetId === 'number') {
+      return `${envelope.type}:${realmId}:${targetId}`;
+    }
+  }
+  if (envelope.type === 'cmd-target-upsert') {
+    const targetId = content.targetId;
+    if (typeof targetId === 'number') {
+      return `${envelope.type}:${targetId}`;
+    }
+  }
+  if (envelope.type === 'cmd-window-measurement') {
+    const windowId = content.windowId;
+    if (typeof windowId === 'number') {
+      return `${envelope.type}:${windowId}`;
+    }
+  }
+  if (envelope.type === 'cmd-window-cursor') {
+    const windowId = content.windowId;
+    if (typeof windowId === 'number') {
+      return `${envelope.type}:${windowId}`;
+    }
+  }
+  if (envelope.type === 'cmd-window-state' && isMergeableWindowStateContent(content)) {
+    const windowId = content.windowId;
+    if (typeof windowId === 'number') {
+      return `${envelope.type}:${windowId}`;
+    }
+  }
+  if (envelope.type === 'cmd-environment-upsert') {
+    const environmentId = content.environmentId;
+    if (typeof environmentId === 'number') {
+      return `${envelope.type}:${environmentId}`;
+    }
+  }
+  if (envelope.type === 'cmd-shadow-configure') {
+    const windowId = content.windowId;
+    if (typeof windowId === 'number') {
+      return `${envelope.type}:${windowId}`;
+    }
+  }
+
+  return null;
+}
+
+function compactPendingCommands(
+  queue: Array<{ id: number; type: string; content: unknown }>,
+  head: number
+): void {
+  if (head >= queue.length) {
+    return;
+  }
+
+  const mergedIndexByKey = new Map<string, number>();
+  let writeIndex = head;
+
+  for (let readIndex = head; readIndex < queue.length; readIndex++) {
+    const envelope = queue[readIndex]!;
+    const mergeKey = getMergeableCommandKey(envelope);
+    if (!mergeKey) {
+      queue[writeIndex] = envelope;
+      writeIndex++;
+      continue;
+    }
+
+    const previousIndex = mergedIndexByKey.get(mergeKey);
+    if (previousIndex === undefined) {
+      queue[writeIndex] = envelope;
+      mergedIndexByKey.set(mergeKey, writeIndex);
+      writeIndex++;
+      continue;
+    }
+
+    const previous = queue[previousIndex]!;
+    queue[previousIndex] = {
+      id: envelope.id,
+      type: envelope.type,
+      content: mergeCommandContent(
+        envelope.type,
+        previous.content as Record<string, unknown>,
+        envelope.content as Record<string, unknown>
+      )
+    };
+  }
+
+  queue.length = writeIndex;
+}
+
 export function markRoutingIndexDirty(): void {
   engineState.routingIndex.dirty = true;
 }
@@ -69,7 +230,7 @@ export function markRoutingIndexDirty(): void {
 export function enqueueCommand<T extends EngineCmd['type']>(
   worldId: number,
   type: T,
-  content: Extract<EngineCmd, { type: T }>['content'],
+  content: Extract<EngineCmd, { type: T }>['content']
 ): number {
   requireInitialized();
   const world = getWorldOrThrow(worldId);
@@ -77,7 +238,7 @@ export function enqueueCommand<T extends EngineCmd['type']>(
 
   // Contract: realmId resolves from world core realm; windowId may default to primary binding.
   const typedContent = {
-    ...(content as Record<string, unknown>),
+    ...(content as Record<string, unknown>)
   } as Record<string, unknown>;
   if (
     'windowId' in typedContent &&
@@ -95,10 +256,7 @@ export function enqueueCommand<T extends EngineCmd['type']>(
   world.pendingCommands.push({
     id,
     type,
-    content: typedContent as unknown as Extract<
-      EngineCmd,
-      { type: T }
-    >['content'],
+    content: typedContent as unknown as Extract<EngineCmd, { type: T }>['content']
   });
   return id;
 }
@@ -108,7 +266,7 @@ export function enqueueCommand<T extends EngineCmd['type']>(
  */
 export function enqueueGlobalCommand<T extends EngineCmd['type']>(
   type: T,
-  content: Extract<EngineCmd, { type: T }>['content'],
+  content: Extract<EngineCmd, { type: T }>['content']
 ): number {
   requireInitialized();
   const id = engineState.nextCommandId++;
@@ -124,6 +282,8 @@ export function enqueueGlobalCommand<T extends EngineCmd['type']>(
 export function collectCommands(): void {
   let collectedCount = 0;
   let collectedBytes = 0;
+
+  compactPendingCommands(engineState.globalPendingCommands, engineState.globalPendingCommandsHead);
 
   const globalAvailable =
     engineState.globalPendingCommands.length - engineState.globalPendingCommandsHead;
@@ -148,19 +308,18 @@ export function collectCommands(): void {
     engineState.globalPendingCommandsHead = end;
     engineState.globalPendingCommandsHead = maybeCompactQueue(
       engineState.globalPendingCommands,
-      engineState.globalPendingCommandsHead,
+      engineState.globalPendingCommandsHead
     );
   }
 
   for (const [worldId, world] of engineState.worlds) {
-    if (
-      collectedCount >= MAX_BATCH_COMMANDS ||
-      collectedBytes >= MAX_BATCH_ESTIMATED_BYTES
-    ) {
+    if (collectedCount >= MAX_BATCH_COMMANDS || collectedBytes >= MAX_BATCH_ESTIMATED_BYTES) {
       // Backpressure: If we reached the limit, stop collecting for this frame.
       // Remaining commands will wait for the next frame.
       break;
     }
+
+    compactPendingCommands(world.pendingCommands, world.pendingCommandsHead);
 
     const worldAvailable = world.pendingCommands.length - world.pendingCommandsHead;
     if (worldAvailable > 0) {
@@ -185,7 +344,7 @@ export function collectCommands(): void {
       world.pendingCommandsHead = end;
       world.pendingCommandsHead = maybeCompactQueue(
         world.pendingCommands,
-        world.pendingCommandsHead,
+        world.pendingCommandsHead
       );
     }
   }
@@ -229,25 +388,18 @@ function extractEventScopeIds(event: EngineEvent): {
   realmId?: number;
   targetId?: number;
 } {
-  const content = event.content as
-    | { data?: Record<string, unknown> }
-    | Record<string, unknown>;
+  const content = event.content as { data?: Record<string, unknown> } | Record<string, unknown>;
   const scopedDataCandidate =
-    'data' in content && content.data && typeof content.data === 'object'
-      ? content.data
-      : content;
+    'data' in content && content.data && typeof content.data === 'object' ? content.data : content;
 
   if (!scopedDataCandidate || typeof scopedDataCandidate !== 'object') {
     return {};
   }
   const scopedData = scopedDataCandidate as Record<string, unknown>;
 
-  const windowId =
-    typeof scopedData.windowId === 'number' ? scopedData.windowId : undefined;
-  const realmId =
-    typeof scopedData.realmId === 'number' ? scopedData.realmId : undefined;
-  const targetId =
-    typeof scopedData.targetId === 'number' ? scopedData.targetId : undefined;
+  const windowId = typeof scopedData.windowId === 'number' ? scopedData.windowId : undefined;
+  const realmId = typeof scopedData.realmId === 'number' ? scopedData.realmId : undefined;
+  const targetId = typeof scopedData.targetId === 'number' ? scopedData.targetId : undefined;
 
   return { windowId, realmId, targetId };
 }

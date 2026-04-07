@@ -3,47 +3,50 @@ import {
   getArtifactFileName,
   resolveNativePlatform,
   selectPlatformLoader,
-  type PlatformLoaderMap
+  type PlatformLoaderMap,
 } from '@vulfram/transport-types';
 import type { BufferResult } from './types';
 import { createRequire } from 'module';
+import { dirname, join } from 'path';
+import { existsSync } from 'fs';
+import { fileURLToPath } from 'url';
 
 const requireNative = createRequire(import.meta.url);
 
-const loaders: PlatformLoaderMap<{ default: string }> = {
+const bundledLoaders: PlatformLoaderMap<{ default: string }> = {
   darwin: {
     arm64: () =>
       // @ts-expect-error
-      import('../../lib/macos-arm64/vulfram_core.node', {
+      import('../../dist/macos-arm64/vulfram_core.node', {
         with: { type: 'file' }
       }),
     x64: () =>
       // @ts-expect-error
-      import('../../lib/macos-x64/vulfram_core.node', {
+      import('../../dist/macos-x64/vulfram_core.node', {
         with: { type: 'file' }
       })
   },
   linux: {
     arm64: () =>
       // @ts-expect-error
-      import('../../lib/linux-arm64/vulfram_core.node', {
+      import('../../dist/linux-arm64/vulfram_core.node', {
         with: { type: 'file' }
       }),
     x64: () =>
       // @ts-expect-error
-      import('../../lib/linux-x64/vulfram_core.node', {
+      import('../../dist/linux-x64/vulfram_core.node', {
         with: { type: 'file' }
       })
   },
   win32: {
     arm64: () =>
       // @ts-expect-error
-      import('../../lib/windows-arm64/vulfram_core.node', {
+      import('../../dist/windows-arm64/vulfram_core.node', {
         with: { type: 'file' }
       }),
     x64: () =>
       // @ts-expect-error
-      import('../../lib/windows-x64/vulfram_core.node', {
+      import('../../dist/windows-x64/vulfram_core.node', {
         with: { type: 'file' }
       })
   }
@@ -53,16 +56,29 @@ function getExpectedLocalArtifact(): string {
   try {
     const platform = resolveNativePlatform();
     const filename = getArtifactFileName('napi', platform);
-    return `../../lib/${platform}/${filename}`;
+    return `../../dist/${platform}/${filename}`;
   } catch {
-    return '../../lib/<platform>/vulfram_core.node';
+    return '../../dist/<platform>/vulfram_core.node';
   }
 }
 
 async function resolveNativeModulePath(): Promise<string> {
-  const importLoader = selectPlatformLoader(loaders, 'N-API');
+  const platform = resolveNativePlatform();
+  const filename = getArtifactFileName('napi', platform);
+  const moduleDir = dirname(fileURLToPath(import.meta.url));
+  const candidates = [
+    join(moduleDir, '..', '..', 'dist', platform, filename),
+    join(moduleDir, platform, filename),
+    join(moduleDir, '..', platform, filename),
+  ];
 
   try {
+    const resolved = candidates.find((candidate) => existsSync(candidate));
+    if (resolved) {
+      return resolved;
+    }
+
+    const importLoader = selectPlatformLoader(bundledLoaders, 'N-API');
     return (await importLoader()).default;
   } catch (error) {
     const runtime = detectRuntime();

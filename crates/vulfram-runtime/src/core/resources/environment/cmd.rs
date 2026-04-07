@@ -7,6 +7,7 @@ use crate::core::state::EngineState;
 #[serde(rename_all = "camelCase")]
 pub struct CmdEnvironmentCreateArgs {
     pub environment_id: u32,
+    #[serde(default)]
     pub config: EnvironmentConfig,
 }
 
@@ -14,6 +15,7 @@ pub struct CmdEnvironmentCreateArgs {
 #[serde(rename_all = "camelCase")]
 pub struct CmdEnvironmentUpdateArgs {
     pub environment_id: u32,
+    #[serde(default)]
     pub config: EnvironmentConfig,
 }
 

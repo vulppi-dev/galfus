@@ -1,3 +1,4 @@
+import type { vec3 } from 'gl-matrix';
 import type { PrimitiveShape } from '../kinds';
 import type { ResourceEntry } from './resources';
 
@@ -21,7 +22,7 @@ export const GeometryPrimitiveType = {
   Color: 'color' as const,
   UV: 'u-v' as const,
   SkinJoints: 'skin-joints' as const,
-  SkinWeights: 'skin-weights' as const,
+  SkinWeights: 'skin-weights' as const
 };
 
 /** Geometry buffer entry describing a single attribute stream. */
@@ -51,9 +52,7 @@ export interface CmdResultGeometryUpsert {
 }
 
 /** Upsert payload accepted by the core (`create` or `update`). */
-export type CmdGeometryUpsertArgs =
-  | CmdGeometryCreateArgs
-  | CmdGeometryUpdateArgs;
+export type CmdGeometryUpsertArgs = CmdGeometryCreateArgs | CmdGeometryUpdateArgs;
 
 /** Backward-compatible aliases. */
 export type CmdResultGeometryCreate = CmdResultGeometryUpsert;
@@ -72,13 +71,13 @@ export interface CmdResultGeometryDispose {
 
 /** Options for cube primitive generation. */
 export interface CubeOptions {
-  size: [number, number, number]; // Vec3 in Rust
+  size: vec3;
   subdivisions: number;
 }
 
 /** Options for plane primitive generation. */
 export interface PlaneOptions {
-  size: [number, number, number]; // Vec3 in Rust
+  size: vec3;
   subdivisions: number;
 }
 
@@ -106,7 +105,7 @@ export interface TorusOptions {
 
 /** Options for pyramid primitive generation. */
 export interface PyramidOptions {
-  size: [number, number, number]; // Vec3 in Rust
+  size: vec3;
   subdivisions: number;
 }
 

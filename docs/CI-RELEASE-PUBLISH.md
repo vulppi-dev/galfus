@@ -1,8 +1,7 @@
 # CI Release Publish
 
-This project publishes binding outputs from GitHub Actions to GitHub Releases
-and npm packages. JSR publishing is temporarily disabled in the release
-workflow.
+This project publishes binding outputs from GitHub Actions to GitHub Releases,
+npm packages, and a selected subset of JSR packages.
 
 ## Branch convention
 
@@ -78,19 +77,39 @@ npm dist-tags are mapped directly from the branch channel:
 
 npm publishing uses GitHub Actions OIDC trusted publishing and provenance.
 
+## Local binding build
+
+For local validation before publishing, use:
+
+- `bun run build:local-bindings`
+
+This builds artifacts for the current native platform into the same local paths
+consumed by:
+
+- `packages/transport-bun/dist/<platform>/`
+- `packages/transport-napi/dist/<platform>/`
+- `packages/transport-browser/dist/`
+
+Optional flags:
+
+- `--mode debug`
+- `--skip-bun`
+- `--skip-napi`
+- `--skip-wasm`
+
 ## JSR publish behavior
 
-The JSR publish job is temporarily disabled in the workflow.
+The JSR publish job is enabled only for packages with registry-safe payloads:
 
-Reason: the current publish payload is about 90 MB, while JSR currently accepts
-up to 20 MB per package version.
+- `@vulfram/transport-types`
+- `@vulfram/transport-browser`
+- `@vulfram/engine`
+- `@vulfram/gltf-loader`
+- `@vulfram/camera-control`
 
-`@vulfram/transport-types` is intentionally excluded from automatic publishing
-and stays manual because its version is stable and no longer changes in the
-normal release flow.
-
-The temporary JSR disablement will be revisited after the package layout is
-adjusted to fit the current registry limit.
+`@vulfram/transport-bun` and `@vulfram/transport-napi` remain excluded from JSR
+because their native multi-platform artifacts make the publish payload too
+large for the registry.
 
 ## OIDC setup guide
 
@@ -99,7 +118,7 @@ adjusted to fit the current registry limit.
 ## Publish behavior
 
 - `push` on promotion branches builds, publishes the grouped GitHub Release, and
-  runs the npm publish job.
+  runs the npm and JSR publish jobs.
 - `pull_request` runs build/validation and packages grouped bind archives without publishing.
 - `workflow_dispatch` follows the same publish path as `push`, as long as it runs from a valid
   promotion branch.

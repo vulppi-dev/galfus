@@ -83,6 +83,10 @@ pub fn window_size_default() -> glam::UVec2 {
     glam::UVec2::new(800, 600)
 }
 
+fn window_resizable_default() -> bool {
+    true
+}
+
 #[derive(Debug, Clone, Copy, Default, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "kebab-case")]
 pub enum CursorGrabMode {
@@ -296,7 +300,7 @@ pub struct CmdWindowCreateArgs {
     pub canvas_id: Option<String>,
     #[serde(default)]
     pub borderless: bool,
-    #[serde(default)]
+    #[serde(default = "window_resizable_default")]
     pub resizable: bool,
     #[serde(default)]
     pub transparent: bool,

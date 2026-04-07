@@ -2,6 +2,7 @@
 use crate::core::platform::winit::dpi::{PhysicalPosition, PhysicalSize};
 
 use crate::core::state::EngineState;
+#[cfg(not(target_arch = "wasm32"))]
 use glam::IVec2;
 use glam::UVec2;
 pub use vulfram_protocol::{CmdResultWindowMeasurement, CmdWindowMeasurementArgs};

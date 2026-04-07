@@ -1,3 +1,4 @@
+import type { vec3, vec4 } from 'gl-matrix';
 import type {
   CmdUiAccessKitActionRequestArgs,
   CmdUiApplyOpsArgs,
@@ -16,7 +17,7 @@ import type {
   CmdUiImageDisposeArgs,
   CmdUiScreenshotReplyArgs,
   CmdUiThemeDefineArgs,
-  CmdUiThemeDisposeArgs,
+  CmdUiThemeDisposeArgs
 } from '../../types/cmds/ui';
 import type { EnvironmentConfig } from '../../types/cmds/environment';
 import type { ShadowConfig } from '../../types/cmds/shadow';
@@ -32,20 +33,14 @@ import type {
   TagProps,
   TextureProps,
   TransformProps,
-  UiFocusCycleMode,
+  UiFocusCycleMode
 } from './components';
 
 export type Intent =
   | { type: 'configure-environment'; config: EnvironmentConfig }
   | {
       type: 'request-resource-list';
-      resourceType:
-        | 'model'
-        | 'material'
-        | 'texture'
-        | 'geometry'
-        | 'light'
-        | 'camera';
+      resourceType: 'model' | 'material' | 'texture' | 'geometry' | 'light' | 'camera';
     }
   | { type: 'create-entity'; worldId: number; entityId: number }
   | { type: 'remove-entity'; entityId: number }
@@ -91,22 +86,22 @@ export type Intent =
   | { type: 'configure-shadows'; config: ShadowConfig }
   | {
       type: 'gizmo-draw-line';
-      start: [number, number, number];
-      end: [number, number, number];
-      color: [number, number, number, number];
+      start: vec3;
+      end: vec3;
+      color: vec4;
       thickness?: number;
     }
   | {
       type: 'gizmo-draw-aabb';
-      min: [number, number, number];
-      max: [number, number, number];
-      color: [number, number, number, number];
+      min: vec3;
+      max: vec3;
+      color: vec4;
       thickness?: number;
     }
   | {
       type: 'gizmo-draw-polyline';
-      points: [number, number, number][];
-      color: [number, number, number, number];
+      points: vec3[];
+      color: vec4;
       closed?: boolean;
       thickness?: number;
     }

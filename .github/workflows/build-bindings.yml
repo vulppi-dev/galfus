@@ -487,9 +487,9 @@ jobs:
             find "${TARGET}" -mindepth 1 ! -name '.gitkeep' -exec rm -rf {} +
           }
 
-          clean_dir packages/transport-bun/lib
-          clean_dir packages/transport-napi/lib
-          clean_dir packages/transport-browser/lib
+          clean_dir packages/transport-bun/dist
+          clean_dir packages/transport-napi/dist
+          clean_dir packages/transport-browser/dist
 
           shopt -s nullglob
           for artifact_dir in dist/raw-binding-*; do
@@ -499,19 +499,19 @@ jobs:
             PLATFORM="${REST#${BINDING}-}"
 
             if [[ "${BINDING}" == "ffi" ]]; then
-              mkdir -p "packages/transport-bun/lib/${PLATFORM}"
-              cp -R "${artifact_dir}/." "packages/transport-bun/lib/${PLATFORM}/"
+              mkdir -p "packages/transport-bun/dist/${PLATFORM}"
+              cp -R "${artifact_dir}/." "packages/transport-bun/dist/${PLATFORM}/"
               continue
             fi
 
             if [[ "${BINDING}" == "napi" ]]; then
-              mkdir -p "packages/transport-napi/lib/${PLATFORM}"
-              cp -R "${artifact_dir}/." "packages/transport-napi/lib/${PLATFORM}/"
+              mkdir -p "packages/transport-napi/dist/${PLATFORM}"
+              cp -R "${artifact_dir}/." "packages/transport-napi/dist/${PLATFORM}/"
               continue
             fi
 
             if [[ "${BINDING}" == "wasm" && "${PLATFORM}" == "browser" ]]; then
-              cp -R "${artifact_dir}/." "packages/transport-browser/lib/"
+              cp -R "${artifact_dir}/." "packages/transport-browser/dist/"
             fi
           done
 
@@ -577,7 +577,8 @@ jobs:
 
   publish-jsr-packages:
     name: Publish JSR packages
-    if: false # Temporarily disabled: current JSR package payload is ~90MB and exceeds the 20MB limit.
+    if: false
+    # if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     needs:
       - resolve-meta
       - publish-github-release
@@ -615,7 +616,7 @@ jobs:
             find "${TARGET}" -mindepth 1 ! -name '.gitkeep' -exec rm -rf {} +
           }
 
-          clean_dir packages/transport-browser/lib
+          clean_dir packages/transport-browser/dist
 
           shopt -s nullglob
           for artifact_dir in dist/raw-binding-*; do
@@ -625,7 +626,7 @@ jobs:
             PLATFORM="${REST#${BINDING}-}"
 
             if [[ "${BINDING}" == "wasm" && "${PLATFORM}" == "browser" ]]; then
-              cp -R "${artifact_dir}/." "packages/transport-browser/lib/"
+              cp -R "${artifact_dir}/." "packages/transport-browser/dist/"
             fi
           done
 
@@ -666,6 +667,10 @@ jobs:
             echo "JSR publish failed for ${PACKAGE_NAME}@${PACKAGE_VERSION}."
             exit 1
           }
+
+          pushd packages/transport-types >/dev/null
+          publish_jsr_package
+          popd >/dev/null
 
           pushd packages/transport-browser >/dev/null
           publish_jsr_package

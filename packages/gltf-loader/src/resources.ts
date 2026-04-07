@@ -5,8 +5,9 @@ import {
   create3DTexture,
   type GeometryId,
   type MaterialId,
-  type TextureId,
+  type TextureId
 } from '@vulfram/engine/world3d';
+import { vec4 } from 'gl-matrix';
 import type { GeometryPrimitiveEntry } from '@vulfram/engine/types';
 import { uploadBytes } from './context';
 import {
@@ -14,15 +15,11 @@ import {
   accessorToStreamBytes,
   samplerFromTextureInfo,
   semanticToPrimitiveType,
-  toArray4,
+  toVec4
 } from './convert';
 import type { LoaderContext } from './types';
 
-function uploadVertexAccessor(
-  ctx: LoaderContext,
-  accessor: Accessor,
-  semantic: string,
-): number {
+function uploadVertexAccessor(ctx: LoaderContext, accessor: Accessor, semantic: string): number {
   const cached = ctx.uploadedVertexByAccessor.get(accessor);
   if (cached !== undefined) return cached;
 
@@ -46,14 +43,14 @@ function uploadIndexAccessor(ctx: LoaderContext, accessor: Accessor): number {
 export function ensureTexture(
   ctx: LoaderContext,
   texture: Texture,
-  srgb: boolean,
+  srgb: boolean
 ): TextureId | null {
   const existing = ctx.textureBySource.get(texture);
   if (existing !== undefined) {
     const previous = ctx.textureColorSpaceHint.get(texture);
     if (previous !== undefined && previous !== srgb) {
       ctx.warnings.push(
-        `Texture "${texture.getName() || 'unnamed'}" reused with mixed color-space expectations; keeping first value (srgb=${previous}).`,
+        `Texture "${texture.getName() || 'unnamed'}" reused with mixed color-space expectations; keeping first value (srgb=${previous}).`
       );
     }
     return existing;
@@ -62,7 +59,7 @@ export function ensureTexture(
   const image = texture.getImage();
   if (!image) {
     ctx.warnings.push(
-      `Texture "${texture.getName() || 'unnamed'}" has no image bytes and was skipped.`,
+      `Texture "${texture.getName() || 'unnamed'}" has no image bytes and was skipped.`
     );
     return null;
   }
@@ -72,7 +69,7 @@ export function ensureTexture(
     label: `${ctx.labelPrefix}:tex:${texture.getName() || 'unnamed'}`,
     source: { type: 'buffer', bufferId },
     srgb,
-    mode: 'standalone',
+    mode: 'standalone'
   });
 
   ctx.textureBySource.set(texture, textureId);
@@ -98,11 +95,11 @@ function ensureDefaultMaterial(ctx: LoaderContext): MaterialId {
       options: {
         type: 'standard',
         content: {
-          baseColor: [1, 1, 1, 1],
+          baseColor: vec4.fromValues(1, 1, 1, 1),
           surfaceType: 'opaque',
-          flags: 0,
-        },
-      },
+          flags: 0
+        }
+      }
     });
 
     ctx.defaultMaterialId = id;
@@ -117,16 +114,16 @@ function ensureDefaultMaterial(ctx: LoaderContext): MaterialId {
     options: {
       type: 'pbr',
       content: {
-        baseColor: [1, 1, 1, 1],
+        baseColor: vec4.fromValues(1, 1, 1, 1),
         surfaceType: 'opaque',
-        emissiveColor: [0, 0, 0, 1],
+        emissiveColor: vec4.fromValues(0, 0, 0, 1),
         metallic: 0,
         roughness: 1,
         ao: 1,
         normalScale: 1,
-        flags: 0,
-      },
-    },
+        flags: 0
+      }
+    }
   });
 
   ctx.defaultMaterialId = id;
@@ -169,14 +166,14 @@ export function ensureMaterial(ctx: LoaderContext, material: Material | null): M
         ? {
             type: 'pbr' as const,
             content: {
-              baseColor: toArray4(material.getBaseColorFactor(), 1),
+              baseColor: toVec4(material.getBaseColorFactor(), 1),
               surfaceType: alphaModeToSurfaceType(material.getAlphaMode()),
-              emissiveColor: [
+              emissiveColor: vec4.fromValues(
                 emissiveFactor[0] ?? 0,
                 emissiveFactor[1] ?? 0,
                 emissiveFactor[2] ?? 0,
-                1,
-              ] as [number, number, number, number],
+                1
+              ),
               metallic: material.getMetallicFactor(),
               roughness: material.getRoughnessFactor(),
               ao: material.getOcclusionStrength(),
@@ -191,20 +188,20 @@ export function ensureMaterial(ctx: LoaderContext, material: Material | null): M
               emissiveSampler,
               aoTexId,
               aoSampler,
-              flags: material.getDoubleSided() ? 1 : 0,
-            },
+              flags: material.getDoubleSided() ? 1 : 0
+            }
           }
         : {
             type: 'standard' as const,
             content: {
-              baseColor: toArray4(material.getBaseColorFactor(), 1),
+              baseColor: toVec4(material.getBaseColorFactor(), 1),
               surfaceType: alphaModeToSurfaceType(material.getAlphaMode()),
-              specColor: [
+              specColor: vec4.fromValues(
                 material.getMetallicFactor(),
                 material.getRoughnessFactor(),
                 material.getOcclusionStrength(),
-                1,
-              ] as [number, number, number, number],
+                1
+              ),
               specPower: 32,
               baseTexId,
               baseSampler,
@@ -212,10 +209,10 @@ export function ensureMaterial(ctx: LoaderContext, material: Material | null): M
               normalSampler,
               specTexId: mrTexId,
               specSampler: mrSampler,
-              flags: material.getDoubleSided() ? 1 : 0,
-            },
-          }),
-    },
+              flags: material.getDoubleSided() ? 1 : 0
+            }
+          })
+    }
   });
 
   ctx.materialBySource.set(material, materialId);
@@ -227,14 +224,14 @@ export function ensureMaterial(ctx: LoaderContext, material: Material | null): M
 /** Ensures a core geometry exists for source primitive. */
 export function ensurePrimitiveGeometry(
   ctx: LoaderContext,
-  primitive: Primitive,
+  primitive: Primitive
 ): GeometryId | null {
   const existing = ctx.geometryByPrimitive.get(primitive);
   if (existing !== undefined) return existing;
 
   if (primitive.getMode() !== Primitive.Mode.TRIANGLES) {
     ctx.warnings.push(
-      `Primitive mode ${primitive.getMode()} is not supported in v1 loader (triangles only). Primitive skipped.`,
+      `Primitive mode ${primitive.getMode()} is not supported in v1 loader (triangles only). Primitive skipped.`
     );
     return null;
   }
@@ -244,7 +241,7 @@ export function ensurePrimitiveGeometry(
   if (indexAccessor) {
     entries.push({
       primitiveType: 'index',
-      bufferId: uploadIndexAccessor(ctx, indexAccessor),
+      bufferId: uploadIndexAccessor(ctx, indexAccessor)
     });
   }
 
@@ -254,7 +251,7 @@ export function ensurePrimitiveGeometry(
     'TANGENT',
     'COLOR_0',
     'TEXCOORD_0',
-    'TEXCOORD_1',
+    'TEXCOORD_1'
   ] as const;
 
   let hasPosition = false;
@@ -273,7 +270,7 @@ export function ensurePrimitiveGeometry(
 
     entries.push({
       primitiveType,
-      bufferId: uploadVertexAccessor(ctx, accessor, semantic),
+      bufferId: uploadVertexAccessor(ctx, accessor, semantic)
     });
   }
 
@@ -285,7 +282,7 @@ export function ensurePrimitiveGeometry(
   const geometryId = create3DGeometry(ctx.worldId, {
     type: 'custom',
     label: `${ctx.labelPrefix}:geo:${primitive.getName() || 'unnamed'}`,
-    entries,
+    entries
   });
 
   ctx.geometryByPrimitive.set(primitive, geometryId);

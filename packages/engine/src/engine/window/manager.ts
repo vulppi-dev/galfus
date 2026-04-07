@@ -1,10 +1,6 @@
+import type { vec2 } from 'gl-matrix';
 import type { CmdWindowCloseArgs, CmdWindowCreateArgs } from '../../types/cmds/window';
-import type {
-  CursorGrabMode,
-  CursorIcon,
-  UserAttentionType,
-  WindowState,
-} from '../../types/kinds';
+import type { CursorGrabMode, CursorIcon, UserAttentionType, WindowState } from '../../types/kinds';
 import { enqueueGlobalCommand } from '../bridge/dispatch';
 import { requireInitialized } from '../bridge/guards';
 import { engineState } from '../state';
@@ -13,8 +9,8 @@ import { asCommandId, asWindowId } from '../world/types';
 
 export interface WindowProps {
   title?: string;
-  position?: [number, number];
-  size?: [number, number];
+  position?: vec2;
+  size?: vec2;
   state?: WindowState;
   resizable?: boolean;
   decorations?: boolean;
@@ -25,9 +21,9 @@ export interface WindowProps {
 }
 
 export interface CreateWindowProps {
-  title: string;
-  size: [number, number];
-  position: [number, number];
+  title?: string;
+  size?: vec2;
+  position?: vec2;
   canvasId?: string;
   borderless?: boolean;
   resizable?: boolean;
@@ -52,7 +48,7 @@ function allocateWindowId(): WindowId {
  */
 export function createWindow(
   props: CreateWindowProps,
-  windowId?: WindowId,
+  windowId?: WindowId
 ): { windowId: WindowId; commandId: CommandId } {
   requireInitialized();
   const resolvedWindowId = windowId ?? allocateWindowId();
@@ -65,16 +61,13 @@ export function createWindow(
     size: props.size,
     position: props.position,
     canvasId: props.canvasId,
-    borderless: props.borderless ?? false,
-    resizable: props.resizable ?? true,
-    transparent: props.transparent ?? false,
-    initialState: props.initialState ?? 'windowed',
+    borderless: props.borderless,
+    resizable: props.resizable,
+    transparent: props.transparent,
+    initialState: props.initialState
   };
   const commandId = enqueueGlobalCommand('cmd-window-create', payload);
-  engineState.pendingWindowCreateByCommandId.set(
-    commandId,
-    resolvedWindowId as number,
-  );
+  engineState.pendingWindowCreateByCommandId.set(commandId, resolvedWindowId as number);
   return { windowId: resolvedWindowId, commandId: asCommandId(commandId) };
 }
 
@@ -97,13 +90,15 @@ export function updateWindow(windowId: WindowId, props: WindowProps): CommandId[
   const commandIds: CommandId[] = [];
 
   if (props.position !== undefined || props.size !== undefined) {
-    commandIds.push(asCommandId(
-      enqueueGlobalCommand('cmd-window-measurement', {
-        windowId: windowId as number,
-        position: props.position,
-        size: props.size,
-      }),
-    ));
+    commandIds.push(
+      asCommandId(
+        enqueueGlobalCommand('cmd-window-measurement', {
+          windowId: windowId as number,
+          position: props.position,
+          size: props.size
+        })
+      )
+    );
   }
   if (
     props.title !== undefined ||
@@ -112,30 +107,34 @@ export function updateWindow(windowId: WindowId, props: WindowProps): CommandId[
     props.decorations !== undefined ||
     props.icon !== undefined
   ) {
-    commandIds.push(asCommandId(
-      enqueueGlobalCommand('cmd-window-state', {
-        windowId: windowId as number,
-        title: props.title,
-        state: props.state,
-        resizable: props.resizable,
-        decorations: props.decorations,
-        iconBufferId: props.icon,
-      }),
-    ));
+    commandIds.push(
+      asCommandId(
+        enqueueGlobalCommand('cmd-window-state', {
+          windowId: windowId as number,
+          title: props.title,
+          state: props.state,
+          resizable: props.resizable,
+          decorations: props.decorations,
+          iconBufferId: props.icon
+        })
+      )
+    );
   }
   if (
     props.cursorVisible !== undefined ||
     props.cursorGrab !== undefined ||
     props.cursorIcon !== undefined
   ) {
-    commandIds.push(asCommandId(
-      enqueueGlobalCommand('cmd-window-cursor', {
-        windowId: windowId as number,
-        visible: props.cursorVisible,
-        mode: props.cursorGrab,
-        icon: props.cursorIcon,
-      }),
-    ));
+    commandIds.push(
+      asCommandId(
+        enqueueGlobalCommand('cmd-window-cursor', {
+          windowId: windowId as number,
+          visible: props.cursorVisible,
+          mode: props.cursorGrab,
+          icon: props.cursorIcon
+        })
+      )
+    );
   }
 
   return commandIds;
@@ -146,23 +145,24 @@ export function updateWindow(windowId: WindowId, props: WindowProps): CommandId[
  *
  * This does not guarantee foreground focus; behavior depends on host platform policy.
  */
-export function requestAttention(
-  windowId: WindowId,
-  attentionType?: UserAttentionType,
-): CommandId {
+export function requestAttention(windowId: WindowId, attentionType?: UserAttentionType): CommandId {
   requireInitialized();
-  return asCommandId(enqueueGlobalCommand('cmd-window-state', {
-    windowId: windowId as number,
-    action: 'request-attention',
-    attentionType,
-  }));
+  return asCommandId(
+    enqueueGlobalCommand('cmd-window-state', {
+      windowId: windowId as number,
+      action: 'request-attention',
+      attentionType
+    })
+  );
 }
 
 /** Requests input focus for a window. */
 export function focusWindow(windowId: WindowId): CommandId {
   requireInitialized();
-  return asCommandId(enqueueGlobalCommand('cmd-window-state', {
-    windowId: windowId as number,
-    action: 'focus',
-  }));
+  return asCommandId(
+    enqueueGlobalCommand('cmd-window-state', {
+      windowId: windowId as number,
+      action: 'focus'
+    })
+  );
 }

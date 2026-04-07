@@ -1,3 +1,4 @@
+import { quat, vec3, vec4 } from 'gl-matrix';
 import { EngineError } from '../../errors';
 import { getWorldOrThrow, requireInitialized } from '../../bridge/guards';
 import { engineState } from '../../state';
@@ -10,27 +11,37 @@ import type {
   TagProps,
   TextureProps,
   TransformComponent,
-  TransformProps,
+  TransformProps
 } from '../../ecs';
 import { allocateGlobalId } from './common';
 import { emitIntent } from './intents';
+
+function hasTransformPatch(props: TransformProps): boolean {
+  return (
+    props.position !== undefined ||
+    props.rotation !== undefined ||
+    props.scale !== undefined ||
+    props.layerMask !== undefined ||
+    props.visible !== undefined
+  );
+}
 
 /** Draws a debug gizmo line for one frame. */
 export function drawGizmoLine(
   worldId: number,
   props: {
-    start: [number, number, number];
-    end: [number, number, number];
-    color?: [number, number, number, number];
+    start: vec3;
+    end: vec3;
+    color?: vec4;
     thickness?: number;
-  },
+  }
 ): void {
   emitIntent(worldId, {
     type: 'gizmo-draw-line',
     start: props.start,
     end: props.end,
-    color: props.color || [1, 1, 1, 1],
-    thickness: props.thickness,
+    color: props.color || vec4.fromValues(1, 1, 1, 1),
+    thickness: props.thickness
   });
 }
 
@@ -38,18 +49,18 @@ export function drawGizmoLine(
 export function drawGizmoAabb(
   worldId: number,
   props: {
-    min: [number, number, number];
-    max: [number, number, number];
-    color?: [number, number, number, number];
+    min: vec3;
+    max: vec3;
+    color?: vec4;
     thickness?: number;
-  },
+  }
 ): void {
   emitIntent(worldId, {
     type: 'gizmo-draw-aabb',
     min: props.min,
     max: props.max,
-    color: props.color || [1, 1, 1, 1],
-    thickness: props.thickness,
+    color: props.color || vec4.fromValues(1, 1, 1, 1),
+    thickness: props.thickness
   });
 }
 
@@ -57,18 +68,18 @@ export function drawGizmoAabb(
 export function drawGizmoPolyline(
   worldId: number,
   props: {
-    points: [number, number, number][];
-    color?: [number, number, number, number];
+    points: vec3[];
+    color?: vec4;
     closed?: boolean;
     thickness?: number;
-  },
+  }
 ): void {
   emitIntent(worldId, {
     type: 'gizmo-draw-polyline',
     points: props.points,
-    color: props.color || [1, 1, 1, 1],
+    color: props.color || vec4.fromValues(1, 1, 1, 1),
     closed: props.closed,
-    thickness: props.thickness,
+    thickness: props.thickness
   });
 }
 
@@ -83,7 +94,7 @@ export function createEntity(worldId: number): number {
   emitIntent(worldId, {
     type: 'create-entity',
     worldId,
-    entityId,
+    entityId
   });
 
   return entityId;
@@ -93,55 +104,43 @@ export function createEntity(worldId: number): number {
 export function removeEntity(worldId: number, entityId: number): void {
   emitIntent(worldId, {
     type: 'remove-entity',
-    entityId,
+    entityId
   });
 }
 
 /** Attaches a camera component to an entity via Intent. */
-export function createCamera(
-  worldId: number,
-  entityId: number,
-  props: CameraProps = {},
-): void {
+export function createCamera(worldId: number, entityId: number, props: CameraProps = {}): void {
   emitIntent(worldId, {
     type: 'attach-camera',
     entityId,
-    props,
+    props
   });
 }
 
 /** Attaches a light component to an entity via Intent. */
-export function createLight(
-  worldId: number,
-  entityId: number,
-  props: LightProps = {},
-): void {
+export function createLight(worldId: number, entityId: number, props: LightProps = {}): void {
   emitIntent(worldId, {
     type: 'attach-light',
     entityId,
-    props,
+    props
   });
 }
 
 /** Attaches a model component to an entity via Intent. */
-export function createModel(
-  worldId: number,
-  entityId: number,
-  props: ModelProps,
-): void {
+export function createModel(worldId: number, entityId: number, props: ModelProps): void {
   emitIntent(worldId, {
     type: 'attach-model',
     entityId,
-    props,
+    props
   });
 }
 
 /** Updates an entity's transform via Intent. */
-export function updateTransform(
-  worldId: number,
-  entityId: number,
-  props: TransformProps,
-): void {
+export function updateTransform(worldId: number, entityId: number, props: TransformProps): void {
+  if (!hasTransformPatch(props)) {
+    return;
+  }
+
   // Apply immediately to local ECS snapshot so same-frame queries
   // (for example gizmo/collision helpers) observe latest transform.
   // Intent is still emitted to keep the standard system pipeline authoritative.
@@ -150,26 +149,26 @@ export function updateTransform(
   const transform = store?.get('Transform') as TransformComponent | undefined;
   if (transform) {
     if (props.position) {
-      transform.position = [
+      transform.position = vec3.fromValues(
         props.position[0] ?? transform.position[0],
         props.position[1] ?? transform.position[1],
-        props.position[2] ?? transform.position[2],
-      ];
+        props.position[2] ?? transform.position[2]
+      );
     }
     if (props.rotation) {
-      transform.rotation = [
+      transform.rotation = quat.fromValues(
         props.rotation[0] ?? transform.rotation[0],
         props.rotation[1] ?? transform.rotation[1],
         props.rotation[2] ?? transform.rotation[2],
-        props.rotation[3] ?? transform.rotation[3],
-      ];
+        props.rotation[3] ?? transform.rotation[3]
+      );
     }
     if (props.scale) {
-      transform.scale = [
+      transform.scale = vec3.fromValues(
         props.scale[0] ?? transform.scale[0],
         props.scale[1] ?? transform.scale[1],
-        props.scale[2] ?? transform.scale[2],
-      ];
+        props.scale[2] ?? transform.scale[2]
+      );
     }
     if (props.layerMask !== undefined) {
       transform.layerMask = props.layerMask;
@@ -183,39 +182,28 @@ export function updateTransform(
   emitIntent(worldId, {
     type: 'update-transform',
     entityId,
-    props,
+    props
   });
 }
 
 /** Attaches a tag component to an entity via Intent. */
-export function createTag(
-  worldId: number,
-  entityId: number,
-  props: TagProps,
-): void {
+export function createTag(worldId: number, entityId: number, props: TagProps): void {
   emitIntent(worldId, {
     type: 'attach-tag',
     entityId,
-    props,
+    props
   });
 }
 
 /** Sets the parent of an entity via Intent. */
-export function setParent(
-  worldId: number,
-  entityId: number,
-  parentId: number | null,
-): void {
+export function setParent(worldId: number, entityId: number, parentId: number | null): void {
   if (parentId !== null && parentId === entityId) {
-    throw new EngineError(
-      'InvalidParent',
-      `Entity ${entityId} cannot be parent of itself.`,
-    );
+    throw new EngineError('InvalidParent', `Entity ${entityId} cannot be parent of itself.`);
   }
   emitIntent(worldId, {
     type: 'set-parent',
     entityId,
-    parentId,
+    parentId
   });
 }
 
@@ -228,7 +216,7 @@ export function createMaterial(worldId: number, props: MaterialProps): number {
   emitIntent(worldId, {
     type: 'create-material',
     resourceId,
-    props,
+    props
   });
 
   return resourceId;
@@ -243,7 +231,7 @@ export function createGeometry(worldId: number, props: GeometryProps): number {
   emitIntent(worldId, {
     type: 'create-geometry',
     resourceId,
-    props,
+    props
   });
 
   return resourceId;
@@ -258,7 +246,7 @@ export function createTexture(worldId: number, props: TextureProps): number {
   emitIntent(worldId, {
     type: 'create-texture',
     resourceId,
-    props,
+    props
   });
 
   return resourceId;

@@ -14,11 +14,13 @@
   "scripts": {
     "check": "bun scripts/check.ts",
     "lint": "bun scripts/lint.ts",
+    "build:local": "bun scripts/build-local-bindings.ts",
     "artifacts": "bun scripts/artifacts.ts",
     "version": "bun scripts/set-version.ts",
     "release-meta": "bun scripts/release-meta.ts",
     "core-version": "bun scripts/core-version.ts",
     "demo": "bun run --cwd apps/demos demo",
+    "demo:web": "bun run --cwd apps/demos dev",
     "format": "prettier --write \"scripts/**/*.ts\" \"packages/**/*.ts\" \"apps/**/*.ts\""
   },
   "devDependencies": {

@@ -84,6 +84,9 @@ type UIFocusNextArgs = {
   formId?: string;
 };
 
+type CreateUIDocumentArgs = Omit<CmdUiDocumentCreateArgs, 'realmId'>;
+type SetUIFocusArgs = Omit<CmdUiFocusSetArgs, 'windowId' | 'realmId'>;
+
 function resolveWorldUIContext(worldId: number): {
   windowId: number;
   realmId: number;
@@ -169,9 +172,14 @@ export function disposeUITheme(
 /** Creates a document in a UI world. */
 export function createUIDocument(
   worldId: WorldUIId,
-  args: CmdUiDocumentCreateArgs,
+  args: CreateUIDocumentArgs,
 ): void {
-  uiCreateDocumentRaw(asWorldNumber(worldId), args);
+  const rawWorldId = asWorldNumber(worldId);
+  const context = resolveWorldUIContext(rawWorldId);
+  uiCreateDocumentRaw(rawWorldId, {
+    ...args,
+    realmId: context.realmId,
+  });
 }
 
 /** Disposes a document in a UI world. */
@@ -225,8 +233,14 @@ export function setUIDebug(worldId: WorldUIId, args: CmdUiDebugSetArgs): void {
 }
 
 /** Sets focus in a UI world. */
-export function setUIFocus(worldId: WorldUIId, args: CmdUiFocusSetArgs): void {
-  uiSetFocusRaw(asWorldNumber(worldId), args);
+export function setUIFocus(worldId: WorldUIId, args: SetUIFocusArgs): void {
+  const rawWorldId = asWorldNumber(worldId);
+  const context = resolveWorldUIContext(rawWorldId);
+  uiSetFocusRaw(rawWorldId, {
+    ...args,
+    windowId: context.windowId,
+    realmId: context.realmId,
+  });
 }
 
 /** Requests focus state in a UI world. */

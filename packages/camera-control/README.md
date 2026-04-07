@@ -13,6 +13,7 @@ Standard camera controllers for `@vulfram/engine`.
 ## Core Behavior
 
 - Pointer input is internally coupled for all controllers.
+- Controller state and transform updates stay in `gl-matrix` `vec3` / `quat` form all the way to `@vulfram/engine`.
 - Current pointer gesture model is mouse-based (`left/middle/right`).
 - Every controller config accepts `pointerDeltaSensitivity` (`1` default) to scale
   pointer-driven rotation/look speed.
@@ -42,16 +43,16 @@ Standard camera controllers for `@vulfram/engine`.
 Use weighted triggers (`1.0` default):
 
 ```ts
-controller.pressForward();       // persistent while pressed
+controller.pressForward(); // persistent while pressed
 controller.releaseForward();
 
-controller.toForward(2.0);       // one-frame impulse
-controller.look(3, -2, 1.5);     // weighted look delta
+controller.toForward(2.0); // one-frame impulse
+controller.look(3, -2, 1.5); // weighted look delta
 ```
 
 Negative weights are accepted:
 
 ```ts
-controller.toForward(-1.0);      // opposite direction
+controller.toForward(-1.0); // opposite direction
 controller.lookAt([0, 1, 0], -1); // longest-arc look rotation
 ```

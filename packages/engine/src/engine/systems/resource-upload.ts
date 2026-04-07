@@ -1,7 +1,6 @@
+import { vec3, type vec4 } from 'gl-matrix';
 import type { TextureCreateMode } from '../../types/kinds';
-import type {
-  PrimitiveOptions,
-} from '../../types/cmds/geometry';
+import type { PrimitiveOptions } from '../../types/cmds/geometry';
 import { enqueueCommand } from '../bridge/dispatch';
 import type { GeometryProps, System } from '../ecs';
 import { normalizeMaterialOptions, normalizePrimitiveOptions } from './utils';
@@ -12,29 +11,33 @@ const RESOURCE_INTENT_TYPES = [
   'create-geometry',
   'dispose-geometry',
   'create-texture',
-  'dispose-texture',
+  'dispose-texture'
 ] as const;
 
-function buildPrimitiveOptions(
-  primitiveProps: Extract<GeometryProps, { type: 'primitive' }>,
+function hasOwnKeys(value: object): boolean {
+  return Object.keys(value).length > 0;
+}
+
+function resolvePrimitiveOptions(
+  primitiveProps: Extract<GeometryProps, { type: 'primitive' }>
 ): PrimitiveOptions {
   const { shape, options } = primitiveProps;
   if (shape === 'cube') {
     return {
       type: 'cube',
       content: {
-        size: options?.size ?? [1.0, 1.0, 1.0],
-        subdivisions: 1,
-      },
+        size: options?.size ?? vec3.fromValues(1, 1, 1),
+        subdivisions: 1
+      }
     };
   }
   if (shape === 'plane') {
     return {
       type: 'plane',
       content: {
-        size: options?.size ?? [1.0, 1.0, 1.0],
-        subdivisions: options?.subdivisions ?? 1,
-      },
+        size: options?.size ?? vec3.fromValues(1, 1, 1),
+        subdivisions: options?.subdivisions ?? 1
+      }
     };
   }
   if (shape === 'sphere') {
@@ -43,8 +46,8 @@ function buildPrimitiveOptions(
       content: {
         radius: options?.radius ?? 0.5,
         sectors: options?.sectors ?? 32,
-        stacks: options?.stacks ?? 16,
-      },
+        stacks: options?.stacks ?? 16
+      }
     };
   }
   if (shape === 'cylinder') {
@@ -53,19 +56,19 @@ function buildPrimitiveOptions(
       content: {
         radius: options?.radius ?? 0.5,
         height: options?.height ?? 1.0,
-        sectors: options?.sectors ?? options?.segments ?? 32,
-      },
+        sectors: options?.sectors ?? options?.segments ?? 32
+      }
     };
   }
   if (shape === 'torus') {
     return {
       type: 'torus',
       content: {
-        majorRadius: options?.majorRadius ?? 0.5,
-        minorRadius: options?.minorRadius ?? 0.25,
+        majorRadius: options?.majorRadius ?? 0.4,
+        minorRadius: options?.minorRadius ?? 0.1,
         majorSegments: options?.majorSegments ?? options?.radialSegments ?? 32,
-        minorSegments: options?.minorSegments ?? options?.tubularSegments ?? 16,
-      },
+        minorSegments: options?.minorSegments ?? options?.tubularSegments ?? 16
+      }
     };
   }
   if (shape === 'pill') {
@@ -75,17 +78,42 @@ function buildPrimitiveOptions(
         radius: options?.radius ?? 0.25,
         height: options?.height ?? 0.5,
         sectors: options?.sectors ?? 32,
-        stacks: options?.stacks ?? 8,
-      },
+        stacks: options?.stacks ?? 8
+      }
     };
   }
   return {
     type: 'pyramid',
     content: {
-      size: options?.size ?? [1.0, 1.0, 1.0],
-      subdivisions: options?.subdivisions ?? 1,
-    },
+      size: options?.size ?? vec3.fromValues(1, 1, 1),
+      subdivisions: options?.subdivisions ?? 1
+    }
   };
+}
+
+function buildPrimitiveOptions(
+  primitiveProps: Extract<GeometryProps, { type: 'primitive' }>
+): PrimitiveOptions | undefined {
+  if (primitiveProps.options === undefined) {
+    return undefined;
+  }
+  const normalized = normalizePrimitiveOptions(resolvePrimitiveOptions(primitiveProps));
+  const defaultOptions = normalizePrimitiveOptions({
+    ...resolvePrimitiveOptions({
+      ...primitiveProps,
+      options: undefined
+    })
+  });
+
+  return JSON.stringify(normalized) === JSON.stringify(defaultOptions) ? undefined : normalized;
+}
+
+function normalizeSparseMaterialOptions(options: Parameters<typeof normalizeMaterialOptions>[0]) {
+  const normalized = normalizeMaterialOptions(options);
+  if (!normalized || !hasOwnKeys(normalized.content)) {
+    return undefined;
+  }
+  return normalized;
 }
 
 /**
@@ -104,67 +132,53 @@ export const ResourceUploadSystem: System = (world, context) => {
     if (!intent) continue;
 
     if (intent.type === 'create-material') {
-      const options = normalizeMaterialOptions(intent.props.options) || {
-        type: 'standard',
-        content: {
-          baseColor: [1, 1, 1, 1],
-          surfaceType: 'opaque',
-          flags: 0,
-        },
-      };
+      const options = normalizeSparseMaterialOptions(intent.props.options);
 
       enqueueCommand(context.worldId, 'cmd-material-upsert', {
         materialId: intent.resourceId,
-        label: intent.props.label || `Mat ${intent.resourceId}`,
-        kind: intent.props.kind ?? 'standard',
-        options: options,
+        label: intent.props.label,
+        kind: intent.props.kind,
+        options
       });
     } else if (intent.type === 'dispose-material') {
       enqueueCommand(context.worldId, 'cmd-material-dispose', {
-        materialId: intent.resourceId,
+        materialId: intent.resourceId
       });
     } else if (intent.type === 'create-geometry') {
       if (intent.props.type === 'primitive') {
-        const options = normalizePrimitiveOptions(
-          buildPrimitiveOptions(intent.props),
-        );
+        const options = buildPrimitiveOptions(intent.props);
 
         enqueueCommand(context.worldId, 'cmd-primitive-geometry-create', {
           geometryId: intent.resourceId,
-          label: intent.props.label || `Geo ${intent.resourceId}`,
+          label: intent.props.label,
           shape: intent.props.shape,
-          options: options,
+          options
         });
       } else {
         enqueueCommand(context.worldId, 'cmd-geometry-upsert', {
           geometryId: intent.resourceId,
-          label: intent.props.label || `Geo ${intent.resourceId}`,
-          entries: intent.props.entries,
+          label: intent.props.label,
+          entries: intent.props.entries
         });
       }
     } else if (intent.type === 'dispose-geometry') {
       enqueueCommand(context.worldId, 'cmd-geometry-dispose', {
-        geometryId: intent.resourceId,
+        geometryId: intent.resourceId
       });
     } else if (intent.type === 'create-texture') {
       if (intent.props.source.type === 'color') {
         const cmd: {
           textureId: number;
-          label: string;
-          color: [number, number, number, number];
-          srgb: boolean;
+          label?: string;
+          color: vec4;
+          srgb?: boolean;
           mode?: TextureCreateMode;
-          atlasOptions?: { tilePx: number; layers: number };
+          atlasOptions?: { tilePx?: number; layers?: number };
         } = {
           textureId: intent.resourceId,
-          label: intent.props.label || `Tex ${intent.resourceId}`,
-          color: Array.from(intent.props.source.color) as [
-            number,
-            number,
-            number,
-            number,
-          ],
-          srgb: intent.props.srgb ?? true,
+          label: intent.props.label,
+          color: intent.props.source.color,
+          srgb: intent.props.srgb
         };
         if (intent.props.mode !== undefined) {
           cmd.mode = intent.props.mode;
@@ -176,16 +190,16 @@ export const ResourceUploadSystem: System = (world, context) => {
       } else {
         const cmd: {
           textureId: number;
-          label: string;
+          label?: string;
           bufferId: number;
-          srgb: boolean;
+          srgb?: boolean;
           mode?: TextureCreateMode;
-          atlasOptions?: { tilePx: number; layers: number };
+          atlasOptions?: { tilePx?: number; layers?: number };
         } = {
           textureId: intent.resourceId,
-          label: intent.props.label || `Tex ${intent.resourceId}`,
+          label: intent.props.label,
           bufferId: intent.props.source.bufferId,
-          srgb: intent.props.srgb ?? true,
+          srgb: intent.props.srgb
         };
         if (intent.props.mode !== undefined) {
           cmd.mode = intent.props.mode;
@@ -197,7 +211,7 @@ export const ResourceUploadSystem: System = (world, context) => {
       }
     } else if (intent.type === 'dispose-texture') {
       enqueueCommand(context.worldId, 'cmd-texture-dispose', {
-        textureId: intent.resourceId,
+        textureId: intent.resourceId
       });
     }
   }

@@ -6,16 +6,16 @@ import {
   tick,
   type EntityId,
   type WindowId,
-  type World3DId,
+  type World3DId
 } from '@vulfram/engine';
 import {
   attachCollisionAabb,
   createPointerRay,
   drawCollisionAabbGizmo,
-  raycastCollisionAabb,
+  raycastCollisionAabb
 } from '@vulfram/engine/helpers';
 import { loadGltfAsset } from '@vulfram/gltf-loader';
-import { mat4, quat } from 'gl-matrix';
+import { mat4, quat, vec2 } from 'gl-matrix';
 import { initWasmTransport, transportWasm } from '@vulfram/transport-browser';
 
 let WORLD_ID = 0 as unknown as World3DId;
@@ -26,7 +26,7 @@ const KeyCode = {
   KeyW: 41,
   KeyS: 37,
   ArrowUp: 74,
-  ArrowDown: 71,
+  ArrowDown: 71
 } as const;
 
 type DemoUpdate = (dt: number) => void;
@@ -53,7 +53,7 @@ function setupCommonWindow(): void {
     size: [1024, 640],
     position: [0, 0],
     resizable: true,
-    canvasId: 'vulfram-canvas',
+    canvasId: 'vulfram-canvas'
   });
   WINDOW_ID = windowId;
   WORLD_ID = World3D.create3DWorld();
@@ -64,32 +64,32 @@ function setupCameraAndLight(): void {
   World3D.update3DTransform(WORLD_ID, cameraEntity, {
     position: [0, 0, 10],
     rotation: [0, 0, 0, 1],
-    scale: [1, 1, 1],
+    scale: [1, 1, 1]
   });
   World3D.create3DCamera(WORLD_ID, cameraEntity, {
     kind: 'perspective',
     near: 0.1,
     far: 100.0,
-    order: 0,
+    order: 0
   });
 
   const lightEntity = World3D.create3DEntity(WORLD_ID);
   World3D.update3DTransform(WORLD_ID, lightEntity, {
     position: [2, 4, 6],
     rotation: [0, 0, 0, 1],
-    scale: [1, 1, 1],
+    scale: [1, 1, 1]
   });
   World3D.create3DLight(WORLD_ID, lightEntity, {
     kind: 'point',
     color: [1, 1, 1],
     intensity: 20.0,
-    range: 50.0,
+    range: 50.0
   });
 
   World3D.configure3DEnvironment(WORLD_ID, {
     msaa: {
       enabled: false,
-      sampleCount: 0,
+      sampleCount: 0
     },
     skybox: {
       intensity: 1.0,
@@ -98,7 +98,7 @@ function setupCameraAndLight(): void {
       groundColor: [0.02, 0.03, 0.04],
       horizonColor: [0.12, 0.16, 0.22],
       skyColor: [0.2, 0.35, 0.6],
-      cubemapTextureId: 0,
+      cubemapTextureId: 0
     },
     clearColor: [0, 0, 0, 0],
     post: {
@@ -131,8 +131,8 @@ function setupCameraAndLight(): void {
       bloomThreshold: 1.0,
       bloomKnee: 0.5,
       bloomIntensity: 0.8,
-      bloomScatter: 0.7,
-    },
+      bloomScatter: 0.7
+    }
   });
 
   World3D.configure3DShadows(WORLD_ID, {
@@ -142,18 +142,15 @@ function setupCameraAndLight(): void {
     atlasLayers: 2,
     virtualGridSize: 1,
     smoothing: 2,
-    normalBias: 0.05,
+    normalBias: 0.05
   });
 }
 
-function createColorMaterial(
-  label: string,
-  color: [number, number, number, number],
-): number {
+function createColorMaterial(label: string, color: [number, number, number, number]): number {
   const texId = World3D.create3DTexture(WORLD_ID, {
     source: { type: 'color', color },
     srgb: true,
-    label: `${label} Texture`,
+    label: `${label} Texture`
   });
   return World3D.create3DMaterial(WORLD_ID, {
     kind: 'standard',
@@ -165,9 +162,9 @@ function createColorMaterial(
         baseTexId: texId,
         baseSampler: 'linear-clamp',
         flags: 0,
-        surfaceType: 'opaque',
-      },
-    },
+        surfaceType: 'opaque'
+      }
+    }
   });
 }
 
@@ -178,19 +175,19 @@ function setupDemo001(): DemoUpdate {
   const cubeGeom = World3D.create3DGeometry(WORLD_ID, {
     type: 'primitive',
     shape: 'cube',
-    label: 'Cube',
+    label: 'Cube'
   });
   const cubeEnt = World3D.create3DEntity(WORLD_ID);
   World3D.update3DTransform(WORLD_ID, cubeEnt, {
     position: [0, 0, 0],
     rotation: [0, 0, 0, 1],
-    scale: [1, 1, 1],
+    scale: [1, 1, 1]
   });
   World3D.create3DModel(WORLD_ID, cubeEnt, {
     geometryId: cubeGeom,
     materialId: cubeMat,
     castShadow: true,
-    receiveShadow: true,
+    receiveShadow: true
   });
 
   let angle = 0;
@@ -198,7 +195,7 @@ function setupDemo001(): DemoUpdate {
     angle += dt * 0.8;
     const q = quat.fromEuler(quat.create(), 0, angle * 57.2958, 0);
     World3D.update3DTransform(WORLD_ID, cubeEnt, {
-      rotation: [q[0], q[1], q[2], q[3]],
+      rotation: [q[0], q[1], q[2], q[3]]
     });
   };
 }
@@ -210,7 +207,7 @@ function setupDemo002(): DemoUpdate {
   const cubeGeom = World3D.create3DGeometry(WORLD_ID, {
     type: 'primitive',
     shape: 'cube',
-    label: 'Cube',
+    label: 'Cube'
   });
 
   const grid: { ent: EntityId; base: [number, number, number] }[] = [];
@@ -222,11 +219,11 @@ function setupDemo002(): DemoUpdate {
       World3D.update3DTransform(WORLD_ID, ent, {
         position: pos,
         rotation: [0, 0, 0, 1],
-        scale: [0.6, 0.6, 0.6],
+        scale: [0.6, 0.6, 0.6]
       });
       World3D.create3DModel(WORLD_ID, ent, {
         geometryId: cubeGeom,
-        materialId: cubeMat,
+        materialId: cubeMat
       });
       grid.push({ ent, base: pos });
     }
@@ -238,7 +235,7 @@ function setupDemo002(): DemoUpdate {
     for (const item of grid) {
       const offset = Math.sin(t + item.base[0]) * 0.5;
       World3D.update3DTransform(WORLD_ID, item.ent, {
-        position: [item.base[0], item.base[1], offset],
+        position: [item.base[0], item.base[1], offset]
       });
     }
   };
@@ -252,13 +249,13 @@ function setupDemo003(): DemoUpdate {
   const cubeGeom = World3D.create3DGeometry(WORLD_ID, {
     type: 'primitive',
     shape: 'cube',
-    label: 'Cube',
+    label: 'Cube'
   });
   const cubePivotEnt = World3D.create3DEntity(WORLD_ID);
   World3D.update3DTransform(WORLD_ID, cubePivotEnt, {
     position: [0, 0, 0],
     rotation: [0, 0, 0, 1],
-    scale: [1, 1, 1],
+    scale: [1, 1, 1]
   });
 
   const cubeBlueEnt = World3D.create3DEntity(WORLD_ID);
@@ -266,11 +263,11 @@ function setupDemo003(): DemoUpdate {
   World3D.update3DTransform(WORLD_ID, cubeBlueEnt, {
     position: [0, 0, 0],
     rotation: [0, 0, 0, 1],
-    scale: [1, 1, 1],
+    scale: [1, 1, 1]
   });
   World3D.create3DModel(WORLD_ID, cubeBlueEnt, {
     geometryId: cubeGeom,
-    materialId: blueMat,
+    materialId: blueMat
   });
 
   const cubeRedEnt = World3D.create3DEntity(WORLD_ID);
@@ -278,18 +275,18 @@ function setupDemo003(): DemoUpdate {
   World3D.update3DTransform(WORLD_ID, cubeRedEnt, {
     position: [0, 0, 0],
     rotation: [0, 0, 0, 1],
-    scale: [0.0001, 0.0001, 0.0001],
+    scale: [0.0001, 0.0001, 0.0001]
   });
   World3D.create3DModel(WORLD_ID, cubeRedEnt, {
     geometryId: cubeGeom,
-    materialId: redMat,
+    materialId: redMat
   });
   const collider = attachCollisionAabb({
     worldId: WORLD_ID,
     modelEntityId: cubePivotEnt,
     halfExtents: [0.5, 0.5, 0.5],
     debugGizmoAabb: true,
-    name: 'demo003-cube-collider',
+    name: 'demo003-cube-collider'
   });
 
   const rot: [number, number, number] = [0, 0, 0];
@@ -310,7 +307,9 @@ function setupDemo003(): DemoUpdate {
 
     const pointerRelative = World3D.get3DPointerTargetPosition(WORLD_ID);
     const pointerUv = World3D.get3DPointerTargetUv(WORLD_ID);
-    const [windowWidth, windowHeight] = World3D.get3DWindowSize(WORLD_ID);
+    const windowSize = World3D.get3DWindowSize(WORLD_ID);
+    const windowWidth = windowSize[0] ?? 1;
+    const windowHeight = windowSize[1] ?? 1;
     let frameCollision = false;
 
     if (pointerUv) {
@@ -320,13 +319,13 @@ function setupDemo003(): DemoUpdate {
         (45 * Math.PI) / 180,
         windowWidth / Math.max(1, windowHeight),
         0.1,
-        100,
+        100
       );
       const ray = createPointerRay({
         pointer: pointerUv,
         viewMatrix: view,
         projectionMatrix: projection,
-        viewportSize: [1, 1],
+        viewportSize: vec2.fromValues(1, 1)
       });
       if (ray) {
         frameCollision = raycastCollisionAabb(ray, collider) !== null;
@@ -337,30 +336,25 @@ function setupDemo003(): DemoUpdate {
       isColliding = frameCollision;
       if (isColliding) {
         World3D.update3DTransform(WORLD_ID, cubeBlueEnt, {
-          scale: [0.0001, 0.0001, 0.0001],
+          scale: [0.0001, 0.0001, 0.0001]
         });
         World3D.update3DTransform(WORLD_ID, cubeRedEnt, {
-          scale: [1, 1, 1],
+          scale: [1, 1, 1]
         });
       } else {
         World3D.update3DTransform(WORLD_ID, cubeBlueEnt, {
-          scale: [1, 1, 1],
+          scale: [1, 1, 1]
         });
         World3D.update3DTransform(WORLD_ID, cubeRedEnt, {
-          scale: [0.0001, 0.0001, 0.0001],
+          scale: [0.0001, 0.0001, 0.0001]
         });
       }
     }
     drawCollisionAabbGizmo(collider);
 
-    const q = quat.fromEuler(
-      quat.create(),
-      rot[0] * 57.2958,
-      rot[1] * 57.2958,
-      rot[2] * 57.2958,
-    );
+    const q = quat.fromEuler(quat.create(), rot[0] * 57.2958, rot[1] * 57.2958, rot[2] * 57.2958);
     World3D.update3DTransform(WORLD_ID, cubePivotEnt, {
-      rotation: [q[0], q[1], q[2], q[3]],
+      rotation: [q[0], q[1], q[2], q[3]]
     });
   };
 }
@@ -376,29 +370,29 @@ function setupDemo004(): DemoUpdate {
   const paddleGeom = World3D.create3DGeometry(WORLD_ID, {
     type: 'primitive',
     shape: 'cube',
-    label: 'Paddle',
+    label: 'Paddle'
   });
   const ballGeom = World3D.create3DGeometry(WORLD_ID, {
     type: 'primitive',
     shape: 'sphere',
-    label: 'Ball',
+    label: 'Ball'
   });
   const planeGeom = World3D.create3DGeometry(WORLD_ID, {
     type: 'primitive',
     shape: 'plane',
     label: 'Backdrop',
-    options: { size: [24, 14, 1], subdivisions: 1 },
+    options: { size: [24, 14, 1], subdivisions: 1 }
   });
 
   const planeEnt = World3D.create3DEntity(WORLD_ID);
   World3D.update3DTransform(WORLD_ID, planeEnt, {
     position: [0, 0, -4],
     rotation: [0, 0, 0, 1],
-    scale: [1, 1, 1],
+    scale: [1, 1, 1]
   });
   World3D.create3DModel(WORLD_ID, planeEnt, {
     geometryId: planeGeom,
-    materialId: planeMat,
+    materialId: planeMat
   });
 
   const leftEnt = World3D.create3DEntity(WORLD_ID);
@@ -421,61 +415,48 @@ function setupDemo004(): DemoUpdate {
   World3D.update3DTransform(WORLD_ID, leftEnt, {
     position: [-fieldW / 2 + 0.6, 0, 0],
     rotation: [0, 0, 0, 1],
-    scale: [paddleW, paddleH, 0.3],
+    scale: [paddleW, paddleH, 0.3]
   });
   World3D.update3DTransform(WORLD_ID, rightEnt, {
     position: [fieldW / 2 - 0.6, 0, 0],
     rotation: [0, 0, 0, 1],
-    scale: [paddleW, paddleH, 0.3],
+    scale: [paddleW, paddleH, 0.3]
   });
   World3D.update3DTransform(WORLD_ID, ballEnt, {
     position: [0, 0, 0],
     rotation: [0, 0, 0, 1],
-    scale: [ballSize, ballSize, ballSize],
+    scale: [ballSize, ballSize, ballSize]
   });
 
   World3D.create3DModel(WORLD_ID, leftEnt, {
     geometryId: paddleGeom,
-    materialId: redMat,
+    materialId: redMat
   });
   World3D.create3DModel(WORLD_ID, rightEnt, {
     geometryId: paddleGeom,
-    materialId: blueMat,
+    materialId: blueMat
   });
   World3D.create3DModel(WORLD_ID, ballEnt, {
     geometryId: ballGeom,
-    materialId: yellowMat,
+    materialId: yellowMat
   });
 
   return (dt) => {
     const paddleSpeed = 6.0;
-    if (World3D.is3DKeyPressed(WORLD_ID, KeyCode.KeyW))
-      leftY += paddleSpeed * dt;
-    if (World3D.is3DKeyPressed(WORLD_ID, KeyCode.KeyS))
-      leftY -= paddleSpeed * dt;
-    if (World3D.is3DKeyPressed(WORLD_ID, KeyCode.ArrowUp))
-      rightY += paddleSpeed * dt;
-    if (World3D.is3DKeyPressed(WORLD_ID, KeyCode.ArrowDown))
-      rightY -= paddleSpeed * dt;
+    if (World3D.is3DKeyPressed(WORLD_ID, KeyCode.KeyW)) leftY += paddleSpeed * dt;
+    if (World3D.is3DKeyPressed(WORLD_ID, KeyCode.KeyS)) leftY -= paddleSpeed * dt;
+    if (World3D.is3DKeyPressed(WORLD_ID, KeyCode.ArrowUp)) rightY += paddleSpeed * dt;
+    if (World3D.is3DKeyPressed(WORLD_ID, KeyCode.ArrowDown)) rightY -= paddleSpeed * dt;
 
-    leftY = Math.max(
-      -fieldH / 2 + paddleH / 2,
-      Math.min(fieldH / 2 - paddleH / 2, leftY),
-    );
-    rightY = Math.max(
-      -fieldH / 2 + paddleH / 2,
-      Math.min(fieldH / 2 - paddleH / 2, rightY),
-    );
+    leftY = Math.max(-fieldH / 2 + paddleH / 2, Math.min(fieldH / 2 - paddleH / 2, leftY));
+    rightY = Math.max(-fieldH / 2 + paddleH / 2, Math.min(fieldH / 2 - paddleH / 2, rightY));
 
     ballX += ballVelX * dt;
     ballY += ballVelY * dt;
 
     if (ballY > fieldH / 2 - ballSize || ballY < -fieldH / 2 + ballSize) {
       ballVelY *= -1;
-      ballY = Math.max(
-        -fieldH / 2 + ballSize,
-        Math.min(fieldH / 2 - ballSize, ballY),
-      );
+      ballY = Math.max(-fieldH / 2 + ballSize, Math.min(fieldH / 2 - ballSize, ballY));
     }
 
     const leftX = -fieldW / 2 + 0.6;
@@ -502,13 +483,13 @@ function setupDemo004(): DemoUpdate {
     }
 
     World3D.update3DTransform(WORLD_ID, leftEnt, {
-      position: [leftX, leftY, 0],
+      position: [leftX, leftY, 0]
     });
     World3D.update3DTransform(WORLD_ID, rightEnt, {
-      position: [rightX, rightY, 0],
+      position: [rightX, rightY, 0]
     });
     World3D.update3DTransform(WORLD_ID, ballEnt, {
-      position: [ballX, ballY, 0],
+      position: [ballX, ballY, 0]
     });
   };
 }
@@ -519,7 +500,7 @@ function setupDemo005(): DemoUpdate {
   const cubeGeometryId = World3D.create3DGeometry(WORLD_ID, {
     type: 'primitive',
     shape: 'cube',
-    label: 'ConstraintCube',
+    label: 'ConstraintCube'
   });
   const centerMat = createColorMaterial('Center', [0.25, 0.8, 0.55, 1]);
   const orbitMat = createColorMaterial('Orbit', [0.95, 0.45, 0.2, 1]);
@@ -528,22 +509,22 @@ function setupDemo005(): DemoUpdate {
   World3D.update3DTransform(WORLD_ID, centerCube, {
     position: [0, 0, 0],
     rotation: [0, 0, 0, 1],
-    scale: [1.2, 1.2, 1.2],
+    scale: [1.2, 1.2, 1.2]
   });
   World3D.create3DModel(WORLD_ID, centerCube, {
     geometryId: cubeGeometryId,
-    materialId: centerMat,
+    materialId: centerMat
   });
 
   const orbitCube = World3D.create3DEntity(WORLD_ID);
   World3D.update3DTransform(WORLD_ID, orbitCube, {
     position: [4.2, 0, 0],
     rotation: [0, 0, 0, 1],
-    scale: [0.8, 0.8, 0.8],
+    scale: [0.8, 0.8, 0.8]
   });
   World3D.create3DModel(WORLD_ID, orbitCube, {
     geometryId: cubeGeometryId,
-    materialId: orbitMat,
+    materialId: orbitMat
   });
   World3D.set3DParent(WORLD_ID, orbitCube, centerCube);
 
@@ -552,7 +533,7 @@ function setupDemo005(): DemoUpdate {
     angle += dt * 60;
     const q = quat.fromEuler(quat.create(), 0, angle, 0);
     World3D.update3DTransform(WORLD_ID, centerCube, {
-      rotation: [q[0], q[1], q[2], q[3]],
+      rotation: [q[0], q[1], q[2], q[3]]
     });
   };
 }
@@ -565,7 +546,7 @@ async function setupDemo006(): Promise<DemoUpdate> {
     worldId: WORLD_ID,
     data: glbBytes,
     materialMode: 'standard',
-    labelPrefix: 'wasm-demo006',
+    labelPrefix: 'wasm-demo006'
   });
 
   if (asset.warnings.length > 0) {
@@ -578,8 +559,8 @@ async function setupDemo006(): Promise<DemoUpdate> {
     rootTransform: {
       position: [0, -1.5, 0],
       rotation: [0, 0, 0, 1],
-      scale: [1, 1, 1],
-    },
+      scale: [1, 1, 1]
+    }
   });
 
   let angle = 0;
@@ -589,7 +570,7 @@ async function setupDemo006(): Promise<DemoUpdate> {
     World3D.update3DTransform(WORLD_ID, instance.rootEntityId, {
       position: [0, -1.5, 0],
       rotation: [q[0], q[1], q[2], q[3]],
-      scale: [1, 1, 1],
+      scale: [1, 1, 1]
     });
   };
 }
@@ -600,7 +581,7 @@ const demos: Record<string, DemoSetup> = {
   '003': setupDemo003,
   '004': setupDemo004,
   '005': setupDemo005,
-  '006': setupDemo006,
+  '006': setupDemo006
 };
 
 async function boot() {
@@ -633,7 +614,7 @@ async function boot() {
     }
     if (!presented && Mount.isWorldMountReady(WORLD_ID)) {
       Mount.mountWorld(WORLD_ID, {
-        target: { kind: 'window', windowId: WINDOW_ID },
+        target: { kind: 'window', windowId: WINDOW_ID }
       });
       mountAttempts += 1;
       if (mountAttempts >= 3) {
@@ -654,10 +635,7 @@ async function boot() {
             return resolvedUpdate;
           })
           .catch((error) => {
-            console.error(
-              `[Vulfram WASM] Failed to setup demo ${demoId}:`,
-              error,
-            );
+            console.error(`[Vulfram WASM] Failed to setup demo ${demoId}:`, error);
             throw error;
           });
       }

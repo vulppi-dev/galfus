@@ -17,14 +17,14 @@
       "import": "./src/index.ts",
       "default": "./src/index.ts"
     },
-    "./lib/vulfram_core.js": "./lib/vulfram_core.js",
-    "./lib/vulfram_core_bg.wasm": "./lib/vulfram_core_bg.wasm",
-    "./lib/vulfram_core.d.ts": "./lib/vulfram_core.d.ts",
-    "./lib/vulfram_core_bg.wasm.d.ts": "./lib/vulfram_core_bg.wasm.d.ts"
+    "./dist/vulfram_core.js": "./dist/vulfram_core.js",
+    "./dist/vulfram_core_bg.wasm": "./dist/vulfram_core_bg.wasm",
+    "./dist/vulfram_core.d.ts": "./dist/vulfram_core.d.ts",
+    "./dist/vulfram_core_bg.wasm.d.ts": "./dist/vulfram_core_bg.wasm.d.ts"
   },
   "files": [
     "src",
-    "lib",
+    "dist",
     "README.md"
   ],
   "publishConfig": {

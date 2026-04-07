@@ -190,11 +190,12 @@ export type SystemEvent =
         windowWidth?: number;
         windowHeight?: number;
         pointerId?: number;
-        positionGlobal?: [number, number];
-        positionTarget?: [number, number];
+        positionGlobal?: vec2;
+        positionTarget?: vec2;
         targetWidth?: number;
         targetHeight?: number;
         keyCode?: number;
         keyState?: 'pressed' | 'released';
       };
     };
+import type { vec2 } from 'gl-matrix';

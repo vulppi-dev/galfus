@@ -50,6 +50,22 @@ async function cleanDirectory(path: string): Promise<void> {
   );
 }
 
+async function cleanTransportNapiDist(path: string): Promise<void> {
+  await ensureDir(path);
+  const entries = await readdir(path);
+  await Promise.all(
+    entries
+      .filter(
+        (entry) =>
+          entry !== '.gitkeep' &&
+          entry !== 'index.js' &&
+          entry !== 'index.d.ts' &&
+          !/^vulfram_core-.*\.node$/.test(entry),
+      )
+      .map((entry) => rm(join(path, entry), { recursive: true, force: true }))
+  );
+}
+
 async function sha256File(path: string): Promise<string> {
   const data = await readFile(path);
   return createHash('sha256').update(data).digest('hex');
@@ -114,7 +130,7 @@ async function parseOptions(): Promise<ArtifactsOptions> {
   const program = new Command();
   program
     .name('artifacts')
-    .description('Download transport artifacts into packages/*/lib.')
+    .description('Download transport artifacts into packages/*/dist.')
     .option(
       '--base-url <url>',
       'Base URL used to resolve transport artifacts.',
@@ -165,9 +181,9 @@ async function main(): Promise<void> {
   ] as const;
 
   await Promise.all([
-    cleanDirectory(join(rootDir, 'packages', 'transport-bun', 'lib')),
-    cleanDirectory(join(rootDir, 'packages', 'transport-napi', 'lib')),
-    cleanDirectory(join(rootDir, 'packages', 'transport-browser', 'lib'))
+    cleanDirectory(join(rootDir, 'packages', 'transport-bun', 'dist')),
+    cleanTransportNapiDist(join(rootDir, 'packages', 'transport-napi', 'dist')),
+    cleanDirectory(join(rootDir, 'packages', 'transport-browser', 'dist'))
   ]);
 
   const tasks: Array<Promise<void>> = [];
@@ -181,7 +197,7 @@ async function main(): Promise<void> {
         binding: 'ffi',
         platform,
         artifact: ffiName,
-        destination: join(rootDir, 'packages', 'transport-bun', 'lib', platform, ffiName),
+        destination: join(rootDir, 'packages', 'transport-bun', 'dist', platform, ffiName),
         baseUrl: options.baseUrl,
         packageVersion: bunVersion
       })
@@ -192,7 +208,7 @@ async function main(): Promise<void> {
         binding: 'napi',
         platform,
         artifact: napiName,
-        destination: join(rootDir, 'packages', 'transport-napi', 'lib', platform, napiName),
+        destination: join(rootDir, 'packages', 'transport-napi', 'dist', platform, napiName),
         baseUrl: options.baseUrl,
         packageVersion: napiVersion
       })
@@ -205,7 +221,7 @@ async function main(): Promise<void> {
         binding: 'wasm',
         platform: 'browser',
         artifact,
-        destination: join(rootDir, 'packages', 'transport-browser', 'lib', artifact),
+        destination: join(rootDir, 'packages', 'transport-browser', 'dist', artifact),
         baseUrl: options.baseUrl,
         packageVersion: browserVersion
       })

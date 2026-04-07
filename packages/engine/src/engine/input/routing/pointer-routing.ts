@@ -1,15 +1,13 @@
+import { vec2, type vec2 as Vec2 } from 'gl-matrix';
 import type { PointerEvent } from '../../../types/events/pointer';
 import type { InputStateComponent } from '../../ecs/components';
 
 function resolveTargetSize(data: {
   targetWidth?: number;
   targetHeight?: number;
-}): [number, number] | undefined {
-  if (
-    typeof data.targetWidth === 'number' &&
-    typeof data.targetHeight === 'number'
-  ) {
-    return [data.targetWidth, data.targetHeight];
+}): Vec2 | undefined {
+  if (typeof data.targetWidth === 'number' && typeof data.targetHeight === 'number') {
+    return vec2.fromValues(data.targetWidth, data.targetHeight);
   }
   return undefined;
 }
@@ -23,17 +21,15 @@ export function clearRoutedPointerState(inputState: InputStateComponent): void {
 }
 
 export function resetRoutedPointerFrame(inputState: InputStateComponent): void {
-  inputState.pointerTargetDelta = inputState.pointerPositionTarget
-    ? [0, 0]
-    : undefined;
+  inputState.pointerTargetDelta = inputState.pointerPositionTarget ? vec2.create() : undefined;
 }
 
 function applyRoutedPointerPosition(
   inputState: InputStateComponent,
-  targetPosition?: [number, number],
+  targetPosition?: Vec2,
   targetId?: number,
-  targetUv?: [number, number],
-  targetSize?: [number, number],
+  targetUv?: Vec2,
+  targetSize?: Vec2
 ): void {
   if (!targetPosition) {
     clearRoutedPointerState(inputState);
@@ -43,12 +39,12 @@ function applyRoutedPointerPosition(
   const previousTargetId = inputState.pointerTargetId;
   const previousTargetPosition = inputState.pointerPositionTarget;
   if (previousTargetId === targetId && previousTargetPosition !== undefined) {
-    inputState.pointerTargetDelta = [
+    inputState.pointerTargetDelta = vec2.fromValues(
       targetPosition[0] - previousTargetPosition[0],
-      targetPosition[1] - previousTargetPosition[1],
-    ];
+      targetPosition[1] - previousTargetPosition[1]
+    );
   } else {
-    inputState.pointerTargetDelta = [0, 0];
+    inputState.pointerTargetDelta = vec2.create();
   }
 
   inputState.pointerPositionTarget = targetPosition;
@@ -59,7 +55,7 @@ function applyRoutedPointerPosition(
 
 export function applyRoutedPointerEvent(
   inputState: InputStateComponent,
-  pointerEvent: PointerEvent,
+  pointerEvent: PointerEvent
 ): void {
   if (pointerEvent.event === 'on-move') {
     applyRoutedPointerPosition(
@@ -67,7 +63,7 @@ export function applyRoutedPointerEvent(
       pointerEvent.data.positionTarget,
       pointerEvent.data.trace?.targetId,
       pointerEvent.data.trace?.uv,
-      resolveTargetSize(pointerEvent.data),
+      resolveTargetSize(pointerEvent.data)
     );
     return;
   }
@@ -78,7 +74,7 @@ export function applyRoutedPointerEvent(
       pointerEvent.data.positionTarget,
       pointerEvent.data.trace?.targetId,
       pointerEvent.data.trace?.uv,
-      resolveTargetSize(pointerEvent.data),
+      resolveTargetSize(pointerEvent.data)
     );
     return;
   }
@@ -89,7 +85,7 @@ export function applyRoutedPointerEvent(
       pointerEvent.data.positionTarget,
       pointerEvent.data.trace?.targetId,
       pointerEvent.data.trace?.uv,
-      resolveTargetSize(pointerEvent.data),
+      resolveTargetSize(pointerEvent.data)
     );
     return;
   }

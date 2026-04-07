@@ -1,3 +1,4 @@
+import type { vec2 } from 'gl-matrix';
 import type { CursorGrabMode, WindowState } from '../kinds';
 
 /** Payload for window create event. */
@@ -15,7 +16,7 @@ export interface WindowEventOnResizeData {
 /** Payload for window move event. */
 export interface WindowEventOnMoveData {
   windowId: number;
-  position: [number, number];
+  position: vec2;
 }
 
 /** Payload for window close request event. */
@@ -57,14 +58,14 @@ export interface WindowEventOnRedrawRequestData {
 export interface WindowEventOnFileDropData {
   windowId: number;
   path: string;
-  position: [number, number];
+  position: vec2;
 }
 
 /** Payload for file hover event. */
 export interface WindowEventOnFileHoverData {
   windowId: number;
   path: string;
-  position: [number, number];
+  position: vec2;
 }
 
 /** Payload for file hover cancel event. */

@@ -1,3 +1,4 @@
+import type { vec2, vec4 } from 'gl-matrix';
 import type { LightKind } from '../kinds';
 import type { ResourceEntry } from './resources';
 
@@ -7,14 +8,14 @@ export interface CmdLightCreateArgs {
   lightId: number;
   label?: string;
   kind?: LightKind;
-  position?: [number, number, number, number]; // Vec4
-  direction?: [number, number, number, number]; // Vec4
-  color?: [number, number, number, number]; // Vec4
-  groundColor?: [number, number, number, number]; // Vec4
+  position?: vec4;
+  direction?: vec4;
+  color?: vec4;
+  groundColor?: vec4;
   intensity?: number;
   range?: number;
-  spotInnerOuter?: [number, number]; // Vec2
-  layerMask: number;
+  spotInnerOuter?: vec2;
+  layerMask?: number;
   castShadow?: boolean;
 }
 
@@ -24,13 +25,13 @@ export interface CmdLightUpdateArgs {
   lightId: number;
   label?: string;
   kind?: LightKind;
-  position?: [number, number, number, number];
-  direction?: [number, number, number, number];
-  color?: [number, number, number, number];
-  groundColor?: [number, number, number, number];
+  position?: vec4;
+  direction?: vec4;
+  color?: vec4;
+  groundColor?: vec4;
   intensity?: number;
   range?: number;
-  spotInnerOuter?: [number, number];
+  spotInnerOuter?: vec2;
   layerMask?: number;
   castShadow?: boolean;
 }

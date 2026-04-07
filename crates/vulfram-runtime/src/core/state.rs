@@ -15,6 +15,7 @@ use crate::core::window::WindowManager;
 use crate::core::{realm, target};
 use std::collections::HashMap;
 use vulfram_input::GamepadState;
+#[cfg(not(target_arch = "wasm32"))]
 use vulfram_platform::PlatformGamepadBackendState;
 pub type EngineRuntimeState = vulfram_runtime::RuntimeState<
     crate::core::cmd::EngineCmdEnvelope,

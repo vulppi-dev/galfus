@@ -24,6 +24,7 @@
   "dependencies": {
     "@gltf-transform/core": "^4.3.0",
     "@gltf-transform/extensions": "^4.3.0",
-    "@gltf-transform/functions": "^4.3.0"
+    "@gltf-transform/functions": "^4.3.0",
+    "gl-matrix": "^3.4.4"
   }
 }

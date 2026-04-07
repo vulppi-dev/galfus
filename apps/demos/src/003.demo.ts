@@ -5,15 +5,15 @@ import {
   createWindow,
   disposeEngine,
   initEngine,
-  tick,
+  tick
 } from '@vulfram/engine';
 import {
   attachCollisionAabb,
   createPerspectiveRhZo,
   drawCollisionAabbGizmo,
-  raycastPointerCollisionAabb,
+  raycastPointerCollisionAabb
 } from '@vulfram/engine/helpers';
-import { mat4, quat } from 'gl-matrix';
+import { mat4, quat, vec2 } from 'gl-matrix';
 import { transportBunFfi } from '@vulfram/transport-bun';
 
 const RUN_DURATION_MS = 60_000;
@@ -25,7 +25,7 @@ const KeyCode = {
   KeyW: 41,
   KeyS: 37,
   KeyA: 19,
-  KeyD: 22,
+  KeyD: 22
 } as const;
 
 async function main() {
@@ -36,7 +36,7 @@ async function main() {
     position: [100, 100],
     borderless: false,
     resizable: true,
-    transparent: false,
+    transparent: false
   });
   let totalMs = 0;
 
@@ -52,7 +52,7 @@ async function main() {
       groundColor: [0.02, 0.03, 0.04],
       horizonColor: [0.12, 0.16, 0.22],
       skyColor: [0.2, 0.35, 0.6],
-      cubemapTextureId: null,
+      cubemapTextureId: null
     },
     clearColor: [0.02, 0.02, 0.03, 1],
     post: {
@@ -85,19 +85,19 @@ async function main() {
       bloomThreshold: 1,
       bloomKnee: 0.5,
       bloomIntensity: 0.8,
-      bloomScatter: 0.7,
-    },
+      bloomScatter: 0.7
+    }
   });
 
   const blueTexId = World3D.create3DTexture(worldId, {
     source: { type: 'color', color: [0.3, 0.6, 0.9, 1] },
     srgb: true,
-    label: 'Blue Texture',
+    label: 'Blue Texture'
   });
   const redTexId = World3D.create3DTexture(worldId, {
     source: { type: 'color', color: [0.95, 0.2, 0.2, 1] },
     srgb: true,
-    label: 'Red Texture',
+    label: 'Red Texture'
   });
   const blueMatId = World3D.create3DMaterial(worldId, {
     kind: 'standard',
@@ -109,9 +109,9 @@ async function main() {
         baseTexId: blueTexId,
         baseSampler: 'linear-clamp',
         flags: 0,
-        surfaceType: 'opaque',
-      },
-    },
+        surfaceType: 'opaque'
+      }
+    }
   });
   const redMatId = World3D.create3DMaterial(worldId, {
     kind: 'standard',
@@ -123,14 +123,14 @@ async function main() {
         baseTexId: redTexId,
         baseSampler: 'linear-clamp',
         flags: 0,
-        surfaceType: 'opaque',
-      },
-    },
+        surfaceType: 'opaque'
+      }
+    }
   });
   const geoId = World3D.create3DGeometry(worldId, {
     type: 'primitive',
     shape: 'cube',
-    label: 'Cube',
+    label: 'Cube'
   });
 
   const camEnt = World3D.create3DEntity(worldId);
@@ -139,7 +139,7 @@ async function main() {
     kind: 'perspective',
     near: 0.1,
     far: 100.0,
-    order: 0,
+    order: 0
   });
 
   const lightEnt = World3D.create3DEntity(worldId);
@@ -149,14 +149,14 @@ async function main() {
     color: [1, 1, 1],
     intensity: 9,
     range: 24,
-    castShadow: true,
+    castShadow: true
   });
 
   const cubePivotEnt = World3D.create3DEntity(worldId);
   World3D.update3DTransform(worldId, cubePivotEnt, {
     position: [0, 0, 0],
     rotation: [0, 0, 0, 1],
-    scale: [1, 1, 1],
+    scale: [1, 1, 1]
   });
 
   const cubeBlueEnt = World3D.create3DEntity(worldId);
@@ -164,13 +164,13 @@ async function main() {
   World3D.update3DTransform(worldId, cubeBlueEnt, {
     position: [0, 0, 0],
     rotation: [0, 0, 0, 1],
-    scale: [1, 1, 1],
+    scale: [1, 1, 1]
   });
   World3D.create3DModel(worldId, cubeBlueEnt, {
     geometryId: geoId,
     materialId: blueMatId,
     castShadow: true,
-    receiveShadow: true,
+    receiveShadow: true
   });
 
   const cubeRedEnt = World3D.create3DEntity(worldId);
@@ -178,13 +178,13 @@ async function main() {
   World3D.update3DTransform(worldId, cubeRedEnt, {
     position: [0, 0, 0],
     rotation: [0, 0, 0, 1],
-    scale: [0.0001, 0.0001, 0.0001],
+    scale: [0.0001, 0.0001, 0.0001]
   });
   World3D.create3DModel(worldId, cubeRedEnt, {
     geometryId: geoId,
     materialId: redMatId,
     castShadow: true,
-    receiveShadow: true,
+    receiveShadow: true
   });
 
   const collider = attachCollisionAabb({
@@ -192,7 +192,7 @@ async function main() {
     modelEntityId: cubePivotEnt,
     halfExtents: [0.5, 0.5, 0.5],
     debugGizmoAabb: true,
-    name: 'demo003-cube-collider',
+    name: 'demo003-cube-collider'
   });
 
   const start = performance.now();
@@ -234,21 +234,26 @@ async function main() {
       q,
       (rotation[0] * 180) / Math.PI,
       (rotation[1] * 180) / Math.PI,
-      (rotation[2] * 180) / Math.PI,
+      (rotation[2] * 180) / Math.PI
     );
     World3D.update3DTransform(worldId, cubePivotEnt, {
-      rotation: [q[0], q[1], q[2], q[3]],
+      rotation: [q[0], q[1], q[2], q[3]]
     });
 
     const pointerWindow = World3D.get3DPointerPosition(worldId);
     const pointerWindowSize = World3D.get3DPointerWindowSize(worldId);
-    const [fallbackWindowWidth, fallbackWindowHeight] = World3D.get3DWindowSize(worldId);
+    const fallbackWindowSize = World3D.get3DWindowSize(worldId);
+    const fallbackWindowWidth = fallbackWindowSize[0] ?? 1;
+    const fallbackWindowHeight = fallbackWindowSize[1] ?? 1;
     let viewportLog = 'none';
     let frameCollision = false;
     if (pointerWindow) {
-      const viewportSize =
-        pointerWindowSize ?? [fallbackWindowWidth, fallbackWindowHeight];
-      const [viewportWidth, viewportHeight] = viewportSize;
+      const viewportWidth = pointerWindowSize
+        ? (pointerWindowSize[0] ?? fallbackWindowWidth)
+        : fallbackWindowWidth;
+      const viewportHeight = pointerWindowSize
+        ? (pointerWindowSize[1] ?? fallbackWindowHeight)
+        : fallbackWindowHeight;
       viewportLog = `${viewportWidth}x${viewportHeight}`;
       const view = mat4.lookAt(mat4.create(), [0, 0, 5], [0, 0, 0], [0, 1, 0]);
       // Exact match with core camera projection (glam::perspective_rh) in reverse-Z.
@@ -256,19 +261,19 @@ async function main() {
         (45 * Math.PI) / 180,
         viewportWidth / Math.max(1, viewportHeight),
         100,
-        0.1,
+        0.1
       );
       const hit = raycastPointerCollisionAabb({
         collision: collider,
         pointerEvent: {
           position: pointerWindow,
           windowWidth: viewportWidth,
-          windowHeight: viewportHeight,
+          windowHeight: viewportHeight
         },
         viewMatrix: view,
         projectionMatrix: projection,
-        fallbackViewportSize: [fallbackWindowWidth, fallbackWindowHeight],
-        edgePaddingPixels: 0.75,
+        fallbackViewportSize: vec2.fromValues(fallbackWindowWidth, fallbackWindowHeight),
+        edgePaddingPixels: 0.75
       });
       frameCollision = hit !== null;
     }
@@ -277,17 +282,17 @@ async function main() {
       isColliding = frameCollision;
       if (isColliding) {
         World3D.update3DTransform(worldId, cubeBlueEnt, {
-          scale: [0.0001, 0.0001, 0.0001],
+          scale: [0.0001, 0.0001, 0.0001]
         });
         World3D.update3DTransform(worldId, cubeRedEnt, {
-          scale: [1, 1, 1],
+          scale: [1, 1, 1]
         });
       } else {
         World3D.update3DTransform(worldId, cubeBlueEnt, {
-          scale: [1, 1, 1],
+          scale: [1, 1, 1]
         });
         World3D.update3DTransform(worldId, cubeRedEnt, {
-          scale: [0.0001, 0.0001, 0.0001],
+          scale: [0.0001, 0.0001, 0.0001]
         });
       }
     }
@@ -295,7 +300,7 @@ async function main() {
 
     if (elapsedMs % 2000 < FRAME_TARGET_MS) {
       console.log(
-        `Demo003: pointerWindow=${pointerWindow ? `${pointerWindow[0].toFixed(1)},${pointerWindow[1].toFixed(1)}` : 'none'} viewport=${viewportLog} colliding=${isColliding}`,
+        `Demo003: pointerWindow=${pointerWindow ? `${pointerWindow[0].toFixed(1)},${pointerWindow[1].toFixed(1)}` : 'none'} viewport=${viewportLog} colliding=${isColliding}`
       );
     }
 

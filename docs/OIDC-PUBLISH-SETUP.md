@@ -1,7 +1,7 @@
 # OIDC Publish Setup
 
-This guide explains how to configure GitHub Actions OIDC publishing for npm in
-the current workflow, and for JSR when that publish path is re-enabled.
+This guide explains how to configure GitHub Actions OIDC publishing for npm and
+for the JSR packages that are currently published by the workflow.
 
 ## What This Repository Publishes
 
@@ -14,11 +14,25 @@ npm publish flow currently targets:
 - `@vulfram/gltf-loader`
 - `@vulfram/camera-control`
 
-JSR publish flow is currently disabled in the workflow.
+JSR publish flow currently targets:
+
+- `@vulfram/transport-types`
+- `@vulfram/transport-browser`
+- `@vulfram/engine`
+- `@vulfram/gltf-loader`
+- `@vulfram/camera-control`
 
 Manual JSR publish only:
 
-- `@vulfram/transport-types`
+- none
+
+Excluded from JSR workflow:
+
+- `@vulfram/transport-bun`
+- `@vulfram/transport-napi`
+
+The excluded packages remain out of JSR because their native multi-platform
+artifacts make the publish payload too large for the registry.
 
 The workflow file that publishes them is:
 
@@ -59,14 +73,8 @@ Important notes:
 
 ## JSR OIDC Setup
 
-JSR publishing is temporarily disabled in the workflow because the current
-package payload is about 90 MB and exceeds the 20 MB registry limit.
-
-Configure JSR package linking once for each JSR package you plan to restore
-when this publish path is re-enabled.
-
-`@vulfram/transport-types` is intentionally manual and is not published by the
-GitHub Actions release workflow anymore.
+Configure JSR package linking once for each JSR package published by the
+workflow.
 
 `@vulfram/transport-bun` and `@vulfram/transport-napi` are intentionally
 excluded from the JSR workflow because their native multi-platform artifacts
@@ -82,14 +90,14 @@ For every package:
 4. Save the link.
 
 After the package is linked, `npx jsr publish` in GitHub Actions can
-authenticate through OIDC without a token when the workflow is re-enabled.
+authenticate through OIDC without a token.
 
 Important notes:
 
 - JSR uses the package `jsr.json` version.
 - This repository synchronizes those versions through `bun run version -- <version>`.
-- When JSR publishing is re-enabled, the workflow should continue checking
-  whether the mapped version already exists and skip it without failing.
+- The workflow checks whether the mapped version already exists and skips it
+  without failing.
 
 ## Repository Secrets
 
@@ -116,7 +124,4 @@ Before promoting a release branch, verify:
 3. Rust artifacts are built and grouped.
 4. GitHub Release assets are published.
 5. npm packages are published through OIDC trusted publishing in a dedicated job.
-6. JSR publishing can be restored later in a separate dedicated job.
-
-For `@vulfram/transport-types`, publish manually when needed from
-`packages/transport-types`.
+6. JSR packages are published through OIDC in a separate dedicated job.

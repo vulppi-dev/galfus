@@ -1,3 +1,4 @@
+import type { mat4, vec2 } from 'gl-matrix';
 import type { CameraKind } from '../kinds';
 import type { ResourceEntry } from './resources';
 
@@ -18,14 +19,14 @@ export interface CmdCameraCreateArgs {
   realmId: number;
   cameraId: number;
   label?: string;
-  transform: number[]; // Mat4 (16 elements)
+  transform: mat4;
   kind: CameraKind;
-  flags: number;
-  nearFar: [number, number]; // Vec2
-  layerMask: number;
-  order: number;
+  flags?: number;
+  nearFar: vec2;
+  layerMask?: number;
+  order?: number;
   viewPosition?: ViewPosition;
-  orthoScale: number;
+  orthoScale?: number;
 }
 
 /** Command payload for updating a camera. */
@@ -33,12 +34,12 @@ export interface CmdCameraUpdateArgs {
   realmId: number;
   cameraId: number;
   label?: string;
-  transform?: number[];
+  transform?: mat4;
   kind?: CameraKind;
   flags?: number;
   layerMask?: number;
   order?: number;
-  nearFar?: [number, number];
+  nearFar?: vec2;
   viewPosition?: ViewPosition;
   orthoScale?: number;
 }

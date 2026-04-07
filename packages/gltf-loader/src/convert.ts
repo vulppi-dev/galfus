@@ -1,18 +1,30 @@
 import { Accessor, TextureInfo } from '@gltf-transform/core';
+import {
+  quat,
+  vec3,
+  vec4,
+  type quat as Quat,
+  type vec3 as Vec3,
+  type vec4 as Vec4
+} from 'gl-matrix';
 import type { GeometryPrimitiveEntry, SamplerMode } from '@vulfram/engine/types';
 import { U16_MAX } from './constants';
 import { GltfLoaderError } from './errors';
 
-export function toArray3(v: ArrayLike<number>): [number, number, number] {
-  return [v[0] ?? 0, v[1] ?? 0, v[2] ?? 0];
+export function toVec3(v: ArrayLike<number>): Vec3 {
+  return vec3.fromValues(v[0] ?? 0, v[1] ?? 0, v[2] ?? 0);
 }
 
-export function toArray4(v: ArrayLike<number>, fallbackW = 1): [number, number, number, number] {
-  return [v[0] ?? 0, v[1] ?? 0, v[2] ?? 0, v[3] ?? fallbackW];
+export function toVec4(v: ArrayLike<number>, fallbackW = 1): Vec4 {
+  return vec4.fromValues(v[0] ?? 0, v[1] ?? 0, v[2] ?? 0, v[3] ?? fallbackW);
+}
+
+export function toQuat(v: ArrayLike<number>, fallbackW = 1): Quat {
+  return quat.fromValues(v[0] ?? 0, v[1] ?? 0, v[2] ?? 0, v[3] ?? fallbackW);
 }
 
 export function semanticToPrimitiveType(
-  semantic: string,
+  semantic: string
 ): GeometryPrimitiveEntry['primitiveType'] | null {
   switch (semantic) {
     case 'POSITION':
@@ -41,7 +53,7 @@ export function samplerFromTextureInfo(
     getWrapT(): number;
     getMagFilter(): number | null;
     getMinFilter(): number | null;
-  } | null,
+  } | null
 ): SamplerMode {
   const WRAP_REPEAT = TextureInfo.WrapMode.REPEAT;
   const WRAP_MIRRORED_REPEAT = TextureInfo.WrapMode.MIRRORED_REPEAT;
@@ -56,18 +68,18 @@ export function samplerFromTextureInfo(
   const min = info?.getMinFilter();
 
   const repeat =
-    wrapS === WRAP_REPEAT
-    || wrapS === WRAP_MIRRORED_REPEAT
-    || wrapT === WRAP_REPEAT
-    || wrapT === WRAP_MIRRORED_REPEAT;
+    wrapS === WRAP_REPEAT ||
+    wrapS === WRAP_MIRRORED_REPEAT ||
+    wrapT === WRAP_REPEAT ||
+    wrapT === WRAP_MIRRORED_REPEAT;
 
   const linear =
-    mag === null
-    || mag === MAG_LINEAR
-    || min === null
-    || min === MIN_LINEAR
-    || min === MIN_LINEAR_MIPMAP_LINEAR
-    || min === MIN_LINEAR_MIPMAP_NEAREST;
+    mag === null ||
+    mag === MAG_LINEAR ||
+    min === null ||
+    min === MIN_LINEAR ||
+    min === MIN_LINEAR_MIPMAP_LINEAR ||
+    min === MIN_LINEAR_MIPMAP_NEAREST;
 
   if (repeat) return linear ? 'linear-repeat' : 'point-repeat';
   return linear ? 'linear-clamp' : 'point-clamp';
@@ -82,11 +94,7 @@ function toFloatArray(accessor: Accessor, components: number, fillTail = 0): Flo
   const srcArray = accessor.getArray();
   const elementSize = accessor.getElementSize();
 
-  if (
-    srcArray instanceof Float32Array
-    && !accessor.getNormalized()
-    && elementSize === components
-  ) {
+  if (srcArray instanceof Float32Array && !accessor.getNormalized() && elementSize === components) {
     return srcArray;
   }
 

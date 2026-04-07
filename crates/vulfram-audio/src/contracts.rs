@@ -74,11 +74,17 @@ pub struct CmdAudioSourceCreateArgs {
     pub realm_id: u32,
     pub source_id: u32,
     pub model_id: u32,
+    #[serde(default = "default_vec3_zero")]
     pub position: Vec3,
+    #[serde(default = "default_vec3_zero")]
     pub velocity: Vec3,
+    #[serde(default = "default_quat_identity")]
     pub orientation: Quat,
+    #[serde(default = "default_gain")]
     pub gain: f32,
+    #[serde(default = "default_pitch")]
     pub pitch: f32,
+    #[serde(default)]
     pub spatial: AudioSpatialParamsDto,
 }
 
@@ -104,6 +110,22 @@ impl Default for AudioSpatialParamsDto {
             cone_outer_gain: 0.0,
         }
     }
+}
+
+fn default_vec3_zero() -> Vec3 {
+    Vec3::ZERO
+}
+
+fn default_quat_identity() -> Quat {
+    Quat::IDENTITY
+}
+
+fn default_gain() -> f32 {
+    1.0
+}
+
+fn default_pitch() -> f32 {
+    1.0
 }
 
 impl From<AudioSpatialParamsDto> for AudioSpatialParams {
