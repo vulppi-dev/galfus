@@ -154,7 +154,10 @@ async function updateJsrPackageVersion(
 async function listWorkspacePackageDirNames(rootDir: string): Promise<string[]> {
   const packagesDir = join(rootDir, 'packages');
   const entries = await readdir(packagesDir, { withFileTypes: true });
-  return entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name).sort();
+  return entries
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name)
+    .sort();
 }
 
 async function readWorkspacePackageVersions(rootDir: string): Promise<Map<string, string>> {

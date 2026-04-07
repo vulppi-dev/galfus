@@ -8,7 +8,7 @@ import {
   initEngine,
   tick,
   updateWindow,
-  type EntityId,
+  type EntityId
 } from '@vulfram/engine';
 import { transportBunFfi } from '@vulfram/transport-bun';
 
@@ -24,7 +24,7 @@ async function main() {
     borderless: false,
     resizable: true,
     transparent: false,
-    initialState: 'maximized',
+    initialState: 'maximized'
   });
   let totalMs = 0;
 
@@ -40,7 +40,7 @@ async function main() {
       groundColor: [0.02, 0.03, 0.04],
       horizonColor: [0.12, 0.16, 0.22],
       skyColor: [0.2, 0.35, 0.6],
-      cubemapTextureId: null,
+      cubemapTextureId: null
     },
     clearColor: [0, 0, 0, 0],
     post: {
@@ -73,8 +73,8 @@ async function main() {
       bloomThreshold: 1,
       bloomKnee: 0.5,
       bloomIntensity: 0.8,
-      bloomScatter: 0.7,
-    },
+      bloomScatter: 0.7
+    }
   });
 
   World3D.configure3DShadows(worldId, {
@@ -84,27 +84,27 @@ async function main() {
     atlasLayers: 2,
     virtualGridSize: 2,
     smoothing: 2,
-    normalBias: 0.05,
+    normalBias: 0.05
   });
 
   const geoId = World3D.create3DGeometry(worldId, {
     type: 'primitive',
     shape: 'cube',
-    label: 'Cube',
+    label: 'Cube'
   });
   const palette: Array<[number, number, number, number]> = [
     [0.92, 0.28, 0.22, 1],
     [0.16, 0.64, 0.98, 1],
     [0.26, 0.86, 0.5, 1],
-    [0.98, 0.74, 0.2, 1],
+    [0.98, 0.74, 0.2, 1]
   ];
   const texIds = palette.map((color, idx) =>
     World3D.create3DTexture(worldId, {
       source: { type: 'color', color },
       mode: 'standalone',
       srgb: true,
-      label: `PaletteTex-${idx + 1}`,
-    }),
+      label: `PaletteTex-${idx + 1}`
+    })
   );
   const matIds = texIds.map((baseTexId, idx) =>
     World3D.create3DMaterial(worldId, {
@@ -117,22 +117,22 @@ async function main() {
           baseTexId,
           baseSampler: 'linear-clamp',
           flags: 0,
-          surfaceType: 'opaque',
-        },
-      },
-    }),
+          surfaceType: 'opaque'
+        }
+      }
+    })
   );
 
   const camEnt = World3D.create3DEntity(worldId);
   World3D.update3DTransform(worldId, camEnt, {
     position: [0, 7, 12],
-    rotation: [-0.25881904, 0, 0, 0.9659258],
+    rotation: [-0.25881904, 0, 0, 0.9659258]
   });
   World3D.create3DCamera(worldId, camEnt, {
     kind: 'perspective',
     near: 0.1,
     far: 100,
-    order: 0,
+    order: 0
   });
 
   const lightEnt = World3D.create3DEntity(worldId);
@@ -142,7 +142,7 @@ async function main() {
     color: [1, 1, 1],
     intensity: 3.5,
     range: 22,
-    castShadow: true,
+    castShadow: true
   });
   const fillLightEnt = World3D.create3DEntity(worldId);
   World3D.update3DTransform(worldId, fillLightEnt, { position: [-6, 10, 8] });
@@ -151,14 +151,14 @@ async function main() {
     color: [0.95, 0.96, 1],
     intensity: 0.55,
     direction: [0.25, -1, -0.45],
-    castShadow: false,
+    castShadow: false
   });
   const ambientLightEnt = World3D.create3DEntity(worldId);
   World3D.create3DLight(worldId, ambientLightEnt, {
     kind: 'ambient',
     color: [0.22, 0.22, 0.24],
     intensity: 0.45,
-    castShadow: false,
+    castShadow: false
   });
 
   const cubes: Array<{
@@ -175,26 +175,26 @@ async function main() {
     World3D.update3DTransform(worldId, ent, {
       position: [x, y, z],
       scale: [0.4, 0.4, 0.4],
-      rotation: [0, 0, 0, 1],
+      rotation: [0, 0, 0, 1]
     });
     World3D.create3DModel(worldId, ent, {
       geometryId: geoId,
       materialId: matIds[i % matIds.length],
       castShadow: true,
-      receiveShadow: true,
+      receiveShadow: true
     });
     cubes.push({
       ent,
       base: [x, y, z],
       phase: Math.random() * Math.PI * 2,
-      axis: vec3.fromValues(Math.random(), Math.random(), Math.random()),
+      axis: vec3.fromValues(Math.random(), Math.random(), Math.random())
     });
   }
 
   World3D.send3DNotification(worldId, {
     level: 'info',
     title: 'Engine Started',
-    message: 'World -> Realm -> Target funcionando.',
+    message: 'World -> Realm -> Target funcionando.'
   });
 
   const start = performance.now();
@@ -215,42 +215,36 @@ async function main() {
     World3D.draw3DGizmoLine(worldId, {
       start: [0, 0, 0],
       end: [5, 0, 0],
-      color: [1, 0, 0, 1],
+      color: [1, 0, 0, 1]
     });
     World3D.draw3DGizmoLine(worldId, {
       start: [0, 0, 0],
       end: [0, 5, 0],
-      color: [0, 1, 0, 1],
+      color: [0, 1, 0, 1]
     });
     World3D.draw3DGizmoLine(worldId, {
       start: [0, 0, 0],
       end: [0, 0, 5],
-      color: [0, 0, 1, 1],
+      color: [0, 0, 1, 1]
     });
     World3D.draw3DGizmoAabb(worldId, {
       min: [-5, -5, -5],
       max: [5, 5, 5],
-      color: [1, 1, 1, 0.2],
+      color: [1, 1, 1, 0.2]
     });
 
     for (const cube of cubes) {
       const q = quat.create();
       quat.setAxisAngle(q, cube.axis, t + cube.phase);
       World3D.update3DTransform(worldId, cube.ent, {
-        position: [
-          cube.base[0],
-          cube.base[1] + Math.sin(t + cube.phase) * 0.5,
-          cube.base[2],
-        ],
-        rotation: [q[0], q[1], q[2], q[3]],
+        position: [cube.base[0], cube.base[1] + Math.sin(t + cube.phase) * 0.5, cube.base[2]],
+        rotation: [q[0], q[1], q[2], q[3]]
       });
     }
 
     tick(totalMs, dtMs);
     const frameElapsed = performance.now() - now;
-    await new Promise((r) =>
-      setTimeout(r, Math.max(0, FRAME_TARGET_MS - frameElapsed)),
-    );
+    await new Promise((r) => setTimeout(r, Math.max(0, FRAME_TARGET_MS - frameElapsed)));
   }
 
   closeWindow(windowId);

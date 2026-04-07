@@ -15,7 +15,7 @@ function flushPendingTargetLayerBinds(world: Parameters<System>[0], worldId: num
       targetId: binding.targetId,
       layout: binding.layout,
       cameraId: binding.cameraId,
-      environmentId: binding.environmentId,
+      environmentId: binding.environmentId
     });
   }
 }
@@ -44,26 +44,21 @@ export const ResponseDecodeSystem: System = (world, context) => {
         if (world.realmCreateRetryCount < MAX_REALM_CREATE_RETRIES) {
           const nowMs = engineState.clock.lastTime;
           if (nowMs >= world.nextRealmCreateRetryAtMs) {
-            const retryDelay =
-              BASE_REALM_RETRY_DELAY_MS * (1 << world.realmCreateRetryCount);
+            const retryDelay = BASE_REALM_RETRY_DELAY_MS * (1 << world.realmCreateRetryCount);
             world.realmCreateRetryCount += 1;
             world.nextRealmCreateRetryAtMs = nowMs + retryDelay;
-            enqueueCommand(
-              context.worldId,
-              'cmd-realm-create',
-              world.realmCreateArgs,
-            );
+            enqueueCommand(context.worldId, 'cmd-realm-create', world.realmCreateArgs);
           }
         } else if (world.realmCreateRetryCount === MAX_REALM_CREATE_RETRIES) {
           console.error(
-            `[World ${context.worldId}] realm-create retries exhausted (${MAX_REALM_CREATE_RETRIES}). Last error: ${content.message}`,
+            `[World ${context.worldId}] realm-create retries exhausted (${MAX_REALM_CREATE_RETRIES}). Last error: ${content.message}`
           );
           world.realmCreateRetryCount += 1;
         }
         continue;
       }
       console.error(
-        `[World ${context.worldId}] Command ${res.type} (ID: ${res.id}) failed: ${content.message}`,
+        `[World ${context.worldId}] Command ${res.type} (ID: ${res.id}) failed: ${content.message}`
       );
     } else if (res.type === 'realm-create') {
       const created = res.content as { realmId?: number };

@@ -3,7 +3,4 @@
  *
  * The canonical implementation now lives in `scene-sync.ts`.
  */
-export {
-  CoreCommandBuilderSystem,
-  SceneSyncSystem,
-} from './scene-sync';
+export { CoreCommandBuilderSystem, SceneSyncSystem } from './scene-sync';

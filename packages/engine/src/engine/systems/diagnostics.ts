@@ -26,7 +26,7 @@ export const DiagnosticsSystem: System = (world, context) => {
       const type = intent.resourceType;
       const cmdType = `cmd-${type}-list` as EngineCmd['type'];
       enqueueCommand(context.worldId, cmdType, {
-        windowId,
+        windowId
       });
     }
   }

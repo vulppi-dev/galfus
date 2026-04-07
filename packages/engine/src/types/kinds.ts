@@ -45,12 +45,7 @@ export type CursorIcon =
 export type ElementState = 'released' | 'pressed';
 
 /** Light source type. */
-export type LightKind =
-  | 'directional'
-  | 'point'
-  | 'spot'
-  | 'ambient'
-  | 'hemisphere';
+export type LightKind = 'directional' | 'point' | 'spot' | 'ambient' | 'hemisphere';
 
 /** Material shading model. */
 export type MaterialKind = 'standard' | 'pbr';
@@ -69,11 +64,7 @@ export type PrimitiveShape =
   | 'pill';
 
 /** Texture sampler presets. */
-export type SamplerMode =
-  | 'point-clamp'
-  | 'linear-clamp'
-  | 'point-repeat'
-  | 'linear-repeat';
+export type SamplerMode = 'point-clamp' | 'linear-clamp' | 'point-repeat' | 'linear-repeat';
 
 /** Mesh shading model identifier. */
 export type ShadeModel = 'standard' | 'pbr';

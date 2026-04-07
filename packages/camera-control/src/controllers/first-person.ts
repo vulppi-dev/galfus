@@ -4,7 +4,7 @@ import {
   clearMotionImpulse,
   createMotionActionState,
   resolveMotionWeights,
-  weightOrDefault,
+  weightOrDefault
 } from '../core/actions';
 import { clamp, localBasisFromQuat } from '../core/math';
 import {
@@ -12,13 +12,13 @@ import {
   applyToWorld,
   cloneCameraTarget,
   createCameraTarget,
-  runPipeline,
+  runPipeline
 } from '../core/pipeline';
 import { readPointerState } from '../core/pointer';
 import type {
   CameraControllerOptions,
   LookAtState,
-  MotionCameraControllerHandle,
+  MotionCameraControllerHandle
 } from '../core/types';
 
 export interface FirstPersonControllerConfig extends CameraControllerOptions {
@@ -40,7 +40,7 @@ export interface FirstPersonControllerConfig extends CameraControllerOptions {
 export function createFirstPersonController(
   worldId: World3DId,
   cameraEntityId: EntityId,
-  config: FirstPersonControllerConfig = {},
+  config: FirstPersonControllerConfig = {}
 ): MotionCameraControllerHandle {
   const position = vec3.clone(config.position ?? [0, 1.7, 4]);
   let yaw = config.yaw ?? 0;
@@ -61,7 +61,7 @@ export function createFirstPersonController(
   const lookAtState: LookAtState = {
     enabled: false,
     target: vec3.create(),
-    weight: 0,
+    weight: 0
   };
 
   function composeRotation(): quat {
@@ -79,15 +79,9 @@ export function createFirstPersonController(
       const pointer = readPointerState(worldId);
       const pointerX = pointer.delta[0] * pointerXSign;
       const pointerY = pointer.delta[1] * pointerYSign;
-      if (
-        alwaysLook ||
-        pointer.rightPressed ||
-        pointer.leftPressed
-      ) {
-        actions.impulse.lookX +=
-          pointerX * pointerLookSpeed * pointerDeltaSensitivity;
-        actions.impulse.lookY +=
-          pointerY * pointerLookSpeed * pointerDeltaSensitivity;
+      if (alwaysLook || pointer.rightPressed || pointer.leftPressed) {
+        actions.impulse.lookX += pointerX * pointerLookSpeed * pointerDeltaSensitivity;
+        actions.impulse.lookY += pointerY * pointerLookSpeed * pointerDeltaSensitivity;
       }
 
       const weights = resolveMotionWeights(actions, 0, lookAtState.weight);
@@ -126,7 +120,7 @@ export function createFirstPersonController(
         cameraEntityId,
         dtSeconds,
         pointer,
-        weights,
+        weights
       });
 
       applyToWorld(worldId, cameraEntityId, nextApplied);
@@ -202,6 +196,6 @@ export function createFirstPersonController(
       const w = weightOrDefault(weight);
       actions.impulse.lookX += deltaX * w;
       actions.impulse.lookY += deltaY * w;
-    },
+    }
   };
 }

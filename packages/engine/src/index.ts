@@ -12,14 +12,14 @@ export {
   registerSystem,
   setSystemDiagnostics,
   tick,
-  uploadBuffer,
+  uploadBuffer
 } from './engine/api';
 export {
   closeWindow,
   createWindow,
   focusWindow,
   requestAttention,
-  updateWindow,
+  updateWindow
 } from './engine/window/manager';
 export type {
   CommandId,
@@ -31,11 +31,11 @@ export type {
   WindowId,
   World3DId,
   WorldId,
-  WorldUIId,
+  WorldUIId
 } from './engine/world/types';
 export * as Types from './types';
 export type {
   BufferResult,
   EngineTransport,
-  EngineTransportFactory,
+  EngineTransportFactory
 } from '@vulfram/transport-types';

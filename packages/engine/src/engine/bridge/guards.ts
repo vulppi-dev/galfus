@@ -25,7 +25,7 @@ export function ensureEntity(world: WorldState, entityId: number): void {
   if (!world.entities.has(entityId)) {
     throw new EngineError(
       'EntityNotFound',
-      `Entity ${entityId} not found in World ${world.worldId}.`,
+      `Entity ${entityId} not found in World ${world.worldId}.`
     );
   }
 }

@@ -41,11 +41,7 @@ function getCargoProfileDir(mode: BuildMode): string {
   return mode === 'release' ? 'release' : 'debug';
 }
 
-async function runCommand(
-  label: string,
-  cmd: string[],
-  cwd = rootDir,
-): Promise<void> {
+async function runCommand(label: string, cmd: string[], cwd = rootDir): Promise<void> {
   logStep(label);
   const proc = Bun.spawn({
     cmd,
@@ -75,12 +71,7 @@ async function commandExists(name: string): Promise<boolean> {
 }
 
 async function ensureWasmToolchain(): Promise<void> {
-  await runCommand('Ensuring wasm32 target', [
-    'rustup',
-    'target',
-    'add',
-    'wasm32-unknown-unknown'
-  ]);
+  await runCommand('Ensuring wasm32 target', ['rustup', 'target', 'add', 'wasm32-unknown-unknown']);
 
   if (await commandExists('wasm-bindgen')) {
     return;
@@ -103,22 +94,18 @@ async function copyArtifact(source: string, destination: string): Promise<void> 
 
 async function buildBunFfi(
   platform: Exclude<VulframPlatform, 'browser'>,
-  mode: BuildMode,
+  mode: BuildMode
 ): Promise<void> {
   const profileDir = getCargoProfileDir(mode);
   const extension = getNativeLibraryExtension(platform);
-  const source = join(
-    cargoTargetDir,
-    profileDir,
-    `libvulfram_bindings_ffi.${extension}`,
-  );
+  const source = join(cargoTargetDir, profileDir, `libvulfram_bindings_ffi.${extension}`);
   const destination = join(
     rootDir,
     'packages',
     'transport-bun',
     'dist',
     platform,
-    getArtifactFileName('ffi', platform),
+    getArtifactFileName('ffi', platform)
   );
 
   const cargoArgs = ['cargo', 'build', '-p', 'vulfram-bindings-ffi'];
@@ -132,23 +119,19 @@ async function buildBunFfi(
 
 async function buildNapi(
   platform: Exclude<VulframPlatform, 'browser'>,
-  mode: BuildMode,
+  mode: BuildMode
 ): Promise<void> {
   const profileDir = getCargoProfileDir(mode);
   const extension = getNativeLibraryExtension(platform);
   const libPrefix = platform.startsWith('windows') ? '' : 'lib';
-  const source = join(
-    cargoTargetDir,
-    profileDir,
-    `${libPrefix}vulfram_bindings_napi.${extension}`,
-  );
+  const source = join(cargoTargetDir, profileDir, `${libPrefix}vulfram_bindings_napi.${extension}`);
   const destination = join(
     rootDir,
     'packages',
     'transport-napi',
     'dist',
     platform,
-    getArtifactFileName('napi', platform),
+    getArtifactFileName('napi', platform)
   );
 
   const cargoArgs = ['cargo', 'build', '-p', 'vulfram-bindings-napi'];
@@ -158,11 +141,6 @@ async function buildNapi(
 
   await runCommand(`Building N-API (${mode})`, cargoArgs);
   await copyArtifact(source, destination);
-  await runCommand(
-    'Bundling transport-napi dist/',
-    ['bun', 'run', 'build'],
-    join(rootDir, 'packages', 'transport-napi'),
-  );
 }
 
 async function buildWasm(mode: BuildMode): Promise<void> {
@@ -171,7 +149,7 @@ async function buildWasm(mode: BuildMode): Promise<void> {
     cargoTargetDir,
     'wasm32-unknown-unknown',
     profileDir,
-    'vulfram_bindings_wasm.wasm',
+    'vulfram_bindings_wasm.wasm'
   );
   const destinationDir = join(rootDir, 'packages', 'transport-browser', 'dist');
 

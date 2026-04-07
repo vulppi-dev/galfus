@@ -7,9 +7,7 @@ export function allocateGlobalId(): number {
   return engineState.nextGlobalId++;
 }
 
-export function recalculateWorldWindowBindings(
-  world: ReturnType<typeof getWorldOrThrow>,
-): void {
+export function recalculateWorldWindowBindings(world: ReturnType<typeof getWorldOrThrow>): void {
   world.boundWindowIds.clear();
   for (const windowId of world.targetWindowBindings.values()) {
     world.boundWindowIds.add(windowId);

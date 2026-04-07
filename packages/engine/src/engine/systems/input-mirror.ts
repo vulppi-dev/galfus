@@ -64,7 +64,7 @@ export const InputMirrorSystem: System = (world) => {
         state.windowState.pointerCapture = {
           mode: winEvent.data.capture.mode,
           active: winEvent.data.capture.active,
-          reason: winEvent.data.capture.reason,
+          reason: winEvent.data.capture.reason
         };
       }
     }
@@ -82,7 +82,7 @@ export const InputMirrorSystem: System = (world) => {
           scope: sysEvent.data.scope,
           message: sysEvent.data.message,
           commandId: sysEvent.data.commandId,
-          commandType: sysEvent.data.commandType,
+          commandType: sysEvent.data.commandType
         };
       }
     }

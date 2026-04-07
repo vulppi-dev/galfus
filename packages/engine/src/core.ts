@@ -7,11 +7,11 @@ export {
   registerSystem,
   setSystemDiagnostics,
   tick,
-  uploadBuffer,
+  uploadBuffer
 } from './engine/api';
 export { EngineError } from './engine/errors';
 export type {
   BufferResult,
   EngineTransport,
-  EngineTransportFactory,
+  EngineTransportFactory
 } from '@vulfram/transport-types';

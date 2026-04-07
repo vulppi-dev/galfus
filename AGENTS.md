@@ -1,25 +1,13 @@
 # AGENTS.md — Vulfram instructions
 
-- Nunca confirme de forma positiva diretamente sobre uma proposta, você deve ponderar logicamente se é realmente valido ou não; Caso não seja, sugira uma proposta mais alinhada a resolução do problema de forma eficaz e eficiente.
-- Projeto experimental: nao precisamos manter retrocompatibilidade por enquanto; apos lancamento, sim.
-- Planejamento deve ocorrer sem alterar arquivos (sem gerar codigo) quando o usuario pedir apenas analise.
-- Variaveis que seguram ownership e não são mais usadas depois ganham sempre o prefixo `_`.
-- Se variaveis não forem usadas, devem ser removidas.
-- Funções não usadas também são removidas.
-- Sempre executar `scripts/check.sh` ao final de qualquer implementação nos códigos relativos ao rust ou shader (checagem padrão).
-- Configurações de filtros do pós-processamento devem usar o prefixo `filter_` e a flag `filter_enabled`.
-- Demos devem fechar por padrão ao pressionar a tecla Escape.
-- Valores de `outline_threshold` devem ficar no intervalo [0, 1) (clamp).
-- Arquivos devem ter como alvo no 300 linhas e no máximo 600 linhas. Se passar disso e for possível, dividir em arquivos menores.
-- Texturas de cor devem usar formato float (ex.: `rgba16f`) por padrão; depth também pode ser float quando aplicável.
-- A árvore do render graph não deve declarar formatos de textura; o core define padrões.
-- Sempre atualizar a documentação relacionada ao terminar uma fase.
-- Em auditorias futuras, ignorar retenção por recursos host-side sem dispose.
-- `scripts/check.sh` roda `cargo check --lib` + valida WGSL.
-- Decode de imagens/texturas deve ser assíncrono por padrão; no browser tentar Worker e, se indisponível, usar Promises/async com divisão em chunks para não travar o loop.
-- Dispose de recursos em decode deve cancelar (ou, se impossível, aguardar) e descartar o resultado.
-- `unwrap` em fluxo de comandos deve ser tratado com rollback e retorno de erro; fora de comandos deve emitir evento de erro.
-- Sempre que houver erro diagnosticável (em comandos ou fluxo interno), emitir também `SystemEvent::Error` no pool de eventos entregue ao host.
-- Propriedades internas em Rust usam `snake_case`; o serde converte para `camelCase` no host.
-- Recursos devem seguir o padrão de: IDs lógicos controlados pelo host, todas as outras necessidades de gerenciamento e controle ficam no core, incluindo geração de IDs físicos, pooling, etc.
-- O host é responsável por garantir que os IDs lógicos sejam únicos e válidos; o core assume que isso é verdade e não faz validação extra.
+- Never directly confirm a proposal in a positive way; you must logically assess whether it is actually valid or not. If it is not, suggest a proposal that is better aligned with solving the problem effectively and efficiently.
+- Planning must be done without modifying files (without generating code) when the user asks only for analysis.
+- Variables that hold ownership and are no longer used afterward must always receive the `_` prefix.
+- If variables are unused, they must be removed.
+- Unused functions must also be removed.
+- Files should target around 300 lines and at most 600 lines. If they exceed that and it is possible, split them into smaller files.
+- Always update the related documentation when finishing a phase.
+- In future audits, ignore retention caused by host-side resources without dispose.
+- Internal Rust properties use `snake_case`; serde converts them to `camelCase` on the host side.
+- Resources must follow this pattern: logical IDs are controlled by the host, while all other management and control requirements remain in the core, including physical ID generation, pooling, etc.
+- The host is responsible for ensuring that logical IDs are unique and valid; the core assumes this is true and performs no extra validation.

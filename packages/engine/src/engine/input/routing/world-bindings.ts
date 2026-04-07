@@ -17,13 +17,11 @@ function fromInputState(state: InputStateComponent): RoutedPointerSnapshot {
     pointerTargetPosition: state.pointerPositionTarget,
     pointerTargetDelta: state.pointerTargetDelta,
     pointerTargetUv: state.pointerTargetUv,
-    pointerTargetSize: state.pointerTargetSize,
+    pointerTargetSize: state.pointerTargetSize
   };
 }
 
-export function getRoutedPointerSnapshotByWorld(
-  worldId: number,
-): RoutedPointerSnapshot | null {
+export function getRoutedPointerSnapshotByWorld(worldId: number): RoutedPointerSnapshot | null {
   const state = getInputState(worldId);
   if (!state) return null;
   return fromInputState(state);
@@ -31,7 +29,7 @@ export function getRoutedPointerSnapshotByWorld(
 
 export function getRoutedPointerSnapshotByTarget(
   worldId: number,
-  targetId: number,
+  targetId: number
 ): RoutedPointerSnapshot | null {
   const state = getInputState(worldId);
   if (!state) return null;

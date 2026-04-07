@@ -515,10 +515,6 @@ jobs:
             fi
           done
 
-      - name: Bundle N-API transport package
-        run: bun run build
-        working-directory: packages/transport-napi
-
       - name: Publish npm packages
         shell: bash
         env:

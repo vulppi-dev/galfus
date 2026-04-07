@@ -42,13 +42,13 @@ export interface CameraControllerContext {
 export type TranslationStrategy = (
   next: CameraTarget,
   prev: CameraTarget,
-  context: CameraControllerContext,
+  context: CameraControllerContext
 ) => CameraTarget;
 
 export type EasingFunction = (
   next: CameraTarget,
   prev: CameraTarget,
-  context: CameraControllerContext,
+  context: CameraControllerContext
 ) => CameraTarget;
 
 export interface CameraControllerOptions {

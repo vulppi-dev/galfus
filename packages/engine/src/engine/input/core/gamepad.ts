@@ -3,13 +3,13 @@ import type { GamepadStateComponent } from '../../ecs/components';
 
 export function applyGamepadEvent(
   gamepadState: GamepadStateComponent,
-  gamepadEvent: GamepadEvent,
+  gamepadEvent: GamepadEvent
 ): void {
   gamepadState.eventsThisFrame.push(gamepadEvent);
 
   if (gamepadEvent.event === 'on-connect') {
     gamepadState.connected.set(gamepadEvent.data.gamepadId, {
-      name: gamepadEvent.data.name,
+      name: gamepadEvent.data.name
     });
     return;
   }
@@ -30,7 +30,7 @@ export function applyGamepadEvent(
     }
     buttons.set(gamepadEvent.data.button, {
       pressed: gamepadEvent.data.state === 'pressed',
-      value: gamepadEvent.data.value,
+      value: gamepadEvent.data.value
     });
     return;
   }

@@ -5,7 +5,7 @@ import {
   applyToWorld,
   cloneCameraTarget,
   createCameraTarget,
-  runPipeline,
+  runPipeline
 } from '../core/pipeline';
 import { readPointerState } from '../core/pointer';
 import { clamp, makeLookRotation, sphericalToCartesian } from '../core/math';
@@ -13,7 +13,7 @@ import type {
   BaseCameraControllerHandle,
   CameraControllerOptions,
   CameraTarget,
-  LookAtState,
+  LookAtState
 } from '../core/types';
 import { weightOrDefault } from '../core/actions';
 
@@ -47,7 +47,7 @@ export interface OrbitControllerHandle extends BaseCameraControllerHandle {
 export function createOrbitController(
   worldId: World3DId,
   cameraEntityId: EntityId,
-  config: OrbitControllerConfig = {},
+  config: OrbitControllerConfig = {}
 ): OrbitControllerHandle {
   const target = vec3.clone(config.target ?? [0, 0, 0]);
   let radius = config.radius ?? 5;
@@ -70,7 +70,7 @@ export function createOrbitController(
   const lookAtState: LookAtState = {
     enabled: false,
     target: vec3.create(),
-    weight: 0,
+    weight: 0
   };
 
   let zoomImpulse = 0;
@@ -96,9 +96,7 @@ export function createOrbitController(
       const pointer = readPointerState(worldId);
       const pointerX = pointer.delta[0] * pointerXSign;
       const pointerY = pointer.delta[1] * pointerYSign;
-      const rotateGesture =
-        pointer.rightPressed ||
-        (pointer.leftPressed && !pointer.middlePressed);
+      const rotateGesture = pointer.rightPressed || (pointer.leftPressed && !pointer.middlePressed);
 
       const panGesture = pointer.middlePressed && !pointer.rightPressed;
 
@@ -132,11 +130,7 @@ export function createOrbitController(
         zoomWeight += pointerY;
       }
       zoomWeight *= zoomSensitivity;
-      radius = clamp(
-        radius * (1 + zoomWeight * zoomSpeed * dtSeconds * 60),
-        minRadius,
-        maxRadius,
-      );
+      radius = clamp(radius * (1 + zoomWeight * zoomSpeed * dtSeconds * 60), minRadius, maxRadius);
 
       const raw = composeRawTarget();
       applyLookAtIfEnabled(raw, lookAtState, dtSeconds);
@@ -156,8 +150,8 @@ export function createOrbitController(
           zoom: zoomWeight,
           lookX: weightedLookX,
           lookY: weightedLookY,
-          lookAt: lookAtState.weight,
-        },
+          lookAt: lookAtState.weight
+        }
       });
 
       applyToWorld(worldId, cameraEntityId, nextApplied);
@@ -166,12 +160,7 @@ export function createOrbitController(
     },
 
     lookAt(position: ReadonlyVec3, weight?: number): void {
-      vec3.set(
-        lookAtState.target,
-        position[0] ?? 0,
-        position[1] ?? 0,
-        position[2] ?? 0,
-      );
+      vec3.set(lookAtState.target, position[0] ?? 0, position[1] ?? 0, position[2] ?? 0);
       lookAtState.enabled = true;
       lookAtState.weight = weightOrDefault(weight);
     },
@@ -194,6 +183,6 @@ export function createOrbitController(
 
     isEnabled(): boolean {
       return enabled;
-    },
+    }
   };
 }

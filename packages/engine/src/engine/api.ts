@@ -4,14 +4,10 @@ import {
   enqueueGlobalCommand,
   markRoutingIndexDirty,
   routeEvents,
-  routeResponses,
+  routeResponses
 } from './bridge/dispatch';
 import { requireInitialized } from './bridge/guards';
-import {
-  deserializeEvents,
-  deserializeResponses,
-  serializeBatch,
-} from './bridge/protocol';
+import { deserializeEvents, deserializeResponses, serializeBatch } from './bridge/protocol';
 import type { ComponentSchema, System, SystemContext, SystemStep } from './ecs';
 import { EngineError } from './errors';
 import { engineState, REQUIRED_SYSTEMS, type WorldState } from './state';
@@ -22,7 +18,7 @@ import type { RealmKind } from '../types/cmds/realm';
 import type {
   CmdSystemBuildVersionGetArgs,
   CmdSystemDiagnosticsSetArgs,
-  CmdUploadBufferDiscardAllArgs,
+  CmdUploadBufferDiscardAllArgs
 } from '../types/cmds/system';
 import { asWorldId, type WorldId } from './world/types';
 
@@ -105,10 +101,7 @@ export function initEngine(config: {
   const transport = config.transport();
   const result = transport.vulframInit();
   if (result !== 0) {
-    throw new EngineError(
-      'InitFailed',
-      `vulframInit failed with code ${result}.`,
-    );
+    throw new EngineError('InitFailed', `vulframInit failed with code ${result}.`);
   }
 
   engineState.transport = transport;
@@ -199,22 +192,14 @@ function uploadTypeToId(type: UploadType): number {
 /**
  * Uploads a raw buffer to the core for later use (textures, geometry, etc.).
  */
-export function uploadBuffer(
-  bufferId: number,
-  type: UploadType,
-  data: Uint8Array,
-): void {
+export function uploadBuffer(bufferId: number, type: UploadType, data: Uint8Array): void {
   requireInitialized();
   const transport = engineState.transport!;
-  const result = transport.vulframUploadBuffer(
-    bufferId,
-    uploadTypeToId(type),
-    data,
-  );
+  const result = transport.vulframUploadBuffer(bufferId, uploadTypeToId(type), data);
   if (result !== 0) {
     throw new EngineError(
       'UploadFailed',
-      `vulframUploadBuffer failed for ID ${bufferId} with code ${result}.`,
+      `vulframUploadBuffer failed for ID ${bufferId} with code ${result}.`
     );
   }
 }
@@ -222,9 +207,7 @@ export function uploadBuffer(
 /**
  * Configures global runtime diagnostics and pointer tracing.
  */
-export function setSystemDiagnostics(
-  args: CmdSystemDiagnosticsSetArgs,
-): number {
+export function setSystemDiagnostics(args: CmdSystemDiagnosticsSetArgs): number {
   requireInitialized();
   return enqueueGlobalCommand('cmd-system-diagnostics-set', args);
 }
@@ -232,9 +215,7 @@ export function setSystemDiagnostics(
 /**
  * Requests the core to return build/runtime version information.
  */
-export function getCoreBuildVersion(
-  args: CmdSystemBuildVersionGetArgs = {},
-): number {
+export function getCoreBuildVersion(args: CmdSystemBuildVersionGetArgs = {}): number {
   requireInitialized();
   return enqueueGlobalCommand('cmd-system-build-version-get', args);
 }
@@ -242,17 +223,12 @@ export function getCoreBuildVersion(
 /**
  * Requests the core to discard all pending upload buffers.
  */
-export function discardAllUploadBuffers(
-  args: CmdUploadBufferDiscardAllArgs = {},
-): number {
+export function discardAllUploadBuffers(args: CmdUploadBufferDiscardAllArgs = {}): number {
   requireInitialized();
   return enqueueGlobalCommand('cmd-upload-buffer-discard-all', args);
 }
 
-function createRealmWorld(
-  kind: RealmKind,
-  config: CreateWorldOptions = {},
-): WorldId {
+function createRealmWorld(kind: RealmKind, config: CreateWorldOptions = {}): WorldId {
   requireInitialized();
 
   const worldId = engineState.nextWorldId++;
@@ -269,7 +245,7 @@ function createRealmWorld(
       kind,
       importance: config.importance,
       cachePolicy: config.cachePolicy,
-      flags: config.flags,
+      flags: config.flags
     },
     coreSurfaceId: undefined,
     corePresentId: undefined,
@@ -292,7 +268,7 @@ function createRealmWorld(
     inboundEvents: [],
     inboundResponses: [],
     realmCreateRetryCount: 0,
-    nextRealmCreateRetryAtMs: 0,
+    nextRealmCreateRetryAtMs: 0
   };
 
   engineState.worlds.set(worldId, world);
@@ -300,7 +276,7 @@ function createRealmWorld(
   world.pendingCommands.push({
     id: engineState.nextCommandId++,
     type: 'cmd-realm-create',
-    content: world.realmCreateArgs,
+    content: world.realmCreateArgs
   });
   return asWorldId(worldId);
 }
@@ -388,7 +364,7 @@ export function tick(timeMs: number, deltaMs: number): void {
   const context: SystemContext = {
     dt: cappedDelta / 1000,
     time: timeMs / 1000,
-    worldId: 0,
+    worldId: 0
   };
 
   // 3. World Phase: System Execution
@@ -413,13 +389,12 @@ export function tick(timeMs: number, deltaMs: number): void {
     const result = transport.vulframSendQueue(batchBuffer);
     if (result !== 0) {
       console.error(
-        `[Vulfram] vulframSendQueue failed with result ${result}. This usually indicates a MessagePack serialization mismatch between Host and Core.`,
+        `[Vulfram] vulframSendQueue failed with result ${result}. This usually indicates a MessagePack serialization mismatch between Host and Core.`
       );
       for (const cmd of engineState.commandBatch) {
         engineState.commandTracker.delete(cmd.id);
         engineState.globalCommandTracker.delete(cmd.id);
-        const pendingCreateWindowId =
-          engineState.pendingWindowCreateByCommandId.get(cmd.id);
+        const pendingCreateWindowId = engineState.pendingWindowCreateByCommandId.get(cmd.id);
         if (pendingCreateWindowId !== undefined) {
           engineState.usedWindowIds.delete(pendingCreateWindowId);
           engineState.pendingWindowCreateByCommandId.delete(cmd.id);
@@ -432,7 +407,7 @@ export function tick(timeMs: number, deltaMs: number): void {
         console.debug('Batch Size:', batchBuffer.length, 'bytes');
         console.debug(
           'Command Types:',
-          engineState.commandBatch.map((c) => c.type),
+          engineState.commandBatch.map((c) => c.type)
         );
         console.groupEnd();
       }
@@ -449,9 +424,7 @@ function processGlobalResponses(): void {
     const res = engineState.globalInboundResponses[i]!;
     const content = res.content as { success?: boolean; message?: string };
     if (res.type === 'window-create') {
-      const pendingWindowId = engineState.pendingWindowCreateByCommandId.get(
-        res.id,
-      );
+      const pendingWindowId = engineState.pendingWindowCreateByCommandId.get(res.id);
       if (pendingWindowId !== undefined) {
         if (content.success) {
           engineState.confirmedWindowIds.add(pendingWindowId);
@@ -461,9 +434,7 @@ function processGlobalResponses(): void {
         engineState.pendingWindowCreateByCommandId.delete(res.id);
       }
     } else if (res.type === 'window-close') {
-      const pendingWindowId = engineState.pendingWindowCloseByCommandId.get(
-        res.id,
-      );
+      const pendingWindowId = engineState.pendingWindowCloseByCommandId.get(res.id);
       if (pendingWindowId !== undefined) {
         if (content.success) {
           engineState.usedWindowIds.delete(pendingWindowId);
@@ -483,9 +454,7 @@ function processGlobalResponses(): void {
       }
     }
     if (content && typeof content.success === 'boolean' && !content.success) {
-      console.error(
-        `[Global] Command ${res.type} (ID: ${res.id}) failed: ${content.message}`,
-      );
+      console.error(`[Global] Command ${res.type} (ID: ${res.id}) failed: ${content.message}`);
     }
   }
   engineState.globalInboundResponses.length = 0;
@@ -494,11 +463,7 @@ function processGlobalResponses(): void {
 /**
  * Executes a specific group of systems with error handling.
  */
-function executeSystemStep(
-  world: WorldState,
-  context: SystemContext,
-  step: SystemStep,
-): void {
+function executeSystemStep(world: WorldState, context: SystemContext, step: SystemStep): void {
   const systems = engineState.registry.systems[step];
   for (const system of systems) {
     try {
@@ -508,7 +473,7 @@ function executeSystemStep(
         `[SystemError] World ${context.worldId} | Step: ${step} | System: ${
           system.name || 'anonymous'
         }\n`,
-        err,
+        err
       );
     }
   }

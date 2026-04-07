@@ -3,7 +3,7 @@ import type { InputStateComponent } from '../../ecs/components';
 
 export function applyKeyboardEvent(
   inputState: InputStateComponent,
-  keyboardEvent: KeyboardEvent,
+  keyboardEvent: KeyboardEvent
 ): void {
   if (keyboardEvent.event === 'on-input') {
     const keyCode = keyboardEvent.data.keyCode;

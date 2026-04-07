@@ -5,7 +5,7 @@ import {
   applyToWorld,
   cloneCameraTarget,
   createCameraTarget,
-  runPipeline,
+  runPipeline
 } from '../core/pipeline';
 import { readPointerState } from '../core/pointer';
 import { clamp, makeLookRotation } from '../core/math';
@@ -13,7 +13,7 @@ import type {
   BaseCameraControllerHandle,
   CameraControllerOptions,
   CameraTarget,
-  LookAtState,
+  LookAtState
 } from '../core/types';
 import { weightOrDefault } from '../core/actions';
 
@@ -44,7 +44,7 @@ export interface TopViewControllerHandle extends BaseCameraControllerHandle {
 export function createTopViewController(
   worldId: World3DId,
   cameraEntityId: EntityId,
-  config: TopViewControllerConfig = {},
+  config: TopViewControllerConfig = {}
 ): TopViewControllerHandle {
   const focus = vec3.clone(config.focus ?? [0, 0, 0]);
   let height = config.height ?? 10;
@@ -65,7 +65,7 @@ export function createTopViewController(
   const lookAtState: LookAtState = {
     enabled: false,
     target: vec3.create(),
-    weight: 0,
+    weight: 0
   };
   let zoomImpulse = 0;
 
@@ -116,11 +116,7 @@ export function createTopViewController(
         zoomWeight += pointerY;
       }
       zoomWeight *= zoomSensitivity;
-      height = clamp(
-        height * (1 + zoomWeight * zoomSpeed * dtSeconds * 60),
-        minHeight,
-        maxHeight,
-      );
+      height = clamp(height * (1 + zoomWeight * zoomSpeed * dtSeconds * 60), minHeight, maxHeight);
 
       const raw = composeRawTarget();
       applyLookAtIfEnabled(raw, lookAtState, dtSeconds);
@@ -140,8 +136,8 @@ export function createTopViewController(
           zoom: zoomWeight,
           lookX: weightedLookX,
           lookY: weightedLookY,
-          lookAt: lookAtState.weight,
-        },
+          lookAt: lookAtState.weight
+        }
       });
 
       applyToWorld(worldId, cameraEntityId, nextApplied);
@@ -169,6 +165,6 @@ export function createTopViewController(
 
     isFocusLocked(): boolean {
       return focusLocked;
-    },
+    }
   };
 }

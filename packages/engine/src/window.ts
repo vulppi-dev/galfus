@@ -3,6 +3,6 @@ export {
   createWindow,
   focusWindow,
   requestAttention,
-  updateWindow,
+  updateWindow
 } from './engine/window/manager';
 export type { WindowId } from './engine/world/types';

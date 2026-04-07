@@ -60,7 +60,7 @@ async function cleanTransportNapiDist(path: string): Promise<void> {
           entry !== '.gitkeep' &&
           entry !== 'index.js' &&
           entry !== 'index.d.ts' &&
-          !/^vulfram_core-.*\.node$/.test(entry),
+          !/^vulfram_core-.*\.node$/.test(entry)
       )
       .map((entry) => rm(join(path, entry), { recursive: true, force: true }))
   );

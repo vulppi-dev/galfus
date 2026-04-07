@@ -25,8 +25,8 @@ export function createContext(input: GltfLoadInput): LoaderContext {
       entities: 0,
       geometries: 0,
       materials: 0,
-      textures: 0,
-    },
+      textures: 0
+    }
   };
 }
 
@@ -40,7 +40,7 @@ function allocBufferId(): number {
 export function uploadBytes(
   _ctx: LoaderContext,
   usage: 'image-data' | 'vertex-data' | 'index-data',
-  bytes: Uint8Array,
+  bytes: Uint8Array
 ): number {
   const bufferId = allocBufferId();
   uploadBuffer(bufferId, usage, bytes);

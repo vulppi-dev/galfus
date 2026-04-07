@@ -11,7 +11,7 @@ export {
   type CanonicalWindowState,
   resetInputMirrorFrame,
   type InputMirrorStateStore,
-  type InputFrameResetPolicy,
+  type InputFrameResetPolicy
 } from './core';
 export {
   ROUTED_POINTER_FRAME_SEMANTICS,
@@ -21,7 +21,7 @@ export {
   getRoutedPointerSnapshotByWorld,
   resetRoutedPointerFrame,
   type RoutedPointerFrameSemantics,
-  type RoutedPointerSnapshot,
+  type RoutedPointerSnapshot
 } from './routing';
 export {
   getConnectedGamepads,
@@ -56,5 +56,5 @@ export {
   isPointerButtonPressed,
   isWindowFocused,
   isWindowCloseRequested,
-  wasWindowResized,
+  wasWindowResized
 } from './queries';

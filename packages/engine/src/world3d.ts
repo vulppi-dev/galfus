@@ -6,5 +6,5 @@ export type {
   TargetId,
   TextureId,
   World3DId,
-  WorldId,
+  WorldId
 } from './engine/world/types';

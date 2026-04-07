@@ -221,5 +221,5 @@ export enum KeyCode {
   PrintScreen = 146,
   Pause = 147,
 
-  Unidentified = 255,
+  Unidentified = 255
 }

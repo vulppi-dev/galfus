@@ -1,9 +1,6 @@
 import { Packr, Unpackr } from 'msgpackr';
 import type { TransportBuffer } from '@vulfram/transport-types';
-import type {
-  CommandResponseEnvelope,
-  EngineCmdEnvelope,
-} from '../../types/cmds';
+import type { CommandResponseEnvelope, EngineCmdEnvelope } from '../../types/cmds';
 import type { EngineEvent } from '../../types/events';
 
 /**
@@ -143,9 +140,7 @@ export function serializeBatch(batch: CoreCommandBatch): TransportBuffer {
 /**
  * Deserializes responses from vulframReceiveQueue.
  */
-export function deserializeResponses(
-  buffer: TransportBuffer,
-): CommandResponseEnvelope[] {
+export function deserializeResponses(buffer: TransportBuffer): CommandResponseEnvelope[] {
   if (buffer.length === 0) return [];
   return unpackr.unpack(buffer);
 }

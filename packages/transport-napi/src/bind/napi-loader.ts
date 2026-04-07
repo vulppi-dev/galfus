@@ -3,7 +3,7 @@ import {
   getArtifactFileName,
   resolveNativePlatform,
   selectPlatformLoader,
-  type PlatformLoaderMap,
+  type PlatformLoaderMap
 } from '@vulfram/transport-types';
 import type { BufferResult } from './types';
 import { createRequire } from 'module';
@@ -69,7 +69,7 @@ async function resolveNativeModulePath(): Promise<string> {
   const candidates = [
     join(moduleDir, '..', '..', 'dist', platform, filename),
     join(moduleDir, platform, filename),
-    join(moduleDir, '..', platform, filename),
+    join(moduleDir, '..', platform, filename)
   ];
 
   try {

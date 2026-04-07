@@ -7,7 +7,7 @@ import type {
   UiFieldsetScope,
   UiFocusableNode,
   UiFormScope,
-  UiStateComponent,
+  UiStateComponent
 } from '../ecs';
 
 const WORLD_ENTITY_ID = 0;
@@ -36,7 +36,7 @@ const UI_INTENT_TYPES = [
   'ui-fieldset-dispose',
   'ui-focusable-upsert',
   'ui-focusable-dispose',
-  'ui-focus-next',
+  'ui-focus-next'
 ] as const;
 
 function ensureUiState(world: Parameters<System>[0]): UiStateComponent {
@@ -54,7 +54,7 @@ function ensureUiState(world: Parameters<System>[0]): UiStateComponent {
       forms: new Map(),
       fieldsets: new Map(),
       nodes: new Map(),
-      focusByWindow: new Map(),
+      focusByWindow: new Map()
     };
     worldStore.set('UiState', uiState);
   }
@@ -74,7 +74,7 @@ function fieldsetKey(formId: string, fieldsetId: string): string {
 function canFocusNode(
   form: UiFormScope,
   node: UiFocusableNode,
-  fieldsets: Map<string, UiFieldsetScope>,
+  fieldsets: Map<string, UiFieldsetScope>
 ): boolean {
   if (form.disabled || node.disabled || node.tabIndex < 0) {
     return false;
@@ -113,7 +113,7 @@ function sortFocusables(a: UiFocusableNode, b: UiFocusableNode): number {
 function resolveTargetForm(
   uiState: UiStateComponent,
   windowId: number,
-  formId?: string,
+  formId?: string
 ): UiFormScope | undefined {
   if (formId) {
     const form = uiState.forms.get(formId);
@@ -141,7 +141,7 @@ function resolveNextNode(
   uiState: UiStateComponent,
   windowId: number,
   backwards: boolean,
-  formId?: string,
+  formId?: string
 ): { form: UiFormScope; nodeId: number } | null {
   const form = resolveTargetForm(uiState, windowId, formId);
   if (!form) return null;
@@ -156,8 +156,7 @@ function resolveNextNode(
   }
 
   const focused = uiState.focusByWindow.get(windowId);
-  const activeNodeId =
-    focused?.formId === form.formId ? focused.nodeId : form.activeNodeId;
+  const activeNodeId = focused?.formId === form.formId ? focused.nodeId : form.activeNodeId;
   const currentIndex = candidates.findIndex((node) => node.nodeId === activeNodeId);
 
   let nextIndex = currentIndex;
@@ -180,7 +179,12 @@ function resolveNextNode(
   return { form, nodeId: target.nodeId };
 }
 
-function applyFocus(uiState: UiStateComponent, windowId: number, formId: string, nodeId: number): void {
+function applyFocus(
+  uiState: UiStateComponent,
+  windowId: number,
+  formId: string,
+  nodeId: number
+): void {
   uiState.focusByWindow.set(windowId, { formId, nodeId });
   const form = uiState.forms.get(formId);
   if (form) {
@@ -188,11 +192,7 @@ function applyFocus(uiState: UiStateComponent, windowId: number, formId: string,
   }
 }
 
-function processUiIntent(
-  worldId: number,
-  uiState: UiStateComponent,
-  intent: Intent,
-): boolean {
+function processUiIntent(worldId: number, uiState: UiStateComponent, intent: Intent): boolean {
   switch (intent.type) {
     case 'ui-theme-define':
       enqueueCommand(worldId, 'cmd-ui-theme-define', intent.args);
@@ -227,7 +227,11 @@ function processUiIntent(
     case 'ui-focus-set': {
       enqueueCommand(worldId, 'cmd-ui-focus-set', intent.args);
       const form = resolveTargetForm(uiState, intent.args.windowId);
-      if (form && form.realmId === intent.args.realmId && form.documentId === intent.args.documentId) {
+      if (
+        form &&
+        form.realmId === intent.args.realmId &&
+        form.documentId === intent.args.documentId
+      ) {
         applyFocus(uiState, intent.args.windowId, form.formId, intent.args.nodeId ?? 0);
       }
       return true;
@@ -263,7 +267,7 @@ function processUiIntent(
         disabled: intent.form.disabled ?? false,
         cycleMode: intent.form.cycleMode ?? 'wrap',
         activeFieldsetId: intent.form.activeFieldsetId,
-        activeNodeId: existing?.activeNodeId,
+        activeNodeId: existing?.activeNodeId
       });
       return true;
     }
@@ -291,7 +295,7 @@ function processUiIntent(
         formId: intent.fieldset.formId,
         fieldsetId: intent.fieldset.fieldsetId,
         disabled: intent.fieldset.disabled ?? false,
-        legendNodeId: intent.fieldset.legendNodeId,
+        legendNodeId: intent.fieldset.legendNodeId
       });
       return true;
     }
@@ -305,7 +309,7 @@ function processUiIntent(
         tabIndex: intent.focusable.tabIndex ?? 0,
         fieldsetId: intent.focusable.fieldsetId,
         disabled: intent.focusable.disabled ?? false,
-        orderHint: intent.focusable.orderHint ?? intent.focusable.nodeId,
+        orderHint: intent.focusable.orderHint ?? intent.focusable.nodeId
       });
       return true;
     case 'ui-focusable-dispose':
@@ -316,7 +320,7 @@ function processUiIntent(
         uiState,
         intent.windowId,
         intent.backwards ?? false,
-        intent.formId,
+        intent.formId
       );
       if (!next) return true;
 
@@ -324,7 +328,7 @@ function processUiIntent(
         windowId: next.form.windowId,
         realmId: next.form.realmId,
         documentId: next.form.documentId,
-        nodeId: next.nodeId,
+        nodeId: next.nodeId
       });
       applyFocus(uiState, next.form.windowId, next.form.formId, next.nodeId);
       return true;
@@ -370,12 +374,11 @@ export const UiBridgeSystem: System = (world, context) => {
             windowId: next.form.windowId,
             realmId: next.form.realmId,
             documentId: next.form.documentId,
-            nodeId: next.nodeId,
+            nodeId: next.nodeId
           });
           applyFocus(uiState, next.form.windowId, next.form.formId, next.nodeId);
         }
       }
     }
   }
-
 };

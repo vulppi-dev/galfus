@@ -18,7 +18,7 @@ const ParentConstraintStrategy: ConstraintStrategy = {
     const out = mat4.create();
     mat4.multiply(out, a, b);
     return out;
-  },
+  }
 };
 
 type ResolveState = {
@@ -46,7 +46,7 @@ function resolveEntityMatrix(state: ResolveState, entityId: number): mat4 {
   if (state.visiting.has(entityId)) {
     if (!state.cycleLogged) {
       console.error(
-        `[World ${state.worldId}] Constraint cycle detected in parent hierarchy. Falling back to local transforms for cyclic nodes.`,
+        `[World ${state.worldId}] Constraint cycle detected in parent hierarchy. Falling back to local transforms for cyclic nodes.`
       );
       state.cycleLogged = true;
     }
@@ -61,14 +61,12 @@ function resolveEntityMatrix(state: ResolveState, entityId: number): mat4 {
   let resolved = local;
   if (parent) {
     const parentStore = state.world.components.get(parent.parentId);
-    const parentTransform = parentStore?.get('Transform') as
-      | TransformComponent
-      | undefined;
+    const parentTransform = parentStore?.get('Transform') as TransformComponent | undefined;
     if (parentTransform) {
       const parentMatrix = resolveEntityMatrix(state, parent.parentId);
       resolved = ParentConstraintStrategy.apply(parentMatrix, local, {
         worldId: state.worldId,
-        entityId,
+        entityId
       });
     }
   }
@@ -127,7 +125,7 @@ export const ConstraintSolveSystem: System = (world, context) => {
     affected,
     resolved: world.constraintScratchResolved,
     visiting: world.constraintScratchVisiting,
-    cycleLogged: false,
+    cycleLogged: false
   };
   resolveState.resolved.clear();
   resolveState.visiting.clear();

@@ -5,7 +5,7 @@ import {
   applyToWorld,
   cloneCameraTarget,
   createCameraTarget,
-  runPipeline,
+  runPipeline
 } from '../core/pipeline';
 import { readPointerState } from '../core/pointer';
 import { clamp, makeLookRotation, sphericalToCartesian } from '../core/math';
@@ -13,7 +13,7 @@ import type {
   BaseCameraControllerHandle,
   CameraControllerOptions,
   CameraTarget,
-  LookAtState,
+  LookAtState
 } from '../core/types';
 import { weightOrDefault } from '../core/actions';
 
@@ -44,7 +44,7 @@ export interface ThirdPersonControllerHandle extends BaseCameraControllerHandle 
 export function createThirdPersonController(
   worldId: World3DId,
   cameraEntityId: EntityId,
-  config: ThirdPersonControllerConfig = {},
+  config: ThirdPersonControllerConfig = {}
 ): ThirdPersonControllerHandle {
   const target = vec3.clone(config.target ?? [0, 0, 0]);
   let distance = config.distance ?? 4;
@@ -67,7 +67,7 @@ export function createThirdPersonController(
   const lookAtState: LookAtState = {
     enabled: false,
     target: vec3.create(),
-    weight: 0,
+    weight: 0
   };
   let zoomImpulse = 0;
 
@@ -107,7 +107,7 @@ export function createThirdPersonController(
       distance = clamp(
         distance * (1 + zoomWeight * zoomSpeed * dtSeconds * 60),
         minDistance,
-        maxDistance,
+        maxDistance
       );
 
       const alpha = 1 - Math.exp(-followSmoothing * dtSeconds);
@@ -131,8 +131,8 @@ export function createThirdPersonController(
           zoom: zoomWeight,
           lookX: weightedLookX,
           lookY: weightedLookY,
-          lookAt: lookAtState.weight,
-        },
+          lookAt: lookAtState.weight
+        }
       });
 
       applyToWorld(worldId, cameraEntityId, nextApplied);
@@ -152,6 +152,6 @@ export function createThirdPersonController(
 
     toZoom(weight?: number): void {
       zoomImpulse += weightOrDefault(weight);
-    },
+    }
   };
 }

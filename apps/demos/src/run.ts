@@ -11,9 +11,7 @@ function normalizeDemoId(raw: string | undefined): DemoId | null {
 }
 
 function printUsage(): void {
-  console.error(
-    `Usage: bun run demo <id>\\nAvailable demos: ${DEMO_IDS.join(', ')}`,
-  );
+  console.error(`Usage: bun run demo <id>\\nAvailable demos: ${DEMO_IDS.join(', ')}`);
 }
 
 async function main(): Promise<void> {
@@ -31,4 +29,3 @@ main().catch((error) => {
   console.error(error);
   process.exitCode = 1;
 });
-

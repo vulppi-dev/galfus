@@ -3,7 +3,7 @@ import type {
   CmdTargetLayerDisposeArgs,
   CmdTargetLayerUpsertArgs,
   CmdTargetUpsertArgs,
-  TargetLayerLayout,
+  TargetLayerLayout
 } from '../../types/cmds/target';
 import { engineState } from '../state';
 import {
@@ -11,14 +11,10 @@ import {
   isWorldReady,
   measureTarget,
   unbindWorldFromTarget,
-  upsertTarget,
+  upsertTarget
 } from './entities';
 import type { CommandId, TargetId, WindowId, WorldId } from './types';
-import {
-  asCommandId,
-  asTargetId,
-  asWorldNumber,
-} from './types';
+import { asCommandId, asTargetId, asWorldNumber } from './types';
 
 type MountTargetConfig = Omit<CmdTargetUpsertArgs, 'targetId'>;
 
@@ -53,7 +49,7 @@ export function isWorldMountReady(worldId: WorldId): boolean {
  */
 export async function waitWorldReady(
   worldId: WorldId,
-  options: WaitWorldReadyOptions = {},
+  options: WaitWorldReadyOptions = {}
 ): Promise<boolean> {
   const timeoutMs = options.timeoutMs ?? 5_000;
   const pollIntervalMs = options.pollIntervalMs ?? 16;
@@ -86,7 +82,7 @@ function defaultLayout(): TargetLayerLayout {
     width: { unit: 'percent', value: 100 },
     height: { unit: 'percent', value: 100 },
     zIndex: 0,
-    blendMode: 0,
+    blendMode: 0
   };
 }
 
@@ -104,7 +100,7 @@ function defaultLayout(): TargetLayerLayout {
  */
 export function mountWorld(
   worldId: WorldId,
-  args: MountWorldArgs,
+  args: MountWorldArgs
 ): {
   targetId: TargetId;
   targetCommandId: CommandId;
@@ -115,21 +111,21 @@ export function mountWorld(
 
   const targetCommandId = upsertTarget(world, {
     targetId: targetId as number,
-    ...args.target,
+    ...args.target
   });
 
   const bindArgs = {
     targetId: targetId as number,
     layout: args.layout ?? defaultLayout(),
     cameraId: args.cameraId,
-    environmentId: args.environmentId,
+    environmentId: args.environmentId
   };
   const mountCommandId = bindWorldToTarget(world, bindArgs);
 
   return {
     targetId,
     targetCommandId: asCommandId(targetCommandId),
-    mountCommandId: asCommandId(mountCommandId),
+    mountCommandId: asCommandId(mountCommandId)
   };
 }
 
@@ -139,7 +135,7 @@ export function mountWorld(
 export function mountWorldToWindow(
   worldId: WorldId,
   windowId: WindowId,
-  options: Omit<MountWorldArgs, 'target'> = {},
+  options: Omit<MountWorldArgs, 'target'> = {}
 ): {
   targetId: TargetId;
   targetCommandId: CommandId;
@@ -149,8 +145,8 @@ export function mountWorldToWindow(
     ...options,
     target: {
       kind: 'window',
-      windowId: windowId as number,
-    },
+      windowId: windowId as number
+    }
   });
 }
 
@@ -163,7 +159,7 @@ export function mountWorldToWindow(
  */
 export function unmountWorld(worldId: WorldId, targetId: TargetId): CommandId {
   const commandId = unbindWorldFromTarget(asWorldNumber(worldId), {
-    targetId: targetId as number,
+    targetId: targetId as number
   } as Omit<CmdTargetLayerDisposeArgs, 'realmId'>);
   return asCommandId(commandId);
 }
@@ -177,7 +173,7 @@ export function unmountWorld(worldId: WorldId, targetId: TargetId): CommandId {
  */
 export function remountWorld(
   worldId: WorldId,
-  args: Omit<CmdTargetLayerUpsertArgs, 'realmId'>,
+  args: Omit<CmdTargetLayerUpsertArgs, 'realmId'>
 ): CommandId {
   const commandId = bindWorldToTarget(asWorldNumber(worldId), args);
   return asCommandId(commandId);
@@ -186,10 +182,7 @@ export function remountWorld(
 /**
  * Requests measurement for a mounted target.
  */
-export function measureMountedTarget(
-  worldId: WorldId,
-  args: CmdTargetMeasurementArgs,
-): CommandId {
+export function measureMountedTarget(worldId: WorldId, args: CmdTargetMeasurementArgs): CommandId {
   const commandId = measureTarget(asWorldNumber(worldId), args);
   return asCommandId(commandId);
 }

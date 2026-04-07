@@ -5,7 +5,7 @@ import {
   createWindow,
   disposeEngine,
   initEngine,
-  tick,
+  tick
 } from '@vulfram/engine';
 import { loadGltfAsset } from '@vulfram/gltf-loader';
 import { transportBunFfi } from '@vulfram/transport-bun';
@@ -15,9 +15,7 @@ import { fileURLToPath } from 'node:url';
 
 const RUN_DURATION_MS = 12_000;
 const FRAME_TARGET_MS = 16;
-const GLB_PATH = fileURLToPath(
-  new URL('../assets/treehouse_concept.glb', import.meta.url),
-);
+const GLB_PATH = fileURLToPath(new URL('../assets/treehouse_concept.glb', import.meta.url));
 
 async function main() {
   initEngine({ transport: transportBunFfi });
@@ -29,7 +27,7 @@ async function main() {
     borderless: false,
     resizable: true,
     transparent: false,
-    initialState: 'maximized',
+    initialState: 'maximized'
   });
 
   let totalMs = 0;
@@ -47,7 +45,7 @@ async function main() {
       groundColor: [0.02, 0.03, 0.04],
       horizonColor: [0.1, 0.12, 0.16],
       skyColor: [0.18, 0.24, 0.32],
-      cubemapTextureId: null,
+      cubemapTextureId: null
     },
     clearColor: [0.02, 0.02, 0.03, 1],
     post: {
@@ -80,44 +78,44 @@ async function main() {
       bloomThreshold: 1,
       bloomKnee: 0.5,
       bloomIntensity: 0.8,
-      bloomScatter: 0.7,
-    },
+      bloomScatter: 0.7
+    }
   });
 
   const cameraEntity = World3D.create3DEntity(worldId);
   World3D.update3DTransform(worldId, cameraEntity, {
     position: [0, 2.6, 6.2],
-    rotation: [-0.15643447, 0, 0, 0.98768836],
+    rotation: [-0.15643447, 0, 0, 0.98768836]
   });
   World3D.create3DCamera(worldId, cameraEntity, {
     kind: 'perspective',
     near: 0.1,
     far: 500,
-    order: 0,
+    order: 0
   });
 
   const keyLight = World3D.create3DEntity(worldId);
   World3D.update3DTransform(worldId, keyLight, {
-    position: [8, 12, 6],
+    position: [8, 12, 6]
   });
   World3D.create3DLight(worldId, keyLight, {
     kind: 'point',
     color: [1, 0.98, 0.92],
     intensity: 14,
     range: 80,
-    castShadow: false,
+    castShadow: false
   });
 
   const fillLight = World3D.create3DEntity(worldId);
   World3D.update3DTransform(worldId, fillLight, {
-    position: [-6, 7, -5],
+    position: [-6, 7, -5]
   });
   World3D.create3DLight(worldId, fillLight, {
     kind: 'point',
     color: [0.65, 0.72, 1.0],
     intensity: 8,
     range: 60,
-    castShadow: false,
+    castShadow: false
   });
 
   const glbBytes = readFileSync(GLB_PATH);
@@ -125,7 +123,7 @@ async function main() {
     worldId,
     data: glbBytes,
     materialMode: 'standard',
-    labelPrefix: 'demo006',
+    labelPrefix: 'demo006'
   });
 
   if (asset.warnings.length > 0) {
@@ -138,8 +136,8 @@ async function main() {
     rootTransform: {
       position: [0, -1.5, 0],
       rotation: [0, 0, 0, 1],
-      scale: [1, 1, 1],
-    },
+      scale: [1, 1, 1]
+    }
   });
 
   const rootEntityId = instance.rootEntityId;
@@ -158,14 +156,12 @@ async function main() {
     World3D.update3DTransform(worldId, rootEntityId, {
       position: [0, -1.5, 0],
       rotation: [q[0], q[1], q[2], q[3]],
-      scale: [1, 1, 1],
+      scale: [1, 1, 1]
     });
 
     tick(totalMs, dtMs);
     const frameElapsed = performance.now() - now;
-    await new Promise((r) =>
-      setTimeout(r, Math.max(0, FRAME_TARGET_MS - frameElapsed)),
-    );
+    await new Promise((r) => setTimeout(r, Math.max(0, FRAME_TARGET_MS - frameElapsed)));
   }
 
   instance.disposeEntities();

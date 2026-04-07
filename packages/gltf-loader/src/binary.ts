@@ -33,7 +33,7 @@ export function detectFormat(bytes: Uint8Array): GltfSourceFormat {
 
   throw new GltfLoaderError(
     'UNSUPPORTED_FORMAT',
-    'Unable to detect glTF format from payload bytes.',
+    'Unable to detect glTF format from payload bytes.'
   );
 }
 
@@ -59,7 +59,7 @@ export function decodeDataUri(uri: string): Uint8Array {
 
 /** Normalizes external resource map to Uint8Array values. */
 export function normalizeResourceMap(
-  resources?: Record<string, BinaryLike>,
+  resources?: Record<string, BinaryLike>
 ): Record<string, Uint8Array> {
   if (!resources) return {};
   const out: Record<string, Uint8Array> = {};

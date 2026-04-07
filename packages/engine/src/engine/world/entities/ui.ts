@@ -16,7 +16,7 @@ import type {
   CmdUiImageDisposeArgs,
   CmdUiScreenshotReplyArgs,
   CmdUiThemeDefineArgs,
-  CmdUiThemeDisposeArgs,
+  CmdUiThemeDisposeArgs
 } from '../../../types/cmds/ui';
 import type { UiFocusCycleMode } from '../../ecs';
 import { emitIntent } from './intents';
@@ -62,10 +62,7 @@ export function uiGetDocumentTree(worldId: number, args: CmdUiDocumentGetTreeArg
 }
 
 /** Requests UI layout rects for introspection. */
-export function uiGetLayoutRects(
-  worldId: number,
-  args: CmdUiDocumentGetLayoutRectsArgs,
-): void {
+export function uiGetLayoutRects(worldId: number, args: CmdUiDocumentGetLayoutRectsArgs): void {
   emitIntent(worldId, { type: 'ui-document-get-layout-rects', args });
 }
 
@@ -92,7 +89,7 @@ export function uiSetEventTrace(worldId: number, args: CmdUiEventTraceSetArgs): 
 /** Creates a UI image from uploaded bytes. */
 export function uiCreateImageFromBuffer(
   worldId: number,
-  args: CmdUiImageCreateFromBufferArgs,
+  args: CmdUiImageCreateFromBufferArgs
 ): void {
   emitIntent(worldId, { type: 'ui-image-create-from-buffer', args });
 }
@@ -115,7 +112,7 @@ export function uiScreenshotReply(worldId: number, args: CmdUiScreenshotReplyArg
 /** Delivers AccessKit action request to UI. */
 export function uiAccessKitActionRequest(
   worldId: number,
-  args: CmdUiAccessKitActionRequestArgs,
+  args: CmdUiAccessKitActionRequestArgs
 ): void {
   emitIntent(worldId, { type: 'ui-access-kit-action-request', args });
 }
@@ -131,7 +128,7 @@ export function uiFormUpsert(
     disabled?: boolean;
     cycleMode?: UiFocusCycleMode;
     activeFieldsetId?: string;
-  },
+  }
 ): void {
   emitIntent(worldId, { type: 'ui-form-upsert', form });
 }
@@ -149,17 +146,13 @@ export function uiFieldsetUpsert(
     fieldsetId: string;
     disabled?: boolean;
     legendNodeId?: number;
-  },
+  }
 ): void {
   emitIntent(worldId, { type: 'ui-fieldset-upsert', fieldset });
 }
 
 /** Disposes fieldset metadata. */
-export function uiFieldsetDispose(
-  worldId: number,
-  formId: string,
-  fieldsetId: string,
-): void {
+export function uiFieldsetDispose(worldId: number, formId: string, fieldsetId: string): void {
   emitIntent(worldId, { type: 'ui-fieldset-dispose', formId, fieldsetId });
 }
 
@@ -173,7 +166,7 @@ export function uiFocusableUpsert(
     fieldsetId?: string;
     disabled?: boolean;
     orderHint?: number;
-  },
+  }
 ): void {
   emitIntent(worldId, { type: 'ui-focusable-upsert', focusable });
 }
@@ -186,7 +179,7 @@ export function uiFocusableDispose(worldId: number, nodeId: number): void {
 /** Advances focus within a form scope using tab ordering. */
 export function uiFocusNext(
   worldId: number,
-  args: { windowId: number; backwards?: boolean; formId?: string },
+  args: { windowId: number; backwards?: boolean; formId?: string }
 ): void {
   emitIntent(worldId, { type: 'ui-focus-next', ...args });
 }

@@ -3,7 +3,7 @@ import type {
   InputStateComponent,
   SystemEventStateComponent,
   UiEventStateComponent,
-  WindowStateComponent,
+  WindowStateComponent
 } from '../../ecs/components';
 
 export type CanonicalInputState = InputStateComponent;
@@ -29,5 +29,5 @@ export const INPUT_FRAME_RESET_POLICY: InputFrameResetPolicy = {
   resetScrollDeltaAtFrameStart: true,
   resetImeCommitAtFrameStart: true,
   resetWindowTransientFlagsAtFrameStart: true,
-  resetEventsThisFrameAtFrameStart: true,
+  resetEventsThisFrameAtFrameStart: true
 };

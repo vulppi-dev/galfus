@@ -1,8 +1,4 @@
-import {
-  dispose3DGeometry,
-  dispose3DMaterial,
-  dispose3DTexture,
-} from '@vulfram/engine/world3d';
+import { dispose3DGeometry, dispose3DMaterial, dispose3DTexture } from '@vulfram/engine/world3d';
 import { createContext } from './context';
 import { GltfLoaderError } from './errors';
 import { readDocument } from './parse';
@@ -12,7 +8,7 @@ import type {
   GltfLoadInput,
   GltfLoadResult,
   GltfInstance,
-  LoadedGltfAsset,
+  LoadedGltfAsset
 } from './types';
 
 export type {
@@ -27,7 +23,7 @@ export type {
   NodeTemplate,
   SceneTemplate,
   GltfSourceFormat,
-  RootTransform,
+  RootTransform
 } from './types';
 export { GltfLoaderError } from './errors';
 
@@ -78,7 +74,7 @@ export async function loadGltfAsset(input: GltfLoadInput): Promise<LoadedGltfAss
     if (disposedAll) {
       throw new GltfLoaderError(
         'INVALID_INPUT',
-        'Cannot instantiate from a disposed glTF asset. Load it again.',
+        'Cannot instantiate from a disposed glTF asset. Load it again.'
       );
     }
 
@@ -99,11 +95,11 @@ export async function loadGltfAsset(input: GltfLoadInput): Promise<LoadedGltfAss
     resources: {
       geometries: [...ctx.createdGeometryIds],
       materials: [...ctx.createdMaterialIds],
-      textures: [...ctx.createdTextureIds],
+      textures: [...ctx.createdTextureIds]
     },
     instantiate,
     disposeEntities,
-    disposeAll,
+    disposeAll
   };
 }
 
@@ -115,7 +111,7 @@ export async function loadGltfAsset(input: GltfLoadInput): Promise<LoadedGltfAss
 export async function loadGltfScene(input: GltfLoadInput): Promise<GltfLoadResult> {
   const asset = await loadGltfAsset(input);
   const instance = asset.instantiate({
-    rootTransform: input.rootTransform,
+    rootTransform: input.rootTransform
   });
 
   return {
@@ -124,6 +120,6 @@ export async function loadGltfScene(input: GltfLoadInput): Promise<GltfLoadResul
     geometryCount: asset.resources.geometries.length,
     materialCount: asset.resources.materials.length,
     textureCount: asset.resources.textures.length,
-    warnings: asset.warnings,
+    warnings: asset.warnings
   };
 }

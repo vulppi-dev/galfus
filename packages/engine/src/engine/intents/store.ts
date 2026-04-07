@@ -17,7 +17,7 @@ export class IntentStore {
     const list = this.byType.get(key);
     const entry: IntentEntry<IntentType> = {
       seq: this.sequence++,
-      intent: intent as Extract<Intent, { type: IntentType }>,
+      intent: intent as Extract<Intent, { type: IntentType }>
     };
     if (list) {
       list.push(entry);
@@ -37,9 +37,7 @@ export class IntentStore {
     return list.map((entry) => entry.intent as Extract<Intent, { type: K }>);
   }
 
-  takeMany<K extends IntentType>(
-    types: readonly K[],
-  ): Extract<Intent, { type: K }>[] {
+  takeMany<K extends IntentType>(types: readonly K[]): Extract<Intent, { type: K }>[] {
     const merged: IntentEntry<K>[] = [];
     for (let i = 0; i < types.length; i++) {
       const type = types[i];

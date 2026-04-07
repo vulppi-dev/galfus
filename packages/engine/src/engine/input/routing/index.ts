@@ -1,10 +1,10 @@
 export {
   applyRoutedPointerEvent,
   clearRoutedPointerState,
-  resetRoutedPointerFrame,
+  resetRoutedPointerFrame
 } from './pointer-routing';
 export {
   getRoutedPointerSnapshotByTarget,
-  getRoutedPointerSnapshotByWorld,
+  getRoutedPointerSnapshotByWorld
 } from './world-bindings';
 export * from './types';

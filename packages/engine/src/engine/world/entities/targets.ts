@@ -4,12 +4,12 @@ import type {
   CmdTargetLayerDisposeArgs,
   CmdTargetLayerUpsertArgs,
   CmdTargetUpsertArgs,
-  TargetLayerLayout,
+  TargetLayerLayout
 } from '../../../types/cmds/target';
 import type {
   CmdInputTargetListenerDisposeArgs,
   CmdInputTargetListenerListArgs,
-  CmdInputTargetListenerUpsertArgs,
+  CmdInputTargetListenerUpsertArgs
 } from '../../../types/cmds/input';
 import { enqueueCommand, markRoutingIndexDirty } from '../../bridge/dispatch';
 import { getWorldOrThrow, requireInitialized } from '../../bridge/guards';
@@ -39,10 +39,7 @@ export function upsertTarget(worldId: number, args: CmdTargetUpsertArgs): number
 /**
  * Requests size measurements for a target.
  */
-export function measureTarget(
-  worldId: number,
-  args: CmdTargetMeasurementArgs,
-): number {
+export function measureTarget(worldId: number, args: CmdTargetMeasurementArgs): number {
   return enqueueCommand(worldId, 'cmd-target-measurement', args);
 }
 
@@ -51,7 +48,7 @@ export function measureTarget(
  */
 export function upsertInputTargetListener(
   worldId: number,
-  args: CmdInputTargetListenerUpsertArgs,
+  args: CmdInputTargetListenerUpsertArgs
 ): number {
   return enqueueCommand(worldId, 'cmd-input-target-listener-upsert', args);
 }
@@ -61,7 +58,7 @@ export function upsertInputTargetListener(
  */
 export function disposeInputTargetListener(
   worldId: number,
-  args: CmdInputTargetListenerDisposeArgs,
+  args: CmdInputTargetListenerDisposeArgs
 ): number {
   return enqueueCommand(worldId, 'cmd-input-target-listener-dispose', args);
 }
@@ -71,7 +68,7 @@ export function disposeInputTargetListener(
  */
 export function listInputTargetListeners(
   worldId: number,
-  args: CmdInputTargetListenerListArgs = {},
+  args: CmdInputTargetListenerListArgs = {}
 ): number {
   return enqueueCommand(worldId, 'cmd-input-target-listener-list', args);
 }
@@ -98,8 +95,7 @@ function findPreferredCameraId(worldId: number): number | undefined {
     if (!camera) continue;
     if (
       camera.order < bestOrder ||
-      (camera.order === bestOrder &&
-        (bestId === undefined || camera.id < bestId))
+      (camera.order === bestOrder && (bestId === undefined || camera.id < bestId))
     ) {
       bestOrder = camera.order;
       bestId = camera.id;
@@ -113,7 +109,7 @@ function findPreferredCameraId(worldId: number): number | undefined {
  */
 export function bindWorldToTarget(
   worldId: number,
-  args: Omit<CmdTargetLayerUpsertArgs, 'realmId'>,
+  args: Omit<CmdTargetLayerUpsertArgs, 'realmId'>
 ): number {
   const world = getWorldOrThrow(worldId);
 
@@ -123,7 +119,7 @@ export function bindWorldToTarget(
     targetId: args.targetId,
     layout: args.layout,
     cameraId: resolvedCameraId,
-    environmentId: args.environmentId,
+    environmentId: args.environmentId
   });
   markRoutingIndexDirty();
 
@@ -136,7 +132,7 @@ export function bindWorldToTarget(
   return enqueueCommand(worldId, 'cmd-target-layer-upsert', {
     realmId,
     ...args,
-    cameraId: resolvedCameraId,
+    cameraId: resolvedCameraId
   });
 }
 
@@ -145,7 +141,7 @@ export function bindWorldToTarget(
  */
 export function unbindWorldFromTarget(
   worldId: number,
-  args: Omit<CmdTargetLayerDisposeArgs, 'realmId'>,
+  args: Omit<CmdTargetLayerDisposeArgs, 'realmId'>
 ): number {
   const world = getWorldOrThrow(worldId);
   world.targetLayerBindings.delete(args.targetId);
@@ -162,7 +158,7 @@ export function unbindWorldFromTarget(
 
   return enqueueCommand(worldId, 'cmd-target-layer-dispose', {
     realmId,
-    ...args,
+    ...args
   });
 }
 
@@ -177,14 +173,14 @@ export function presentWorldInWindow(
     layout?: TargetLayerLayout;
     cameraId?: number;
     environmentId?: number;
-  },
+  }
 ): { targetId: number; upsertCommandId: number; bindCommandId: number } {
   requireInitialized();
   const targetId = args.targetId ?? allocateGlobalId();
   const upsertCommandId = upsertTarget(worldId, {
     targetId,
     kind: 'window',
-    windowId: args.windowId,
+    windowId: args.windowId
   });
   const bindCommandId = bindWorldToTarget(worldId, {
     targetId,
@@ -194,10 +190,10 @@ export function presentWorldInWindow(
       width: { unit: 'percent', value: 100 },
       height: { unit: 'percent', value: 100 },
       zIndex: 0,
-      blendMode: 0,
+      blendMode: 0
     },
     cameraId: args.cameraId,
-    environmentId: args.environmentId,
+    environmentId: args.environmentId
   });
   return { targetId, upsertCommandId, bindCommandId };
 }

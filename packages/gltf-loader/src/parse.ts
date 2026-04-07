@@ -5,7 +5,7 @@ import type { GltfLoadInput } from './types';
 
 function parseGltfJsonDocument(
   bytes: Uint8Array,
-  resources?: Record<string, import('./types').BinaryLike>,
+  resources?: Record<string, import('./types').BinaryLike>
 ): JSONDocument {
   const decoder = new TextDecoder('utf-8');
   let json: GLTF.IGLTF;
@@ -26,7 +26,7 @@ function parseGltfJsonDocument(
     }
     throw new GltfLoaderError(
       'MISSING_RESOURCE',
-      `External resource not provided for URI "${uri}". Provide it in input.resources.`,
+      `External resource not provided for URI "${uri}". Provide it in input.resources.`
     );
   };
 
@@ -39,7 +39,7 @@ function parseGltfJsonDocument(
 
   return {
     json,
-    resources: resourceMap as unknown as { [s: string]: Uint8Array<ArrayBuffer> },
+    resources: resourceMap as unknown as { [s: string]: Uint8Array<ArrayBuffer> }
   };
 }
 

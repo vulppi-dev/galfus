@@ -31,5 +31,5 @@ export {
   isPointerButtonPressed,
   isWindowFocused,
   isWindowCloseRequested,
-  wasWindowResized,
+  wasWindowResized
 } from '../world/entities/state-queries';

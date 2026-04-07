@@ -33,7 +33,7 @@ export function createMotionActionState(): MotionActionState {
       left: 0,
       right: 0,
       up: 0,
-      down: 0,
+      down: 0
     },
     impulse: {
       forward: 0,
@@ -43,8 +43,8 @@ export function createMotionActionState(): MotionActionState {
       up: 0,
       down: 0,
       lookX: 0,
-      lookY: 0,
-    },
+      lookY: 0
+    }
   };
 }
 
@@ -62,7 +62,7 @@ export function clearMotionImpulse(state: MotionActionState): void {
 export function resolveMotionWeights(
   state: MotionActionState,
   zoom: number,
-  lookAt: number,
+  lookAt: number
 ): CameraActionWeights {
   const forward =
     state.persistent.forward -
@@ -71,16 +71,9 @@ export function resolveMotionWeights(
     state.impulse.backward;
 
   const right =
-    state.persistent.right -
-    state.persistent.left +
-    state.impulse.right -
-    state.impulse.left;
+    state.persistent.right - state.persistent.left + state.impulse.right - state.impulse.left;
 
-  const up =
-    state.persistent.up -
-    state.persistent.down +
-    state.impulse.up -
-    state.impulse.down;
+  const up = state.persistent.up - state.persistent.down + state.impulse.up - state.impulse.down;
 
   return {
     forward,
@@ -89,7 +82,7 @@ export function resolveMotionWeights(
     zoom,
     lookX: state.impulse.lookX,
     lookY: state.impulse.lookY,
-    lookAt,
+    lookAt
   };
 }
 

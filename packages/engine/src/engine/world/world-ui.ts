@@ -4,7 +4,7 @@ import type {
   CmdRealmRenderGraphBindArgs,
   CmdRenderGraphDisposeArgs,
   CmdRenderGraphListArgs,
-  CmdRenderGraphUpsertArgs,
+  CmdRenderGraphUpsertArgs
 } from '../../types/cmds/render-graph';
 import type {
   CmdUiAccessKitActionRequestArgs,
@@ -24,7 +24,7 @@ import type {
   CmdUiImageDisposeArgs,
   CmdUiScreenshotReplyArgs,
   CmdUiThemeDefineArgs,
-  CmdUiThemeDisposeArgs,
+  CmdUiThemeDisposeArgs
 } from '../../types/cmds/ui';
 import type { UiEvent } from '../../types/events/ui';
 import { getUiEvents } from '../input/api';
@@ -60,7 +60,7 @@ import {
   uiSetDocumentTheme as uiSetDocumentThemeRaw,
   uiSetEventTrace as uiSetEventTraceRaw,
   uiSetFocus as uiSetFocusRaw,
-  upsertRenderGraph as upsertRenderGraphRaw,
+  upsertRenderGraph as upsertRenderGraphRaw
 } from './entities';
 import type { CommandId, WorldUIId } from './types';
 import { asCommandId, asWorldNumber, asWorldUIId } from './types';
@@ -102,7 +102,7 @@ function resolveWorldUIContext(worldId: number): {
   }
   throw new EngineError(
     'WindowNotFound',
-    `World ${worldId} has no window binding available for UI operation.`,
+    `World ${worldId} has no window binding available for UI operation.`
   );
 }
 
@@ -122,17 +122,14 @@ export function getUIWorldRealmId(worldId: WorldUIId): number | null {
 }
 
 /** Creates or updates a render graph definition in core. */
-export function upsertUIRenderGraph(
-  worldId: WorldUIId,
-  args: CmdRenderGraphUpsertArgs,
-): CommandId {
+export function upsertUIRenderGraph(worldId: WorldUIId, args: CmdRenderGraphUpsertArgs): CommandId {
   return asCommandId(upsertRenderGraphRaw(asWorldNumber(worldId), args));
 }
 
 /** Disposes a render graph definition from core. */
 export function disposeUIRenderGraph(
   worldId: WorldUIId,
-  args: CmdRenderGraphDisposeArgs,
+  args: CmdRenderGraphDisposeArgs
 ): CommandId {
   return asCommandId(disposeRenderGraphRaw(asWorldNumber(worldId), args));
 }
@@ -140,7 +137,7 @@ export function disposeUIRenderGraph(
 /** Requests render graph catalog from core. */
 export function listUIRenderGraphs(
   worldId: WorldUIId,
-  args: CmdRenderGraphListArgs = {},
+  args: CmdRenderGraphListArgs = {}
 ): CommandId {
   return asCommandId(listRenderGraphsRaw(asWorldNumber(worldId), args));
 }
@@ -148,61 +145,43 @@ export function listUIRenderGraphs(
 /** Binds realm to a render graph id. */
 export function bindUIRealmRenderGraph(
   worldId: WorldUIId,
-  args: CmdRealmRenderGraphBindArgs,
+  args: CmdRealmRenderGraphBindArgs
 ): CommandId {
   return asCommandId(bindRealmRenderGraphRaw(asWorldNumber(worldId), args));
 }
 
 /** Defines a theme in a UI world. */
-export function defineUITheme(
-  worldId: WorldUIId,
-  args: CmdUiThemeDefineArgs,
-): void {
+export function defineUITheme(worldId: WorldUIId, args: CmdUiThemeDefineArgs): void {
   uiDefineThemeRaw(asWorldNumber(worldId), args);
 }
 
 /** Disposes a theme in a UI world. */
-export function disposeUITheme(
-  worldId: WorldUIId,
-  args: CmdUiThemeDisposeArgs,
-): void {
+export function disposeUITheme(worldId: WorldUIId, args: CmdUiThemeDisposeArgs): void {
   uiDisposeThemeRaw(asWorldNumber(worldId), args);
 }
 
 /** Creates a document in a UI world. */
-export function createUIDocument(
-  worldId: WorldUIId,
-  args: CreateUIDocumentArgs,
-): void {
+export function createUIDocument(worldId: WorldUIId, args: CreateUIDocumentArgs): void {
   const rawWorldId = asWorldNumber(worldId);
   const context = resolveWorldUIContext(rawWorldId);
   uiCreateDocumentRaw(rawWorldId, {
     ...args,
-    realmId: context.realmId,
+    realmId: context.realmId
   });
 }
 
 /** Disposes a document in a UI world. */
-export function disposeUIDocument(
-  worldId: WorldUIId,
-  args: CmdUiDocumentDisposeArgs,
-): void {
+export function disposeUIDocument(worldId: WorldUIId, args: CmdUiDocumentDisposeArgs): void {
   uiDisposeDocumentRaw(asWorldNumber(worldId), args);
 }
 
 /** Sets document rect in a UI world. */
-export function setUIDocumentRect(
-  worldId: WorldUIId,
-  args: CmdUiDocumentSetRectArgs,
-): void {
+export function setUIDocumentRect(worldId: WorldUIId, args: CmdUiDocumentSetRectArgs): void {
   uiSetDocumentRectRaw(asWorldNumber(worldId), args);
 }
 
 /** Sets document theme in a UI world. */
-export function setUIDocumentTheme(
-  worldId: WorldUIId,
-  args: CmdUiDocumentSetThemeArgs,
-): void {
+export function setUIDocumentTheme(worldId: WorldUIId, args: CmdUiDocumentSetThemeArgs): void {
   uiSetDocumentThemeRaw(asWorldNumber(worldId), args);
 }
 
@@ -212,18 +191,12 @@ export function applyUIOps(worldId: WorldUIId, args: CmdUiApplyOpsArgs): void {
 }
 
 /** Requests UI document tree. */
-export function getUIDocumentTree(
-  worldId: WorldUIId,
-  args: CmdUiDocumentGetTreeArgs,
-): void {
+export function getUIDocumentTree(worldId: WorldUIId, args: CmdUiDocumentGetTreeArgs): void {
   uiGetDocumentTreeRaw(asWorldNumber(worldId), args);
 }
 
 /** Requests UI layout rects. */
-export function getUILayoutRects(
-  worldId: WorldUIId,
-  args: CmdUiDocumentGetLayoutRectsArgs,
-): void {
+export function getUILayoutRects(worldId: WorldUIId, args: CmdUiDocumentGetLayoutRectsArgs): void {
   uiGetLayoutRectsRaw(asWorldNumber(worldId), args);
 }
 
@@ -239,62 +212,47 @@ export function setUIFocus(worldId: WorldUIId, args: SetUIFocusArgs): void {
   uiSetFocusRaw(rawWorldId, {
     ...args,
     windowId: context.windowId,
-    realmId: context.realmId,
+    realmId: context.realmId
   });
 }
 
 /** Requests focus state in a UI world. */
-export function getUIFocus(
-  worldId: WorldUIId,
-  args: CmdUiFocusGetArgs = {},
-): void {
+export function getUIFocus(worldId: WorldUIId, args: CmdUiFocusGetArgs = {}): void {
   uiGetFocusRaw(asWorldNumber(worldId), args);
 }
 
 /** Configures UI event trace in a UI world. */
-export function setUIEventTrace(
-  worldId: WorldUIId,
-  args: CmdUiEventTraceSetArgs,
-): void {
+export function setUIEventTrace(worldId: WorldUIId, args: CmdUiEventTraceSetArgs): void {
   uiSetEventTraceRaw(asWorldNumber(worldId), args);
 }
 
 /** Creates UI image from a previously uploaded buffer. */
 export function createUIImageFromBuffer(
   worldId: WorldUIId,
-  args: CmdUiImageCreateFromBufferArgs,
+  args: CmdUiImageCreateFromBufferArgs
 ): void {
   uiCreateImageFromBufferRaw(asWorldNumber(worldId), args);
 }
 
 /** Disposes UI image resource. */
-export function disposeUIImage(
-  worldId: WorldUIId,
-  args: CmdUiImageDisposeArgs,
-): void {
+export function disposeUIImage(worldId: WorldUIId, args: CmdUiImageDisposeArgs): void {
   uiDisposeImageRaw(asWorldNumber(worldId), args);
 }
 
 /** Sends clipboard paste payload to UI world. */
-export function pasteUIClipboard(
-  worldId: WorldUIId,
-  args: CmdUiClipboardPasteArgs,
-): void {
+export function pasteUIClipboard(worldId: WorldUIId, args: CmdUiClipboardPasteArgs): void {
   uiClipboardPasteRaw(asWorldNumber(worldId), args);
 }
 
 /** Replies to UI screenshot request. */
-export function replyUIScreenshot(
-  worldId: WorldUIId,
-  args: CmdUiScreenshotReplyArgs,
-): void {
+export function replyUIScreenshot(worldId: WorldUIId, args: CmdUiScreenshotReplyArgs): void {
   uiScreenshotReplyRaw(asWorldNumber(worldId), args);
 }
 
 /** Sends AccessKit action request. */
 export function requestUIAccessKitAction(
   worldId: WorldUIId,
-  args: CmdUiAccessKitActionRequestArgs,
+  args: CmdUiAccessKitActionRequestArgs
 ): void {
   uiAccessKitActionRequestRaw(asWorldNumber(worldId), args);
 }
@@ -310,7 +268,7 @@ export function upsertUIForm(worldId: WorldUIId, form: UIFormUpsertArgs): void {
   uiFormUpsertRaw(rawWorldId, {
     ...form,
     windowId: context.windowId,
-    realmId: context.realmId,
+    realmId: context.realmId
   });
 }
 
@@ -322,7 +280,7 @@ export function disposeUIForm(worldId: WorldUIId, formId: string): void {
 /** Upserts UI fieldset metadata. */
 export function upsertUIFieldset(
   worldId: WorldUIId,
-  args: Parameters<typeof uiFieldsetUpsertRaw>[1],
+  args: Parameters<typeof uiFieldsetUpsertRaw>[1]
 ): void {
   uiFieldsetUpsertRaw(asWorldNumber(worldId), args);
 }
@@ -330,7 +288,7 @@ export function upsertUIFieldset(
 /** Disposes UI fieldset metadata. */
 export function disposeUIFieldset(
   worldId: WorldUIId,
-  args: { formId: string; fieldsetId: string },
+  args: { formId: string; fieldsetId: string }
 ): void {
   uiFieldsetDisposeRaw(asWorldNumber(worldId), args.formId, args.fieldsetId);
 }
@@ -338,7 +296,7 @@ export function disposeUIFieldset(
 /** Upserts focusable metadata. */
 export function upsertUIFocusable(
   worldId: WorldUIId,
-  args: Parameters<typeof uiFocusableUpsertRaw>[1],
+  args: Parameters<typeof uiFocusableUpsertRaw>[1]
 ): void {
   uiFocusableUpsertRaw(asWorldNumber(worldId), args);
 }
@@ -353,15 +311,12 @@ export function disposeUIFocusable(worldId: WorldUIId, nodeId: number): void {
  *
  * `windowId` is resolved internally from world bindings.
  */
-export function focusUINext(
-  worldId: WorldUIId,
-  args: UIFocusNextArgs = {},
-): void {
+export function focusUINext(worldId: WorldUIId, args: UIFocusNextArgs = {}): void {
   const rawWorldId = asWorldNumber(worldId);
   const context = resolveWorldUIContext(rawWorldId);
   uiFocusNextRaw(rawWorldId, {
     ...args,
-    windowId: context.windowId,
+    windowId: context.windowId
   });
 }
 

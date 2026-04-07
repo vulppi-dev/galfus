@@ -8,7 +8,7 @@ import {
   tick,
   uploadBuffer,
   type EntityId,
-  type World3DId,
+  type World3DId
 } from '@vulfram/engine';
 import { transportBunFfi } from '@vulfram/transport-bun';
 import { readFileSync } from 'node:fs';
@@ -20,7 +20,7 @@ const KeyCode = {
   KeyA: 19,
   KeyD: 22,
   ArrowLeft: 72,
-  ArrowRight: 73,
+  ArrowRight: 73
 } as const;
 
 const PADDLE_WIDTH = 0.2;
@@ -33,7 +33,7 @@ const FIELD_WIDTH = 10;
 const FIELD_HEIGHT = 8;
 
 const AUDIO_BOUNCE_PATH = fileURLToPath(
-  new URL('../assets/audio/ball_hit_01.wav', import.meta.url),
+  new URL('../assets/audio/ball_hit_01.wav', import.meta.url)
 );
 const AUDIO_BUFFER_ID = 1001;
 const AUDIO_RESOURCE_ID = 5001;
@@ -57,7 +57,7 @@ async function main() {
   const { windowId } = createWindow({
     title: 'Vulfram Pong',
     size: [1024, 768],
-    position: [100, 100],
+    position: [100, 100]
   });
   let elapsedMs = 0;
 
@@ -73,7 +73,7 @@ async function main() {
       groundColor: [0.02, 0.03, 0.04],
       horizonColor: [0.12, 0.16, 0.22],
       skyColor: [0.2, 0.35, 0.6],
-      cubemapTextureId: null,
+      cubemapTextureId: null
     },
     clearColor: [0.02, 0.02, 0.03, 1],
     post: {
@@ -106,8 +106,8 @@ async function main() {
       bloomThreshold: 1,
       bloomKnee: 0.5,
       bloomIntensity: 0.8,
-      bloomScatter: 0.7,
-    },
+      bloomScatter: 0.7
+    }
   });
 
   World3D.configure3DShadows(worldId, {
@@ -117,30 +117,30 @@ async function main() {
     atlasLayers: 2,
     virtualGridSize: 1,
     smoothing: 2,
-    normalBias: 0.01,
+    normalBias: 0.01
   });
 
   const bounceAudioBytes = readFileSync(AUDIO_BOUNCE_PATH);
   uploadBuffer(AUDIO_BUFFER_ID, 'binary-asset', bounceAudioBytes);
   World3D.create3DAudioResource(worldId, {
     resourceId: AUDIO_RESOURCE_ID,
-    bufferId: AUDIO_BUFFER_ID,
+    bufferId: AUDIO_BUFFER_ID
   });
 
   const redTextureId = World3D.create3DTexture(worldId, {
     source: { type: 'color', color: [0.9, 0.2, 0.2, 1] },
     srgb: true,
-    label: 'Red Texture',
+    label: 'Red Texture'
   });
   const blueTextureId = World3D.create3DTexture(worldId, {
     source: { type: 'color', color: [0.2, 0.4, 0.9, 1] },
     srgb: true,
-    label: 'Blue Texture',
+    label: 'Blue Texture'
   });
   const yellowTextureId = World3D.create3DTexture(worldId, {
     source: { type: 'color', color: [1, 0.9, 0.2, 1] },
     srgb: true,
-    label: 'Yellow Texture',
+    label: 'Yellow Texture'
   });
 
   const redMaterialId = World3D.create3DMaterial(worldId, {
@@ -153,9 +153,9 @@ async function main() {
         baseTexId: redTextureId,
         baseSampler: 'linear-clamp',
         flags: 0,
-        surfaceType: 'opaque',
-      },
-    },
+        surfaceType: 'opaque'
+      }
+    }
   });
   const blueMaterialId = World3D.create3DMaterial(worldId, {
     kind: 'standard',
@@ -167,9 +167,9 @@ async function main() {
         baseTexId: blueTextureId,
         baseSampler: 'linear-clamp',
         flags: 0,
-        surfaceType: 'opaque',
-      },
-    },
+        surfaceType: 'opaque'
+      }
+    }
   });
   const yellowMaterialId = World3D.create3DMaterial(worldId, {
     kind: 'standard',
@@ -181,46 +181,46 @@ async function main() {
         baseTexId: yellowTextureId,
         baseSampler: 'linear-clamp',
         flags: 0,
-        surfaceType: 'opaque',
-      },
-    },
+        surfaceType: 'opaque'
+      }
+    }
   });
 
   const paddleGeomId = World3D.create3DGeometry(worldId, {
     type: 'primitive',
     shape: 'cube',
-    label: 'Paddle',
+    label: 'Paddle'
   });
   const ballGeomId = World3D.create3DGeometry(worldId, {
     type: 'primitive',
     shape: 'sphere',
-    label: 'Ball',
+    label: 'Ball'
   });
 
   const cameraEntity = World3D.create3DEntity(worldId);
   World3D.update3DTransform(worldId, cameraEntity, {
     position: [0, 0, 12],
     rotation: [0, 0, 0, 1],
-    scale: [1, 1, 1],
+    scale: [1, 1, 1]
   });
   World3D.create3DCamera(worldId, cameraEntity, {
     kind: 'perspective',
     near: 0.1,
     far: 100,
-    order: 0,
+    order: 0
   });
   World3D.update3DAudioListener(worldId, {
     position: [0, 0, 12],
     velocity: [0, 0, 0],
     forward: [0, 0, -1],
-    up: [0, 1, 0],
+    up: [0, 1, 0]
   });
 
   const lightEntity = World3D.create3DEntity(worldId);
   World3D.update3DTransform(worldId, lightEntity, {
     position: [0, 0, 12],
     rotation: [0, 0, 0, 1],
-    scale: [1, 1, 1],
+    scale: [1, 1, 1]
   });
   World3D.create3DLight(worldId, lightEntity, {
     kind: 'spot',
@@ -229,7 +229,7 @@ async function main() {
     range: 28,
     direction: [0, 0, -1],
     spotInnerOuter: [0.2, 0.6],
-    castShadow: true,
+    castShadow: true
   });
 
   const leftPaddleEntity = World3D.create3DEntity(worldId);
@@ -238,35 +238,35 @@ async function main() {
   World3D.update3DTransform(worldId, leftPaddleEntity, {
     position: [-FIELD_WIDTH / 2 + 0.5, 0, 0],
     scale: [PADDLE_WIDTH, PADDLE_HEIGHT, PADDLE_DEPTH],
-    rotation: [0, 0, 0, 1],
+    rotation: [0, 0, 0, 1]
   });
   World3D.update3DTransform(worldId, rightPaddleEntity, {
     position: [FIELD_WIDTH / 2 - 0.5, 0, 0],
     scale: [PADDLE_WIDTH, PADDLE_HEIGHT, PADDLE_DEPTH],
-    rotation: [0, 0, 0, 1],
+    rotation: [0, 0, 0, 1]
   });
   World3D.update3DTransform(worldId, ballEntity, {
     position: [0, 0, 0],
     scale: [BALL_SIZE * 2, BALL_SIZE * 2, BALL_SIZE * 2],
-    rotation: [0, 0, 0, 1],
+    rotation: [0, 0, 0, 1]
   });
   World3D.create3DModel(worldId, leftPaddleEntity, {
     geometryId: paddleGeomId,
     materialId: redMaterialId,
     castShadow: true,
-    receiveShadow: false,
+    receiveShadow: false
   });
   World3D.create3DModel(worldId, rightPaddleEntity, {
     geometryId: paddleGeomId,
     materialId: blueMaterialId,
     castShadow: true,
-    receiveShadow: false,
+    receiveShadow: false
   });
   World3D.create3DModel(worldId, ballEntity, {
     geometryId: ballGeomId,
     materialId: yellowMaterialId,
     castShadow: true,
-    receiveShadow: false,
+    receiveShadow: false
   });
 
   for (let i = 0; i < 20; i++) {
@@ -291,8 +291,8 @@ async function main() {
         rolloff: 1.0,
         coneInner: 360,
         coneOuter: 360,
-        coneOuterGain: 0,
-      },
+        coneOuterGain: 0
+      }
     });
     audioEnabled = true;
   } catch {
@@ -309,7 +309,7 @@ async function main() {
     leftPaddleEntity,
     rightPaddleEntity,
     ballEntity,
-    audioEnabled,
+    audioEnabled
   };
 
   const start = performance.now();
@@ -326,9 +326,7 @@ async function main() {
       break;
     updateGame(worldId, state, dt);
     const frameTime = performance.now() - frameStart;
-    await new Promise((r) =>
-      setTimeout(r, Math.max(0, FRAME_TARGET_MS - frameTime)),
-    );
+    await new Promise((r) => setTimeout(r, Math.max(0, FRAME_TARGET_MS - frameTime)));
     elapsedMs += FRAME_TARGET_MS;
   }
   closeWindow(windowId);
@@ -343,28 +341,18 @@ function updateGame(worldId: World3DId, state: GameState, dt: number) {
       sourceId: AUDIO_SOURCE_ID,
       resourceId: AUDIO_RESOURCE_ID,
       intensity,
-      mode: 'once',
+      mode: 'once'
     });
   };
 
-  if (World3D.is3DKeyPressed(worldId, KeyCode.KeyA))
-    state.leftPaddleY += PADDLE_SPEED * dt;
-  if (World3D.is3DKeyPressed(worldId, KeyCode.KeyD))
-    state.leftPaddleY -= PADDLE_SPEED * dt;
-  if (World3D.is3DKeyPressed(worldId, KeyCode.ArrowLeft))
-    state.rightPaddleY += PADDLE_SPEED * dt;
-  if (World3D.is3DKeyPressed(worldId, KeyCode.ArrowRight))
-    state.rightPaddleY -= PADDLE_SPEED * dt;
+  if (World3D.is3DKeyPressed(worldId, KeyCode.KeyA)) state.leftPaddleY += PADDLE_SPEED * dt;
+  if (World3D.is3DKeyPressed(worldId, KeyCode.KeyD)) state.leftPaddleY -= PADDLE_SPEED * dt;
+  if (World3D.is3DKeyPressed(worldId, KeyCode.ArrowLeft)) state.rightPaddleY += PADDLE_SPEED * dt;
+  if (World3D.is3DKeyPressed(worldId, KeyCode.ArrowRight)) state.rightPaddleY -= PADDLE_SPEED * dt;
 
   const maxPaddleY = FIELD_HEIGHT / 2 - PADDLE_HEIGHT / 2;
-  state.leftPaddleY = Math.max(
-    -maxPaddleY,
-    Math.min(maxPaddleY, state.leftPaddleY),
-  );
-  state.rightPaddleY = Math.max(
-    -maxPaddleY,
-    Math.min(maxPaddleY, state.rightPaddleY),
-  );
+  state.leftPaddleY = Math.max(-maxPaddleY, Math.min(maxPaddleY, state.leftPaddleY));
+  state.rightPaddleY = Math.max(-maxPaddleY, Math.min(maxPaddleY, state.rightPaddleY));
 
   state.ballX += state.ballVelX * dt;
   state.ballY += state.ballVelY * dt;
@@ -384,8 +372,7 @@ function updateGame(worldId: World3DId, state: GameState, dt: number) {
   if (
     state.ballX - BALL_SIZE / 2 < leftPaddleX + PADDLE_WIDTH / 2 &&
     state.ballX > leftPaddleX &&
-    Math.abs(state.ballY - state.leftPaddleY) <
-      PADDLE_HEIGHT / 2 + BALL_SIZE / 2
+    Math.abs(state.ballY - state.leftPaddleY) < PADDLE_HEIGHT / 2 + BALL_SIZE / 2
   ) {
     state.ballX = leftPaddleX + PADDLE_WIDTH / 2 + BALL_SIZE / 2;
     state.ballVelX = Math.abs(state.ballVelX);
@@ -394,8 +381,7 @@ function updateGame(worldId: World3DId, state: GameState, dt: number) {
   if (
     state.ballX + BALL_SIZE / 2 > rightPaddleX - PADDLE_WIDTH / 2 &&
     state.ballX < rightPaddleX &&
-    Math.abs(state.ballY - state.rightPaddleY) <
-      PADDLE_HEIGHT / 2 + BALL_SIZE / 2
+    Math.abs(state.ballY - state.rightPaddleY) < PADDLE_HEIGHT / 2 + BALL_SIZE / 2
   ) {
     state.ballX = rightPaddleX - PADDLE_WIDTH / 2 - BALL_SIZE / 2;
     state.ballVelX = -Math.abs(state.ballVelX);
@@ -410,13 +396,13 @@ function updateGame(worldId: World3DId, state: GameState, dt: number) {
   }
 
   World3D.update3DTransform(worldId, state.leftPaddleEntity, {
-    position: [leftPaddleX, state.leftPaddleY, 0],
+    position: [leftPaddleX, state.leftPaddleY, 0]
   });
   World3D.update3DTransform(worldId, state.rightPaddleEntity, {
-    position: [rightPaddleX, state.rightPaddleY, 0],
+    position: [rightPaddleX, state.rightPaddleY, 0]
   });
   World3D.update3DTransform(worldId, state.ballEntity, {
-    position: [state.ballX, state.ballY, 0],
+    position: [state.ballX, state.ballY, 0]
   });
 }
 

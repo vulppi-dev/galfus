@@ -2,12 +2,7 @@ import type { EngineTransport } from '@vulfram/transport-types';
 import type { CommandResponseEnvelope, EngineCmdEnvelope } from '../types/cmds';
 import type { EngineEvent } from '../types/events';
 import type { CmdRealmCreateArgs, RealmKind } from '../types/cmds/realm';
-import type {
-  Component,
-  ComponentType,
-  EngineRegistry,
-  WorldEvent,
-} from './ecs';
+import type { Component, ComponentType, EngineRegistry, WorldEvent } from './ecs';
 import type { IntentStore } from './intents/store';
 
 type EngineStatus = 'uninitialized' | 'initialized' | 'disposed';
@@ -217,7 +212,7 @@ export const REQUIRED_SYSTEMS = [
   'SceneSyncSystem',
   'ResponseDecodeSystem',
   'WorldLifecycleSystem',
-  'DiagnosticsSystem',
+  'DiagnosticsSystem'
 ];
 
 export const engineState: EngineState = {
@@ -243,7 +238,7 @@ export const engineState: EngineState = {
     dirty: true,
     byWindowId: new Map(),
     byRealmId: new Map(),
-    byTargetId: new Map(),
+    byTargetId: new Map()
   },
   registry: {
     components: new Map(),
@@ -251,16 +246,16 @@ export const engineState: EngineState = {
       input: [],
       update: [],
       preRender: [],
-      postRender: [],
-    },
+      postRender: []
+    }
   },
   clock: {
     lastTime: 0,
     lastDelta: 0,
-    frameCount: 0,
+    frameCount: 0
   },
   flags: {
     isExecutingSystems: false,
-    debugEnabled: false,
-  },
+    debugEnabled: false
+  }
 };

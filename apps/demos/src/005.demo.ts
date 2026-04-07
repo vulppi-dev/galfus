@@ -5,7 +5,7 @@ import {
   createWindow,
   disposeEngine,
   initEngine,
-  tick,
+  tick
 } from '@vulfram/engine';
 import { quat } from 'gl-matrix';
 import { transportBunFfi } from '@vulfram/transport-bun';
@@ -22,7 +22,7 @@ async function main() {
     borderless: false,
     resizable: true,
     transparent: false,
-    initialState: 'maximized',
+    initialState: 'maximized'
   });
 
   let totalMs = 0;
@@ -39,7 +39,7 @@ async function main() {
       groundColor: [0.02, 0.02, 0.03],
       horizonColor: [0.12, 0.14, 0.2],
       skyColor: [0.2, 0.32, 0.52],
-      cubemapTextureId: null,
+      cubemapTextureId: null
     },
     clearColor: [0.02, 0.02, 0.03, 1],
     post: {
@@ -72,20 +72,20 @@ async function main() {
       bloomThreshold: 1,
       bloomKnee: 0.5,
       bloomIntensity: 0.8,
-      bloomScatter: 0.7,
-    },
+      bloomScatter: 0.7
+    }
   });
 
   const cameraEntity = World3D.create3DEntity(worldId);
   World3D.update3DTransform(worldId, cameraEntity, {
     position: [0, 2.5, 10.5],
-    rotation: [-0.10452846, 0, 0, 0.9945219],
+    rotation: [-0.10452846, 0, 0, 0.9945219]
   });
   World3D.create3DCamera(worldId, cameraEntity, {
     kind: 'perspective',
     near: 0.1,
     far: 100,
-    order: 0,
+    order: 0
   });
 
   const keyLight = World3D.create3DEntity(worldId);
@@ -95,7 +95,7 @@ async function main() {
     color: [1, 1, 1],
     intensity: 10,
     range: 30,
-    castShadow: false,
+    castShadow: false
   });
   const fillLight = World3D.create3DEntity(worldId);
   World3D.update3DTransform(worldId, fillLight, { position: [-6, 4, 2] });
@@ -104,23 +104,23 @@ async function main() {
     color: [0.6, 0.7, 1.0],
     intensity: 6,
     range: 26,
-    castShadow: false,
+    castShadow: false
   });
 
   const cubeGeometryId = World3D.create3DGeometry(worldId, {
     type: 'primitive',
     shape: 'cube',
-    label: 'ConstraintCube',
+    label: 'ConstraintCube'
   });
   const centerTex = World3D.create3DTexture(worldId, {
     source: { type: 'color', color: [0.25, 0.8, 0.55, 1] },
     srgb: true,
-    label: 'CenterTex',
+    label: 'CenterTex'
   });
   const orbitTex = World3D.create3DTexture(worldId, {
     source: { type: 'color', color: [0.95, 0.45, 0.2, 1] },
     srgb: true,
-    label: 'OrbitTex',
+    label: 'OrbitTex'
   });
   const centerMat = World3D.create3DMaterial(worldId, {
     kind: 'standard',
@@ -132,9 +132,9 @@ async function main() {
         baseTexId: centerTex,
         baseSampler: 'linear-clamp',
         flags: 0,
-        surfaceType: 'opaque',
-      },
-    },
+        surfaceType: 'opaque'
+      }
+    }
   });
   const orbitMat = World3D.create3DMaterial(worldId, {
     kind: 'standard',
@@ -146,35 +146,35 @@ async function main() {
         baseTexId: orbitTex,
         baseSampler: 'linear-clamp',
         flags: 0,
-        surfaceType: 'opaque',
-      },
-    },
+        surfaceType: 'opaque'
+      }
+    }
   });
 
   const centerCube = World3D.create3DEntity(worldId);
   World3D.update3DTransform(worldId, centerCube, {
     position: [0, 0, 0],
     rotation: [0, 0, 0, 1],
-    scale: [1.2, 1.2, 1.2],
+    scale: [1.2, 1.2, 1.2]
   });
   World3D.create3DModel(worldId, centerCube, {
     geometryId: cubeGeometryId,
     materialId: centerMat,
     castShadow: false,
-    receiveShadow: false,
+    receiveShadow: false
   });
 
   const orbitCube = World3D.create3DEntity(worldId);
   World3D.update3DTransform(worldId, orbitCube, {
     position: [4.2, 0, 0],
     rotation: [0, 0, 0, 1],
-    scale: [0.8, 0.8, 0.8],
+    scale: [0.8, 0.8, 0.8]
   });
   World3D.create3DModel(worldId, orbitCube, {
     geometryId: cubeGeometryId,
     materialId: orbitMat,
     castShadow: false,
-    receiveShadow: false,
+    receiveShadow: false
   });
 
   // Parent constraint: orbitCube now depends on centerCube transform.
@@ -191,14 +191,12 @@ async function main() {
     const t = totalMs / 1000;
     const q = quat.fromEuler(quat.create(), 0, t * 60, 0);
     World3D.update3DTransform(worldId, centerCube, {
-      rotation: [q[0], q[1], q[2], q[3]],
+      rotation: [q[0], q[1], q[2], q[3]]
     });
 
     tick(totalMs, dtMs);
     const frameElapsed = performance.now() - now;
-    await new Promise((r) =>
-      setTimeout(r, Math.max(0, FRAME_TARGET_MS - frameElapsed)),
-    );
+    await new Promise((r) => setTimeout(r, Math.max(0, FRAME_TARGET_MS - frameElapsed)));
   }
 
   closeWindow(windowId);

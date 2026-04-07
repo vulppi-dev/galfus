@@ -1,12 +1,9 @@
 import type {
   CmdSystemDiagnosticsSetArgs,
-  CmdUploadBufferDiscardAllArgs,
+  CmdUploadBufferDiscardAllArgs
 } from '../../../types/cmds/system';
 import { EngineError } from '../../errors';
-import {
-  enqueueGlobalCommand,
-  markRoutingIndexDirty,
-} from '../../bridge/dispatch';
+import { enqueueGlobalCommand, markRoutingIndexDirty } from '../../bridge/dispatch';
 import { getWorldOrThrow, requireInitialized } from '../../bridge/guards';
 import { engineState } from '../../state';
 
@@ -49,7 +46,7 @@ export function disposeWorld(
     disposeTargets?: boolean;
     warnOnUndisposedResources?: boolean;
     strictResourceLifecycle?: boolean;
-  } = {},
+  } = {}
 ): void {
   requireInitialized();
   const world = getWorldOrThrow(worldId);
@@ -67,8 +64,7 @@ export function disposeWorld(
     }
   }
   const hasRetainedTargets = world.targetLayerBindings.size > 0;
-  const hasPendingWork =
-    world.intentStore.size() > 0 || world.pendingCommands.length > 0;
+  const hasPendingWork = world.intentStore.size() > 0 || world.pendingCommands.length > 0;
 
   if (
     (!disposeRealm && (retainedCoreObjectCount > 0 || hasPendingWork)) ||
@@ -122,9 +118,7 @@ export function disposeWorld(
 /**
  * Configures global runtime diagnostics and pointer tracing.
  */
-export function setSystemDiagnostics(
-  args: CmdSystemDiagnosticsSetArgs,
-): number {
+export function setSystemDiagnostics(args: CmdSystemDiagnosticsSetArgs): number {
   requireInitialized();
   return enqueueGlobalCommand('cmd-system-diagnostics-set', args);
 }
@@ -132,9 +126,7 @@ export function setSystemDiagnostics(
 /**
  * Requests the core to discard all pending upload buffers.
  */
-export function discardAllUploadBuffers(
-  args: CmdUploadBufferDiscardAllArgs = {},
-): number {
+export function discardAllUploadBuffers(args: CmdUploadBufferDiscardAllArgs = {}): number {
   requireInitialized();
   return enqueueGlobalCommand('cmd-upload-buffer-discard-all', args);
 }

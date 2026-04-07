@@ -2,7 +2,7 @@ export {
   createExponentialEasing,
   createWeightedTranslationStrategy,
   linearEasing,
-  linearTranslationStrategy,
+  linearTranslationStrategy
 } from './core/defaults';
 
 export type {
@@ -15,33 +15,30 @@ export type {
   CameraTarget,
   EasingFunction,
   MotionCameraControllerHandle,
-  TranslationStrategy,
+  TranslationStrategy
 } from './core/types';
 
 export {
   createOrbitController,
   type OrbitControllerConfig,
-  type OrbitControllerHandle,
+  type OrbitControllerHandle
 } from './controllers/orbit';
 
-export {
-  createSpectatorController,
-  type SpectatorControllerConfig,
-} from './controllers/spectator';
+export { createSpectatorController, type SpectatorControllerConfig } from './controllers/spectator';
 
 export {
   createFirstPersonController,
-  type FirstPersonControllerConfig,
+  type FirstPersonControllerConfig
 } from './controllers/first-person';
 
 export {
   createThirdPersonController,
   type ThirdPersonControllerConfig,
-  type ThirdPersonControllerHandle,
+  type ThirdPersonControllerHandle
 } from './controllers/third-person';
 
 export {
   createTopViewController,
   type TopViewControllerConfig,
-  type TopViewControllerHandle,
+  type TopViewControllerHandle
 } from './controllers/top-view';
