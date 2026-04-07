@@ -1,4 +1,4 @@
-export type LogicalId = string | number;
+export type LogicalId = number;
 
 export type RenderGraphResourceKind = 'texture' | 'buffer' | 'attachment';
 
@@ -7,6 +7,7 @@ export type RenderGraphLifetime = 'frame' | 'persistent';
 export type RenderGraphEdgeReason = 'read-after-write' | 'write-after-read';
 
 export type RenderGraphValue = boolean | number | string;
+export type RenderGraphParams = Record<string, RenderGraphValue>;
 
 export interface RenderGraphResource {
   resId: LogicalId;
@@ -15,12 +16,12 @@ export interface RenderGraphResource {
   aliasGroup?: LogicalId | null;
 }
 
-export interface RenderGraphNode {
+export interface RenderGraphNode<TParams extends RenderGraphParams = RenderGraphParams> {
   nodeId: LogicalId;
   passId: string;
   inputs?: LogicalId[];
   outputs?: LogicalId[];
-  params?: Record<string, RenderGraphValue>;
+  params?: TParams;
 }
 
 export interface RenderGraphEdge {
@@ -29,17 +30,17 @@ export interface RenderGraphEdge {
   reason?: RenderGraphEdgeReason;
 }
 
-export interface RenderGraphDesc {
+export interface RenderGraphDesc<TParams extends RenderGraphParams = RenderGraphParams> {
   graphId: LogicalId;
-  nodes: RenderGraphNode[];
+  nodes: RenderGraphNode<TParams>[];
   edges: RenderGraphEdge[];
   resources?: RenderGraphResource[];
   fallback?: boolean;
 }
 
-export interface CmdRenderGraphUpsertArgs {
+export interface CmdRenderGraphUpsertArgs<TParams extends RenderGraphParams = RenderGraphParams> {
   renderGraphId: number;
-  graph: RenderGraphDesc;
+  graph: RenderGraphDesc<TParams>;
 }
 
 export interface CmdResultRenderGraphUpsert {

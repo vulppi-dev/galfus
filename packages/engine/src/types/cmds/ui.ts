@@ -1,6 +1,5 @@
-import type { JsonObject, JsonValue } from '../json';
-
-export type UiThemeValue = JsonValue;
+export type UiThemeValue = boolean | number | string;
+export type UiByteArray = Uint8Array | number[];
 
 export type UiNodeKind =
   | 'container'
@@ -41,12 +40,492 @@ export type UiNodeKind =
   | 'separator'
   | 'spacer';
 
-export type UiNodeProps = JsonObject;
+export type UiLayoutDirection = 'row' | 'row-reverse' | 'column' | 'column-reverse' | 'grid';
+
+export type UiAlign = 'start' | 'center' | 'end' | 'stretch';
+
+export type UiLength = { type: 'auto' } | { type: 'fill' } | { type: 'px'; content: number };
+
+export type UiPanelKind = 'side-left' | 'side-right' | 'top' | 'bottom' | 'central';
+
+export type UiSplitDirection = 'horizontal' | 'vertical';
+
+export interface UiStroke {
+  width: number;
+  color: UiColor;
+}
+
+export interface UiWindowAnchor {
+  x: number;
+  y: number;
+}
+
+export interface UiSize {
+  width: UiLength;
+  height: UiLength;
+}
+
+export interface UiLayout {
+  direction: UiLayoutDirection;
+  align?: UiAlign;
+  justify?: UiAlign;
+  gap?: number;
+  columns?: number;
+  wrap?: boolean;
+  wrapLimit?: number;
+}
+
+export interface UiPadding {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+}
+
+export interface UiColor {
+  r: number;
+  g: number;
+  b: number;
+  a: number;
+}
+
+export type UiTextAlign =
+  | 'left-top'
+  | 'left-center'
+  | 'left-bottom'
+  | 'center-top'
+  | 'center-center'
+  | 'center-bottom'
+  | 'right-top'
+  | 'right-center'
+  | 'right-bottom';
+
+export interface UiPaintStroke {
+  width: number;
+  color: UiColor;
+  join?: string;
+  cap?: string;
+}
+
+export type UiPaintOp =
+  | {
+      type: 'line-segment';
+      content: {
+        from: [number, number];
+        to: [number, number];
+        stroke: UiPaintStroke;
+      };
+    }
+  | {
+      type: 'polyline';
+      content: {
+        points: [number, number][];
+        stroke: UiPaintStroke;
+      };
+    }
+  | {
+      type: 'rect';
+      content: {
+        min: [number, number];
+        max: [number, number];
+        rounding?: number;
+        stroke: UiPaintStroke;
+      };
+    }
+  | {
+      type: 'rect-filled';
+      content: {
+        min: [number, number];
+        max: [number, number];
+        rounding?: number;
+        fill: UiColor;
+      };
+    }
+  | {
+      type: 'circle';
+      content: {
+        center: [number, number];
+        radius: number;
+        stroke: UiPaintStroke;
+      };
+    }
+  | {
+      type: 'circle-filled';
+      content: {
+        center: [number, number];
+        radius: number;
+        fill: UiColor;
+      };
+    }
+  | {
+      type: 'convex-polygon';
+      content: {
+        points: [number, number][];
+        fill: UiColor;
+        stroke?: UiPaintStroke;
+      };
+    }
+  | {
+      type: 'quadratic-bezier';
+      content: {
+        from: [number, number];
+        ctrl: [number, number];
+        to: [number, number];
+        steps?: number;
+        stroke: UiPaintStroke;
+      };
+    }
+  | {
+      type: 'cubic-bezier';
+      content: {
+        from: [number, number];
+        ctrl1: [number, number];
+        ctrl2: [number, number];
+        to: [number, number];
+        steps?: number;
+        stroke: UiPaintStroke;
+      };
+    }
+  | {
+      type: 'text';
+      content: {
+        position: [number, number];
+        text: string;
+        size?: number;
+        color: UiColor;
+        align?: UiTextAlign;
+      };
+    };
+
+export type UiImageSource =
+  | { type: 'ui-image'; content: number }
+  | { type: 'target'; content: number };
+
+export type UiAnimEasing = 'linear' | 'ease-in-out';
+
+export interface UiAnimSpec {
+  from: number;
+  to: number;
+  durationMs: number;
+  easing?: UiAnimEasing;
+}
 
 export interface UiAnim {
-  opacity?: number;
-  translateY?: number;
+  opacity?: UiAnimSpec;
+  translateY?: UiAnimSpec;
 }
+
+export type UiNodeProps =
+  | {
+      type: 'container';
+      content: {
+        layout?: UiLayout;
+        padding?: UiPadding;
+        size?: UiSize;
+        scrollX?: boolean;
+        scrollY?: boolean;
+      };
+    }
+  | {
+      type: 'window';
+      content: {
+        title: string;
+        open?: boolean;
+        movable?: boolean;
+        resizable?: boolean;
+        collapsible?: boolean;
+        anchored?: UiWindowAnchor;
+        size?: UiSize;
+      };
+    }
+  | {
+      type: 'panel';
+      content: {
+        kind: UiPanelKind;
+        resizable?: boolean;
+        size?: UiSize;
+        minSize?: number;
+        maxSize?: number;
+      };
+    }
+  | {
+      type: 'split-pane';
+      content: {
+        direction: UiSplitDirection;
+        ratio?: number;
+        resizable?: boolean;
+        minA?: number;
+        maxA?: number;
+        minB?: number;
+        maxB?: number;
+      };
+    }
+  | {
+      type: 'area';
+      content: {
+        label?: string;
+        x?: number;
+        y?: number;
+        draggable?: boolean;
+        size?: UiSize;
+      };
+    }
+  | {
+      type: 'frame';
+      content: {
+        padding?: UiPadding;
+        fill?: UiColor;
+        stroke?: UiStroke;
+        rounding?: number;
+        size?: UiSize;
+      };
+    }
+  | {
+      type: 'scroll-area';
+      content: {
+        scrollX?: boolean;
+        scrollY?: boolean;
+        autoShrink?: boolean;
+        size?: UiSize;
+      };
+    }
+  | {
+      type: 'grid';
+      content: {
+        columns?: number;
+        striped?: boolean;
+        minColWidth?: number;
+        size?: UiSize;
+      };
+    }
+  | {
+      type: 'popup';
+      content: {
+        title?: string;
+        open?: boolean;
+        size?: UiSize;
+      };
+    }
+  | { type: 'tooltip'; content: { text: string } }
+  | {
+      type: 'modal';
+      content: {
+        title: string;
+        open?: boolean;
+        size?: UiSize;
+      };
+    }
+  | {
+      type: 'resize';
+      content: {
+        size?: UiSize;
+        minSize?: UiSize;
+        maxSize?: UiSize;
+      };
+    }
+  | {
+      type: 'scene';
+      content: {
+        size?: UiSize;
+        zoomMin?: number;
+        zoomMax?: number;
+        panEnabled?: boolean;
+      };
+    }
+  | {
+      type: 'canvas';
+      content: {
+        ops: UiPaintOp[];
+        size?: UiSize;
+        clip?: boolean;
+      };
+    }
+  | {
+      type: 'text';
+      content: {
+        text: string;
+        size?: number;
+        color?: UiColor;
+      };
+    }
+  | {
+      type: 'rich-text';
+      content: {
+        text: string;
+        size?: number;
+        color?: UiColor;
+        strong?: boolean;
+        italics?: boolean;
+        underline?: boolean;
+        strikethrough?: boolean;
+        monospace?: boolean;
+      };
+    }
+  | {
+      type: 'link';
+      content: {
+        label: string;
+        enabled?: boolean;
+      };
+    }
+  | {
+      type: 'hyperlink';
+      content: {
+        label: string;
+        url: string;
+        enabled?: boolean;
+      };
+    }
+  | {
+      type: 'button';
+      content: {
+        label: string;
+        enabled?: boolean;
+      };
+    }
+  | {
+      type: 'checkbox';
+      content: {
+        label: string;
+        checked: boolean;
+        enabled?: boolean;
+      };
+    }
+  | {
+      type: 'radio';
+      content: {
+        label: string;
+        selected: boolean;
+        enabled?: boolean;
+      };
+    }
+  | {
+      type: 'selectable-label';
+      content: {
+        label: string;
+        selected: boolean;
+        enabled?: boolean;
+      };
+    }
+  | {
+      type: 'toggle';
+      content: {
+        label: string;
+        value: boolean;
+        enabled?: boolean;
+      };
+    }
+  | {
+      type: 'slider';
+      content: {
+        value: number;
+        min: number;
+        max: number;
+        step?: number;
+        enabled?: boolean;
+        label?: string;
+      };
+    }
+  | {
+      type: 'drag-value';
+      content: {
+        value: number;
+        speed?: number;
+        min?: number;
+        max?: number;
+        prefix?: string;
+        suffix?: string;
+        enabled?: boolean;
+      };
+    }
+  | {
+      type: 'progress-bar';
+      content: {
+        value: number;
+        text?: string;
+        animate?: boolean;
+        showPercentage?: boolean;
+      };
+    }
+  | {
+      type: 'combo-box';
+      content: {
+        label: string;
+        selected: string;
+        options: string[];
+        enabled?: boolean;
+      };
+    }
+  | {
+      type: 'menu-button';
+      content: {
+        label: string;
+        enabled?: boolean;
+      };
+    }
+  | {
+      type: 'collapsing-header';
+      content: {
+        label: string;
+        open?: boolean;
+        enabled?: boolean;
+      };
+    }
+  | {
+      type: 'image-button';
+      content: {
+        source: UiImageSource;
+        size?: UiSize;
+        enabled?: boolean;
+      };
+    }
+  | {
+      type: 'spinner';
+      content: {
+        size?: number;
+      };
+    }
+  | {
+      type: 'text-edit';
+      content: {
+        value: string;
+        placeholder?: string;
+        multiline?: boolean;
+        password?: boolean;
+        charLimit?: number;
+        enabled?: boolean;
+      };
+    }
+  | {
+      type: 'input';
+      content: {
+        value: string;
+        placeholder?: string;
+        enabled?: boolean;
+      };
+    }
+  | {
+      type: 'image';
+      content: {
+        source: UiImageSource;
+        size?: UiSize;
+      };
+    }
+  | {
+      type: 'widget-realm-viewport';
+      content: {
+        targetId: number;
+        size?: UiSize;
+      };
+    }
+  | { type: 'separator' }
+  | {
+      type: 'spacer';
+      content: {
+        width?: number;
+        height?: number;
+      };
+    };
 
 export interface UiNode {
   id: number;
@@ -82,7 +561,7 @@ export interface CmdUiThemeDefineArgs {
   themeId: number;
   version?: number;
   data?: Record<string, UiThemeValue>;
-  fontData?: Record<string, number[]>;
+  fontData?: Record<string, UiByteArray>;
   fontFamilies?: Record<string, string[]>;
 }
 
@@ -278,7 +757,7 @@ export interface CmdUiScreenshotReplyArgs {
   realmId?: number;
   width: number;
   height: number;
-  rgba: number[];
+  rgba: UiByteArray;
 }
 
 export interface CmdUiAccessKitActionRequestArgs {

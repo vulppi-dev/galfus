@@ -1,4 +1,5 @@
 import type { ResourceEntry } from './resources';
+import type { Matrix4 } from './camera';
 
 /** Command payload for creating a model. */
 export interface CmdModelCreateArgs {
@@ -7,7 +8,7 @@ export interface CmdModelCreateArgs {
   label?: string;
   geometryId: number;
   materialId?: number;
-  transform: number[]; // Mat4
+  transform: Matrix4;
   layerMask?: number;
   castShadow?: boolean;
   receiveShadow?: boolean;
@@ -22,7 +23,7 @@ export interface CmdModelUpdateArgs {
   label?: string;
   geometryId?: number;
   materialId?: number;
-  transform?: number[];
+  transform?: Matrix4;
   layerMask?: number;
   castShadow?: boolean;
   receiveShadow?: boolean;

@@ -1,12 +1,12 @@
 import type { AudioPlayMode } from '../kinds';
 
 export interface AudioSpatialParams {
-  minDistance?: number;
-  maxDistance?: number;
-  rolloff?: number;
-  coneInner?: number;
-  coneOuter?: number;
-  coneOuterGain?: number;
+  minDistance: number;
+  maxDistance: number;
+  rolloff: number;
+  coneInner: number;
+  coneOuter: number;
+  coneOuterGain: number;
 }
 
 /** Command payload for updating the listener transform explicitly. */
@@ -44,9 +44,7 @@ export interface CmdResultAudioListenerUpdate {
 }
 
 /** Upsert payload accepted by the core (`create` or `update`). */
-export type CmdAudioListenerUpsertArgs =
-  | CmdAudioListenerCreateArgs
-  | CmdAudioListenerUpdateArgs;
+export type CmdAudioListenerUpsertArgs = CmdAudioListenerCreateArgs | CmdAudioListenerUpdateArgs;
 
 /** Backward-compatible aliases. */
 export type CmdResultAudioListenerUpsert = CmdResultAudioListenerUpdate;
@@ -105,9 +103,7 @@ export interface CmdResultAudioSourceUpdate {
 }
 
 /** Upsert payload accepted by the core (`create` or `update`). */
-export type CmdAudioSourceUpsertArgs =
-  | CmdAudioSourceCreateArgs
-  | CmdAudioSourceUpdateArgs;
+export type CmdAudioSourceUpsertArgs = CmdAudioSourceCreateArgs | CmdAudioSourceUpdateArgs;
 
 /** Backward-compatible aliases. */
 export type CmdResultAudioSourceUpsert = CmdResultAudioSourceUpdate;

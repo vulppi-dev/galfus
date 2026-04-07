@@ -1,6 +1,25 @@
 import type { CameraKind } from '../kinds';
 import type { ResourceEntry } from './resources';
 
+export type Matrix4 = [
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number,
+  number
+];
+
 /** Viewport value expressed as relative (0..1) or absolute pixels. */
 export interface ViewValue {
   type: 'relative' | 'absolute';
@@ -18,7 +37,7 @@ export interface CmdCameraCreateArgs {
   realmId: number;
   cameraId: number;
   label?: string;
-  transform: number[]; // Mat4 (16 elements)
+  transform: Matrix4; // Mat4
   kind: CameraKind;
   flags?: number;
   nearFar: [number, number]; // Vec2
@@ -33,7 +52,7 @@ export interface CmdCameraUpdateArgs {
   realmId: number;
   cameraId: number;
   label?: string;
-  transform?: number[];
+  transform?: Matrix4;
   kind?: CameraKind;
   flags?: number;
   layerMask?: number;
