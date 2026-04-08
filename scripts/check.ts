@@ -5,8 +5,8 @@ type Command = {
 
 const COMMANDS: Command[] = [
   {
-    label: 'cargo check --lib',
-    args: ['cargo', 'check', '--lib']
+    label: 'cargo check -p vulfram-bindings-ffi --lib',
+    args: ['cargo', 'check', '-p', 'vulfram-bindings-ffi', '--lib']
   },
   {
     label: 'cargo check -p vulfram-runtime --lib',
@@ -14,7 +14,7 @@ const COMMANDS: Command[] = [
   },
   {
     label: 'cargo run --bin wgsl_check',
-    args: ['cargo', 'run', '--bin', 'wgsl_check']
+    args: ['cargo', 'run', '-p', 'vulfram-devtools', '--bin', 'wgsl_check']
   },
   {
     label: 'cargo test -p vulfram-runtime --lib',
