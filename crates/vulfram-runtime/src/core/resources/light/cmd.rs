@@ -222,6 +222,8 @@ pub fn engine_cmd_light_update(
     if let Some(layer_mask) = args.layer_mask {
         record.layer_mask = layer_mask;
     }
+
+    record.data.update_matrices();
     record.mark_dirty();
     mark_realm_windows_dirty(engine, args.realm_id);
 

@@ -19,6 +19,7 @@ members = [
     "crates/vulfram-realm-core",
     "crates/vulfram-types",
 ]
+default-members = ["crates/vulfram-demo"]
 resolver = "3"
 
 [workspace.package]
