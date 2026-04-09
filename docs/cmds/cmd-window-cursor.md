@@ -77,3 +77,5 @@ Retorna `CmdResultWindowCursor`:
 - Quando `icon` é enviado via comando do host, o ícone vira override persistente para a janela e tem prioridade sobre atualizações de cursor vindas do pipeline de UI.
 - Mudanças de captura disparam `WindowEvent::OnPointerCaptureChange`.
 - No browser, `Escape` pode liberar o pointer lock por política da plataforma; o core reporta a mudança via evento de captura.
+- No browser, o canvas mantém um estado explícito de ativação separado do foco da janela.
+  O host recebe isso via `WindowEvent::OnCanvasActiveChange`.

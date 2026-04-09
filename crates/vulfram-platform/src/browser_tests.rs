@@ -4,7 +4,10 @@ use super::{
     map_browser_pointer_type, normalize_browser_key_text, plan_browser_cursor_mode_change,
     plan_browser_surface_resize, resolve_browser_pointer_position, resolve_browser_window_state,
     resolve_canvas_surface_size, resolve_pointer_lock_change, resolve_pointer_lock_error,
-    should_poll_browser_gamepads,
+    should_activate_canvas_from_pointer, should_deactivate_canvas_from_outside_pointer,
+    should_dispatch_browser_action, should_poll_browser_gamepads,
+    should_prevent_browser_default_key, should_prevent_browser_default_touch,
+    should_prevent_browser_default_wheel, should_process_browser_gamepad_snapshots,
 };
 use glam::vec2;
 
@@ -107,6 +110,38 @@ fn should_poll_browser_gamepads_requires_windows_and_focus() {
     assert!(!should_poll_browser_gamepads(false, true));
     assert!(!should_poll_browser_gamepads(true, false));
     assert!(should_poll_browser_gamepads(true, true));
+}
+
+#[test]
+fn should_process_browser_gamepad_snapshots_requires_windows_only() {
+    assert!(!should_process_browser_gamepad_snapshots(false));
+    assert!(should_process_browser_gamepad_snapshots(true));
+}
+
+#[test]
+fn browser_action_dispatch_requires_active_canvas() {
+    assert!(!should_dispatch_browser_action(false));
+    assert!(should_dispatch_browser_action(true));
+}
+
+#[test]
+fn canvas_activation_and_deactivation_policies_match_pointer_scope() {
+    assert!(should_activate_canvas_from_pointer(true, false));
+    assert!(!should_activate_canvas_from_pointer(true, true));
+    assert!(should_deactivate_canvas_from_outside_pointer(false, true));
+    assert!(!should_deactivate_canvas_from_outside_pointer(true, true));
+}
+
+#[test]
+fn browser_default_prevention_only_applies_when_canvas_is_active() {
+    assert!(should_prevent_browser_default_wheel(true));
+    assert!(!should_prevent_browser_default_wheel(false));
+    assert!(should_prevent_browser_default_touch(true));
+    assert!(!should_prevent_browser_default_touch(false));
+    assert!(should_prevent_browser_default_key("PageDown", true));
+    assert!(should_prevent_browser_default_key("ArrowUp", true));
+    assert!(!should_prevent_browser_default_key("Escape", true));
+    assert!(!should_prevent_browser_default_key("PageDown", false));
 }
 
 #[test]

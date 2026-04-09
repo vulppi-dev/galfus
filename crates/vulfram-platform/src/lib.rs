@@ -16,7 +16,10 @@ pub use browser::{
     map_browser_pointer_type, normalize_browser_key_text, plan_browser_cursor_mode_change,
     plan_browser_surface_resize, resolve_browser_pointer_position, resolve_browser_window_state,
     resolve_canvas_surface_size, resolve_pointer_lock_change, resolve_pointer_lock_error,
-    should_poll_browser_gamepads,
+    should_activate_canvas_from_pointer, should_deactivate_canvas_from_outside_pointer,
+    should_dispatch_browser_action, should_poll_browser_gamepads,
+    should_prevent_browser_default_key, should_prevent_browser_default_touch,
+    should_prevent_browser_default_wheel, should_process_browser_gamepad_snapshots,
 };
 #[cfg(not(target_arch = "wasm32"))]
 pub use desktop::{

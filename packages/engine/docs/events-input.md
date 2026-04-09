@@ -43,6 +43,15 @@ isWindowCloseRequested(worldId);
 wasWindowResized(worldId);
 ```
 
+Browser note:
+
+- Browser canvas windows expose an explicit `on-canvas-active-change` event in the
+  raw window event stream.
+- While the canvas is active, action input is routed to the engine and page-level
+  wheel/touch/navigation defaults are suppressed by the browser proxy.
+- The first click inside the canvas activates it but is not forwarded as a pointer
+  action event.
+
 ## Per-frame Behavior
 
 - "Just pressed" and "just released" sets are cleared every frame.

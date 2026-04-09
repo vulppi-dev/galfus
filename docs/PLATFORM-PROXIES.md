@@ -65,8 +65,16 @@ Responsibilities:
 - Creates window surfaces from a DOM canvas (`canvasId`).
 - Attaches DOM event listeners for keyboard/pointer/scroll/focus.
 - Integrates browser pointer lock (`locked`) and logical confined polyfill.
+- Tracks explicit `canvas active` state separately from browser window focus.
+- Gates action input (keyboard, pointer, touch, gamepad axes/buttons) so it only
+  reaches the engine while the canvas is active.
+- Emits `WindowEvent::OnCanvasActiveChange` so hosts can react to activation and
+  deactivation transitions.
+- Blocks browser page scroll/navigation input while the canvas is active,
+  including wheel/touch scrolling and navigation keys such as arrows and page keys.
 - Tracks canvas resize from CSS bounds × DPR to keep render surface/projection in sync.
-- Polls the Web Gamepad API each tick.
+- Polls the Web Gamepad API each tick, while still reporting connect/disconnect
+  even when the canvas is inactive.
 - Renders frames directly during `vulfram_tick` (no native event loop).
 
 This proxy is selected when compiling with the `wasm` feature.
@@ -113,5 +121,6 @@ Both proxies emit explicit window-state transition events:
 
 - `WindowEvent::OnStateChange` for lifecycle transitions (`windowed`, `fullscreen`, etc.).
 - `WindowEvent::OnPointerCaptureChange` for pointer capture mode/activation transitions.
+- `WindowEvent::OnCanvasActiveChange` for browser canvas activation state transitions.
 
 This keeps host behavior deterministic across platform differences.

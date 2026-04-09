@@ -11,13 +11,16 @@ use vulfram_platform::{
     BrowserPointerMotionInput, PlatformCursorGrabMode, PlatformWindowState,
     map_browser_pointer_type, normalize_browser_key_text, plan_browser_surface_resize,
     resolve_browser_pointer_position, resolve_browser_window_state, resolve_canvas_surface_size,
-    resolve_pointer_lock_change, resolve_pointer_lock_error,
+    resolve_pointer_lock_change, resolve_pointer_lock_error, should_activate_canvas_from_pointer,
+    should_deactivate_canvas_from_outside_pointer, should_dispatch_browser_action,
+    should_prevent_browser_default_key, should_prevent_browser_default_touch,
+    should_prevent_browser_default_wheel,
 };
 use wasm_bindgen::JsCast;
 use wasm_bindgen::closure::Closure;
 use web_sys::{
-    CompositionEvent, Event, EventTarget, HtmlCanvasElement, KeyboardEvent, PointerEvent,
-    WheelEvent,
+    AddEventListenerOptions, CompositionEvent, Event, EventTarget, HtmlCanvasElement,
+    KeyboardEvent, PointerEvent, TouchEvent, WheelEvent,
 };
 
 use crate::core::cmd::EngineEvent;
@@ -26,7 +29,8 @@ use crate::core::input::events::{ElementState, ModifiersState, TouchPhase};
 use crate::core::singleton::with_engine;
 use crate::core::state::EngineState;
 use crate::core::window::{
-    CursorGrabMode, EngineWindowState, WebListenerRegistration, WindowEvent,
+    CursorGrabMode, EngineWindowState, WebListenerRegistration, WindowCanvasActiveState,
+    WindowEvent,
     WindowPointerCaptureState,
 };
 
@@ -47,6 +51,7 @@ pub fn attach_canvas_listeners(
     let window_target: EventTarget = window.clone().unchecked_into();
     let document_target: EventTarget = document.clone().unchecked_into();
     let canvas_target: EventTarget = canvas.clone().unchecked_into();
+    ensure_canvas_focusable(canvas);
     let modifiers_state = Rc::new(RefCell::new(ModifiersState::default()));
 
     let canvas_for_resize = canvas.clone();
@@ -91,6 +96,7 @@ pub fn attach_canvas_listeners(
     let modifiers_state_for_blur = modifiers_state.clone();
     let blur_closure = Closure::wrap(Box::new(move |_event: Event| {
         with_live_window(window_id, |engine| {
+            let _ = set_canvas_active(engine, window_id, false, "window-blur");
             let next_modifiers = ModifiersState::default();
             let mut current_modifiers = modifiers_state_for_blur.borrow_mut();
             if *current_modifiers != next_modifiers {
@@ -111,6 +117,20 @@ pub fn attach_canvas_listeners(
         });
     }) as Box<dyn FnMut(Event)>);
     register_listener(&window_target, "blur", blur_closure, &mut listeners);
+
+    let canvas_for_blur = canvas.clone();
+    let canvas_blur = Closure::wrap(Box::new(move |_event: Event| {
+        with_live_window(window_id, |engine| {
+            if engine.window.pointer_capture_active(window_id) {
+                return;
+            }
+            if is_canvas_active(engine, window_id) {
+                let _ = &canvas_for_blur;
+                let _ = set_canvas_active(engine, window_id, false, "focus-loss");
+            }
+        });
+    }) as Box<dyn FnMut(Event)>);
+    register_listener(&canvas_target, "blur", canvas_blur, &mut listeners);
 
     let fullscreen_change = Closure::wrap(Box::new(move |_event: Event| {
         with_live_window(window_id, |engine| {
@@ -173,6 +193,11 @@ pub fn attach_canvas_listeners(
                     },
                 ));
             }
+            if capture_update.active {
+                let _ = set_canvas_active(engine, window_id, true, capture_update.reason);
+            } else {
+                let _ = set_canvas_active(engine, window_id, false, capture_update.reason);
+            }
         });
     }) as Box<dyn FnMut(Event)>);
     register_listener(
@@ -211,6 +236,7 @@ pub fn attach_canvas_listeners(
     );
 
     let modifiers_state_for_keydown = modifiers_state.clone();
+    let canvas_for_keydown = canvas.clone();
     let keydown_closure = Closure::wrap(Box::new(move |event: Event| {
         let event: KeyboardEvent = match event.dyn_into() {
             Ok(ev) => ev,
@@ -222,6 +248,27 @@ pub fn attach_canvas_listeners(
             alt: event.alt_key(),
             meta: event.meta_key(),
         };
+        let canvas_active = canvas_is_active(window_id);
+        if should_prevent_browser_default_key(&event.code(), canvas_active) {
+            event.prevent_default();
+        }
+        if !canvas_active && event.code() == "Enter" && canvas_has_focus(&canvas_for_keydown) {
+            focus_canvas(&canvas_for_keydown);
+            with_live_window(window_id, |engine| {
+                let _ = set_canvas_active(engine, window_id, true, "enter");
+            });
+            return;
+        }
+        if canvas_active && event.code() == "Escape" {
+            blur_canvas(&canvas_for_keydown);
+            with_live_window(window_id, |engine| {
+                let _ = set_canvas_active(engine, window_id, false, "escape");
+            });
+            return;
+        }
+        if !should_dispatch_browser_action(canvas_active) {
+            return;
+        }
         let key_code = map_web_key_code(&event.code());
         let is_composing = event.is_composing();
         let text = normalize_browser_key_text(&event.key(), is_composing);
@@ -257,6 +304,9 @@ pub fn attach_canvas_listeners(
             Ok(ev) => ev,
             Err(_) => return,
         };
+        if !should_dispatch_browser_action(canvas_is_active(window_id)) {
+            return;
+        }
         let modifiers = ModifiersState {
             shift: event.shift_key(),
             ctrl: event.ctrl_key(),
@@ -297,6 +347,9 @@ pub fn attach_canvas_listeners(
             Ok(ev) => ev,
             Err(_) => return,
         };
+        if !should_dispatch_browser_action(canvas_is_active(window_id)) {
+            return;
+        }
         with_live_window(window_id, |engine| {
             engine
                 .runtime
@@ -315,6 +368,9 @@ pub fn attach_canvas_listeners(
             Ok(ev) => ev,
             Err(_) => return,
         };
+        if !should_dispatch_browser_action(canvas_is_active(window_id)) {
+            return;
+        }
         let text = event.data().unwrap_or_default();
         with_live_window(window_id, |engine| {
             engine
@@ -336,6 +392,9 @@ pub fn attach_canvas_listeners(
             Ok(ev) => ev,
             Err(_) => return,
         };
+        if !should_dispatch_browser_action(canvas_is_active(window_id)) {
+            return;
+        }
         let text = event.data().unwrap_or_default();
         with_live_window(window_id, |engine| {
             engine
@@ -356,6 +415,9 @@ pub fn attach_canvas_listeners(
             Ok(ev) => ev,
             Err(_) => return,
         };
+        if !should_dispatch_browser_action(canvas_is_active(window_id)) {
+            return;
+        }
         let pointer_type = map_browser_pointer_type(&event.pointer_type());
         let pointer_id = event.pointer_id() as u64;
         let absolute_position =
@@ -393,11 +455,23 @@ pub fn attach_canvas_listeners(
     register_listener(&canvas_target, "pointermove", pointer_move, &mut listeners);
 
     let canvas_for_pointer = canvas.clone();
+    let canvas_for_activation = canvas.clone();
     let pointer_down = Closure::wrap(Box::new(move |event: Event| {
         let event: PointerEvent = match event.dyn_into() {
             Ok(ev) => ev,
             Err(_) => return,
         };
+        if should_activate_canvas_from_pointer(true, canvas_is_active(window_id)) {
+            focus_canvas(&canvas_for_activation);
+            with_live_window(window_id, |engine| {
+                let _ = set_canvas_active(engine, window_id, true, "inside-click");
+            });
+            event.prevent_default();
+            return;
+        }
+        if !should_dispatch_browser_action(canvas_is_active(window_id)) {
+            return;
+        }
         let position = canvas_relative_pos(&canvas_for_pointer, event.client_x(), event.client_y());
         let pointer_type = map_browser_pointer_type(&event.pointer_type());
         let pointer_id = event.pointer_id() as u64;
@@ -425,6 +499,9 @@ pub fn attach_canvas_listeners(
             Ok(ev) => ev,
             Err(_) => return,
         };
+        if !should_dispatch_browser_action(canvas_is_active(window_id)) {
+            return;
+        }
         let position = canvas_relative_pos(&canvas_for_pointer, event.client_x(), event.client_y());
         let pointer_type = map_browser_pointer_type(&event.pointer_type());
         let pointer_id = event.pointer_id() as u64;
@@ -502,6 +579,13 @@ pub fn attach_canvas_listeners(
             Ok(ev) => ev,
             Err(_) => return,
         };
+        let canvas_active = canvas_is_active(window_id);
+        if should_prevent_browser_default_wheel(canvas_active) {
+            event.prevent_default();
+        }
+        if !should_dispatch_browser_action(canvas_active) {
+            return;
+        }
         let delta = glam::Vec2::new(event.delta_x() as f32, event.delta_y() as f32);
         let phase = TouchPhase::Moved;
         let delta = if event.delta_mode() == WheelEvent::DOM_DELTA_PIXEL {
@@ -519,7 +603,70 @@ pub fn attach_canvas_listeners(
                 )));
         });
     }) as Box<dyn FnMut(Event)>);
-    register_listener(&canvas_target, "wheel", wheel_closure, &mut listeners);
+    register_listener_with_options(
+        &canvas_target,
+        "wheel",
+        wheel_closure,
+        listener_options_blocking(),
+        &mut listeners,
+    );
+
+    let canvas_for_document_pointer = canvas.clone();
+    let outside_pointer = Closure::wrap(Box::new(move |event: Event| {
+        let event: PointerEvent = match event.dyn_into() {
+            Ok(ev) => ev,
+            Err(_) => return,
+        };
+        let pointer_inside_canvas = canvas_contains_point(
+            &canvas_for_document_pointer,
+            event.client_x() as f64,
+            event.client_y() as f64,
+        );
+        if !should_deactivate_canvas_from_outside_pointer(
+            pointer_inside_canvas,
+            canvas_is_active(window_id),
+        ) {
+            return;
+        }
+        with_live_window(window_id, |engine| {
+            let _ = set_canvas_active(engine, window_id, false, "outside-click");
+        });
+    }) as Box<dyn FnMut(Event)>);
+    register_listener(&document_target, "pointerdown", outside_pointer, &mut listeners);
+
+    let wheel_blocker = Closure::wrap(Box::new(move |event: Event| {
+        let event: WheelEvent = match event.dyn_into() {
+            Ok(ev) => ev,
+            Err(_) => return,
+        };
+        if should_prevent_browser_default_wheel(canvas_is_active(window_id)) {
+            event.prevent_default();
+        }
+    }) as Box<dyn FnMut(Event)>);
+    register_listener_with_options(
+        &window_target,
+        "wheel",
+        wheel_blocker,
+        listener_options_blocking(),
+        &mut listeners,
+    );
+
+    let touch_blocker = Closure::wrap(Box::new(move |event: Event| {
+        let event: TouchEvent = match event.dyn_into() {
+            Ok(ev) => ev,
+            Err(_) => return,
+        };
+        if should_prevent_browser_default_touch(canvas_is_active(window_id)) {
+            event.prevent_default();
+        }
+    }) as Box<dyn FnMut(Event)>);
+    register_listener_with_options(
+        &window_target,
+        "touchmove",
+        touch_blocker,
+        listener_options_blocking(),
+        &mut listeners,
+    );
 
     listeners
 }
@@ -629,6 +776,95 @@ fn register_listener(
         event_type,
         callback,
     });
+}
+
+fn register_listener_with_options(
+    target: &EventTarget,
+    event_type: &'static str,
+    callback: Closure<dyn FnMut(Event)>,
+    options: AddEventListenerOptions,
+    listeners: &mut Vec<WebListenerRegistration>,
+) {
+    let _ = target.add_event_listener_with_callback_and_add_event_listener_options(
+        event_type,
+        callback.as_ref().unchecked_ref(),
+        &options,
+    );
+    listeners.push(WebListenerRegistration {
+        target: target.clone(),
+        event_type,
+        callback,
+    });
+}
+
+fn ensure_canvas_focusable(canvas: &HtmlCanvasElement) {
+    let _ = canvas.set_attribute("tabindex", "0");
+}
+
+fn focus_canvas(canvas: &HtmlCanvasElement) {
+    let _ = canvas.focus();
+}
+
+fn blur_canvas(canvas: &HtmlCanvasElement) {
+    let element: &web_sys::HtmlElement = canvas.unchecked_ref();
+    let _ = element.blur();
+}
+
+fn canvas_has_focus(canvas: &HtmlCanvasElement) -> bool {
+    let canvas_element: &web_sys::Element = canvas.unchecked_ref();
+    web_sys::window()
+        .and_then(|window| window.document())
+        .and_then(|document| document.active_element())
+        .map(|element| element == *canvas_element)
+        .unwrap_or(false)
+}
+
+fn canvas_contains_point(canvas: &HtmlCanvasElement, client_x: f64, client_y: f64) -> bool {
+    let rect = canvas.get_bounding_client_rect();
+    client_x >= rect.left()
+        && client_x <= rect.right()
+        && client_y >= rect.top()
+        && client_y <= rect.bottom()
+}
+
+fn listener_options_blocking() -> AddEventListenerOptions {
+    let options = AddEventListenerOptions::new();
+    options.set_passive(false);
+    options.set_capture(true);
+    options
+}
+
+fn canvas_is_active(window_id: u32) -> bool {
+    let mut active = false;
+    let _ = with_live_window(window_id, |engine| {
+        active = is_canvas_active(engine, window_id);
+    });
+    active
+}
+
+fn is_canvas_active(engine: &EngineState, window_id: u32) -> bool {
+    engine.window.canvas_active(window_id)
+}
+
+fn set_canvas_active(
+    engine: &mut EngineState,
+    window_id: u32,
+    active: bool,
+    reason: &'static str,
+) -> bool {
+    if !engine.window.set_canvas_active(window_id, active) {
+        return false;
+    }
+    engine
+        .runtime
+        .push_event(EngineEvent::Window(WindowEvent::OnCanvasActiveChange {
+            window_id,
+            canvas: WindowCanvasActiveState {
+                active,
+                reason: Some(reason.into()),
+            },
+        }));
+    true
 }
 
 fn map_platform_cursor_grab_mode(mode: CursorGrabMode) -> PlatformCursorGrabMode {
