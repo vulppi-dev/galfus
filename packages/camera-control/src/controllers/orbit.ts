@@ -96,15 +96,17 @@ export function createOrbitController(
       const pointer = readPointerState(worldId);
       const pointerX = pointer.delta[0] * pointerXSign;
       const pointerY = pointer.delta[1] * pointerYSign;
+      const lookX = pointer.lookDelta[0] * pointerXSign;
+      const lookY = pointer.lookDelta[1] * pointerYSign;
       const rotateGesture = pointer.rightPressed || (pointer.leftPressed && !pointer.middlePressed);
 
       const panGesture = pointer.middlePressed && !pointer.rightPressed;
 
       if (rotateGesture) {
-        const lookX = pointerX * pointerDeltaSensitivity;
-        const lookY = pointerY * pointerDeltaSensitivity;
-        yaw -= lookX * rotateSpeed;
-        pitch = clamp(pitch + lookY * rotateSpeed, minPitch, maxPitch);
+        const weightedLookX = lookX * pointerDeltaSensitivity;
+        const weightedLookY = lookY * pointerDeltaSensitivity;
+        yaw -= weightedLookX * rotateSpeed;
+        pitch = clamp(pitch + weightedLookY * rotateSpeed, minPitch, maxPitch);
       }
 
       if (panGesture) {
@@ -135,8 +137,8 @@ export function createOrbitController(
       const raw = composeRawTarget();
       applyLookAtIfEnabled(raw, lookAtState, dtSeconds);
 
-      const weightedLookX = pointerX * pointerDeltaSensitivity;
-      const weightedLookY = pointerY * pointerDeltaSensitivity;
+      const weightedLookX = lookX * pointerDeltaSensitivity;
+      const weightedLookY = lookY * pointerDeltaSensitivity;
       const nextApplied = runPipeline(raw, previousApplied, config, {
         kind: 'orbit',
         worldId,

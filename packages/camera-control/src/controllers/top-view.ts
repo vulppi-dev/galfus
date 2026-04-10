@@ -95,6 +95,8 @@ export function createTopViewController(
       const pointer = readPointerState(worldId);
       const pointerX = pointer.delta[0] * pointerXSign;
       const pointerY = pointer.delta[1] * pointerYSign;
+      const lookX = pointer.lookDelta[0] * pointerXSign;
+      const lookY = pointer.lookDelta[1] * pointerYSign;
 
       if (!focusLocked && pointer.leftPressed) {
         const panX = -pointerX * panSpeed * Math.max(1, height * 0.25);
@@ -107,8 +109,8 @@ export function createTopViewController(
       }
 
       if (pointer.rightPressed) {
-        const lookX = pointerX * pointerDeltaSensitivity;
-        yaw -= lookX * rotateSpeed;
+        const weightedLookX = lookX * pointerDeltaSensitivity;
+        yaw -= weightedLookX * rotateSpeed;
       }
 
       let zoomWeight = zoomImpulse;
@@ -121,8 +123,8 @@ export function createTopViewController(
       const raw = composeRawTarget();
       applyLookAtIfEnabled(raw, lookAtState, dtSeconds);
 
-      const weightedLookX = pointerX * pointerDeltaSensitivity;
-      const weightedLookY = pointerY * pointerDeltaSensitivity;
+      const weightedLookX = lookX * pointerDeltaSensitivity;
+      const weightedLookY = lookY * pointerDeltaSensitivity;
       const nextApplied = runPipeline(raw, previousApplied, config, {
         kind: 'top-view',
         worldId,

@@ -25,6 +25,7 @@ export interface CameraActionWeights {
 
 export interface CameraPointerState {
   delta: vec3;
+  lookDelta: vec3;
   leftPressed: boolean;
   middlePressed: boolean;
   rightPressed: boolean;

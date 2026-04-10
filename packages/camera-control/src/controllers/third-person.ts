@@ -89,8 +89,8 @@ export function createThirdPersonController(
   return {
     update(dtSeconds: number): void {
       const pointer = readPointerState(worldId);
-      const pointerX = pointer.delta[0] * pointerXSign;
-      const pointerY = pointer.delta[1] * pointerYSign;
+      const pointerX = pointer.lookDelta[0] * pointerXSign;
+      const pointerY = pointer.lookDelta[1] * pointerYSign;
       const rotateGesture = alwaysLook || pointer.rightPressed || pointer.leftPressed;
       if (rotateGesture) {
         const lookX = pointerX * pointerDeltaSensitivity;

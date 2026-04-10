@@ -270,35 +270,37 @@ async function main() {
   });
 
   function createController(kind: ControllerKind): ActiveController {
+    const speed = 0.05;
+
     if (kind === 'orbit')
       return createOrbitController(world3dId, cameraEntityId, {
         target: [0, 0, 0],
         radius: 8,
         enabled: false,
-        rotateSpeed: 0.02
+        rotateSpeed: speed
       });
     if (kind === 'spectator')
       return createSpectatorController(world3dId, cameraEntityId, {
         alwaysLook: true,
-        lookSpeed: 0.02
+        lookSpeed: speed
       });
     if (kind === 'first-person')
       return createFirstPersonController(world3dId, cameraEntityId, {
         alwaysLook: true,
-        lookSpeed: 0.02
+        lookSpeed: speed
       });
     if (kind === 'third-person')
       return createThirdPersonController(world3dId, cameraEntityId, {
         target: [0, 0, 0],
         distance: 6,
         alwaysLook: true,
-        rotateSpeed: 0.02
+        rotateSpeed: speed
       });
     return createTopViewController(world3dId, cameraEntityId, {
       focus: [0, 0, 0],
       height: 12,
       focusLocked: topViewFocusLocked,
-      rotateSpeed: 0.02
+      rotateSpeed: speed
     });
   }
 
