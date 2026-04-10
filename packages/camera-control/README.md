@@ -13,6 +13,11 @@ Standard camera controllers for `@vulfram/engine`.
 ## Core Behavior
 
 - Pointer input is internally coupled for all controllers.
+- Pointer deltas used for look/rotation follow the raw pointer movement reported
+  by the engine in window/surface space, so camera speed stays stable when the
+  viewport or window size changes.
+- Raw pointer deltas are still preserved for gestures such as pan/zoom that should
+  keep window-space behavior.
 - Controller state and transform updates stay in `gl-matrix` `vec3` / `quat` form all the way to `@vulfram/engine`.
 - Current pointer gesture model is mouse-based (`left/middle/right`).
 - Every controller config accepts `pointerDeltaSensitivity` (`1` default) to scale

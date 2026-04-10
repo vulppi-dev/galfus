@@ -438,11 +438,13 @@ pub fn route_pointer_events(engine_state: &mut EngineState) {
                 connector_id,
                 uv,
             );
-            let window_size = engine_state
-                .window
-                .states
-                .get(&window_id)
-                .map(|state| state.inner_size);
+            let window_size = root_surface_size.or_else(|| {
+                engine_state
+                    .window
+                    .states
+                    .get(&window_id)
+                    .map(|state| state.inner_size)
+            });
             let target_size = resolve_target_size(
                 &engine_state.universal_state,
                 source_realm_id,

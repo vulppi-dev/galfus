@@ -137,6 +137,36 @@ pub fn resolve_canvas_surface_size(
     (width, height)
 }
 
+pub fn resolve_browser_canvas_surface_position(
+    local_x: f64,
+    local_y: f64,
+    rect_width: f64,
+    rect_height: f64,
+    surface_width: u32,
+    surface_height: u32,
+) -> Vec2 {
+    let safe_rect_width = rect_width.max(1.0) as f32;
+    let safe_rect_height = rect_height.max(1.0) as f32;
+    let scale_x = surface_width.max(1) as f32 / safe_rect_width;
+    let scale_y = surface_height.max(1) as f32 / safe_rect_height;
+    Vec2::new(local_x as f32 * scale_x, local_y as f32 * scale_y)
+}
+
+pub fn resolve_browser_canvas_surface_delta(
+    delta_x: f64,
+    delta_y: f64,
+    rect_width: f64,
+    rect_height: f64,
+    surface_width: u32,
+    surface_height: u32,
+) -> Vec2 {
+    let safe_rect_width = rect_width.max(1.0) as f32;
+    let safe_rect_height = rect_height.max(1.0) as f32;
+    let scale_x = surface_width.max(1) as f32 / safe_rect_width;
+    let scale_y = surface_height.max(1) as f32 / safe_rect_height;
+    Vec2::new(delta_x as f32 * scale_x, delta_y as f32 * scale_y)
+}
+
 pub fn plan_browser_surface_resize(
     current_width: u32,
     current_height: u32,

@@ -52,6 +52,13 @@ Browser note:
 - The first click inside the canvas activates it but is not forwarded as a pointer
   action event.
 
+Pointer sizing note:
+
+- `getPointerWindowSize()` reports the root input surface size associated with the
+  latest pointer event.
+- `getPointerTargetSize()` reports the routed target surface/viewport size when the
+  pointer event resolves to a target.
+
 ## Per-frame Behavior
 
 - "Just pressed" and "just released" sets are cleared every frame.

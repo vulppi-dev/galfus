@@ -2,10 +2,12 @@ use super::{
     BrowserCursorCommandPlan, BrowserPointerCaptureUpdate, BrowserPointerMotionInput,
     BrowserSurfaceResizePlan, PlatformCursorGrabMode, PlatformWindowState, browser_now_ns,
     map_browser_pointer_type, normalize_browser_key_text, plan_browser_cursor_mode_change,
-    plan_browser_surface_resize, resolve_browser_pointer_position, resolve_browser_window_state,
-    resolve_canvas_surface_size, resolve_pointer_lock_change, resolve_pointer_lock_error,
-    should_activate_canvas_from_pointer, should_deactivate_canvas_from_outside_pointer,
-    should_dispatch_browser_action, should_poll_browser_gamepads,
+    plan_browser_surface_resize, resolve_browser_canvas_surface_delta,
+    resolve_browser_canvas_surface_position, resolve_browser_pointer_position,
+    resolve_browser_window_state, resolve_canvas_surface_size, resolve_pointer_lock_change,
+    resolve_pointer_lock_error, should_activate_canvas_from_pointer,
+    should_deactivate_canvas_from_outside_pointer, should_dispatch_browser_action,
+    should_poll_browser_gamepads,
     should_prevent_browser_default_key, should_prevent_browser_default_touch,
     should_prevent_browser_default_wheel, should_process_browser_gamepad_snapshots,
 };
@@ -22,6 +24,19 @@ fn normalize_browser_key_text_accepts_single_character_only() {
 fn resolve_canvas_surface_size_uses_safe_dpr_and_minimum_one() {
     assert_eq!(resolve_canvas_surface_size(0.2, 0.3, 0.0), (1, 1));
     assert_eq!(resolve_canvas_surface_size(10.0, 5.0, 2.0), (20, 10));
+}
+
+#[test]
+fn resolve_browser_canvas_surface_position_scales_css_to_surface_space() {
+    let position =
+        resolve_browser_canvas_surface_position(50.0, 25.0, 100.0, 50.0, 1000, 500);
+    assert_eq!(position, vec2(500.0, 250.0));
+}
+
+#[test]
+fn resolve_browser_canvas_surface_delta_scales_relative_motion_to_surface_space() {
+    let delta = resolve_browser_canvas_surface_delta(10.0, -5.0, 100.0, 50.0, 1000, 500);
+    assert_eq!(delta, vec2(100.0, -50.0));
 }
 
 #[test]

@@ -10,6 +10,7 @@ use vulfram_input::{
 use vulfram_platform::{
     BrowserPointerMotionInput, PlatformCursorGrabMode, PlatformWindowState,
     map_browser_pointer_type, normalize_browser_key_text, plan_browser_surface_resize,
+    resolve_browser_canvas_surface_delta, resolve_browser_canvas_surface_position,
     resolve_browser_pointer_position, resolve_browser_window_state, resolve_canvas_surface_size,
     resolve_pointer_lock_change, resolve_pointer_lock_error, should_activate_canvas_from_pointer,
     should_deactivate_canvas_from_outside_pointer, should_dispatch_browser_action,
@@ -421,8 +422,12 @@ pub fn attach_canvas_listeners(
         let pointer_type = map_browser_pointer_type(&event.pointer_type());
         let pointer_id = event.pointer_id() as u64;
         let absolute_position =
-            canvas_relative_pos(&canvas_for_pointer, event.client_x(), event.client_y());
-        let movement = glam::Vec2::new(event.movement_x() as f32, event.movement_y() as f32);
+            canvas_surface_position(&canvas_for_pointer, event.client_x(), event.client_y());
+        let movement = canvas_surface_delta(
+            &canvas_for_pointer,
+            event.movement_x() as f64,
+            event.movement_y() as f64,
+        );
 
         with_live_window(window_id, |engine| {
             let mode = map_platform_cursor_grab_mode(engine.window.cursor_grab_mode(window_id));
@@ -472,7 +477,7 @@ pub fn attach_canvas_listeners(
         if !should_dispatch_browser_action(canvas_is_active(window_id)) {
             return;
         }
-        let position = canvas_relative_pos(&canvas_for_pointer, event.client_x(), event.client_y());
+        let position = canvas_surface_position(&canvas_for_pointer, event.client_x(), event.client_y());
         let pointer_type = map_browser_pointer_type(&event.pointer_type());
         let pointer_id = event.pointer_id() as u64;
         let button = event.button() as u32;
@@ -502,7 +507,7 @@ pub fn attach_canvas_listeners(
         if !should_dispatch_browser_action(canvas_is_active(window_id)) {
             return;
         }
-        let position = canvas_relative_pos(&canvas_for_pointer, event.client_x(), event.client_y());
+        let position = canvas_surface_position(&canvas_for_pointer, event.client_x(), event.client_y());
         let pointer_type = map_browser_pointer_type(&event.pointer_type());
         let pointer_id = event.pointer_id() as u64;
         let button = event.button() as u32;
@@ -671,11 +676,29 @@ pub fn attach_canvas_listeners(
     listeners
 }
 
-fn canvas_relative_pos(canvas: &HtmlCanvasElement, x: i32, y: i32) -> glam::Vec2 {
+fn canvas_surface_position(canvas: &HtmlCanvasElement, x: i32, y: i32) -> glam::Vec2 {
     let rect = canvas.get_bounding_client_rect();
-    glam::Vec2::new(
-        (x as f64 - rect.left()) as f32,
-        (y as f64 - rect.top()) as f32,
+    let (surface_width, surface_height) = canvas_surface_size_from_rect(canvas);
+    resolve_browser_canvas_surface_position(
+        x as f64 - rect.left(),
+        y as f64 - rect.top(),
+        rect.width(),
+        rect.height(),
+        surface_width,
+        surface_height,
+    )
+}
+
+fn canvas_surface_delta(canvas: &HtmlCanvasElement, delta_x: f64, delta_y: f64) -> glam::Vec2 {
+    let rect = canvas.get_bounding_client_rect();
+    let (surface_width, surface_height) = canvas_surface_size_from_rect(canvas);
+    resolve_browser_canvas_surface_delta(
+        delta_x,
+        delta_y,
+        rect.width(),
+        rect.height(),
+        surface_width,
+        surface_height,
     )
 }
 
