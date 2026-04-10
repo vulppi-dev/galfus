@@ -9,6 +9,11 @@ WASM sizing follows real surface pixels:
 - if canvas drawing-buffer attributes are explicitly set (`canvas.width/height`), those values are used;
 - otherwise, the engine derives surface size from `getBoundingClientRect() * devicePixelRatio` (HiDPI-aware).
 
+Platform notes:
+- Desktop/native applies `initialState` during creation.
+- Web/WASM currently does not mutate canvas fullscreen/window state during creation; if the host
+  needs fullscreen canvas behavior, request it directly via browser/JavaScript APIs.
+
 ## Arguments
 
 | Field        | Type              | Description                                                              |

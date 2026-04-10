@@ -82,41 +82,49 @@ fn read_window_state(window_state: &crate::core::window::WindowState) -> EngineW
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-fn apply_window_state(
-    window_state: &crate::core::window::WindowState,
+pub(crate) fn apply_window_state_to_window(
+    window: &crate::core::platform::Window,
     state: EngineWindowState,
 ) -> Result<(), String> {
     match state {
         EngineWindowState::Minimized => {
-            window_state.window.set_minimized(true);
+            window.set_minimized(true);
         }
         EngineWindowState::Maximized => {
-            window_state.window.set_maximized(true);
+            window.set_maximized(true);
         }
         EngineWindowState::Windowed => {
-            window_state.window.set_minimized(false);
-            window_state.window.set_maximized(false);
-            window_state.window.set_fullscreen(None);
+            window.set_minimized(false);
+            window.set_maximized(false);
+            window.set_fullscreen(None);
         }
         EngineWindowState::Fullscreen => {
-            let monitor = window_state.window.current_monitor();
+            let monitor = window.current_monitor();
             let exclusive = monitor
                 .as_ref()
                 .and_then(|current_monitor| current_monitor.video_modes().next())
                 .map(winit::window::Fullscreen::Exclusive);
             if let Some(fullscreen) = exclusive {
-                window_state.window.set_fullscreen(Some(fullscreen));
+                window.set_fullscreen(Some(fullscreen));
             } else {
                 return Err("Failed to set fullscreen: no exclusive video mode available".into());
             }
         }
         EngineWindowState::WindowedFullscreen => {
-            let monitor = window_state.window.current_monitor();
+            let monitor = window.current_monitor();
             let fullscreen = Some(winit::window::Fullscreen::Borderless(monitor));
-            window_state.window.set_fullscreen(fullscreen);
+            window.set_fullscreen(fullscreen);
         }
     }
     Ok(())
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn apply_window_state(
+    window_state: &crate::core::window::WindowState,
+    state: EngineWindowState,
+) -> Result<(), String> {
+    apply_window_state_to_window(&window_state.window, state)
 }
 
 #[cfg(not(target_arch = "wasm32"))]
