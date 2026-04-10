@@ -8,4 +8,4 @@ pub use cmd::*;
 pub use state::WebListenerRegistration;
 pub use state::WindowManager;
 pub use state::WindowState;
-pub use vulfram_protocol::{WindowEvent, WindowPointerCaptureState};
+pub use vulfram_protocol::{WindowCanvasActiveState, WindowEvent, WindowPointerCaptureState};

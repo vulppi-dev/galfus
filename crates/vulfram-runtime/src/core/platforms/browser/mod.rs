@@ -6,10 +6,11 @@ use crate::core::window::engine_cmd_window_create;
 #[cfg(target_arch = "wasm32")]
 use crate::core::window::engine_cmd_window_create_async;
 use crate::core::window::{CmdResultWindowCreate, CmdWindowCreateArgs};
-use vulfram_input::{
-    connect_gamepad, disconnect_gamepad, update_gamepad_axis, update_gamepad_button,
+use vulfram_input::{connect_gamepad, disconnect_gamepad, update_gamepad_axis, update_gamepad_button};
+use vulfram_platform::{
+    browser_now_ns, poll_browser_gamepads, should_dispatch_browser_action,
+    should_poll_browser_gamepads, should_process_browser_gamepad_snapshots,
 };
-use vulfram_platform::{browser_now_ns, poll_browser_gamepads, should_poll_browser_gamepads};
 
 use super::PlatformProxy;
 
@@ -58,13 +59,20 @@ impl PlatformProxy for BrowserProxy {
 
     fn process_gamepads(&mut self, state: &mut EngineState) -> u64 {
         let start = Self::now_ns();
+        if !should_process_browser_gamepad_snapshots(!state.window.states.is_empty()) {
+            return Self::now_ns().saturating_sub(start);
+        }
         let has_focus = web_sys::window()
             .and_then(|window| window.document())
             .map(|document| document.has_focus().unwrap_or(true))
             .unwrap_or(true);
-        if !should_poll_browser_gamepads(!state.window.states.is_empty(), has_focus) {
-            return Self::now_ns().saturating_sub(start);
-        }
+        let should_dispatch_actions =
+            should_poll_browser_gamepads(!state.window.states.is_empty(), has_focus)
+                && state
+                    .window
+                    .states
+                    .keys()
+                    .any(|window_id| should_dispatch_browser_action(state.window.canvas_active(*window_id)));
         let snapshots = poll_browser_gamepads();
         let connected_ids: std::collections::HashSet<u32> = snapshots
             .iter()
@@ -78,6 +86,10 @@ impl PlatformProxy for BrowserProxy {
                 state
                     .runtime
                     .push_event(crate::core::cmd::EngineEvent::Gamepad(gamepad_event));
+            }
+
+            if !should_dispatch_actions {
+                continue;
             }
 
             for (button_idx, value) in snapshot.buttons.into_iter().enumerate() {

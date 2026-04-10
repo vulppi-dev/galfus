@@ -217,6 +217,14 @@ pub struct WindowPointerCaptureState {
     pub reason: Option<String>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct WindowCanvasActiveState {
+    pub active: bool,
+    #[serde(default)]
+    pub reason: Option<String>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(tag = "event", content = "data", rename_all = "kebab-case")]
 pub enum WindowEvent {
@@ -275,6 +283,11 @@ pub enum WindowEvent {
     OnPointerCaptureChange {
         window_id: u32,
         capture: WindowPointerCaptureState,
+    },
+    #[serde(rename_all = "camelCase")]
+    OnCanvasActiveChange {
+        window_id: u32,
+        canvas: WindowCanvasActiveState,
     },
 }
 

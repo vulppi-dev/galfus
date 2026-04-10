@@ -118,6 +118,7 @@ pub struct WindowManager {
     pub cursor_icon_override: HashMap<u32, CursorIcon>,
     pub cursor_grab_modes: HashMap<u32, CursorGrabMode>,
     pub pointer_capture_active: HashMap<u32, bool>,
+    pub canvas_active: HashMap<u32, bool>,
     pub lifecycle_states: HashMap<u32, EngineWindowState>,
     #[cfg(not(target_arch = "wasm32"))]
     pub cache: WindowCacheManager,
@@ -132,6 +133,7 @@ impl WindowManager {
             cursor_icon_override: HashMap::new(),
             cursor_grab_modes: HashMap::new(),
             pointer_capture_active: HashMap::new(),
+            canvas_active: HashMap::new(),
             lifecycle_states: HashMap::new(),
             #[cfg(not(target_arch = "wasm32"))]
             cache: WindowCacheManager::new(),
@@ -154,6 +156,7 @@ impl WindowManager {
     pub fn initialize_window_defaults(&mut self, window_id: u32) {
         self.set_cursor_grab_mode(window_id, CursorGrabMode::None);
         self.set_pointer_capture_active(window_id, false);
+        self.set_canvas_active(window_id, false);
         self.set_lifecycle_state(window_id, EngineWindowState::Windowed);
     }
 
@@ -172,6 +175,17 @@ impl WindowManager {
         let changed = self.pointer_capture_active.get(&window_id).copied() != Some(active);
         self.pointer_capture_active.insert(window_id, active);
         changed
+    }
+
+    pub fn set_canvas_active(&mut self, window_id: u32, active: bool) -> bool {
+        let changed = self.canvas_active.get(&window_id).copied() != Some(active);
+        self.canvas_active.insert(window_id, active);
+        changed
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    pub fn canvas_active(&self, window_id: u32) -> bool {
+        self.canvas_active.get(&window_id).copied().unwrap_or(false)
     }
 
     #[cfg(target_arch = "wasm32")]
@@ -196,6 +210,7 @@ impl WindowManager {
             self.cursor_icon_override.remove(&window_id);
             self.cursor_grab_modes.remove(&window_id);
             self.pointer_capture_active.remove(&window_id);
+            self.canvas_active.remove(&window_id);
             self.lifecycle_states.remove(&window_id);
             for registration in window_state.web_listener_registrations.drain(..) {
                 let _ = registration.target.remove_event_listener_with_callback(
@@ -220,6 +235,7 @@ impl WindowManager {
             self.cursor_icon_override.remove(&window_id);
             self.cursor_grab_modes.remove(&window_id);
             self.pointer_capture_active.remove(&window_id);
+            self.canvas_active.remove(&window_id);
             self.lifecycle_states.remove(&window_id);
             true
         } else {

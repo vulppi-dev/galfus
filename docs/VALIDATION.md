@@ -32,6 +32,8 @@ Manual validation is required for flows that depend on runtime/platform behavior
 
 - Window lifecycle and platform-specific transitions
 - Pointer capture semantics (`none`, `confined`, `locked`)
+- Browser canvas activation/deactivation and host-observable activation events
+- Browser page-scroll suppression while the canvas is active
 - Browser canvas sizing and HiDPI behavior
 - Visual quality (lighting, skybox, post-process perception)
 - Audio audibility and interaction patterns

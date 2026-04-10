@@ -98,6 +98,18 @@ export interface WindowEventOnPointerCaptureChangeData {
   capture: WindowPointerCaptureState;
 }
 
+/** Canvas active snapshot from browser runtime. */
+export interface WindowCanvasActiveState {
+  active: boolean;
+  reason?: string;
+}
+
+/** Payload for canvas activation updates. */
+export interface WindowEventOnCanvasActiveChangeData {
+  windowId: number;
+  canvas: WindowCanvasActiveState;
+}
+
 /** Discriminated union of window events. */
 export type WindowEvent =
   | { event: 'on-create'; data: WindowEventOnCreateData }
@@ -120,4 +132,8 @@ export type WindowEvent =
   | {
       event: 'on-pointer-capture-change';
       data: WindowEventOnPointerCaptureChangeData;
+    }
+  | {
+      event: 'on-canvas-active-change';
+      data: WindowEventOnCanvasActiveChangeData;
     };
