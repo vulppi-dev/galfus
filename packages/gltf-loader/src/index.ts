@@ -32,6 +32,22 @@ export { GltfLoaderError } from './errors';
  *
  * The returned asset can instantiate entity graphs multiple times, reusing
  * uploaded textures/materials/geometries across instances.
+ *
+ * @example
+ * ```ts
+ * import { loadGltfAsset } from '@vulfram/gltf-loader';
+ *
+ * const asset = await loadGltfAsset({
+ *   worldId,
+ *   data: glbBytes
+ * });
+ *
+ * const instance = asset.instantiate({
+ *   rootTransform: {
+ *     position: [0, 0, 0]
+ *   }
+ * });
+ * ```
  */
 export async function loadGltfAsset(input: GltfLoadInput): Promise<LoadedGltfAsset> {
   const document = await readDocument(input);
@@ -107,6 +123,19 @@ export async function loadGltfAsset(input: GltfLoadInput): Promise<LoadedGltfAss
  * Legacy one-shot API.
  *
  * Loads resources and immediately instantiates one entity graph.
+ *
+ * Use this when you only need one scene instance and do not need to keep the
+ * reusable asset template around.
+ *
+ * @example
+ * ```ts
+ * import { loadGltfScene } from '@vulfram/gltf-loader';
+ *
+ * const result = await loadGltfScene({
+ *   worldId,
+ *   data: glbBytes
+ * });
+ * ```
  */
 export async function loadGltfScene(input: GltfLoadInput): Promise<GltfLoadResult> {
   const asset = await loadGltfAsset(input);

@@ -1,5 +1,5 @@
 import type { Node, Scene } from '@gltf-transform/core';
-import type { quat as Quat, vec3 as Vec3 } from 'gl-matrix';
+import type { Quat, Vec3 } from '@vulfram/engine/math';
 import {
   create3DEntity,
   create3DModel,

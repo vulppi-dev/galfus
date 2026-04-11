@@ -1,4 +1,4 @@
-import type { mat4, vec4 } from 'gl-matrix';
+import type { Mat4 as mat4, Vec4 as vec4 } from '../../math/index';
 import type { ResourceEntry } from './resources';
 
 /** Command payload for creating a model. */

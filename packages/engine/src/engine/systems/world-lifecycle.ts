@@ -1,6 +1,6 @@
 import type { EnvironmentConfig } from '../../types/cmds/environment';
 import type { ShadowConfig } from '../../types/cmds/shadow';
-import { vec3, vec4 } from 'gl-matrix';
+import { vec3, vec4 } from '../../math/index';
 import { enqueueCommand } from '../bridge/dispatch';
 import type { System } from '../ecs';
 import { toVec3, toVec4 } from './utils';

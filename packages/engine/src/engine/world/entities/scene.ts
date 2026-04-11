@@ -1,4 +1,5 @@
-import { quat, vec3, vec4 } from 'gl-matrix';
+import { quat, vec3, vec4 } from '../../../math/index';
+import type { Vec3, Vec4 } from '../../../math/index';
 import { EngineError } from '../../errors';
 import { getWorldOrThrow, requireInitialized } from '../../bridge/guards';
 import { engineState } from '../../state';
@@ -30,9 +31,9 @@ function hasTransformPatch(props: TransformProps): boolean {
 export function drawGizmoLine(
   worldId: number,
   props: {
-    start: vec3;
-    end: vec3;
-    color?: vec4;
+    start: Vec3;
+    end: Vec3;
+    color?: Vec4;
     thickness?: number;
   }
 ): void {
@@ -49,9 +50,9 @@ export function drawGizmoLine(
 export function drawGizmoAabb(
   worldId: number,
   props: {
-    min: vec3;
-    max: vec3;
-    color?: vec4;
+    min: Vec3;
+    max: Vec3;
+    color?: Vec4;
     thickness?: number;
   }
 ): void {
@@ -68,8 +69,8 @@ export function drawGizmoAabb(
 export function drawGizmoPolyline(
   worldId: number,
   props: {
-    points: vec3[];
-    color?: vec4;
+    points: Vec3[];
+    color?: Vec4;
     closed?: boolean;
     thickness?: number;
   }

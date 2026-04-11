@@ -1,4 +1,4 @@
-import type { vec3, vec4 } from 'gl-matrix';
+import type { Vec3 as vec3, Vec4 as vec4 } from '../../math/index';
 import type {
   CmdUiAccessKitActionRequestArgs,
   CmdUiApplyOpsArgs,

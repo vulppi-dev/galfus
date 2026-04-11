@@ -1,4 +1,4 @@
-import type { vec2, vec4 } from 'gl-matrix';
+import type { Vec2 as vec2, Vec4 as vec4 } from '../../math/index';
 export type TargetKind = 'window' | 'widget-realm-viewport' | 'realm-plane' | 'texture';
 
 export type SurfaceFormat =

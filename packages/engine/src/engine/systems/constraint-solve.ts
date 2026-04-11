@@ -1,4 +1,5 @@
-import { mat4 } from 'gl-matrix';
+import { mat4 } from '../../math/index';
+import type { Mat4 } from '../../math/index';
 import type { ParentComponent, System, TransformComponent } from '../ecs';
 import { mat4EqualsApprox, getEntityLocalTransformMatrix } from './utils';
 
@@ -9,7 +10,7 @@ type ConstraintStrategyContext = {
 
 interface ConstraintStrategy {
   name: string;
-  apply(a: mat4, b: mat4, context: ConstraintStrategyContext): mat4;
+  apply(a: Mat4, b: Mat4, context: ConstraintStrategyContext): Mat4;
 }
 
 const ParentConstraintStrategy: ConstraintStrategy = {
@@ -25,16 +26,16 @@ type ResolveState = {
   worldId: number;
   world: Parameters<System>[0];
   affected: Set<number>;
-  resolved: Map<number, mat4>;
+  resolved: Map<number, Mat4>;
   visiting: Set<number>;
   cycleLogged: boolean;
 };
 
-function resolveEntityMatrix(state: ResolveState, entityId: number): mat4 {
+function resolveEntityMatrix(state: ResolveState, entityId: number): Mat4 {
   if (!state.affected.has(entityId)) {
     const existing = state.world.resolvedEntityTransforms.get(entityId);
     if (existing) {
-      return existing as unknown as mat4;
+      return existing as unknown as Mat4;
     }
   }
 
@@ -74,6 +75,12 @@ function resolveEntityMatrix(state: ResolveState, entityId: number): mat4 {
   state.visiting.delete(entityId);
   state.resolved.set(entityId, resolved);
   return resolved;
+}
+
+function copyMat4(out: Mat4, source: ArrayLike<number>): void {
+  for (let i = 0; i < 16; i++) {
+    out[i] = source[i] ?? 0;
+  }
 }
 
 function collectAffectedEntities(world: Parameters<System>[0]): Set<number> {
@@ -150,13 +157,13 @@ export const ConstraintSolveSystem: System = (world, context) => {
     const resolved = resolveEntityMatrix(resolveState, entityId);
     const previousSnapshot = matrices.get(entityId);
     if (!previousSnapshot) {
-      matrices.set(entityId, new Float32Array(resolved));
+      matrices.set(entityId, [...resolved] as Mat4);
       changed.add(entityId);
       continue;
     }
 
     if (!mat4EqualsApprox(previousSnapshot, resolved)) {
-      previousSnapshot.set(resolved);
+      copyMat4(previousSnapshot, resolved);
       changed.add(entityId);
     }
   }

@@ -1,5 +1,5 @@
 import type { EntityId, World3DId } from '@vulfram/engine/world3d';
-import { quat, vec3, type ReadonlyVec3 } from 'gl-matrix';
+import { quat, vec3, type ReadonlyVec3 } from '@vulfram/engine/math';
 import {
   applyLookAtIfEnabled,
   applyToWorld,
@@ -17,6 +17,7 @@ import type {
 } from '../core/types';
 import { weightOrDefault } from '../core/actions';
 
+/** Configuration for `createOrbitController()`. */
 export interface OrbitControllerConfig extends CameraControllerOptions {
   target?: ReadonlyVec3;
   radius?: number;
@@ -36,6 +37,7 @@ export interface OrbitControllerConfig extends CameraControllerOptions {
   enabled?: boolean;
 }
 
+/** Handle returned by `createOrbitController()`. */
 export interface OrbitControllerHandle extends BaseCameraControllerHandle {
   toZoom(weight?: number): void;
   enable(): void;
@@ -44,6 +46,24 @@ export interface OrbitControllerHandle extends BaseCameraControllerHandle {
   isEnabled(): boolean;
 }
 
+/**
+ * Creates an orbit camera controller around a target point.
+ *
+ * Best for editors, inspectors, and scene viewers where the camera should
+ * rotate around and zoom toward a focal point.
+ *
+ * @example
+ * ```ts
+ * import { createOrbitController } from '@vulfram/camera-control';
+ *
+ * const controller = createOrbitController(worldId, cameraEntityId, {
+ *   target: [0, 1, 0],
+ *   radius: 6
+ * });
+ *
+ * controller.update(dtSeconds);
+ * ```
+ */
 export function createOrbitController(
   worldId: World3DId,
   cameraEntityId: EntityId,

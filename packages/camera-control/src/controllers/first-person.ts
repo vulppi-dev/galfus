@@ -1,5 +1,5 @@
 import type { EntityId, World3DId } from '@vulfram/engine/world3d';
-import { quat, vec3, type ReadonlyVec3 } from 'gl-matrix';
+import { quat, vec3, type Quat, type ReadonlyVec3 } from '@vulfram/engine/math';
 import {
   clearMotionImpulse,
   createMotionActionState,
@@ -21,6 +21,7 @@ import type {
   MotionCameraControllerHandle
 } from '../core/types';
 
+/** Configuration for `createFirstPersonController()`. */
 export interface FirstPersonControllerConfig extends CameraControllerOptions {
   position?: ReadonlyVec3;
   yaw?: number;
@@ -37,6 +38,25 @@ export interface FirstPersonControllerConfig extends CameraControllerOptions {
   allowVertical?: boolean;
 }
 
+/**
+ * Creates a first-person camera controller.
+ *
+ * Unlike the spectator controller, forward/right movement is flattened onto the
+ * ground plane by default, which makes it a better fit for walk-style navigation.
+ *
+ * @example
+ * ```ts
+ * import { createFirstPersonController } from '@vulfram/camera-control';
+ *
+ * const controller = createFirstPersonController(worldId, cameraEntityId, {
+ *   position: [0, 1.7, 4]
+ * });
+ *
+ * controller.look(12, -4);
+ * controller.pressForward();
+ * controller.update(dtSeconds);
+ * ```
+ */
 export function createFirstPersonController(
   worldId: World3DId,
   cameraEntityId: EntityId,
@@ -64,7 +84,7 @@ export function createFirstPersonController(
     weight: 0
   };
 
-  function composeRotation(): quat {
+  function composeRotation(): Quat {
     const out = quat.create();
     quat.rotateY(out, out, yaw);
     quat.rotateX(out, out, pitch);

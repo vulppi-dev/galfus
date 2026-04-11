@@ -1,4 +1,4 @@
-import { quat, vec3 } from 'gl-matrix';
+import { quat, vec3 } from '@vulfram/engine/math';
 import { slerpArc } from './math';
 import { createCameraTarget } from './pipeline';
 import type {
@@ -8,11 +8,43 @@ import type {
   TranslationStrategy
 } from './types';
 
+/**
+ * Leaves the raw target untouched before easing.
+ *
+ * @example
+ * ```ts
+ * import { linearTranslationStrategy } from '@vulfram/camera-control';
+ *
+ * const config = { translationStrategy: linearTranslationStrategy };
+ * ```
+ */
 export const linearTranslationStrategy: TranslationStrategy = (next: CameraTarget): CameraTarget =>
   next;
 
+/**
+ * Leaves the post-translation target untouched.
+ *
+ * @example
+ * ```ts
+ * import { linearEasing } from '@vulfram/camera-control';
+ *
+ * const config = { easing: linearEasing };
+ * ```
+ */
 export const linearEasing: EasingFunction = (next: CameraTarget): CameraTarget => next;
 
+/**
+ * Creates an easing function that exponentially approaches the previous target.
+ *
+ * Higher values settle faster; lower values feel smoother and heavier.
+ *
+ * @example
+ * ```ts
+ * import { createExponentialEasing } from '@vulfram/camera-control';
+ *
+ * const easing = createExponentialEasing(12);
+ * ```
+ */
 export function createExponentialEasing(factorPerSecond = 10): EasingFunction {
   return (
     next: CameraTarget,
@@ -27,6 +59,19 @@ export function createExponentialEasing(factorPerSecond = 10): EasingFunction {
   };
 }
 
+/**
+ * Creates a translation strategy that scales the delta from `prev` to `next`.
+ *
+ * Use values between `0` and `1` for damped motion, values above `1` for overshoot,
+ * and negative values to invert the translation arc.
+ *
+ * @example
+ * ```ts
+ * import { createWeightedTranslationStrategy } from '@vulfram/camera-control';
+ *
+ * const translationStrategy = createWeightedTranslationStrategy(0.5);
+ * ```
+ */
 export function createWeightedTranslationStrategy(scale = 1): TranslationStrategy {
   return (next: CameraTarget, prev: CameraTarget): CameraTarget => {
     const out = createCameraTarget(prev.position, prev.rotation);

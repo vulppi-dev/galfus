@@ -7,7 +7,7 @@ This file contains a list of third-party libraries used in **Vulfram**, along wi
 | License                                | Count |
 | :------------------------------------- | :---- |
 | Apache-2.0 / MIT (Dual)                | 268   |
-| MIT                                    | 100   |
+| MIT                                    | 101   |
 | Apache-2.0                             | 10    |
 | BSD (2/3-Clause)                       | 10    |
 | Zlib / ISC                             | 13    |
@@ -26,7 +26,7 @@ _Used by many foundational crates including wgpu, winit, and serde._
 
 ### MIT
 
-- aligned-vec, android-properties, av-scenechange, block, built, bytes, calloop, cfg_aliases, combine, convert_case, crunchly, dispatch, dlib, equator-macro, interpolate_name, libm, libredox, libudev-sys, loop9, malloc_buf, maybe-rayon, memoffset, mint, mlua, napi, napi-build, napi-derive, napi-sys, new_debug_unreachable, nix, nom, noop_proc_macro, objc, objc2, orbclient, ordered-float, quick-xml, redox_syscall, rgb, rmp, rmp-serde, sctk-adwaita, simd-adler32, slab, smithay-client-toolkit, strict-num, tracing, uds_windows, wayland-backend, wayland-client, wayland-protocols, wayland-scanner, wayland-sys, winnow, x11-dl, xcursor, xkbcommon-dl, xml-rs, y4m, zbus, zvariant, and others.
+- aligned-vec, android-properties, av-scenechange, block, built, bytes, calloop, cfg_aliases, combine, convert_case, crunchly, dispatch, dlib, equator-macro, gl-matrix (vendored in `packages/engine/src/math`), interpolate_name, libm, libredox, libudev-sys, loop9, malloc_buf, maybe-rayon, memoffset, mint, mlua, napi, napi-build, napi-derive, napi-sys, new_debug_unreachable, nix, nom, noop_proc_macro, objc, objc2, orbclient, ordered-float, quick-xml, redox_syscall, rgb, rmp, rmp-serde, sctk-adwaita, simd-adler32, slab, smithay-client-toolkit, strict-num, tracing, uds_windows, wayland-backend, wayland-client, wayland-protocols, wayland-scanner, wayland-sys, winnow, x11-dl, xcursor, xkbcommon-dl, xml-rs, y4m, zbus, zvariant, and others.
 
 ### MPL-2.0
 

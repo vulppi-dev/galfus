@@ -2,6 +2,7 @@ import type { EngineTransport } from '@vulfram/transport-types';
 import type { CommandResponseEnvelope, EngineCmdEnvelope } from '../types/cmds';
 import type { EngineEvent } from '../types/events';
 import type { CmdRealmCreateArgs, RealmKind } from '../types/cmds/realm';
+import type { Mat4 } from '../math';
 import type { Component, ComponentType, EngineRegistry, WorldEvent } from './ecs';
 import type { IntentStore } from './intents/store';
 
@@ -67,7 +68,7 @@ export type WorldState = {
   /**
    * Constraint-solved world matrices keyed by entity id.
    */
-  resolvedEntityTransforms: Map<number, Float32Array>;
+  resolvedEntityTransforms: Map<number, Mat4>;
   /**
    * Entities explicitly marked as dirty for constraint recomputation.
    */
@@ -75,7 +76,7 @@ export type WorldState = {
   /**
    * Scratch cache for per-tick constraint solve graph resolution.
    */
-  constraintScratchResolved: Map<number, Float32Array>;
+  constraintScratchResolved: Map<number, Mat4>;
   /**
    * Scratch set used while resolving hierarchy recursion (cycle detection).
    */

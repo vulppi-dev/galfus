@@ -1,5 +1,5 @@
 import type { EntityId, World3DId } from '@vulfram/engine/world3d';
-import { quat, vec3, type ReadonlyVec3 } from 'gl-matrix';
+import { quat, vec3, type Quat, type ReadonlyVec3 } from '@vulfram/engine/math';
 import {
   clearMotionImpulse,
   createMotionActionState,
@@ -21,6 +21,7 @@ import type {
   MotionCameraControllerHandle
 } from '../core/types';
 
+/** Configuration for `createSpectatorController()`. */
 export interface SpectatorControllerConfig extends CameraControllerOptions {
   position?: ReadonlyVec3;
   yaw?: number;
@@ -36,6 +37,24 @@ export interface SpectatorControllerConfig extends CameraControllerOptions {
   maxPitch?: number;
 }
 
+/**
+ * Creates a free-flying spectator controller.
+ *
+ * This controller is suited for editor fly cameras and debug navigation where
+ * movement is unconstrained and driven by explicit motion actions.
+ *
+ * @example
+ * ```ts
+ * import { createSpectatorController } from '@vulfram/camera-control';
+ *
+ * const controller = createSpectatorController(worldId, cameraEntityId, {
+ *   position: [0, 2, 6]
+ * });
+ *
+ * controller.pressForward();
+ * controller.update(dtSeconds);
+ * ```
+ */
 export function createSpectatorController(
   worldId: World3DId,
   cameraEntityId: EntityId,
@@ -62,7 +81,7 @@ export function createSpectatorController(
     weight: 0
   };
 
-  function composeRotation(): quat {
+  function composeRotation(): Quat {
     const out = quat.create();
     quat.rotateY(out, out, yaw);
     quat.rotateX(out, out, pitch);

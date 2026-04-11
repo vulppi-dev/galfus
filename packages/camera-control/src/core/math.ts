@@ -1,15 +1,23 @@
-import { mat4, quat, vec3, type ReadonlyQuat, type ReadonlyVec3 } from 'gl-matrix';
+import {
+  mat4,
+  quat,
+  vec3,
+  type Quat,
+  type ReadonlyQuat,
+  type ReadonlyVec3,
+  type Vec3
+} from '@vulfram/engine/math';
 
 export function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
 
 export function makeLookRotation(
-  out: quat,
+  out: Quat,
   eye: ReadonlyVec3,
   target: ReadonlyVec3,
   up: ReadonlyVec3 = [0, 1, 0]
-): quat {
+): Quat {
   const view = mat4.create();
   mat4.targetTo(view, eye, target, up);
   mat4.getRotation(out, view);
@@ -17,12 +25,12 @@ export function makeLookRotation(
 }
 
 export function slerpArc(
-  out: quat,
+  out: Quat,
   from: ReadonlyQuat,
   to: ReadonlyQuat,
   t: number,
   longArc: boolean
-): quat {
+): Quat {
   const x0 = from[0] ?? 0;
   const y0 = from[1] ?? 0;
   const z0 = from[2] ?? 0;
@@ -67,7 +75,7 @@ export function smoothStepAlpha(weight: number, dtSeconds: number): number {
   return 1 - Math.exp(-speed * dtSeconds * 10);
 }
 
-export function sphericalToCartesian(out: vec3, yaw: number, pitch: number, radius: number): vec3 {
+export function sphericalToCartesian(out: Vec3, yaw: number, pitch: number, radius: number): Vec3 {
   const cp = Math.cos(pitch);
   out[0] = Math.sin(yaw) * cp * radius;
   out[1] = Math.sin(pitch) * radius;
@@ -77,9 +85,9 @@ export function sphericalToCartesian(out: vec3, yaw: number, pitch: number, radi
 
 export function localBasisFromQuat(
   rotation: ReadonlyQuat,
-  outForward: vec3,
-  outRight: vec3,
-  outUp: vec3
+  outForward: Vec3,
+  outRight: Vec3,
+  outUp: Vec3
 ): void {
   vec3.transformQuat(outForward, [0, 0, -1], rotation);
   vec3.normalize(outForward, outForward);

@@ -1,5 +1,5 @@
 import { enqueueCommand } from '../bridge/dispatch';
-import { quat, vec3 } from 'gl-matrix';
+import { quat, vec3 } from '../../math/index';
 import type {
   CameraComponent,
   Component,

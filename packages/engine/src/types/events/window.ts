@@ -1,4 +1,4 @@
-import type { vec2 } from 'gl-matrix';
+import type { Vec2 as vec2 } from '../../math/index';
 import type { CursorGrabMode, WindowState } from '../kinds';
 
 /** Payload for window create event. */

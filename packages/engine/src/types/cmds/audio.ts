@@ -1,4 +1,4 @@
-import type { quat, vec3 } from 'gl-matrix';
+import type { Quat as quat, Vec3 as vec3 } from '../../math/index';
 import type { AudioPlayMode } from '../kinds';
 
 export interface AudioSpatialParams {

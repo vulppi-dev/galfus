@@ -1,4 +1,4 @@
-import type { vec4 } from 'gl-matrix';
+import type { Vec4 as vec4 } from '../../math/index';
 import type { TextureCreateMode } from '../kinds';
 import type { ResourceEntry } from './resources';
 

@@ -45,7 +45,16 @@ import { asCommandId, asWorldNumber } from './types';
 
 export { KeyCode };
 
-/** Creates or updates a pointer listener routed by target id. */
+/** Creates or updates a pointer listener routed by target id.
+ *
+ * @example
+ * ```ts
+ * World3D.upsert3DInputTargetListener(worldId, {
+ *   listenerId: 1,
+ *   targetId
+ * });
+ * ```
+ */
 export function upsert3DInputTargetListener(
   worldId: World3DId,
   args: CmdInputTargetListenerUpsertArgs
@@ -53,7 +62,13 @@ export function upsert3DInputTargetListener(
   return asCommandId(upsertInputTargetListenerRaw(asWorldNumber(worldId), args));
 }
 
-/** Disposes a pointer listener routed by target id. */
+/** Disposes a pointer listener routed by target id.
+ *
+ * @example
+ * ```ts
+ * World3D.dispose3DInputTargetListener(worldId, { listenerId: 1 });
+ * ```
+ */
 export function dispose3DInputTargetListener(
   worldId: World3DId,
   args: CmdInputTargetListenerDisposeArgs
@@ -61,7 +76,13 @@ export function dispose3DInputTargetListener(
   return asCommandId(disposeInputTargetListenerRaw(asWorldNumber(worldId), args));
 }
 
-/** Requests current pointer listener list from core. */
+/** Requests the current pointer listener list from core.
+ *
+ * @example
+ * ```ts
+ * World3D.list3DInputTargetListeners(worldId);
+ * ```
+ */
 export function list3DInputTargetListeners(
   worldId: World3DId,
   args: CmdInputTargetListenerListArgs = {}
@@ -71,6 +92,11 @@ export function list3DInputTargetListeners(
 
 /**
  * Returns system events filtered to input-target-listener-event.
+ *
+ * @example
+ * ```ts
+ * const events = World3D.get3DTargetPointerEvents(worldId);
+ * ```
  */
 export function get3DTargetPointerEvents(
   worldId: World3DId
@@ -82,158 +108,338 @@ export function get3DTargetPointerEvents(
   );
 }
 
-/** Returns true while a key is pressed in this world input state. */
+/** Returns true while a key is pressed in this world input state.
+ *
+ * @example
+ * ```ts
+ * const pressed = World3D.is3DKeyPressed(worldId, KeyCode.Space);
+ * ```
+ */
 export function is3DKeyPressed(worldId: World3DId, keyCode: number): boolean {
   return isKeyPressed(asWorldNumber(worldId), keyCode);
 }
 
-/** Returns true when a key was pressed in this frame. */
+/** Returns true when a key was pressed in this frame.
+ *
+ * @example
+ * ```ts
+ * const justPressed = World3D.is3DKeyJustPressed(worldId, KeyCode.KeyW);
+ * ```
+ */
 export function is3DKeyJustPressed(worldId: World3DId, keyCode: number): boolean {
   return isKeyJustPressed(asWorldNumber(worldId), keyCode);
 }
 
-/** Returns true when a key was released in this frame. */
+/** Returns true when a key was released in this frame.
+ *
+ * @example
+ * ```ts
+ * const justReleased = World3D.is3DKeyJustReleased(worldId, KeyCode.KeyW);
+ * ```
+ */
 export function is3DKeyJustReleased(worldId: World3DId, keyCode: number): boolean {
   return isKeyJustReleased(asWorldNumber(worldId), keyCode);
 }
 
-/** Returns true while IME composition is active in this world. */
+/** Returns true while IME composition is active in this world.
+ *
+ * @example
+ * ```ts
+ * const active = World3D.is3DImeEnabled(worldId);
+ * ```
+ */
 export function is3DImeEnabled(worldId: World3DId): boolean {
   return isImeEnabled(asWorldNumber(worldId));
 }
 
-/** Returns current IME preedit text, if any. */
+/** Returns current IME preedit text, if any.
+ *
+ * @example
+ * ```ts
+ * const preedit = World3D.get3DImePreeditText(worldId);
+ * ```
+ */
 export function get3DImePreeditText(worldId: World3DId): string | null {
   return getImePreeditText(asWorldNumber(worldId));
 }
 
-/** Returns current IME cursor range inside preedit text, if available. */
+/** Returns current IME cursor range inside preedit text, if available.
+ *
+ * @example
+ * ```ts
+ * const range = World3D.get3DImeCursorRange(worldId);
+ * ```
+ */
 export function get3DImeCursorRange(worldId: World3DId): vec2 | null {
   return getImeCursorRange(asWorldNumber(worldId));
 }
 
-/** Returns last IME committed text for the current frame, if any. */
+/** Returns last IME committed text for the current frame, if any.
+ *
+ * @example
+ * ```ts
+ * const text = World3D.get3DImeCommitText(worldId);
+ * ```
+ */
 export function get3DImeCommitText(worldId: World3DId): string | null {
   return getImeCommitText(asWorldNumber(worldId));
 }
 
-/** Returns true when close was requested for this world's primary window. */
+/** Returns true when close was requested for this world's primary window.
+ *
+ * @example
+ * ```ts
+ * const closing = World3D.is3DWindowCloseRequested(worldId);
+ * ```
+ */
 export function is3DWindowCloseRequested(worldId: World3DId): boolean {
   return isWindowCloseRequested(asWorldNumber(worldId));
 }
 
-/** Returns current size for this world's primary window. */
+/** Returns current size for this world's primary window.
+ *
+ * @example
+ * ```ts
+ * const size = World3D.get3DWindowSize(worldId);
+ * ```
+ */
 export function get3DWindowSize(worldId: World3DId): vec2 {
   return getWindowSize(asWorldNumber(worldId));
 }
 
-/** Returns current position for this world's primary window. */
+/** Returns current position for this world's primary window.
+ *
+ * @example
+ * ```ts
+ * const position = World3D.get3DWindowPosition(worldId);
+ * ```
+ */
 export function get3DWindowPosition(worldId: World3DId): vec2 {
   return getWindowPosition(asWorldNumber(worldId));
 }
 
-/** Returns true while this world's primary window is focused. */
+/** Returns true while this world's primary window is focused.
+ *
+ * @example
+ * ```ts
+ * const focused = World3D.is3DWindowFocused(worldId);
+ * ```
+ */
 export function is3DWindowFocused(worldId: World3DId): boolean {
   return isWindowFocused(asWorldNumber(worldId));
 }
 
-/** Returns true if this world's primary window resized this frame. */
+/** Returns true if this world's primary window resized this frame.
+ *
+ * @example
+ * ```ts
+ * const resized = World3D.was3DWindowResized(worldId);
+ * ```
+ */
 export function was3DWindowResized(worldId: World3DId): boolean {
   return wasWindowResized(asWorldNumber(worldId));
 }
 
-/** Returns scale factor (DPI scaling) for this world's primary window. */
+/** Returns scale factor (DPI scaling) for this world's primary window.
+ *
+ * @example
+ * ```ts
+ * const scaleFactor = World3D.get3DWindowScaleFactor(worldId);
+ * ```
+ */
 export function get3DWindowScaleFactor(worldId: World3DId): number {
   return getWindowScaleFactor(asWorldNumber(worldId));
 }
 
-/** Returns latest lifecycle state reported by the window subsystem. */
+/** Returns the latest lifecycle state reported by the window subsystem.
+ *
+ * @example
+ * ```ts
+ * const state = World3D.get3DWindowLifecycleState(worldId);
+ * ```
+ */
 export function get3DWindowLifecycleState(
   worldId: World3DId
 ): 'minimized' | 'maximized' | 'windowed' | 'fullscreen' | 'windowed-fullscreen' | null {
   return getWindowLifecycleState(asWorldNumber(worldId));
 }
 
-/** Returns latest pointer-capture snapshot reported by the window subsystem. */
+/** Returns the latest pointer-capture snapshot reported by the window subsystem.
+ *
+ * @example
+ * ```ts
+ * const capture = World3D.get3DWindowPointerCaptureState(worldId);
+ * ```
+ */
 export function get3DWindowPointerCaptureState(
   worldId: World3DId
 ): { mode: 'none' | 'confined' | 'locked'; active: boolean; reason?: string } | null {
   return getWindowPointerCaptureState(asWorldNumber(worldId));
 }
 
-/** Returns current pointer position in window space. */
+/** Returns current pointer position in window space.
+ *
+ * @example
+ * ```ts
+ * const pointer = World3D.get3DPointerPosition(worldId);
+ * ```
+ */
 export function get3DPointerPosition(worldId: World3DId): vec2 {
   return getPointerPosition(asWorldNumber(worldId));
 }
 
-/** Returns real drawn window size from the latest pointer event, if available. */
+/** Returns real drawn window size from the latest pointer event, if available.
+ *
+ * @example
+ * ```ts
+ * const size = World3D.get3DPointerWindowSize(worldId);
+ * ```
+ */
 export function get3DPointerWindowSize(worldId: World3DId): vec2 | null {
   return getPointerWindowSize(asWorldNumber(worldId));
 }
 
-/** Returns pointer delta in window space for the current frame. */
+/** Returns pointer delta in window space for the current frame.
+ *
+ * @example
+ * ```ts
+ * const delta = World3D.get3DPointerDelta(worldId);
+ * ```
+ */
 export function get3DPointerDelta(worldId: World3DId): vec2 {
   return getPointerDelta(asWorldNumber(worldId));
 }
 
-/** Returns pointer position relative to routed target, if available. */
+/** Returns pointer position relative to a routed target, if available.
+ *
+ * @example
+ * ```ts
+ * const position = World3D.get3DPointerTargetPosition(worldId);
+ * ```
+ */
 export function get3DPointerTargetPosition(worldId: World3DId): vec2 | null {
   return getRoutedPointerSnapshotByWorld(asWorldNumber(worldId))?.pointerTargetPosition ?? null;
 }
 
-/** Returns real drawn target size from the latest pointer event, if available. */
+/** Returns real drawn target size from the latest pointer event, if available.
+ *
+ * @example
+ * ```ts
+ * const size = World3D.get3DPointerTargetSize(worldId);
+ * ```
+ */
 export function get3DPointerTargetSize(worldId: World3DId): vec2 | null {
   return getRoutedPointerSnapshotByWorld(asWorldNumber(worldId))?.pointerTargetSize ?? null;
 }
 
-/** Returns pointer delta relative to routed target for the current frame. */
+/** Returns pointer delta relative to a routed target for the current frame.
+ *
+ * @example
+ * ```ts
+ * const delta = World3D.get3DPointerTargetDelta(worldId);
+ * ```
+ */
 export function get3DPointerTargetDelta(worldId: World3DId): vec2 | null {
   return getRoutedPointerSnapshotByWorld(asWorldNumber(worldId))?.pointerTargetDelta ?? null;
 }
 
-/** Returns routed target id under pointer, when available. */
+/** Returns the routed target id under the pointer, when available.
+ *
+ * @example
+ * ```ts
+ * const targetId = World3D.get3DPointerTargetId(worldId);
+ * ```
+ */
 export function get3DPointerTargetId(worldId: World3DId): number | null {
   return getRoutedPointerSnapshotByWorld(asWorldNumber(worldId))?.pointerTargetId ?? null;
 }
 
-/** Returns pointer UV (0..1) in routed target space, when available. */
+/** Returns pointer UV coordinates in routed target space, when available.
+ *
+ * @example
+ * ```ts
+ * const uv = World3D.get3DPointerTargetUv(worldId);
+ * ```
+ */
 export function get3DPointerTargetUv(worldId: World3DId): vec2 | null {
   return getRoutedPointerSnapshotByWorld(asWorldNumber(worldId))?.pointerTargetUv ?? null;
 }
 
-/** Returns true while a pointer button is pressed in this world. */
+/** Returns true while a pointer button is pressed in this world.
+ *
+ * @example
+ * ```ts
+ * const down = World3D.is3DPointerButtonPressed(worldId, 0);
+ * ```
+ */
 export function is3DPointerButtonPressed(worldId: World3DId, button: number): boolean {
   return isPointerButtonPressed(asWorldNumber(worldId), button);
 }
 
-/** Returns true when a pointer button was pressed in this frame. */
+/** Returns true when a pointer button was pressed in this frame.
+ *
+ * @example
+ * ```ts
+ * const clicked = World3D.is3DPointerButtonJustPressed(worldId, 0);
+ * ```
+ */
 export function is3DPointerButtonJustPressed(worldId: World3DId, button: number): boolean {
   return isPointerButtonJustPressed(asWorldNumber(worldId), button);
 }
 
-/** Returns scroll delta in window space for the current frame. */
+/** Returns scroll delta in window space for the current frame.
+ *
+ * @example
+ * ```ts
+ * const scroll = World3D.get3DScrollDelta(worldId);
+ * ```
+ */
 export function get3DScrollDelta(worldId: World3DId): vec2 {
   return getScrollDelta(asWorldNumber(worldId));
 }
 
-/** Returns gamepad events mirrored in the current frame. */
+/** Returns gamepad events mirrored in the current frame.
+ *
+ * @example
+ * ```ts
+ * const events = World3D.get3DGamepadEvents(worldId);
+ * ```
+ */
 export function get3DGamepadEvents(worldId: World3DId): ReturnType<typeof getGamepadEvents> {
   return getGamepadEvents(asWorldNumber(worldId));
 }
 
-/** Returns connected gamepads sorted by id. */
+/** Returns connected gamepads sorted by id.
+ *
+ * @example
+ * ```ts
+ * const gamepads = World3D.get3DConnectedGamepads(worldId);
+ * ```
+ */
 export function get3DConnectedGamepads(
   worldId: World3DId
 ): ReturnType<typeof getConnectedGamepads> {
   return getConnectedGamepads(asWorldNumber(worldId));
 }
 
-/** Returns current value of a gamepad axis or 0 when unavailable. */
+/** Returns the current value of a gamepad axis or `0` when unavailable.
+ *
+ * @example
+ * ```ts
+ * const x = World3D.get3DGamepadAxis(worldId, 0, 0);
+ * ```
+ */
 export function get3DGamepadAxis(worldId: World3DId, gamepadId: number, axis: number): number {
   return getGamepadAxis(asWorldNumber(worldId), gamepadId, axis);
 }
 
-/** Returns whether a gamepad button is currently pressed. */
+/** Returns whether a gamepad button is currently pressed.
+ *
+ * @example
+ * ```ts
+ * const pressed = World3D.is3DGamepadButtonPressed(worldId, 0, 0);
+ * ```
+ */
 export function is3DGamepadButtonPressed(
   worldId: World3DId,
   gamepadId: number,
@@ -242,13 +448,25 @@ export function is3DGamepadButtonPressed(
   return isGamepadButtonPressed(asWorldNumber(worldId), gamepadId, button);
 }
 
-/** Returns last system error seen by this world, if any. */
+/** Returns the last system error seen by this world, if any.
+ *
+ * @example
+ * ```ts
+ * const error = World3D.get3DLastSystemError(worldId);
+ * ```
+ */
 export function get3DLastSystemError(worldId: World3DId): ReturnType<typeof getLastSystemError> {
   return getLastSystemError(asWorldNumber(worldId));
 }
 
-/** Returns all system events mirrored in the current frame. */
+/** Returns all system events mirrored in the current frame.
+ *
+ * @example
+ * ```ts
+ * const events = World3D.get3DSystemEvents(worldId);
+ * ```
+ */
 export function get3DSystemEvents(worldId: World3DId): ReturnType<typeof getSystemEvents> {
   return getSystemEvents(asWorldNumber(worldId));
 }
-import type { vec2 } from 'gl-matrix';
+import type { Vec2 as vec2 } from '../../math/index';

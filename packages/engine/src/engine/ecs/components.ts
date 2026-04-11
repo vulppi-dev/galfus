@@ -1,4 +1,4 @@
-import type { quat, vec2, vec3, vec4 } from 'gl-matrix';
+import type { Quat as quat, Vec2 as vec2, Vec3 as vec3, Vec4 as vec4 } from '../../math/index';
 import type { ViewPosition } from '../../types/cmds/camera';
 import type { GeometryPrimitiveEntry } from '../../types/cmds/geometry';
 import type { MaterialOptions } from '../../types/cmds/material';

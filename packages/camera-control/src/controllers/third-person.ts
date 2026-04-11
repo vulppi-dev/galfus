@@ -1,5 +1,5 @@
 import type { EntityId, World3DId } from '@vulfram/engine/world3d';
-import { quat, vec3, type ReadonlyVec3 } from 'gl-matrix';
+import { quat, vec3, type ReadonlyVec3 } from '@vulfram/engine/math';
 import {
   applyLookAtIfEnabled,
   applyToWorld,
@@ -17,6 +17,7 @@ import type {
 } from '../core/types';
 import { weightOrDefault } from '../core/actions';
 
+/** Configuration for `createThirdPersonController()`. */
 export interface ThirdPersonControllerConfig extends CameraControllerOptions {
   target?: ReadonlyVec3;
   distance?: number;
@@ -36,11 +37,31 @@ export interface ThirdPersonControllerConfig extends CameraControllerOptions {
   maxPitch?: number;
 }
 
+/** Handle returned by `createThirdPersonController()`. */
 export interface ThirdPersonControllerHandle extends BaseCameraControllerHandle {
   setTarget(position: ReadonlyVec3): void;
   toZoom(weight?: number): void;
 }
 
+/**
+ * Creates a third-person follow camera controller.
+ *
+ * This controller keeps a smoothed target point and positions the camera at a
+ * configurable distance around it, which is useful for character-follow cameras.
+ *
+ * @example
+ * ```ts
+ * import { createThirdPersonController } from '@vulfram/camera-control';
+ *
+ * const controller = createThirdPersonController(worldId, cameraEntityId, {
+ *   target: [0, 1, 0],
+ *   distance: 4
+ * });
+ *
+ * controller.setTarget(playerPosition);
+ * controller.update(dtSeconds);
+ * ```
+ */
 export function createThirdPersonController(
   worldId: World3DId,
   cameraEntityId: EntityId,

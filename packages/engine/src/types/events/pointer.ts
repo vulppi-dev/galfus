@@ -1,4 +1,4 @@
-import type { vec2 } from 'gl-matrix';
+import type { Vec2 as vec2 } from '../../math/index';
 import type { ElementState, TouchPhase } from '../kinds';
 
 export type ScrollDelta = { type: 'line'; value: vec2 } | { type: 'pixel'; value: vec2 };

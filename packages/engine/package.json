@@ -58,6 +58,11 @@
       "import": "./src/helpers/index.ts",
       "types": "./src/helpers/index.ts"
     },
+    "./math": {
+      "default": "./src/math/index.ts",
+      "import": "./src/math/index.ts",
+      "types": "./src/math/index.ts"
+    },
     "./package.json": "./package.json"
   },
   "files": [
@@ -70,7 +75,6 @@
   },
   "dependencies": {
     "@vulfram/transport-types": "^0.3.0",
-    "gl-matrix": "^3.4.4",
     "msgpackr": "^1.11.9"
   },
   "devDependencies": {

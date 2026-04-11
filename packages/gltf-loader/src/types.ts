@@ -1,5 +1,5 @@
 import type { Accessor, Material, Node, Primitive, Texture } from '@gltf-transform/core';
-import type { quat, vec3 } from 'gl-matrix';
+import type { Quat as quat, Vec3 as vec3 } from '@vulfram/engine/math';
 import type {
   EntityId,
   GeometryId,
@@ -26,7 +26,12 @@ export interface GltfInstantiateOptions {
   rootTransform?: RootTransform;
 }
 
-/** One instantiated scene graph from a loaded glTF asset. */
+/**
+ * One instantiated scene graph from a loaded glTF asset.
+ *
+ * The instance owns only its created entities. Shared resources remain owned by
+ * the parent `LoadedGltfAsset` until `disposeAll()` is called there.
+ */
 export interface GltfInstance {
   rootEntityId: EntityId;
   entityIds: EntityId[];
@@ -59,7 +64,13 @@ export interface LoadedResourceIds {
   textures: TextureId[];
 }
 
-/** Loaded glTF asset with reusable resources and instantiation API. */
+/**
+ * Loaded glTF asset with reusable resources and instantiation API.
+ *
+ * Use `instantiate()` to create one or more entity graphs, `disposeEntities()`
+ * to remove only active instances, and `disposeAll()` to also release the shared
+ * textures, materials, and geometries created for this asset.
+ */
 export interface LoadedGltfAsset {
   worldId: World3DId;
   warnings: string[];
@@ -70,7 +81,13 @@ export interface LoadedGltfAsset {
   disposeAll(): void;
 }
 
-/** Input descriptor for glTF/GLB loading. */
+/**
+ * Input descriptor for glTF/GLB loading.
+ *
+ * `data` is the main `.glb` or `.gltf` payload. When loading external-buffer or
+ * external-texture `.gltf` files, provide the extra file contents in `resources`
+ * keyed by their URI.
+ */
 export interface GltfLoadInput {
   worldId: World3DId;
   data: BinaryLike;
@@ -81,7 +98,7 @@ export interface GltfLoadInput {
   labelPrefix?: string;
 }
 
-/** Result summary for a loaded glTF scene. */
+/** Result summary for the legacy one-shot `loadGltfScene()` API. */
 export interface GltfLoadResult {
   rootEntityId: EntityId;
   entityCount: number;

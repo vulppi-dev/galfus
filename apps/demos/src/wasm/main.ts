@@ -15,7 +15,7 @@ import {
   raycastCollisionAabb
 } from '@vulfram/engine/helpers';
 import { loadGltfAsset } from '@vulfram/gltf-loader';
-import { mat4, quat, vec2 } from 'gl-matrix';
+import { mat4, quat, vec2 } from '@vulfram/engine/math';
 import { initWasmTransport, transportWasm } from '@vulfram/transport-browser';
 
 let WORLD_ID = 0 as unknown as World3DId;

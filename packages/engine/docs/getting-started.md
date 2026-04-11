@@ -82,5 +82,5 @@ requestAnimationFrame(frame);
 - Environment and shadow configuration helpers also strip values that already match core defaults, so repeated configuration tends to serialize as true deltas only.
 - Primitive geometry and material create helpers also omit default-equivalent option payloads when the core can resolve them on its own.
 - The exported TS command types are now stricter around nested UI/audio payloads, render graph ids, render-graph param maps, byte arrays, and fixed-size matrices, matching the core contract more closely than the older permissive shapes.
-- Internally, engine-side math defaults are initialized through `gl-matrix` helpers so transforms and vector-shaped fallback values stay consistent without repeating array literals by hand.
+- Internally, engine-side math defaults are initialized through `@vulfram/engine/math`, with the vendored math helpers bundled directly in the engine package, so transforms and vector-shaped fallback values stay consistent without repeating array literals by hand.
 - Repeated same-frame model/camera/light and target-layer upserts are compacted before batch serialization so only the latest effective payload reaches the core.

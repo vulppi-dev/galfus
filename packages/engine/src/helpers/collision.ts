@@ -1,5 +1,5 @@
-import { mat4, quat, vec2, vec3, vec4 } from 'gl-matrix';
-import type { quat as Quat, vec2 as Vec2, vec3 as Vec3, vec4 as Vec4 } from 'gl-matrix';
+import { mat4, quat, vec2, vec3, vec4 } from '../math/index';
+import type { Mat4, Quat, Vec2, Vec3, Vec4 } from '../math/index';
 import { getWorldOrThrow, requireInitialized } from '../engine/bridge/guards';
 import { getResolvedEntityTransformMatrix } from '../engine/systems/utils';
 import {
@@ -142,6 +142,17 @@ function attachCollisionEntityBase(
 
 /**
  * Creates an AABB collider entity parented to a model entity.
+ *
+ * @example
+ * ```ts
+ * import { attachCollisionAabb } from '@vulfram/engine/helpers';
+ *
+ * const collision = attachCollisionAabb({
+ *   worldId,
+ *   modelEntityId,
+ *   halfExtents: [0.5, 0.5, 0.5]
+ * });
+ * ```
  */
 export function attachCollisionAabb(args: AttachCollisionAabbArgs): CollisionAabbEntity {
   const { entityId, relativeTransform } = attachCollisionEntityBase('aabb', args);
@@ -163,6 +174,13 @@ export function attachCollisionAabb(args: AttachCollisionAabbArgs): CollisionAab
  * Note:
  * This uses the collision relative transform center and half extents.
  * If parent rotation is significant, this stays axis-aligned.
+ *
+ * @example
+ * ```ts
+ * import { drawCollisionAabbGizmo } from '@vulfram/engine/helpers';
+ *
+ * drawCollisionAabbGizmo(collision);
+ * ```
  */
 export function drawCollisionAabbGizmo(collision: CollisionAabbEntity): void {
   if (!collision.debugGizmoAabb) return;
@@ -195,6 +213,13 @@ export function drawCollisionAabbGizmo(collision: CollisionAabbEntity): void {
  * Computes world-space AABB bounds from the collision entity resolved transform.
  *
  * This includes parent constraints (hierarchy) and runtime transform updates.
+ *
+ * @example
+ * ```ts
+ * import { getCollisionAabbWorldBounds } from '@vulfram/engine/helpers';
+ *
+ * const bounds = getCollisionAabbWorldBounds(collision);
+ * ```
  */
 export function getCollisionAabbWorldBounds(
   collision: CollisionAabbEntity
@@ -228,8 +253,15 @@ export function getCollisionAabbWorldBounds(
 
 /**
  * Returns world transform matrix for the collision entity (with hierarchy solved).
+ *
+ * @example
+ * ```ts
+ * import { getCollisionWorldTransformMatrix } from '@vulfram/engine/helpers';
+ *
+ * const matrix = getCollisionWorldTransformMatrix(collision);
+ * ```
  */
-export function getCollisionWorldTransformMatrix(collision: CollisionEntity): mat4 {
+export function getCollisionWorldTransformMatrix(collision: CollisionEntity): Mat4 {
   requireInitialized();
   const world = getWorldOrThrow(collision.worldId as number);
   return getResolvedEntityTransformMatrix(world, collision.entityId as number);
@@ -237,6 +269,13 @@ export function getCollisionWorldTransformMatrix(collision: CollisionEntity): ma
 
 /**
  * Returns all 8 world-space corners for an AABB collider oriented by entity transform.
+ *
+ * @example
+ * ```ts
+ * import { getCollisionAabbWorldCorners } from '@vulfram/engine/helpers';
+ *
+ * const corners = getCollisionAabbWorldCorners(collision);
+ * ```
  */
 export function getCollisionAabbWorldCorners(
   collision: CollisionAabbEntity
@@ -263,7 +302,7 @@ export function getCollisionAabbWorldCorners(
     const worldCorner = vec4.transformMat4(
       vec4.create(),
       vec4.fromValues(x ?? 0, y ?? 0, z ?? 0, 1),
-      worldTransform as mat4
+      worldTransform as Mat4
     );
     corners.push(vec3.fromValues(worldCorner[0] ?? 0, worldCorner[1] ?? 0, worldCorner[2] ?? 0));
   }
@@ -272,6 +311,13 @@ export function getCollisionAabbWorldCorners(
 
 /**
  * Raycasts an oriented AABB collider (local AABB transformed by entity world matrix).
+ *
+ * @example
+ * ```ts
+ * import { raycastCollisionAabb } from '@vulfram/engine/helpers';
+ *
+ * const hit = raycastCollisionAabb(ray, collision);
+ * ```
  */
 export function raycastCollisionAabb(
   ray: Ray3,
@@ -396,6 +442,18 @@ function computeLocalEdgePadding(input: PointerCollisionAabbInput, ray: Ray3): n
  *
  * This uses target/window dimensions carried by pointer events to normalize
  * coordinates with the real drawn area.
+ *
+ * @example
+ * ```ts
+ * import { raycastPointerCollisionAabb } from '@vulfram/engine/helpers';
+ *
+ * const hit = raycastPointerCollisionAabb({
+ *   pointerEvent,
+ *   viewMatrix,
+ *   projectionMatrix,
+ *   collision
+ * });
+ * ```
  */
 export function raycastPointerCollisionAabb(input: PointerCollisionAabbInput): RayHit | null {
   const ray = createPointerRayFromEvent(input);
@@ -406,6 +464,18 @@ export function raycastPointerCollisionAabb(input: PointerCollisionAabbInput): R
 
 /**
  * Fast boolean check for pointer collision against an AABB entity.
+ *
+ * @example
+ * ```ts
+ * import { isPointerCollidingAabb } from '@vulfram/engine/helpers';
+ *
+ * const hovering = isPointerCollidingAabb({
+ *   pointerEvent,
+ *   viewMatrix,
+ *   projectionMatrix,
+ *   collision
+ * });
+ * ```
  */
 export function isPointerCollidingAabb(input: PointerCollisionAabbInput): boolean {
   return raycastPointerCollisionAabb(input) !== null;
@@ -413,6 +483,17 @@ export function isPointerCollidingAabb(input: PointerCollisionAabbInput): boolea
 
 /**
  * Creates a sphere collider entity parented to a model entity.
+ *
+ * @example
+ * ```ts
+ * import { attachCollisionSphere } from '@vulfram/engine/helpers';
+ *
+ * const collision = attachCollisionSphere({
+ *   worldId,
+ *   modelEntityId,
+ *   radius: 1
+ * });
+ * ```
  */
 export function attachCollisionSphere(args: AttachCollisionSphereArgs): CollisionSphereEntity {
   const { entityId, relativeTransform } = attachCollisionEntityBase('sphere', args);
@@ -428,6 +509,16 @@ export function attachCollisionSphere(args: AttachCollisionSphereArgs): Collisio
 
 /**
  * Creates a plane collider entity parented to a model entity.
+ *
+ * @example
+ * ```ts
+ * import { attachCollisionPlane } from '@vulfram/engine/helpers';
+ *
+ * const collision = attachCollisionPlane({
+ *   worldId,
+ *   modelEntityId
+ * });
+ * ```
  */
 export function attachCollisionPlane(args: AttachCollisionPlaneArgs): CollisionPlaneEntity {
   const { entityId, relativeTransform } = attachCollisionEntityBase('plane', args);
@@ -443,6 +534,15 @@ export function attachCollisionPlane(args: AttachCollisionPlaneArgs): CollisionP
 
 /**
  * Updates only the relative transform of an attached collision entity.
+ *
+ * @example
+ * ```ts
+ * import { updateCollisionRelativeTransform } from '@vulfram/engine/helpers';
+ *
+ * updateCollisionRelativeTransform(collision, {
+ *   position: [0, 1, 0]
+ * });
+ * ```
  */
 export function updateCollisionRelativeTransform(
   collision: CollisionEntity,
@@ -460,6 +560,13 @@ export function updateCollisionRelativeTransform(
 
 /**
  * Removes an attached collision entity.
+ *
+ * @example
+ * ```ts
+ * import { disposeCollisionEntity } from '@vulfram/engine/helpers';
+ *
+ * disposeCollisionEntity(collision);
+ * ```
  */
 export function disposeCollisionEntity(collision: CollisionEntity): void {
   remove3DEntity(collision.worldId, collision.entityId);

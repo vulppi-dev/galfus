@@ -60,7 +60,10 @@ pub fn should_dispatch_browser_action(canvas_active: bool) -> bool {
     canvas_active
 }
 
-pub fn should_activate_canvas_from_pointer(pointer_inside_canvas: bool, canvas_active: bool) -> bool {
+pub fn should_activate_canvas_from_pointer(
+    pointer_inside_canvas: bool,
+    canvas_active: bool,
+) -> bool {
     pointer_inside_canvas && !canvas_active
 }
 

@@ -1,5 +1,5 @@
 import { update3DTransform, type EntityId, type World3DId } from '@vulfram/engine/world3d';
-import { quat, vec3, type ReadonlyQuat, type ReadonlyVec3 } from 'gl-matrix';
+import { quat, vec3, type ReadonlyQuat, type ReadonlyVec3 } from '@vulfram/engine/math';
 import { makeLookRotation, slerpArc, smoothStepAlpha } from './math';
 import type {
   CameraControllerContext,

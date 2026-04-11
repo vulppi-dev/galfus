@@ -6,7 +6,9 @@ use crate::core::window::engine_cmd_window_create;
 #[cfg(target_arch = "wasm32")]
 use crate::core::window::engine_cmd_window_create_async;
 use crate::core::window::{CmdResultWindowCreate, CmdWindowCreateArgs};
-use vulfram_input::{connect_gamepad, disconnect_gamepad, update_gamepad_axis, update_gamepad_button};
+use vulfram_input::{
+    connect_gamepad, disconnect_gamepad, update_gamepad_axis, update_gamepad_button,
+};
 use vulfram_platform::{
     browser_now_ns, poll_browser_gamepads, should_dispatch_browser_action,
     should_poll_browser_gamepads, should_process_browser_gamepad_snapshots,
@@ -68,11 +70,9 @@ impl PlatformProxy for BrowserProxy {
             .unwrap_or(true);
         let should_dispatch_actions =
             should_poll_browser_gamepads(!state.window.states.is_empty(), has_focus)
-                && state
-                    .window
-                    .states
-                    .keys()
-                    .any(|window_id| should_dispatch_browser_action(state.window.canvas_active(*window_id)));
+                && state.window.states.keys().any(|window_id| {
+                    should_dispatch_browser_action(state.window.canvas_active(*window_id))
+                });
         let snapshots = poll_browser_gamepads();
         let connected_ids: std::collections::HashSet<u32> = snapshots
             .iter()

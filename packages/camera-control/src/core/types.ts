@@ -1,5 +1,5 @@
 import type { EntityId, World3DId } from '@vulfram/engine/world3d';
-import type { quat, ReadonlyVec3, vec3 } from 'gl-matrix';
+import type { Quat as quat, ReadonlyVec3, Vec3 as vec3 } from '@vulfram/engine/math';
 
 export type CameraControllerKind =
   | 'orbit'
@@ -8,11 +8,13 @@ export type CameraControllerKind =
   | 'third-person'
   | 'top-view';
 
+/** World-space camera transform produced by a controller pipeline. */
 export interface CameraTarget {
   position: vec3;
   rotation: quat;
 }
 
+/** Normalized action weights passed through the controller pipeline each frame. */
 export interface CameraActionWeights {
   forward: number;
   right: number;
@@ -23,6 +25,7 @@ export interface CameraActionWeights {
   lookAt: number;
 }
 
+/** Pointer snapshot consumed by camera controllers during `update()`. */
 export interface CameraPointerState {
   delta: vec3;
   lookDelta: vec3;
@@ -31,6 +34,7 @@ export interface CameraPointerState {
   rightPressed: boolean;
 }
 
+/** Context passed into easing and translation strategies. */
 export interface CameraControllerContext {
   kind: CameraControllerKind;
   worldId: World3DId;
@@ -40,28 +44,33 @@ export interface CameraControllerContext {
   weights: CameraActionWeights;
 }
 
+/** Function used to reshape the raw target before easing is applied. */
 export type TranslationStrategy = (
   next: CameraTarget,
   prev: CameraTarget,
   context: CameraControllerContext
 ) => CameraTarget;
 
+/** Function used to smooth the final camera target before applying it to the world. */
 export type EasingFunction = (
   next: CameraTarget,
   prev: CameraTarget,
   context: CameraControllerContext
 ) => CameraTarget;
 
+/** Shared configuration options accepted by all controller factories. */
 export interface CameraControllerOptions {
   translationStrategy?: TranslationStrategy;
   easing?: EasingFunction;
 }
 
+/** Minimal handle shared by every camera controller. */
 export interface BaseCameraControllerHandle {
   update(dtSeconds: number): void;
   lookAt(position: ReadonlyVec3, weight?: number): void;
 }
 
+/** Extended handle for controllers that expose motion-style actions. */
 export interface MotionCameraControllerHandle extends BaseCameraControllerHandle {
   pressForward(weight?: number): void;
   releaseForward(): void;
