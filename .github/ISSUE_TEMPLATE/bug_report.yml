@@ -3,7 +3,7 @@ description: Report a bug or unexpected behavior
 title: '[Bug] '
 labels: ['bug', 'needs-triage']
 assignees: []
-projects: ['vulppi-dev/2']
+type: bug
 
 body:
   - type: markdown

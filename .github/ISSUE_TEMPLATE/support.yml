@@ -3,7 +3,6 @@ description: Ask a question or request support
 title: '[Support] '
 labels: ['question', 'needs-triage']
 assignees: []
-projects: ['vulppi-dev/2']
 
 body:
   - type: markdown

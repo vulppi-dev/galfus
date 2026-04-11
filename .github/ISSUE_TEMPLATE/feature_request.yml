@@ -3,7 +3,7 @@ description: Suggest an improvement or new feature
 title: '[Feature] '
 labels: ['enhancement', 'needs-triage']
 assignees: []
-projects: ['vulppi-dev/2']
+type: feature
 
 body:
   - type: markdown
