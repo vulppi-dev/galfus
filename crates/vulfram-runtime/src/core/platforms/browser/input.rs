@@ -31,8 +31,7 @@ use crate::core::singleton::with_engine;
 use crate::core::state::EngineState;
 use crate::core::window::{
     CursorGrabMode, EngineWindowState, WebListenerRegistration, WindowCanvasActiveState,
-    WindowEvent,
-    WindowPointerCaptureState,
+    WindowEvent, WindowPointerCaptureState,
 };
 
 pub fn attach_canvas_listeners(
@@ -477,7 +476,8 @@ pub fn attach_canvas_listeners(
         if !should_dispatch_browser_action(canvas_is_active(window_id)) {
             return;
         }
-        let position = canvas_surface_position(&canvas_for_pointer, event.client_x(), event.client_y());
+        let position =
+            canvas_surface_position(&canvas_for_pointer, event.client_x(), event.client_y());
         let pointer_type = map_browser_pointer_type(&event.pointer_type());
         let pointer_id = event.pointer_id() as u64;
         let button = event.button() as u32;
@@ -507,7 +507,8 @@ pub fn attach_canvas_listeners(
         if !should_dispatch_browser_action(canvas_is_active(window_id)) {
             return;
         }
-        let position = canvas_surface_position(&canvas_for_pointer, event.client_x(), event.client_y());
+        let position =
+            canvas_surface_position(&canvas_for_pointer, event.client_x(), event.client_y());
         let pointer_type = map_browser_pointer_type(&event.pointer_type());
         let pointer_id = event.pointer_id() as u64;
         let button = event.button() as u32;
@@ -637,7 +638,12 @@ pub fn attach_canvas_listeners(
             let _ = set_canvas_active(engine, window_id, false, "outside-click");
         });
     }) as Box<dyn FnMut(Event)>);
-    register_listener(&document_target, "pointerdown", outside_pointer, &mut listeners);
+    register_listener(
+        &document_target,
+        "pointerdown",
+        outside_pointer,
+        &mut listeners,
+    );
 
     let wheel_blocker = Closure::wrap(Box::new(move |event: Event| {
         let event: WheelEvent = match event.dyn_into() {

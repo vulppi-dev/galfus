@@ -16,9 +16,9 @@ use crate::core::profiling::gpu::GpuProfiler;
 #[cfg(not(target_arch = "wasm32"))]
 use crate::core::state::EngineState;
 #[cfg(not(target_arch = "wasm32"))]
-use crate::core::window::apply_window_state_to_window;
-#[cfg(not(target_arch = "wasm32"))]
 use crate::core::window::WindowState;
+#[cfg(not(target_arch = "wasm32"))]
+use crate::core::window::apply_window_state_to_window;
 #[cfg(not(target_arch = "wasm32"))]
 use glam::{IVec2, UVec2};
 #[cfg(not(target_arch = "wasm32"))]
@@ -81,7 +81,10 @@ pub fn engine_cmd_window_create(
 
     let bootstrap_target = vulfram_platform::plan_native_render_bootstrap_target(
         args.window_id,
-        UVec2::new(initial_inner_size.width.max(1), initial_inner_size.height.max(1)),
+        UVec2::new(
+            initial_inner_size.width.max(1),
+            initial_inner_size.height.max(1),
+        ),
         args.transparent,
     );
     let bootstrap_plan =

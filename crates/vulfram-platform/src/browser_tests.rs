@@ -7,9 +7,9 @@ use super::{
     resolve_browser_window_state, resolve_canvas_surface_size, resolve_pointer_lock_change,
     resolve_pointer_lock_error, should_activate_canvas_from_pointer,
     should_deactivate_canvas_from_outside_pointer, should_dispatch_browser_action,
-    should_poll_browser_gamepads,
-    should_prevent_browser_default_key, should_prevent_browser_default_touch,
-    should_prevent_browser_default_wheel, should_process_browser_gamepad_snapshots,
+    should_poll_browser_gamepads, should_prevent_browser_default_key,
+    should_prevent_browser_default_touch, should_prevent_browser_default_wheel,
+    should_process_browser_gamepad_snapshots,
 };
 use glam::vec2;
 
@@ -28,8 +28,7 @@ fn resolve_canvas_surface_size_uses_safe_dpr_and_minimum_one() {
 
 #[test]
 fn resolve_browser_canvas_surface_position_scales_css_to_surface_space() {
-    let position =
-        resolve_browser_canvas_surface_position(50.0, 25.0, 100.0, 50.0, 1000, 500);
+    let position = resolve_browser_canvas_surface_position(50.0, 25.0, 100.0, 50.0, 1000, 500);
     assert_eq!(position, vec2(500.0, 250.0));
 }
 
