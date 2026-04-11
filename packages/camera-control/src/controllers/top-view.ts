@@ -17,6 +17,7 @@ import type {
 } from '../core/types';
 import { weightOrDefault } from '../core/actions';
 
+/** Configuration for `createTopViewController()`. */
 export interface TopViewControllerConfig extends CameraControllerOptions {
   focus?: ReadonlyVec3;
   height?: number;
@@ -34,6 +35,7 @@ export interface TopViewControllerConfig extends CameraControllerOptions {
   focusLocked?: boolean;
 }
 
+/** Handle returned by `createTopViewController()`. */
 export interface TopViewControllerHandle extends BaseCameraControllerHandle {
   setFocus(position: ReadonlyVec3): void;
   toZoom(weight?: number): void;
@@ -41,6 +43,24 @@ export interface TopViewControllerHandle extends BaseCameraControllerHandle {
   isFocusLocked(): boolean;
 }
 
+/**
+ * Creates a top-view controller for strategy, map, or orthographic-style navigation.
+ *
+ * The controller pans around a focus point, supports zooming by height, and can
+ * optionally lock the focus against pointer panning.
+ *
+ * @example
+ * ```ts
+ * import { createTopViewController } from '@vulfram/camera-control';
+ *
+ * const controller = createTopViewController(worldId, cameraEntityId, {
+ *   focus: [0, 0, 0],
+ *   height: 12
+ * });
+ *
+ * controller.update(dtSeconds);
+ * ```
+ */
 export function createTopViewController(
   worldId: World3DId,
   cameraEntityId: EntityId,

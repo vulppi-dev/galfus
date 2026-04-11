@@ -21,6 +21,7 @@ import type {
   MotionCameraControllerHandle
 } from '../core/types';
 
+/** Configuration for `createSpectatorController()`. */
 export interface SpectatorControllerConfig extends CameraControllerOptions {
   position?: ReadonlyVec3;
   yaw?: number;
@@ -36,6 +37,24 @@ export interface SpectatorControllerConfig extends CameraControllerOptions {
   maxPitch?: number;
 }
 
+/**
+ * Creates a free-flying spectator controller.
+ *
+ * This controller is suited for editor fly cameras and debug navigation where
+ * movement is unconstrained and driven by explicit motion actions.
+ *
+ * @example
+ * ```ts
+ * import { createSpectatorController } from '@vulfram/camera-control';
+ *
+ * const controller = createSpectatorController(worldId, cameraEntityId, {
+ *   position: [0, 2, 6]
+ * });
+ *
+ * controller.pressForward();
+ * controller.update(dtSeconds);
+ * ```
+ */
 export function createSpectatorController(
   worldId: World3DId,
   cameraEntityId: EntityId,

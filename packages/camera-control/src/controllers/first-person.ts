@@ -21,6 +21,7 @@ import type {
   MotionCameraControllerHandle
 } from '../core/types';
 
+/** Configuration for `createFirstPersonController()`. */
 export interface FirstPersonControllerConfig extends CameraControllerOptions {
   position?: ReadonlyVec3;
   yaw?: number;
@@ -37,6 +38,25 @@ export interface FirstPersonControllerConfig extends CameraControllerOptions {
   allowVertical?: boolean;
 }
 
+/**
+ * Creates a first-person camera controller.
+ *
+ * Unlike the spectator controller, forward/right movement is flattened onto the
+ * ground plane by default, which makes it a better fit for walk-style navigation.
+ *
+ * @example
+ * ```ts
+ * import { createFirstPersonController } from '@vulfram/camera-control';
+ *
+ * const controller = createFirstPersonController(worldId, cameraEntityId, {
+ *   position: [0, 1.7, 4]
+ * });
+ *
+ * controller.look(12, -4);
+ * controller.pressForward();
+ * controller.update(dtSeconds);
+ * ```
+ */
 export function createFirstPersonController(
   worldId: World3DId,
   cameraEntityId: EntityId,
