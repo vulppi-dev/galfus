@@ -1,4 +1,4 @@
-import { vec2, type vec2 as Vec2 } from 'gl-matrix';
+import { vec2, type Vec2 } from '../../../math/index';
 import type { PointerEvent } from '../../../types/events/pointer';
 import type { InputStateComponent } from '../../ecs/components';
 

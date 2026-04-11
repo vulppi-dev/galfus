@@ -1,5 +1,5 @@
 import type { EntityId, World3DId } from '@vulfram/engine/world3d';
-import { quat, vec3, type ReadonlyVec3 } from 'gl-matrix';
+import { quat, vec3, type ReadonlyVec3 } from '@vulfram/engine/math';
 import {
   applyLookAtIfEnabled,
   applyToWorld,

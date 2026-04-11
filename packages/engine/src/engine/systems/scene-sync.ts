@@ -1,5 +1,5 @@
-import { mat4, vec2, vec3, vec4 } from 'gl-matrix';
-import type { vec2 as Vec2, vec4 as Vec4 } from 'gl-matrix';
+import { mat4, vec2, vec3, vec4 } from '../../math/index';
+import type { Mat4, Vec2, Vec4 } from '../../math/index';
 import type { CameraKind, LightKind } from '../../types/kinds';
 import { enqueueCommand } from '../bridge/dispatch';
 import type { CameraComponent, Component, LightComponent, ModelComponent, System } from '../ecs';
@@ -19,16 +19,17 @@ function copyMatrixToScratch(
   world: Parameters<System>[0],
   entityId: number,
   matrix: ArrayLike<number>
-): number[] {
-  let scratch = world.sceneSyncMatrixScratch.get(entityId);
+): Mat4 {
+  let scratch = world.sceneSyncMatrixScratch.get(entityId) as Mat4 | undefined;
   if (!scratch) {
-    scratch = new Array<number>(16);
-    world.sceneSyncMatrixScratch.set(entityId, scratch);
+    const nextScratch = new Array<number>(16) as number[];
+    world.sceneSyncMatrixScratch.set(entityId, nextScratch);
+    scratch = nextScratch as Mat4;
   }
   for (let i = 0; i < 16; i++) {
     scratch[i] = matrix[i] ?? 0;
   }
-  return scratch;
+  return scratch as Mat4;
 }
 
 function hasNonZeroTranslation(value: ArrayLike<number>): boolean {
@@ -261,7 +262,7 @@ export const SceneSyncSystem: System = (world, context) => {
     if (!store) continue;
 
     const matrix = getResolvedEntityTransformMatrix(world, entityId);
-    let matrixArray: number[] | undefined;
+    let matrixArray: Mat4 | undefined;
 
     const model = store.get('Model') as ModelComponent | undefined;
     if (model) {

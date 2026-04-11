@@ -1,5 +1,5 @@
 import type { Accessor, Material, Node, Primitive, Texture } from '@gltf-transform/core';
-import type { quat, vec3 } from 'gl-matrix';
+import type { Quat as quat, Vec3 as vec3 } from '@vulfram/engine/math';
 import type {
   EntityId,
   GeometryId,

@@ -1,4 +1,4 @@
-import { quat, vec3 } from 'gl-matrix';
+import { quat, vec3 } from '@vulfram/engine/math';
 import { slerpArc } from './math';
 import { createCameraTarget } from './pipeline';
 import type {

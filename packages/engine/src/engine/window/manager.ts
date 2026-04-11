@@ -1,4 +1,4 @@
-import type { vec2 } from 'gl-matrix';
+import type { Vec2 as vec2 } from '../../math/index';
 import type { CmdWindowCloseArgs, CmdWindowCreateArgs } from '../../types/cmds/window';
 import type { CursorGrabMode, CursorIcon, UserAttentionType, WindowState } from '../../types/kinds';
 import { enqueueGlobalCommand } from '../bridge/dispatch';

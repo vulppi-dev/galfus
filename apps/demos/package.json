@@ -20,7 +20,6 @@
     "@vulfram/transport-bun": "workspace:*",
     "@vulfram/transport-napi": "workspace:*",
     "@types/bun": "^1.3.11",
-    "gl-matrix": "^3.4.4",
     "typescript": "^6.0.2",
     "vite": "^8.0.2"
   }

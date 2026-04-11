@@ -198,4 +198,4 @@ export type SystemEvent =
         keyState?: 'pressed' | 'released';
       };
     };
-import type { vec2 } from 'gl-matrix';
+import type { Vec2 as vec2 } from '../../math/index';

@@ -1,4 +1,4 @@
-import { vec3, type vec4 } from 'gl-matrix';
+import { vec3, type Vec4 as vec4 } from '../../math/index';
 import type { TextureCreateMode } from '../../types/kinds';
 import type { PrimitiveOptions } from '../../types/cmds/geometry';
 import { enqueueCommand } from '../bridge/dispatch';

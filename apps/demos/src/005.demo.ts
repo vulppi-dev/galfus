@@ -7,7 +7,7 @@ import {
   initEngine,
   tick
 } from '@vulfram/engine';
-import { quat } from 'gl-matrix';
+import { quat } from '@vulfram/engine/math';
 import { transportBunFfi } from '@vulfram/transport-bun';
 
 const RUN_DURATION_MS = 10_000;

@@ -23,7 +23,7 @@ import {
   type TopViewControllerHandle
 } from '@vulfram/camera-control';
 import { transportBunFfi } from '@vulfram/transport-bun';
-import { vec3 } from 'gl-matrix';
+import { vec3 } from '@vulfram/engine/math';
 
 const FRAME_TARGET_MS = 16;
 const POINTER_DEBUG_INTERVAL_MS = 250;

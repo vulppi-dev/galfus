@@ -1,5 +1,5 @@
-import { mat4, quat, vec2, vec3, vec4 } from 'gl-matrix';
-import type { quat as Quat, vec2 as Vec2, vec3 as Vec3, vec4 as Vec4 } from 'gl-matrix';
+import { mat4, quat, vec2, vec3, vec4 } from '../../math/index';
+import type { Mat4, Quat, Vec2, Vec3, Vec4 } from '../../math/index';
 import type { MaterialOptions, PbrOptions, StandardOptions } from '../../types/cmds/material';
 import type {
   CubeOptions,
@@ -129,7 +129,7 @@ export function normalizePrimitiveOptions(options: PrimitiveOptions): PrimitiveO
  * Resolves the local transform matrix for an entity, without applying constraints
  * (for example parent hierarchy composition).
  */
-export function getEntityLocalTransformMatrix(world: WorldState, entityId: number): mat4 {
+export function getEntityLocalTransformMatrix(world: WorldState, entityId: number): Mat4 {
   const store = world.components.get(entityId);
   if (!store) return mat4.create();
 
@@ -158,7 +158,7 @@ export function getEntityLocalTransformMatrix(world: WorldState, entityId: numbe
  * Returns the latest constraint-resolved world matrix for an entity.
  * Falls back to local transform when no resolved matrix is cached yet.
  */
-export function getResolvedEntityTransformMatrix(world: WorldState, entityId: number): mat4 {
+export function getResolvedEntityTransformMatrix(world: WorldState, entityId: number): Mat4 {
   const resolved = world.resolvedEntityTransforms.get(entityId);
   if (resolved && !hasDirtyConstraintPath(world, entityId)) {
     return mat4.clone(resolved);
@@ -180,10 +180,10 @@ function hasDirtyConstraintPath(world: WorldState, entityId: number): boolean {
   return false;
 }
 
-function resolveEntityWorldTransformImmediate(world: WorldState, entityId: number): mat4 {
+function resolveEntityWorldTransformImmediate(world: WorldState, entityId: number): Mat4 {
   const visiting = new Set<number>();
 
-  const resolveRecursive = (currentId: number): mat4 => {
+  const resolveRecursive = (currentId: number): Mat4 => {
     if (visiting.has(currentId)) {
       return getEntityLocalTransformMatrix(world, currentId);
     }

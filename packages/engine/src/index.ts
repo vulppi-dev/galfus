@@ -1,6 +1,7 @@
 export { EngineError } from './engine/errors';
 export * from './engine/ecs';
 export * as Mount from './engine/world/mount';
+export * as Math from './math';
 export * as World3D from './engine/world/world3d';
 export * as WorldUI from './engine/world/world-ui';
 export {

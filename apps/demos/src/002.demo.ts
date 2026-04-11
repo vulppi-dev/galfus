@@ -1,4 +1,4 @@
-import { quat, vec3 } from 'gl-matrix';
+import { quat, vec3, type Vec3 } from '@vulfram/engine/math';
 import {
   Mount,
   World3D,
@@ -165,7 +165,7 @@ async function main() {
     ent: EntityId;
     base: [number, number, number];
     phase: number;
-    axis: vec3;
+    axis: Vec3;
   }> = [];
   for (let i = 0; i < 64; i++) {
     const x = Math.random() * 10 - 5;

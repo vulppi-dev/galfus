@@ -18,7 +18,7 @@ Standard camera controllers for `@vulfram/engine`.
   viewport or window size changes.
 - Raw pointer deltas are still preserved for gestures such as pan/zoom that should
   keep window-space behavior.
-- Controller state and transform updates stay in `gl-matrix` `vec3` / `quat` form all the way to `@vulfram/engine`.
+- Controller state and transform updates stay in `@vulfram/engine/math` `vec3` / `quat` form all the way to `@vulfram/engine`.
 - Current pointer gesture model is mouse-based (`left/middle/right`).
 - Every controller config accepts `pointerDeltaSensitivity` (`1` default) to scale
   pointer-driven rotation/look speed.

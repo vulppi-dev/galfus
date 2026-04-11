@@ -1,5 +1,5 @@
-import { mat4, quat, vec2, vec3, vec4 } from 'gl-matrix';
-import type { quat as Quat, vec2 as Vec2, vec3 as Vec3, vec4 as Vec4 } from 'gl-matrix';
+import { mat4, quat, vec2, vec3, vec4 } from '../math/index';
+import type { Mat4, Quat, Vec2, Vec3, Vec4 } from '../math/index';
 import { getWorldOrThrow, requireInitialized } from '../engine/bridge/guards';
 import { getResolvedEntityTransformMatrix } from '../engine/systems/utils';
 import {
@@ -229,7 +229,7 @@ export function getCollisionAabbWorldBounds(
 /**
  * Returns world transform matrix for the collision entity (with hierarchy solved).
  */
-export function getCollisionWorldTransformMatrix(collision: CollisionEntity): mat4 {
+export function getCollisionWorldTransformMatrix(collision: CollisionEntity): Mat4 {
   requireInitialized();
   const world = getWorldOrThrow(collision.worldId as number);
   return getResolvedEntityTransformMatrix(world, collision.entityId as number);
@@ -263,7 +263,7 @@ export function getCollisionAabbWorldCorners(
     const worldCorner = vec4.transformMat4(
       vec4.create(),
       vec4.fromValues(x ?? 0, y ?? 0, z ?? 0, 1),
-      worldTransform as mat4
+      worldTransform as Mat4
     );
     corners.push(vec3.fromValues(worldCorner[0] ?? 0, worldCorner[1] ?? 0, worldCorner[2] ?? 0));
   }

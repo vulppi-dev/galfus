@@ -3,11 +3,12 @@ import {
   vec2,
   vec3,
   vec4,
+  type Mat4,
   type ReadonlyMat4,
   type ReadonlyVec2,
   type ReadonlyVec3,
-  type vec3 as Vec3
-} from 'gl-matrix';
+  type Vec3
+} from '../math/index';
 
 export interface Ray3 {
   origin: Vec3;
@@ -40,7 +41,7 @@ export function createPerspectiveRhZo(
   aspect: number,
   near: number,
   far: number
-): mat4 {
+): Mat4 {
   const f = 1 / Math.tan(fovYRadians / 2);
   const out = mat4.create();
 

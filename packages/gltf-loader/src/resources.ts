@@ -7,7 +7,7 @@ import {
   type MaterialId,
   type TextureId
 } from '@vulfram/engine/world3d';
-import { vec4 } from 'gl-matrix';
+import { vec4 } from '@vulfram/engine/math';
 import type { GeometryPrimitiveEntry } from '@vulfram/engine/types';
 import { uploadBytes } from './context';
 import {

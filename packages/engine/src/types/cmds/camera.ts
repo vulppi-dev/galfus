@@ -1,4 +1,4 @@
-import type { mat4, vec2 } from 'gl-matrix';
+import type { Mat4 as mat4, Vec2 as vec2 } from '../../math/index';
 import type { CameraKind } from '../kinds';
 import type { ResourceEntry } from './resources';
 

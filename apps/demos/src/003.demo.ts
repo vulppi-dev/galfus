@@ -13,7 +13,7 @@ import {
   drawCollisionAabbGizmo,
   raycastPointerCollisionAabb
 } from '@vulfram/engine/helpers';
-import { mat4, quat, vec2 } from 'gl-matrix';
+import { mat4, quat, vec2 } from '@vulfram/engine/math';
 import { transportBunFfi } from '@vulfram/transport-bun';
 
 const RUN_DURATION_MS = 60_000;

@@ -1,12 +1,5 @@
 import { Accessor, TextureInfo } from '@gltf-transform/core';
-import {
-  quat,
-  vec3,
-  vec4,
-  type quat as Quat,
-  type vec3 as Vec3,
-  type vec4 as Vec4
-} from 'gl-matrix';
+import { quat, vec3, vec4, type Quat, type Vec3, type Vec4 } from '@vulfram/engine/math';
 import type { GeometryPrimitiveEntry, SamplerMode } from '@vulfram/engine/types';
 import { U16_MAX } from './constants';
 import { GltfLoaderError } from './errors';

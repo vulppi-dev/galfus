@@ -1,5 +1,5 @@
 import type { EntityId, World3DId } from '@vulfram/engine/world3d';
-import { quat, vec3, type ReadonlyVec3 } from 'gl-matrix';
+import { quat, vec3, type Quat, type ReadonlyVec3 } from '@vulfram/engine/math';
 import {
   clearMotionImpulse,
   createMotionActionState,
@@ -62,7 +62,7 @@ export function createSpectatorController(
     weight: 0
   };
 
-  function composeRotation(): quat {
+  function composeRotation(): Quat {
     const out = quat.create();
     quat.rotateY(out, out, yaw);
     quat.rotateX(out, out, pitch);

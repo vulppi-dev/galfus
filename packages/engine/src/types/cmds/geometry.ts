@@ -1,4 +1,4 @@
-import type { vec3 } from 'gl-matrix';
+import type { Vec3 as vec3 } from '../../math/index';
 import type { PrimitiveShape } from '../kinds';
 import type { ResourceEntry } from './resources';
 

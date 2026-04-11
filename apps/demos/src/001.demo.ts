@@ -9,7 +9,7 @@ import {
   uploadBuffer
 } from '@vulfram/engine';
 import { transportBunFfi } from '@vulfram/transport-bun';
-import { quat } from 'gl-matrix';
+import { quat } from '@vulfram/engine/math';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 

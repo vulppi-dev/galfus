@@ -1,5 +1,5 @@
 import type { EntityId, World3DId } from '@vulfram/engine/world3d';
-import type { quat, ReadonlyVec3, vec3 } from 'gl-matrix';
+import type { Quat as quat, ReadonlyVec3, Vec3 as vec3 } from '@vulfram/engine/math';
 
 export type CameraControllerKind =
   | 'orbit'

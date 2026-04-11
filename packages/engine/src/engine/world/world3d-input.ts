@@ -251,4 +251,4 @@ export function get3DLastSystemError(worldId: World3DId): ReturnType<typeof getL
 export function get3DSystemEvents(worldId: World3DId): ReturnType<typeof getSystemEvents> {
   return getSystemEvents(asWorldNumber(worldId));
 }
-import type { vec2 } from 'gl-matrix';
+import type { Vec2 as vec2 } from '../../math/index';
