@@ -35,6 +35,13 @@ export interface PointerRaycastWgpuInput extends PointerRaycastInput {}
  * with optional reverse-Z by swapping near/far.
  *
  * Matches glam::Mat4::perspective_rh semantics used by core.
+ *
+ * @example
+ * ```ts
+ * import { createPerspectiveRhZo } from '@vulfram/engine/helpers';
+ *
+ * const projection = createPerspectiveRhZo(Math.PI / 3, 16 / 9, 0.1, 1000);
+ * ```
  */
 export function createPerspectiveRhZo(
   fovYRadians: number,
@@ -97,6 +104,18 @@ function pointOnRay(ray: Ray3, distance: number): Vec3 {
  * Creates a world-space ray from pointer coordinates plus camera matrices.
  *
  * Returns `null` if the camera matrix cannot be inverted.
+ *
+ * @example
+ * ```ts
+ * import { createPointerRay } from '@vulfram/engine/helpers';
+ *
+ * const ray = createPointerRay({
+ *   pointer: [320, 180],
+ *   viewMatrix,
+ *   projectionMatrix,
+ *   viewportSize: [640, 360]
+ * });
+ * ```
  */
 export function createPointerRay(input: PointerRaycastInput): Ray3 | null {
   const pointerX = input.pointer[0]!;
@@ -157,6 +176,18 @@ export function createPointerRay(input: PointerRaycastInput): Ray3 | null {
  * This mirrors core picking logic:
  * - NDC depth near=1 and far=0
  * - direction corrected to follow camera forward when needed
+ *
+ * @example
+ * ```ts
+ * import { createPointerRayWgpuReverseZ } from '@vulfram/engine/helpers';
+ *
+ * const ray = createPointerRayWgpuReverseZ({
+ *   pointer: [pointerX, pointerY],
+ *   viewMatrix,
+ *   projectionMatrix,
+ *   viewportSize: [width, height]
+ * });
+ * ```
  */
 export function createPointerRayWgpuReverseZ(input: PointerRaycastWgpuInput): Ray3 | null {
   const pointerX = input.pointer[0]!;
@@ -241,6 +272,17 @@ export function createPointerRayWgpuReverseZ(input: PointerRaycastWgpuInput): Ra
  * 3) fallback viewport size (if provided)
  *
  * Uses WGPU reverse-Z conventions to match core picking.
+ *
+ * @example
+ * ```ts
+ * import { createPointerRayFromEvent } from '@vulfram/engine/helpers';
+ *
+ * const ray = createPointerRayFromEvent({
+ *   pointerEvent,
+ *   viewMatrix,
+ *   projectionMatrix
+ * });
+ * ```
  */
 export function createPointerRayFromEvent(input: PointerEventRaycastInput): Ray3 | null {
   const event = input.pointerEvent;
@@ -297,6 +339,13 @@ export function createPointerRayFromEvent(input: PointerEventRaycastInput): Ray3
  * Intersects a ray against a plane defined by one point and one normal.
  *
  * Returns `null` when the ray is parallel to the plane or the hit is behind the ray.
+ *
+ * @example
+ * ```ts
+ * import { intersectRayPlane } from '@vulfram/engine/helpers';
+ *
+ * const hit = intersectRayPlane(ray, [0, 0, 0], [0, 1, 0]);
+ * ```
  */
 export function intersectRayPlane(
   ray: Ray3,
@@ -329,6 +378,13 @@ export function intersectRayPlane(
 
 /**
  * Intersects a ray with a sphere and returns the closest hit in front of the ray origin.
+ *
+ * @example
+ * ```ts
+ * import { intersectRaySphere } from '@vulfram/engine/helpers';
+ *
+ * const hit = intersectRaySphere(ray, [0, 1, 0], 0.5);
+ * ```
  */
 export function intersectRaySphere(ray: Ray3, center: ReadonlyVec3, radius: number): RayHit | null {
   const origin = vec3.fromValues(ray.origin[0], ray.origin[1], ray.origin[2]);
@@ -362,6 +418,13 @@ export function intersectRaySphere(ray: Ray3, center: ReadonlyVec3, radius: numb
 
 /**
  * Intersects a ray with an axis-aligned bounding box.
+ *
+ * @example
+ * ```ts
+ * import { intersectRayAabb } from '@vulfram/engine/helpers';
+ *
+ * const hit = intersectRayAabb(ray, [-1, -1, -1], [1, 1, 1]);
+ * ```
  */
 export function intersectRayAabb(ray: Ray3, min: ReadonlyVec3, max: ReadonlyVec3): RayHit | null {
   const origin = ray.origin;

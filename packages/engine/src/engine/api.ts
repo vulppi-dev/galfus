@@ -59,6 +59,16 @@ export type CreateWorldOptions = {
 /**
  * Initializes the engine runtime and registers core systems.
  * Call once before creating worlds or issuing commands.
+ *
+ * @example
+ * ```ts
+ * import { initEngine } from '@vulfram/engine/core';
+ * import { createBrowserTransport } from '@vulfram/transport-browser';
+ *
+ * initEngine({
+ *   transport: () => createBrowserTransport()
+ * });
+ * ```
  */
 export function initEngine(config: {
   /** Transport factory for the runtime (WASM, Bun, N-API, etc.). */
@@ -122,6 +132,13 @@ export function initEngine(config: {
 /**
  * Disposes the engine and releases the active transport.
  * After dispose, you must call initEngine again to use the engine.
+ *
+ * @example
+ * ```ts
+ * import { disposeEngine } from '@vulfram/engine/core';
+ *
+ * disposeEngine();
+ * ```
  */
 export function disposeEngine(): void {
   requireInitialized();
@@ -150,6 +167,18 @@ export function disposeEngine(): void {
 
 /**
  * Registers a custom component schema for editor tooling or extensions.
+ *
+ * @example
+ * ```ts
+ * import { registerComponent } from '@vulfram/engine/core';
+ *
+ * registerComponent('Health', {
+ *   fields: {
+ *     current: 'number',
+ *     max: 'number'
+ *   }
+ * });
+ * ```
  */
 export function registerComponent(name: string, schema: ComponentSchema): void {
   requireInitialized();
@@ -164,6 +193,16 @@ export function registerComponent(name: string, schema: ComponentSchema): void {
  * - `update`: mutate ECS state and emit intents.
  * - `preRender`: resolve constraints and emit core commands.
  * - `postRender`: consume command responses and diagnostics.
+ *
+ * @example
+ * ```ts
+ * import { registerSystem } from '@vulfram/engine/core';
+ *
+ * registerSystem('update', (world, context) => {
+ *   void world;
+ *   void context;
+ * });
+ * ```
  */
 export function registerSystem(step: SystemStep, system: System): void {
   requireInitialized();
@@ -191,6 +230,13 @@ function uploadTypeToId(type: UploadType): number {
 
 /**
  * Uploads a raw buffer to the core for later use (textures, geometry, etc.).
+ *
+ * @example
+ * ```ts
+ * import { uploadBuffer } from '@vulfram/engine/core';
+ *
+ * uploadBuffer(10, 'image-data', pngBytes);
+ * ```
  */
 export function uploadBuffer(bufferId: number, type: UploadType, data: Uint8Array): void {
   requireInitialized();
@@ -206,6 +252,13 @@ export function uploadBuffer(bufferId: number, type: UploadType, data: Uint8Arra
 
 /**
  * Configures global runtime diagnostics and pointer tracing.
+ *
+ * @example
+ * ```ts
+ * import { setSystemDiagnostics } from '@vulfram/engine/core';
+ *
+ * setSystemDiagnostics({ enabled: true });
+ * ```
  */
 export function setSystemDiagnostics(args: CmdSystemDiagnosticsSetArgs): number {
   requireInitialized();
@@ -214,6 +267,13 @@ export function setSystemDiagnostics(args: CmdSystemDiagnosticsSetArgs): number 
 
 /**
  * Requests the core to return build/runtime version information.
+ *
+ * @example
+ * ```ts
+ * import { getCoreBuildVersion } from '@vulfram/engine/core';
+ *
+ * const commandId = getCoreBuildVersion();
+ * ```
  */
 export function getCoreBuildVersion(args: CmdSystemBuildVersionGetArgs = {}): number {
   requireInitialized();
@@ -222,6 +282,13 @@ export function getCoreBuildVersion(args: CmdSystemBuildVersionGetArgs = {}): nu
 
 /**
  * Requests the core to discard all pending upload buffers.
+ *
+ * @example
+ * ```ts
+ * import { discardAllUploadBuffers } from '@vulfram/engine/core';
+ *
+ * discardAllUploadBuffers();
+ * ```
  */
 export function discardAllUploadBuffers(args: CmdUploadBufferDiscardAllArgs = {}): number {
   requireInitialized();
@@ -325,6 +392,13 @@ export function createWorldUI(config?: CreateWorldOptions): WorldId {
 
 /**
  * Creates a default `three-d` world.
+ *
+ * @example
+ * ```ts
+ * import { createWorld } from '@vulfram/engine/core';
+ *
+ * const worldId = createWorld();
+ * ```
  */
 export function createWorld(config?: CreateWorldOptions): WorldId {
   return createWorld3D(config);
@@ -333,6 +407,13 @@ export function createWorld(config?: CreateWorldOptions): WorldId {
 /**
  * Advances the engine by one frame.
  * Call once per frame with monotonic time and delta in milliseconds.
+ *
+ * @example
+ * ```ts
+ * import { tick } from '@vulfram/engine/core';
+ *
+ * tick(performance.now(), 16.67);
+ * ```
  */
 export function tick(timeMs: number, deltaMs: number): void {
   requireInitialized();

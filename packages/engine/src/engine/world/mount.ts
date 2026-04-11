@@ -34,6 +34,13 @@ export type WaitWorldReadyOptions = {
 
 /**
  * Returns whether the world has resolved its internal core realm and can be mounted.
+ *
+ * @example
+ * ```ts
+ * import { Mount } from '@vulfram/engine';
+ *
+ * const ready = Mount.isWorldMountReady(worldId);
+ * ```
  */
 export function isWorldMountReady(worldId: WorldId): boolean {
   return isWorldReady(asWorldNumber(worldId));
@@ -46,6 +53,15 @@ export function isWorldMountReady(worldId: WorldId): boolean {
  * driving `tick(...)` while waiting.
  *
  * @returns `true` when ready, or `false` when timeout is reached.
+ *
+ * @example
+ * ```ts
+ * import { Mount, tick } from '@vulfram/engine';
+ *
+ * const ready = await Mount.waitWorldReady(worldId, {
+ *   onPoll: () => tick(performance.now(), 16.67)
+ * });
+ * ```
  */
 export async function waitWorldReady(
   worldId: WorldId,
@@ -97,6 +113,15 @@ function defaultLayout(): TargetLayerLayout {
  * @param worldId World to be mounted.
  * @param args Target configuration and optional layout/camera/environment overrides.
  * @returns Generated target id and command ids for upsert + bind.
+ *
+ * @example
+ * ```ts
+ * import { Mount } from '@vulfram/engine';
+ *
+ * const mount = Mount.mountWorld(worldId, {
+ *   target: { kind: 'window', windowId }
+ * });
+ * ```
  */
 export function mountWorld(
   worldId: WorldId,
@@ -131,6 +156,13 @@ export function mountWorld(
 
 /**
  * Convenience wrapper for mounting a world directly into a window target.
+ *
+ * @example
+ * ```ts
+ * import { Mount } from '@vulfram/engine';
+ *
+ * Mount.mountWorldToWindow(worldId, windowId);
+ * ```
  */
 export function mountWorldToWindow(
   worldId: WorldId,
@@ -156,6 +188,13 @@ export function mountWorldToWindow(
  * @param worldId Mounted world identifier.
  * @param targetId Target to unbind.
  * @returns Command id for unbind request.
+ *
+ * @example
+ * ```ts
+ * import { Mount } from '@vulfram/engine';
+ *
+ * Mount.unmountWorld(worldId, targetId);
+ * ```
  */
 export function unmountWorld(worldId: WorldId, targetId: TargetId): CommandId {
   const commandId = unbindWorldFromTarget(asWorldNumber(worldId), {
@@ -170,6 +209,21 @@ export function unmountWorld(worldId: WorldId, targetId: TargetId): CommandId {
  * @param worldId Mounted world identifier.
  * @param args Layer update payload.
  * @returns Command id for target-layer upsert.
+ *
+ * @example
+ * ```ts
+ * import { Mount } from '@vulfram/engine';
+ *
+ * Mount.remountWorld(worldId, {
+ *   targetId,
+ *   layout: {
+ *     left: { unit: 'percent', value: 0 },
+ *     top: { unit: 'percent', value: 0 },
+ *     width: { unit: 'percent', value: 100 },
+ *     height: { unit: 'percent', value: 100 }
+ *   }
+ * });
+ * ```
  */
 export function remountWorld(
   worldId: WorldId,
@@ -181,6 +235,13 @@ export function remountWorld(
 
 /**
  * Requests measurement for a mounted target.
+ *
+ * @example
+ * ```ts
+ * import { Mount } from '@vulfram/engine';
+ *
+ * Mount.measureMountedTarget(worldId, { targetId });
+ * ```
  */
 export function measureMountedTarget(worldId: WorldId, args: CmdTargetMeasurementArgs): CommandId {
   const commandId = measureTarget(asWorldNumber(worldId), args);
