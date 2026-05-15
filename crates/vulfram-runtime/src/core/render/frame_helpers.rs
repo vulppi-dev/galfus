@@ -263,19 +263,3 @@ pub(super) fn collect_window_camera_target_sizes(
         window_size,
     )
 }
-
-pub(super) fn build_soft_cut_diagnostic(
-    frame_report: &crate::core::realm::FrameReport,
-    previous_cut_edges: usize,
-    frame_index: u64,
-) -> Option<String> {
-    vulfram_render::build_soft_cut_diagnostic(
-        &frame_report.cut_edges,
-        previous_cut_edges,
-        frame_index,
-    )
-}
-
-#[cfg(test)]
-#[path = "frame_helpers_tests.rs"]
-mod tests;

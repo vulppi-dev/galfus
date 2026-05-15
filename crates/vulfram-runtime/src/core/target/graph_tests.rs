@@ -226,3 +226,67 @@ fn collect_render_invocations_uses_target_order_and_layout_size() {
     assert_eq!(invocations[1].render_size_px, glam::UVec2::new(1920, 1080));
     assert_eq!(invocations[0].frame_id, 42);
 }
+
+#[test]
+fn collect_render_invocations_supports_same_realm_multiple_target_sizes() {
+    let targets = HashMap::from([
+        (
+            TargetId(11),
+            TargetState {
+                kind: TargetKind::Window,
+                window_id: Some(1),
+                size: None,
+                format_policy: None,
+                alpha_policy: None,
+                msaa_samples: None,
+            },
+        ),
+        (
+            TargetId(12),
+            TargetState {
+                kind: TargetKind::Texture,
+                window_id: None,
+                size: Some(glam::UVec2::new(512, 512)),
+                format_policy: None,
+                alpha_policy: None,
+                msaa_samples: None,
+            },
+        ),
+    ]);
+    let layers = HashMap::from([
+        (
+            (7, TargetId(11)),
+            TargetLayerState {
+                realm_id: 7,
+                target_id: TargetId(11),
+                layout: TargetLayerLayout::default(),
+                camera_id: None,
+                environment_id: None,
+            },
+        ),
+        (
+            (7, TargetId(12)),
+            TargetLayerState {
+                realm_id: 7,
+                target_id: TargetId(12),
+                layout: TargetLayerLayout::default(),
+                camera_id: None,
+                environment_id: None,
+            },
+        ),
+    ]);
+    let window_sizes = HashMap::from([(1, glam::UVec2::new(1920, 1080))]);
+    let invocations = crate::core::target::collect_render_invocations(
+        &[TargetId(11), TargetId(12)],
+        &targets,
+        &layers,
+        &window_sizes,
+        9,
+    );
+
+    assert_eq!(invocations.len(), 2);
+    assert_eq!(invocations[0].realm_id, 7);
+    assert_eq!(invocations[1].realm_id, 7);
+    assert_eq!(invocations[0].render_size_px, glam::UVec2::new(1920, 1080));
+    assert_eq!(invocations[1].render_size_px, glam::UVec2::new(512, 512));
+}

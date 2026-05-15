@@ -12,6 +12,7 @@ mod ui_platform_actions;
 use crate::core::profiling::gpu::apply_gpu_timing_report;
 use crate::core::realm::{FrameReport, apply_target_graph_stats};
 use crate::core::render::passes::UiPlatformAction;
+use crate::core::resources::RenderTarget;
 use crate::core::state::EngineState;
 use crate::core::ui::events::UiEvent;
 use frame_helpers::{
@@ -157,7 +158,7 @@ pub fn render_frames(engine_state: &mut EngineState) {
         engine_state.runtime.frame_index(),
     );
     frame_report.target_invocations = target_invocations
-        .into_iter()
+        .iter()
         .map(|invocation| crate::core::realm::TargetInvocationReport {
             realm_id: invocation.realm_id,
             target_id: invocation.target_id.0,
@@ -173,26 +174,6 @@ pub fn render_frames(engine_state: &mut EngineState) {
         .collect();
     frame_report.target_autolink_failures = engine_state.universal_state.targets.target_autolink_failures.clone();
     let realm_windows = map_realms_to_windows(&engine_state.universal_state);
-    let mut scheduled_realms: Vec<crate::core::realm::RealmId> = Vec::new();
-    for target_id in &target_plan.order {
-        let mut layers: Vec<_> = engine_state
-            .universal_state
-            .targets
-            .target_layers
-            .entries
-            .values()
-            .filter(|layer| {
-                layer.target_id == *target_id && layer.layout.enabled && layer.layout.opacity > 0.0
-            })
-            .collect();
-        layers.sort_by_key(|layer| (layer.layout.z_index, layer.realm_id, layer.target_id.0));
-        for layer in layers {
-            let realm_id = crate::core::realm::RealmId(layer.realm_id);
-            if !scheduled_realms.contains(&realm_id) {
-                scheduled_realms.push(realm_id);
-            }
-        }
-    }
     collect_present_sizes(
         &engine_state.universal_state,
         &engine_state.window.states,
@@ -223,6 +204,8 @@ pub fn render_frames(engine_state: &mut EngineState) {
         &engine_state.surface_targets,
     );
     let mut updated_surfaces: HashSet<crate::core::realm::SurfaceId> = HashSet::new();
+    let mut invocation_targets: std::collections::HashMap<(u64, u32), RenderTarget> =
+        std::collections::HashMap::new();
     let mut ui_events: Vec<UiEvent> = Vec::new();
     let mut ui_platform_actions: Vec<UiPlatformAction> = Vec::new();
     let mut synced_windows: HashSet<u32> = HashSet::new();
@@ -232,17 +215,40 @@ pub fn render_frames(engine_state: &mut EngineState) {
         frame_report.no_progress_realms.clear();
         let mut window_counter: u32 = 0;
 
-        for realm_id in &scheduled_realms {
-            let Some(window_id) = realm_windows.get(realm_id) else {
+        for invocation in &target_invocations {
+            let realm_id = crate::core::realm::RealmId(invocation.realm_id);
+            let target_id = invocation.target_id;
+            let target_window_id = engine_state
+                .universal_state
+                .targets
+                .targets
+                .entries
+                .get(&target_id)
+                .and_then(|target| target.window_id);
+            let Some(window_id) = target_window_id.or_else(|| realm_windows.get(&realm_id).copied()) else {
                 continue;
             };
-            let Some(window_state) = engine_state.window.states.get(window_id) else {
+            let Some(window_state) = engine_state.window.states.get(&window_id) else {
                 continue;
             };
-            let Some(render_state) = engine_state.render.get_mut(window_id) else {
+            let Some(render_state) = engine_state.render.get_mut(&window_id) else {
                 continue;
             };
-            let Some(surface_id) = resolve_realm_surface(&engine_state.universal_state, *realm_id)
+            let Some(layer_state) = engine_state
+                .universal_state
+                .targets
+                .target_layers
+                .entries
+                .get(&invocation.layer_key)
+            else {
+                continue;
+            };
+            let layer_blend_mode = layer_state.layout.blend_mode;
+            let layer_clip = layer_state.layout.clip;
+            let Some(surface_id) = target_surface_map
+                .get(&target_id)
+                .copied()
+                .or_else(|| resolve_realm_surface(&engine_state.universal_state, realm_id))
             else {
                 continue;
             };
@@ -251,7 +257,7 @@ pub fn render_frames(engine_state: &mut EngineState) {
                 .composition
                 .realms
                 .entries
-                .get_mut(realm_id)
+                .get_mut(&realm_id)
                 .map(|realm_entry| {
                     should_render_realm(realm_entry, engine_state.runtime.frame_index())
                 })
@@ -293,6 +299,15 @@ pub fn render_frames(engine_state: &mut EngineState) {
                 );
                 (surface_target.view.clone(), surface_target.format)
             };
+            let invocation_size = invocation.render_size_px;
+            let invocation_target = vulfram_render::ensure_surface_target(
+                device,
+                &mut invocation_targets,
+                (target_id.0, invocation.realm_id),
+                invocation_size,
+                target_format,
+            );
+            let invocation_view = invocation_target.view.clone();
 
             #[cfg(not(target_arch = "wasm32"))]
             let window_start = std::time::Instant::now();
@@ -302,9 +317,9 @@ pub fn render_frames(engine_state: &mut EngineState) {
             sync_scene_from_realm_and_universal_resources(
                 render_state,
                 &engine_state.universal_state,
-                *realm_id,
+                realm_id,
             );
-            if synced_windows.insert(*window_id) {
+            if synced_windows.insert(window_id) {
                 sync_window_geometry_registry(
                     render_state,
                     &engine_state.universal_state.scene.realm3d.geometries,
@@ -312,8 +327,8 @@ pub fn render_frames(engine_state: &mut EngineState) {
             }
             let camera_target_sizes = collect_window_camera_target_sizes(
                 &engine_state.universal_state,
-                *realm_id,
-                *window_id,
+                realm_id,
+                window_id,
                 window_state.inner_size,
             );
             if render_state.sync_camera_targets_and_projection(
@@ -336,7 +351,7 @@ pub fn render_frames(engine_state: &mut EngineState) {
                 .composition
                 .realms
                 .entries
-                .get(realm_id)
+                .get(&realm_id)
                 .map(|entry| vulfram_render::clear_alpha_for_realm_kind(entry.value.kind))
                 .unwrap_or(1.0);
             {
@@ -377,7 +392,7 @@ pub fn render_frames(engine_state: &mut EngineState) {
             });
             window_counter = window_counter.saturating_add(1);
 
-            let plan = match resolve_realm_render_graph(&engine_state.universal_state, *realm_id) {
+            let plan = match resolve_realm_render_graph(&engine_state.universal_state, realm_id) {
                 Some(graph) => graph.plan().clone(),
                 None => {
                     log::error!("Realm {} is missing a render graph", realm_id.0);
@@ -388,8 +403,8 @@ pub fn render_frames(engine_state: &mut EngineState) {
             apply_realm_environment_bindings(
                 render_state,
                 &engine_state.universal_state,
-                *realm_id,
-                *window_id,
+                realm_id,
+                window_id,
             );
             let universal = &mut engine_state.universal_state;
             let ui_state = &mut universal.interaction.ui;
@@ -402,7 +417,7 @@ pub fn render_frames(engine_state: &mut EngineState) {
                 .window
                 .cache
                 .caches
-                .get(window_id)
+                .get(&window_id)
                 .map(|cache| cache.focused)
                 .unwrap_or(true);
             #[cfg(target_arch = "wasm32")]
@@ -412,7 +427,7 @@ pub fn render_frames(engine_state: &mut EngineState) {
                 &plan,
                 render_state,
                 ui_state,
-                *realm_id,
+                realm_id,
                 &mut ui_events,
                 &mut ui_platform_actions,
                 targets,
@@ -423,16 +438,43 @@ pub fn render_frames(engine_state: &mut EngineState) {
                 device,
                 queue,
                 &mut encoder,
-                &target_view,
+                &invocation_view,
                 target_format,
-                target_size,
+                invocation_size,
                 engine_state.runtime.frame_index(),
                 time as f64,
-                *window_id,
+                window_id,
                 window_focused,
                 engine_state.gpu_profiler.as_ref(),
                 gpu_base,
                 &mut shadow_ns,
+            );
+            let overlay_blend = match layer_blend_mode {
+                1 => Some(wgpu::BlendState::PREMULTIPLIED_ALPHA_BLENDING),
+                2 => None,
+                _ => Some(wgpu::BlendState::ALPHA_BLENDING),
+            };
+            let overlay = [passes::ComposeOverlay {
+                source_view: &invocation_view,
+                source_size: invocation_size,
+                rect: glam::Vec4::new(
+                    invocation.resolved_rect_px.x as f32,
+                    invocation.resolved_rect_px.y as f32,
+                    invocation.resolved_rect_px.z as f32,
+                    invocation.resolved_rect_px.w as f32,
+                ),
+                clip: layer_clip,
+                blend: overlay_blend,
+            }];
+            passes::pass_compose_overlays(
+                render_state,
+                device,
+                &mut encoder,
+                &target_view,
+                target_format,
+                target_size,
+                &overlay,
+                engine_state.runtime.frame_index(),
             );
 
             updated_surfaces.insert(surface_id);
