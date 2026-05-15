@@ -8,7 +8,7 @@ use crate::core::resources::{
 use crate::core::target::graph_hash::{hash_entries, hash_targets_layers_and_realms};
 use crate::core::target::{TargetId, TargetLayerState, TargetState};
 #[allow(unused_imports)]
-pub use vulfram_realm_core::{TargetEdge, TargetGraphDiff, TargetGraphPlan};
+pub use vulfram_realm_core::{RenderInvocation, TargetEdge, TargetGraphDiff, TargetGraphPlan};
 
 #[derive(Debug, Default)]
 pub struct TargetGraphPlanner;
@@ -201,6 +201,66 @@ fn build_target_dependency_edges(
     edges.sort_by_key(|edge| (edge.parent.0, edge.child.0));
     edges.dedup();
     edges
+}
+
+pub fn collect_render_invocations(
+    target_order: &[TargetId],
+    targets: &HashMap<TargetId, TargetState>,
+    layers: &HashMap<(u32, TargetId), TargetLayerState>,
+    window_sizes: &HashMap<u32, glam::UVec2>,
+    frame_id: u64,
+) -> Vec<RenderInvocation> {
+    let mut layers_by_target: HashMap<TargetId, Vec<&TargetLayerState>> = HashMap::new();
+    for layer in layers.values() {
+        if !layer.layout.enabled || layer.layout.opacity <= 0.0 {
+            continue;
+        }
+        layers_by_target.entry(layer.target_id).or_default().push(layer);
+    }
+    for target_layers in layers_by_target.values_mut() {
+        target_layers.sort_by_key(|layer| (layer.layout.z_index, layer.realm_id, layer.target_id.0));
+    }
+
+    let mut invocations = Vec::new();
+    for target_id in target_order {
+        let Some(target) = targets.get(target_id) else {
+            continue;
+        };
+        let Some(target_layers) = layers_by_target.get(target_id) else {
+            continue;
+        };
+        let target_size = resolve_target_size(target, window_sizes);
+        for layer in target_layers {
+            let resolved = vulfram_render::resolve_auto_graph_layout(target_size, &layer.layout);
+            let x = resolved.rect.x.max(0.0).round() as u32;
+            let y = resolved.rect.y.max(0.0).round() as u32;
+            let w = resolved.rect.z.max(1.0).round() as u32;
+            let h = resolved.rect.w.max(1.0).round() as u32;
+            invocations.push(RenderInvocation {
+                realm_id: layer.realm_id,
+                target_id: *target_id,
+                layer_key: (layer.realm_id, *target_id),
+                resolved_rect_px: glam::UVec4::new(x, y, w, h),
+                render_size_px: glam::UVec2::new(w, h),
+                frame_id,
+            });
+        }
+    }
+
+    invocations
+}
+
+fn resolve_target_size(
+    target: &TargetState,
+    window_sizes: &HashMap<u32, glam::UVec2>,
+) -> glam::UVec2 {
+    match target.kind {
+        crate::core::target::TargetKind::Window => target
+            .window_id
+            .and_then(|window_id| window_sizes.get(&window_id).copied())
+            .unwrap_or_else(|| glam::UVec2::new(1, 1)),
+        crate::core::target::TargetKind::Texture => target.size.unwrap_or_else(|| glam::UVec2::new(1, 1)),
+    }
 }
 
 fn diff_targets_layers_and_realms(

@@ -161,3 +161,68 @@ fn cache_recomputes_when_dependency_edges_change() {
     assert!(second.is_some());
     assert_eq!(cache.last_plan.order, vec![TargetId(2), TargetId(1)]);
 }
+
+#[test]
+fn collect_render_invocations_uses_target_order_and_layout_size() {
+    let targets = HashMap::from([
+        (
+            TargetId(1),
+            TargetState {
+                kind: TargetKind::Texture,
+                window_id: None,
+                size: Some(glam::UVec2::new(512, 512)),
+                format_policy: None,
+                alpha_policy: None,
+                msaa_samples: None,
+            },
+        ),
+        (
+            TargetId(2),
+            TargetState {
+                kind: TargetKind::Window,
+                window_id: Some(9),
+                size: None,
+                format_policy: None,
+                alpha_policy: None,
+                msaa_samples: None,
+            },
+        ),
+    ]);
+    let layers = HashMap::from([
+        (
+            (7, TargetId(1)),
+            TargetLayerState {
+                realm_id: 7,
+                target_id: TargetId(1),
+                layout: TargetLayerLayout::default(),
+                camera_id: None,
+                environment_id: None,
+            },
+        ),
+        (
+            (8, TargetId(2)),
+            TargetLayerState {
+                realm_id: 8,
+                target_id: TargetId(2),
+                layout: TargetLayerLayout::default(),
+                camera_id: None,
+                environment_id: None,
+            },
+        ),
+    ]);
+    let window_sizes = HashMap::from([(9, glam::UVec2::new(1920, 1080))]);
+    let invocations = crate::core::target::collect_render_invocations(
+        &[TargetId(1), TargetId(2)],
+        &targets,
+        &layers,
+        &window_sizes,
+        42,
+    );
+
+    assert_eq!(invocations.len(), 2);
+    assert_eq!(invocations[0].target_id, TargetId(1));
+    assert_eq!(invocations[0].render_size_px, glam::UVec2::new(512, 512));
+    assert_eq!(invocations[1].target_id, TargetId(2));
+    assert_eq!(invocations[1].render_size_px, glam::UVec2::new(1920, 1080));
+    assert_eq!(invocations[0].frame_id, 42);
+}

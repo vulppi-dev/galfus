@@ -1,6 +1,6 @@
 pub use vulfram_realm_core::{
     FrameCutEdge, FrameReport, SurfaceCacheEntry, TargetAutoLinkFailure, TargetCutEdge,
-    TargetLayerReportKey,
+    TargetInvocationReport, TargetLayerReportKey,
 };
 
 pub fn apply_target_graph_stats(

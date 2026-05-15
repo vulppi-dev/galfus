@@ -13,7 +13,7 @@ pub use render_passes::{
 };
 pub use report::{
     FrameCutEdge, FrameReport, SurfaceCacheEntry, TargetAutoLinkFailure, TargetCutEdge,
-    TargetLayerReportKey,
+    TargetInvocationReport, TargetLayerReportKey,
 };
 pub use state::{
     AutoLink, ConnectorState, DimensionValue, PresentState, RealmState, SurfaceCache, TargetEdge,

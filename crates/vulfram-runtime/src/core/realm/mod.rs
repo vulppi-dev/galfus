@@ -12,7 +12,8 @@ pub use graph::{RealmGraphEdge, RealmGraphPlan, RealmGraphPlanner};
 pub use lifecycle::*;
 #[allow(unused_imports)]
 pub use report::{
-    FrameCutEdge, FrameReport, SurfaceCacheEntry, TargetAutoLinkFailure, apply_target_graph_stats,
+    FrameCutEdge, FrameReport, SurfaceCacheEntry, TargetAutoLinkFailure, TargetCutEdge,
+    TargetInvocationReport, apply_target_graph_stats,
 };
 #[allow(unused_imports)]
 pub use state::{

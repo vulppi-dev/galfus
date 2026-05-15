@@ -17,6 +17,7 @@ pub struct FrameReport {
     pub target_edges: usize,
     pub target_order: Vec<u64>,
     pub target_cut_edges: Vec<TargetCutEdge>,
+    pub target_invocations: Vec<TargetInvocationReport>,
     pub target_added: Vec<u64>,
     pub target_removed: Vec<u64>,
     pub target_updated: Vec<u64>,
@@ -65,6 +66,7 @@ impl FrameReport {
             target_edges: 0,
             target_order: Vec::new(),
             target_cut_edges: Vec::new(),
+            target_invocations: Vec::new(),
             target_added: Vec::new(),
             target_removed: Vec::new(),
             target_updated: Vec::new(),
@@ -119,4 +121,14 @@ pub struct TargetAutoLinkFailure {
 pub struct TargetCutEdge {
     pub from: u64,
     pub to: u64,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TargetInvocationReport {
+    pub realm_id: u32,
+    pub target_id: u64,
+    pub rect_px: [u32; 4],
+    pub render_size_px: [u32; 2],
+    pub frame_id: u64,
 }

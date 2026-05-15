@@ -157,6 +157,34 @@ pub fn render_frames(engine_state: &mut EngineState) {
         &engine_state.universal_state.composition.surface_cache,
     );
     apply_target_graph_stats(&mut frame_report, &target_plan, target_diff.as_ref());
+    let window_sizes: std::collections::HashMap<u32, glam::UVec2> = engine_state
+        .window
+        .states
+        .iter()
+        .map(|(window_id, state)| (*window_id, state.inner_size))
+        .collect();
+    let target_invocations = crate::core::target::collect_render_invocations(
+        &target_plan.order,
+        &engine_state.universal_state.targets.targets.entries,
+        &engine_state.universal_state.targets.target_layers.entries,
+        &window_sizes,
+        engine_state.runtime.frame_index(),
+    );
+    frame_report.target_invocations = target_invocations
+        .into_iter()
+        .map(|invocation| crate::core::realm::TargetInvocationReport {
+            realm_id: invocation.realm_id,
+            target_id: invocation.target_id.0,
+            rect_px: [
+                invocation.resolved_rect_px.x,
+                invocation.resolved_rect_px.y,
+                invocation.resolved_rect_px.z,
+                invocation.resolved_rect_px.w,
+            ],
+            render_size_px: [invocation.render_size_px.x, invocation.render_size_px.y],
+            frame_id: invocation.frame_id,
+        })
+        .collect();
     frame_report.target_autolink_failures = engine_state
         .universal_state
         .targets
