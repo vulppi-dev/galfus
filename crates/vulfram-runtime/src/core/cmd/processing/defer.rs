@@ -251,8 +251,7 @@ fn command_has_pending_dependencies(engine: &EngineState, cmd: &EngineCmd) -> bo
             CmdMaterialUpsertArgs::Create(_) => false,
             CmdMaterialUpsertArgs::Update(update) => {
                 let realm3d = &engine.universal_state.scene.realm3d;
-                !(realm3d.materials_standard.contains_key(&update.material_id)
-                    || realm3d.materials_pbr.contains_key(&update.material_id))
+                !realm3d.materials.contains_key(&update.material_id)
             }
         },
         EngineCmd::CmdGeometryUpsert(args) => match args {

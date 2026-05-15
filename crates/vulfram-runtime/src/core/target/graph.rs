@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 use crate::core::realm::{RealmId, RealmTable};
 use crate::core::render::SceneRuntimeState;
-use crate::core::resources::{PBR_INVALID_SLOT, STANDARD_INVALID_SLOT, TargetTextureBinding};
+use crate::core::resources::{SHADER_MATERIAL_INVALID_SLOT, TargetTextureBinding};
 use crate::core::target::graph_hash::{hash_entries, hash_targets_layers_and_realms};
 use crate::core::target::{TargetId, TargetLayerState, TargetState};
 #[allow(unused_imports)]
@@ -140,17 +140,9 @@ pub fn collect_target_dependencies(
             let Some(material_id) = model.material_id else {
                 continue;
             };
-            if let Some(material) = scene.realm3d.materials_standard.get(&material_id) {
+            if let Some(material) = scene.realm3d.materials.get(&material_id) {
                 for texture_id in material.texture_ids {
-                    if texture_id != STANDARD_INVALID_SLOT {
-                        used_textures.insert(texture_id);
-                    }
-                }
-                continue;
-            }
-            if let Some(material) = scene.realm3d.materials_pbr.get(&material_id) {
-                for texture_id in material.texture_ids {
-                    if texture_id != PBR_INVALID_SLOT {
+                    if texture_id != SHADER_MATERIAL_INVALID_SLOT {
                         used_textures.insert(texture_id);
                     }
                 }

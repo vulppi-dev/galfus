@@ -1,7 +1,7 @@
 use glam::{Vec2, Vec3, Vec4};
 
 use crate::core::realm::RealmId;
-use crate::core::resources::{PBR_INVALID_SLOT, STANDARD_INVALID_SLOT};
+use crate::core::resources::SHADER_MATERIAL_INVALID_SLOT;
 use crate::core::state::EngineState;
 use crate::core::target::TargetId;
 
@@ -229,35 +229,26 @@ fn resolve_ui_source_for_model(
     let realm3d = &engine_state.universal_state.scene.realm3d;
     let render_resources = &engine_state.universal_state.scene.render_resources;
 
-    if let Some(standard) = realm3d.materials_standard.get(&material_id) {
-        for (slot_index, &texture_id) in standard.texture_ids.iter().enumerate() {
-            if texture_id == STANDARD_INVALID_SLOT {
+    if let Some(material) = realm3d.materials.get(&material_id) {
+        for (slot_index, &texture_id) in material.texture_ids.iter().enumerate() {
+            if texture_id == SHADER_MATERIAL_INVALID_SLOT {
                 continue;
             }
             if let Some(binding) = render_resources.target_texture_binds.get(&texture_id)
                 && let Some(realm_id) = resolve_target_ui_realm(engine_state, binding.target_id)
             {
+                let uv_scale_bias = match material.preset {
+                    crate::core::resources::ShaderMaterialPreset::Standard => {
+                        material.data_standard.atlas_scale_bias[slot_index]
+                    }
+                    crate::core::resources::ShaderMaterialPreset::Pbr => {
+                        material.data_pbr.atlas_scale_bias[slot_index]
+                    }
+                };
                 return Some(UiTextureSource {
                     source_realm_id: realm_id,
                     target_id: binding.target_id,
-                    uv_scale_bias: standard.data.atlas_scale_bias[slot_index],
-                });
-            }
-        }
-    }
-
-    if let Some(pbr) = realm3d.materials_pbr.get(&material_id) {
-        for (slot_index, &texture_id) in pbr.texture_ids.iter().enumerate() {
-            if texture_id == PBR_INVALID_SLOT {
-                continue;
-            }
-            if let Some(binding) = render_resources.target_texture_binds.get(&texture_id)
-                && let Some(realm_id) = resolve_target_ui_realm(engine_state, binding.target_id)
-            {
-                return Some(UiTextureSource {
-                    source_realm_id: realm_id,
-                    target_id: binding.target_id,
-                    uv_scale_bias: pbr.data.atlas_scale_bias[slot_index],
+                    uv_scale_bias,
                 });
             }
         }

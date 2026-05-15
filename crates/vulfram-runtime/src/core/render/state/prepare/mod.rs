@@ -97,10 +97,7 @@ impl RenderState {
             bindings.outline_model_bind_group = None;
             bindings.shadow_model_bind_group = None;
             // Clear material bind groups
-            for mat in self.scene.materials_standard.values_mut() {
-                mat.bind_group = None;
-            }
-            for mat in self.scene.materials_pbr.values_mut() {
+            for mat in self.scene.materials.values_mut() {
                 mat.bind_group = None;
             }
         }

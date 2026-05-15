@@ -5,8 +5,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Deserialize, Serialize, Clone, Copy, PartialEq)]
 #[serde(rename_all = "kebab-case")]
 pub enum MaterialKind {
-    Standard,
-    Pbr,
+    Shader,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone, Copy)]
@@ -85,6 +84,7 @@ pub struct CmdMaterialCreateArgs {
     pub material_id: u32,
     pub label: Option<String>,
     pub kind: MaterialKind,
+    pub preset: Option<crate::core::resources::ShaderMaterialPreset>,
     #[serde(default)]
     pub options: Option<MaterialOptions>,
 }
@@ -104,6 +104,7 @@ pub struct CmdMaterialUpdateArgs {
     pub material_id: u32,
     pub label: Option<String>,
     pub kind: Option<MaterialKind>,
+    pub preset: Option<crate::core::resources::ShaderMaterialPreset>,
     #[serde(default)]
     pub options: Option<MaterialOptions>,
 }

@@ -1,9 +1,6 @@
 use super::types::*;
 use super::utils::{pack_pbr_material, pack_standard_material};
-use crate::core::resources::{
-    MATERIAL_FALLBACK_ID, MaterialPbrParams, MaterialPbrRecord, MaterialStandardParams,
-    MaterialStandardRecord,
-};
+use crate::core::resources::{MATERIAL_FALLBACK_ID, ShaderMaterialPreset, ShaderMaterialRecord};
 use crate::core::state::EngineState;
 
 pub fn engine_cmd_material_create(
@@ -12,50 +9,45 @@ pub fn engine_cmd_material_create(
 ) -> CmdResultMaterialCreate {
     let resources = &mut engine.universal_state.scene.realm3d;
 
-    if resources.materials_standard.contains_key(&args.material_id)
-        || resources.materials_pbr.contains_key(&args.material_id)
-    {
+    if resources.materials.contains_key(&args.material_id) {
         return CmdResultMaterialCreate {
             success: false,
             message: format!("Material with id {} already exists", args.material_id),
         };
     }
 
-    if args.kind != MaterialKind::Standard && args.kind != MaterialKind::Pbr {
+    if args.kind != MaterialKind::Shader {
         return CmdResultMaterialCreate {
             success: false,
             message: "Unsupported material kind".into(),
         };
     }
 
-    match args.kind {
-        MaterialKind::Standard => {
+    let preset = args.preset.unwrap_or(ShaderMaterialPreset::Standard);
+    let mut record = match preset {
+        ShaderMaterialPreset::Standard => ShaderMaterialRecord::new_standard(args.label.clone()),
+        ShaderMaterialPreset::Pbr => ShaderMaterialRecord::new_pbr(args.label.clone()),
+    };
+    match preset {
+        ShaderMaterialPreset::Standard => {
             let opts = match &args.options {
                 Some(MaterialOptions::Standard(opts)) => opts.clone(),
                 None => StandardOptions::default(),
                 _ => StandardOptions::default(),
             };
-            let mut record =
-                MaterialStandardRecord::new(args.label.clone(), MaterialStandardParams::default());
             pack_standard_material(args.material_id, &opts, &mut record);
-            record.bind_group = None;
-            resources
-                .materials_standard
-                .insert(args.material_id, record);
         }
-        MaterialKind::Pbr => {
+        ShaderMaterialPreset::Pbr => {
             let opts = match &args.options {
                 Some(MaterialOptions::Pbr(opts)) => opts.clone(),
                 None => PbrOptions::default(),
                 _ => PbrOptions::default(),
             };
-            let mut record =
-                MaterialPbrRecord::new(args.label.clone(), MaterialPbrParams::default());
             pack_pbr_material(args.material_id, &opts, &mut record);
-            record.bind_group = None;
-            resources.materials_pbr.insert(args.material_id, record);
         }
-    }
+    };
+    record.bind_group = None;
+    resources.materials.insert(args.material_id, record);
 
     for window_state in engine.window.states.values_mut() {
         window_state.is_dirty = true;
@@ -73,49 +65,31 @@ pub fn engine_cmd_material_update(
 ) -> CmdResultMaterialUpdate {
     let resources = &mut engine.universal_state.scene.realm3d;
 
-    let kind = args.kind.unwrap_or(MaterialKind::Standard); // Default to standard if not specified? Or check both?
-
-    match kind {
-        MaterialKind::Standard => {
-            if !resources.materials_standard.contains_key(&args.material_id) {
-                return CmdResultMaterialUpdate {
-                    success: false,
-                    message: format!("Material with id {} not found", args.material_id),
-                };
-            }
-        }
-        MaterialKind::Pbr => {
-            if !resources.materials_pbr.contains_key(&args.material_id) {
-                return CmdResultMaterialUpdate {
-                    success: false,
-                    message: format!("Material with id {} not found", args.material_id),
-                };
-            }
-        }
+    let Some(record) = resources.materials.get_mut(&args.material_id) else {
+        return CmdResultMaterialUpdate {
+            success: false,
+            message: format!("Material with id {} not found", args.material_id),
+        };
+    };
+    if let Some(preset) = args.preset {
+        record.preset = preset;
+        record.bind_group = None;
+        record.mark_dirty();
     }
 
     if let Some(label) = &args.label {
-        if let Some(record) = resources.materials_standard.get_mut(&args.material_id) {
-            record.label = Some(label.clone());
-        }
-        if let Some(record) = resources.materials_pbr.get_mut(&args.material_id) {
-            record.label = Some(label.clone());
-        }
+        record.label = Some(label.clone());
     }
 
     if let Some(opts) = &args.options {
         match opts {
             MaterialOptions::Standard(opts) => {
-                if let Some(record) = resources.materials_standard.get_mut(&args.material_id) {
-                    pack_standard_material(args.material_id, &opts, record);
-                    record.mark_dirty();
-                }
+                pack_standard_material(args.material_id, opts, record);
+                record.mark_dirty();
             }
             MaterialOptions::Pbr(opts) => {
-                if let Some(record) = resources.materials_pbr.get_mut(&args.material_id) {
-                    pack_pbr_material(args.material_id, &opts, record);
-                    record.mark_dirty();
-                }
+                pack_pbr_material(args.material_id, opts, record);
+                record.mark_dirty();
             }
         }
     }
@@ -143,13 +117,7 @@ pub fn engine_cmd_material_dispose(
         };
     }
 
-    let removed_standard = resources
-        .materials_standard
-        .remove(&args.material_id)
-        .is_some();
-    let removed_pbr = resources.materials_pbr.remove(&args.material_id).is_some();
-
-    if removed_standard || removed_pbr {
+    if resources.materials.remove(&args.material_id).is_some() {
         for window_state in engine.window.states.values_mut() {
             window_state.is_dirty = true;
         }

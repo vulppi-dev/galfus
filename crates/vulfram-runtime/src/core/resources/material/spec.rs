@@ -39,6 +39,9 @@ pub enum RenderSide {
 }
 
 pub const MATERIAL_FALLBACK_ID: u32 = 0;
+pub const SHADER_MATERIAL_INPUTS_PER_MATERIAL: u32 = 8;
+pub const SHADER_MATERIAL_TEXTURE_SLOTS: usize = 8;
+pub const SHADER_MATERIAL_INVALID_SLOT: u32 = u32::MAX;
 pub const STANDARD_INPUTS_PER_MATERIAL: u32 = 8;
 pub const STANDARD_TEXTURE_SLOTS: usize = 8;
 pub const STANDARD_INVALID_SLOT: u32 = u32::MAX;
@@ -48,6 +51,13 @@ pub const PBR_INVALID_SLOT: u32 = u32::MAX;
 pub const TEX_SOURCE_STANDALONE: u32 = 0;
 pub const TEX_SOURCE_ATLAS: u32 = 1;
 pub const TEX_SOURCE_INVALID: u32 = 2;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deserialize, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum ShaderMaterialPreset {
+    Standard,
+    Pbr,
+}
 
 #[derive(Debug, Clone, Copy, Pod, Zeroable, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -176,6 +186,75 @@ impl MaterialPbrRecord {
             data,
             inputs,
             texture_ids: [PBR_INVALID_SLOT; PBR_TEXTURE_SLOTS],
+            surface_type: SurfaceType::Opaque,
+            topology: PrimitiveTopology::TriangleList,
+            polygon_mode: PolygonMode::Fill,
+            render_side: RenderSide::Front,
+            is_dirty: true,
+            bind_group: None,
+        }
+    }
+
+    pub fn mark_dirty(&mut self) {
+        self.is_dirty = true;
+    }
+
+    pub fn clear_dirty(&mut self) {
+        self.is_dirty = false;
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct ShaderMaterialRecord {
+    pub label: Option<String>,
+    pub preset: ShaderMaterialPreset,
+    pub data_standard: MaterialStandardParams,
+    pub data_pbr: MaterialPbrParams,
+    pub inputs: Vec<Vec4>,
+    pub texture_ids: [u32; SHADER_MATERIAL_TEXTURE_SLOTS],
+    pub surface_type: SurfaceType,
+    pub topology: PrimitiveTopology,
+    pub polygon_mode: PolygonMode,
+    pub render_side: RenderSide,
+    pub is_dirty: bool,
+    pub bind_group: Option<wgpu::BindGroup>,
+}
+
+impl ShaderMaterialRecord {
+    pub fn new_standard(label: Option<String>) -> Self {
+        let mut inputs = vec![Vec4::ZERO; SHADER_MATERIAL_INPUTS_PER_MATERIAL as usize];
+        inputs[0] = Vec4::ONE;
+        inputs[1] = Vec4::ONE;
+        inputs[2] = Vec4::new(32.0, 0.0, 0.0, 0.0);
+        Self {
+            label,
+            preset: ShaderMaterialPreset::Standard,
+            data_standard: MaterialStandardParams::default(),
+            data_pbr: MaterialPbrParams::default(),
+            inputs,
+            texture_ids: [SHADER_MATERIAL_INVALID_SLOT; SHADER_MATERIAL_TEXTURE_SLOTS],
+            surface_type: SurfaceType::Opaque,
+            topology: PrimitiveTopology::TriangleList,
+            polygon_mode: PolygonMode::Fill,
+            render_side: RenderSide::Front,
+            is_dirty: true,
+            bind_group: None,
+        }
+    }
+
+    pub fn new_pbr(label: Option<String>) -> Self {
+        let mut inputs = vec![Vec4::ZERO; SHADER_MATERIAL_INPUTS_PER_MATERIAL as usize];
+        inputs[0] = Vec4::ONE;
+        inputs[1] = Vec4::ZERO;
+        inputs[2] = Vec4::new(0.0, 1.0, 1.0, 0.0);
+        inputs[3] = Vec4::new(1.0, 0.0, 0.0, 0.0);
+        Self {
+            label,
+            preset: ShaderMaterialPreset::Pbr,
+            data_standard: MaterialStandardParams::default(),
+            data_pbr: MaterialPbrParams::default(),
+            inputs,
+            texture_ids: [SHADER_MATERIAL_INVALID_SLOT; SHADER_MATERIAL_TEXTURE_SLOTS],
             surface_type: SurfaceType::Opaque,
             topology: PrimitiveTopology::TriangleList,
             polygon_mode: PolygonMode::Fill,

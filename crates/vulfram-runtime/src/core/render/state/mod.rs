@@ -15,7 +15,7 @@ use crate::core::resources::VertexAllocatorSystem;
 use crate::core::resources::shadow::ShadowManager;
 use crate::core::resources::{
     CameraNode, EnvironmentConfig, ForwardAtlasEntry, GeometryPrimitiveType, LightRecord,
-    MaterialPbrRecord, MaterialStandardRecord, ModelRecord, TargetTextureBinding, TextureRecord,
+    ModelRecord, ShaderMaterialRecord, TargetTextureBinding, TextureRecord,
 };
 use crate::core::ui::UiRenderer;
 
@@ -34,8 +34,7 @@ pub type Realm3dState = vulfram_realm_3d::Realm3dState<
     CameraNode,
     ModelRecord,
     LightRecord,
-    MaterialStandardRecord,
-    MaterialPbrRecord,
+    ShaderMaterialRecord,
     UniversalGeometryRecord,
     EnvironmentConfig,
 >;

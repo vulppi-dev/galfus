@@ -147,12 +147,28 @@ pub(super) fn sync_scene_from_realm_and_universal_resources(
     }
 
     vulfram_realm_3d::rebuild_record_map(
-        &mut render_state.scene.materials_standard,
-        &universal.scene.realm3d.materials_standard,
+        &mut render_state.scene.materials,
+        &universal.scene.realm3d.materials,
         |record, node| {
+            let current_data_bytes = match record.preset {
+                crate::core::resources::ShaderMaterialPreset::Standard => {
+                    bytemuck::bytes_of(&record.data_standard).to_vec()
+                }
+                crate::core::resources::ShaderMaterialPreset::Pbr => {
+                    bytemuck::bytes_of(&record.data_pbr).to_vec()
+                }
+            };
+            let next_data_bytes = match node.preset {
+                crate::core::resources::ShaderMaterialPreset::Standard => {
+                    bytemuck::bytes_of(&node.data_standard).to_vec()
+                }
+                crate::core::resources::ShaderMaterialPreset::Pbr => {
+                    bytemuck::bytes_of(&node.data_pbr).to_vec()
+                }
+            };
             let current_meta = vulfram_realm_3d::MaterialRecordMeta {
                 label: record.label.clone(),
-                data_bytes: bytemuck::bytes_of(&record.data).to_vec(),
+                data_bytes: current_data_bytes,
                 inputs_bytes: bytemuck::cast_slice(record.inputs.as_slice()).to_vec(),
                 texture_ids: record.texture_ids.to_vec(),
                 surface_type: record.surface_type as u32,
@@ -161,7 +177,7 @@ pub(super) fn sync_scene_from_realm_and_universal_resources(
             };
             let next_meta = vulfram_realm_3d::MaterialRecordMeta {
                 label: node.label.clone(),
-                data_bytes: bytemuck::bytes_of(&node.data).to_vec(),
+                data_bytes: next_data_bytes,
                 inputs_bytes: bytemuck::cast_slice(node.inputs.as_slice()).to_vec(),
                 texture_ids: node.texture_ids.to_vec(),
                 surface_type: node.surface_type as u32,
@@ -169,51 +185,15 @@ pub(super) fn sync_scene_from_realm_and_universal_resources(
                 polygon_mode: node.polygon_mode as u32,
             };
             record.label = node.label.clone();
-            record.data = node.data;
+            record.preset = node.preset;
+            record.data_standard = node.data_standard;
+            record.data_pbr = node.data_pbr;
             record.inputs = node.inputs.clone();
             record.texture_ids = node.texture_ids;
             record.surface_type = node.surface_type;
             record.topology = node.topology;
             record.polygon_mode = node.polygon_mode;
-            let update_plan =
-                vulfram_realm_3d::plan_material_record_update(&current_meta, &next_meta);
-            if update_plan.mark_dirty {
-                record.mark_dirty();
-            }
-            if update_plan.reset_bind_group {
-                record.bind_group = None;
-            }
-        },
-    );
-    vulfram_realm_3d::rebuild_record_map(
-        &mut render_state.scene.materials_pbr,
-        &universal.scene.realm3d.materials_pbr,
-        |record, node| {
-            let current_meta = vulfram_realm_3d::MaterialRecordMeta {
-                label: record.label.clone(),
-                data_bytes: bytemuck::bytes_of(&record.data).to_vec(),
-                inputs_bytes: bytemuck::cast_slice(record.inputs.as_slice()).to_vec(),
-                texture_ids: record.texture_ids.to_vec(),
-                surface_type: record.surface_type as u32,
-                topology: record.topology as u32,
-                polygon_mode: record.polygon_mode as u32,
-            };
-            let next_meta = vulfram_realm_3d::MaterialRecordMeta {
-                label: node.label.clone(),
-                data_bytes: bytemuck::bytes_of(&node.data).to_vec(),
-                inputs_bytes: bytemuck::cast_slice(node.inputs.as_slice()).to_vec(),
-                texture_ids: node.texture_ids.to_vec(),
-                surface_type: node.surface_type as u32,
-                topology: node.topology as u32,
-                polygon_mode: node.polygon_mode as u32,
-            };
-            record.label = node.label.clone();
-            record.data = node.data;
-            record.inputs = node.inputs.clone();
-            record.texture_ids = node.texture_ids;
-            record.surface_type = node.surface_type;
-            record.topology = node.topology;
-            record.polygon_mode = node.polygon_mode;
+            record.render_side = node.render_side;
             let update_plan =
                 vulfram_realm_3d::plan_material_record_update(&current_meta, &next_meta);
             if update_plan.mark_dirty {

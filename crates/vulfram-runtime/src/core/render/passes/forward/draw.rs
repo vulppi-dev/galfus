@@ -175,14 +175,14 @@ fn draw_group(
         let batch_count = (i - batch_start) as u32;
 
         if is_pbr {
-            if let Some(material) = scene.materials_pbr.get(&mat_id) {
+            if let Some(material) = scene.materials.get(&mat_id) {
                 if let Some(group) = material.bind_group.as_ref() {
                     let material_offset = bindings.material_pbr_pool.get_offset(mat_id) as u32;
                     render_pass.set_bind_group(1, group, &[material_offset]);
                 }
             }
         } else {
-            if let Some(material) = scene.materials_standard.get(&mat_id) {
+            if let Some(material) = scene.materials.get(&mat_id) {
                 if let Some(group) = material.bind_group.as_ref() {
                     let material_offset = bindings.material_standard_pool.get_offset(mat_id) as u32;
                     render_pass.set_bind_group(1, group, &[material_offset]);

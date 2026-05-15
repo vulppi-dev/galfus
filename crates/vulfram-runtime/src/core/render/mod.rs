@@ -99,13 +99,12 @@ pub fn ensure_runtime_render_defaults(universal: &mut crate::core::realm::Univer
     universal
         .scene
         .realm3d
-        .materials_standard
+        .materials
         .entry(crate::core::resources::MATERIAL_FALLBACK_ID)
         .or_insert_with(|| {
-            crate::core::resources::MaterialStandardRecord::new(
-                Some("Fallback Material".into()),
-                crate::core::resources::MaterialStandardParams::default(),
-            )
+            crate::core::resources::ShaderMaterialRecord::new_standard(Some(
+                "Fallback Material".into(),
+            ))
         });
 }
 

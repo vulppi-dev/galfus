@@ -10,8 +10,7 @@ pub(crate) fn collect_objects(
     camera_record: &CameraRecord,
     vertex_sys: &crate::core::resources::VertexAllocatorSystem,
 ) -> u32 {
-    let materials_standard = &scene.materials_standard;
-    let materials_pbr = &scene.materials_pbr;
+    let materials = &scene.materials;
     let frustum = Frustum::from_view_projection(camera_record.data.view_projection);
 
     let mut instance_cursor = 0;
@@ -48,7 +47,12 @@ pub(crate) fn collect_objects(
             }
         };
 
-        if let Some(record) = materials_pbr.get(&material_id) {
+        if let Some(record) = materials.get(&material_id)
+            && matches!(
+                record.preset,
+                crate::core::resources::ShaderMaterialPreset::Pbr
+            )
+        {
             let item = DrawItem {
                 model_id: *model_id,
                 geometry_id: model_record.geometry_id,
@@ -69,10 +73,10 @@ pub(crate) fn collect_objects(
 
         let material_id = model_record
             .material_id
-            .filter(|id| materials_standard.contains_key(id))
+            .filter(|id| materials.contains_key(id))
             .unwrap_or(MATERIAL_FALLBACK_ID);
 
-        let (surface_type, topology, polygon_mode, render_side) = materials_standard
+        let (surface_type, topology, polygon_mode, render_side) = materials
             .get(&material_id)
             .map(|record| {
                 (
