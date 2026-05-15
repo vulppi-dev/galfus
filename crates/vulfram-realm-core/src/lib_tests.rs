@@ -188,12 +188,8 @@ fn target_graph_planner_cuts_cycles_deterministically() {
         },
     ];
 
-    let plan = TargetGraphPlanner.build_plan(
-        &targets,
-        &dependencies,
-        &HashMap::new(),
-        &HashSet::new(),
-    );
+    let plan =
+        TargetGraphPlanner.build_plan(&targets, &dependencies, &HashMap::new(), &HashSet::new());
     assert_eq!(plan.order, vec![TargetId(10), TargetId(20)]);
     assert_eq!(plan.cut_edges.len(), 2);
 }

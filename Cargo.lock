@@ -4080,6 +4080,7 @@ dependencies = [
  "bytemuck",
  "egui",
  "glam 0.30.10",
+ "naga",
  "rmp-serde",
  "serde",
  "vulfram-platform",

@@ -2,8 +2,8 @@ use std::collections::HashMap;
 
 use crate::core::realm::{RealmKind, RealmState, RealmTable};
 use crate::core::target::{
-    TargetGraphCache, TargetGraphPlanner, TargetId, TargetKind, TargetLayerLayout,
-    TargetLayerState, TargetState, TargetEdge,
+    TargetEdge, TargetGraphCache, TargetGraphPlanner, TargetId, TargetKind, TargetLayerLayout,
+    TargetLayerState, TargetState,
 };
 
 fn window_target(window_id: u32) -> TargetState {

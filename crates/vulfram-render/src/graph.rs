@@ -1,3 +1,4 @@
+use crate::RenderGraphShaderSpec;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::hash::{DefaultHasher, Hash, Hasher};
@@ -121,6 +122,8 @@ pub struct RenderGraphNode {
     pub enabled: bool,
     #[serde(default)]
     pub params: HashMap<String, RenderGraphValue>,
+    #[serde(default)]
+    pub shader: Option<RenderGraphShaderSpec>,
 }
 
 fn default_graph_node_enabled() -> bool {
@@ -276,10 +279,21 @@ pub fn validate_graph(desc: &RenderGraphDesc) -> Result<RenderGraphPlan, String>
         if !is_known_pass(&node.pass_id) {
             return Err(format!("Unknown pass_id: {}", node.pass_id));
         }
+        if let Some(shader) = &node.shader {
+            crate::shader_dsl::validate_shader_spec(
+                shader,
+                &node.inputs,
+                &node.outputs,
+                &node.params,
+            )
+            .map_err(|err| format!("Invalid shader in node '{}': {}", node.node_id, err))?;
+        }
     }
 
     for edge in &desc.edges {
-        if !node_index.contains_key(&edge.from_node_id) || !node_index.contains_key(&edge.to_node_id) {
+        if !node_index.contains_key(&edge.from_node_id)
+            || !node_index.contains_key(&edge.to_node_id)
+        {
             continue;
         }
         if !node_index.contains_key(&edge.from_node_id) {
@@ -332,7 +346,8 @@ pub fn validate_graph(desc: &RenderGraphDesc) -> Result<RenderGraphPlan, String>
     let derived_edges = crate::validation::derive_graph_edges(&filtered_nodes);
     let mut all_edges: Vec<RenderGraphEdge> = Vec::new();
     for edge in &desc.edges {
-        if node_index.contains_key(&edge.from_node_id) && node_index.contains_key(&edge.to_node_id) {
+        if node_index.contains_key(&edge.from_node_id) && node_index.contains_key(&edge.to_node_id)
+        {
             all_edges.push(edge.clone());
         }
     }

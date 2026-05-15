@@ -143,7 +143,8 @@ pub(super) fn validate_graph_semantics(
             }
         }
         let mut sorted_writers = resource_writers.clone();
-        sorted_writers.sort_by_key(|node_idx| (topo_pos[*node_idx], desc.nodes[*node_idx].priority));
+        sorted_writers
+            .sort_by_key(|node_idx| (topo_pos[*node_idx], desc.nodes[*node_idx].priority));
         for writer_pair in sorted_writers.windows(2) {
             let previous_writer = writer_pair[0];
             let next_writer = writer_pair[1];

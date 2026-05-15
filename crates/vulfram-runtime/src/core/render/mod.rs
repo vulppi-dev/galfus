@@ -16,9 +16,8 @@ use crate::core::resources::RenderTarget;
 use crate::core::state::EngineState;
 use crate::core::ui::events::UiEvent;
 use frame_helpers::{
-    apply_realm_environment_bindings, apply_target_size_requests,
-    build_target_surface_map, collect_window_camera_target_sizes, refresh_window_target_textures,
-    should_render_realm,
+    apply_realm_environment_bindings, apply_target_size_requests, build_target_surface_map,
+    collect_window_camera_target_sizes, refresh_window_target_textures, should_render_realm,
 };
 use graph_execute::execute_graph_to_view;
 use realm_graph::{
@@ -206,7 +205,11 @@ pub fn render_frames(engine_state: &mut EngineState) {
             frame_id: invocation.frame_id,
         })
         .collect();
-    frame_report.target_autolink_failures = engine_state.universal_state.targets.target_autolink_failures.clone();
+    frame_report.target_autolink_failures = engine_state
+        .universal_state
+        .targets
+        .target_autolink_failures
+        .clone();
     let realm_windows = map_realms_to_windows(&engine_state.universal_state);
     collect_present_sizes(
         &engine_state.universal_state,
@@ -225,7 +228,11 @@ pub fn render_frames(engine_state: &mut EngineState) {
         &engine_state.universal_state.targets.targets,
         &engine_state.universal_state.targets.auto_links,
     );
-    let blocked_target_ids: HashSet<_> = target_plan.cut_edges.iter().map(|edge| edge.parent).collect();
+    let blocked_target_ids: HashSet<_> = target_plan
+        .cut_edges
+        .iter()
+        .map(|edge| edge.parent)
+        .collect();
     refresh_window_target_textures(
         &mut engine_state.render.states,
         &engine_state
@@ -259,7 +266,9 @@ pub fn render_frames(engine_state: &mut EngineState) {
                 .entries
                 .get(&target_id)
                 .and_then(|target| target.window_id);
-            let Some(window_id) = target_window_id.or_else(|| realm_windows.get(&realm_id).copied()) else {
+            let Some(window_id) =
+                target_window_id.or_else(|| realm_windows.get(&realm_id).copied())
+            else {
                 continue;
             };
             let Some(window_state) = engine_state.window.states.get(&window_id) else {

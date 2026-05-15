@@ -11,6 +11,7 @@ mod realm_policy;
 mod render_bootstrap;
 mod resource_init;
 mod samplers;
+mod shader_dsl;
 mod shaders;
 mod target;
 mod ui_actions;
@@ -60,6 +61,7 @@ pub use render_bootstrap::{
 };
 pub use resource_init::build_resource_library;
 pub use samplers::{SamplerSet, create_standard_samplers};
+pub use shader_dsl::{RenderGraphShaderSpec, RenderGraphShaderType, validate_shader_spec};
 pub use shaders::{ShaderModules, create_shader_modules};
 pub use target::{
     RenderTarget, ensure_render_target, ensure_surface_target, estimate_texture_bytes,

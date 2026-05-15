@@ -99,7 +99,9 @@ impl GraphRegistryKind {
     }
 }
 
-fn classify_graph_registry(plan: &crate::core::render::graph::RenderGraphPlan) -> Option<GraphRegistryKind> {
+fn classify_graph_registry(
+    plan: &crate::core::render::graph::RenderGraphPlan,
+) -> Option<GraphRegistryKind> {
     if vulfram_render::graph_is_compatible_with_realm_kind(plan, RealmKind::TwoD) {
         return Some(GraphRegistryKind::TwoD);
     }
@@ -178,20 +180,21 @@ pub fn engine_cmd_render_graph_upsert(
     } else if let Some(state) = cached_3d {
         (state, GraphRegistryKind::ThreeD, true)
     } else {
-        let graph_state = match crate::core::render::graph::RenderGraphState::from_desc(args.graph.clone()) {
-            Ok(state) => state,
-            Err(err) => {
-                let result = emit_render_graph_error(
-                    engine,
-                    format!("Invalid render graph {}: {}", args.render_graph_id, err),
-                    "render-graph-upsert",
-                );
-                return CmdResultRenderGraphUpsert {
-                    success: result.success,
-                    message: result.message,
-                };
-            }
-        };
+        let graph_state =
+            match crate::core::render::graph::RenderGraphState::from_desc(args.graph.clone()) {
+                Ok(state) => state,
+                Err(err) => {
+                    let result = emit_render_graph_error(
+                        engine,
+                        format!("Invalid render graph {}: {}", args.render_graph_id, err),
+                        "render-graph-upsert",
+                    );
+                    return CmdResultRenderGraphUpsert {
+                        success: result.success,
+                        message: result.message,
+                    };
+                }
+            };
         let Some(graph_kind) = classify_graph_registry(graph_state.plan()) else {
             let result = emit_render_graph_error(
                 engine,
@@ -209,13 +212,19 @@ pub fn engine_cmd_render_graph_upsert(
         (graph_state, graph_kind, false)
     };
     if cache_hit {
-        engine.universal_state.render_catalog.render_graph_compile_cache_hits = engine
+        engine
+            .universal_state
+            .render_catalog
+            .render_graph_compile_cache_hits = engine
             .universal_state
             .render_catalog
             .render_graph_compile_cache_hits
             .saturating_add(1);
     } else {
-        engine.universal_state.render_catalog.render_graph_compile_cache_misses = engine
+        engine
+            .universal_state
+            .render_catalog
+            .render_graph_compile_cache_misses = engine
             .universal_state
             .render_catalog
             .render_graph_compile_cache_misses
@@ -296,11 +305,17 @@ pub fn engine_cmd_render_graph_upsert(
         let (registry, cache) = match graph_kind {
             GraphRegistryKind::ThreeD => (
                 &mut engine.universal_state.render_catalog.render_graphs_3d,
-                &mut engine.universal_state.render_catalog.render_graph_plan_cache_3d,
+                &mut engine
+                    .universal_state
+                    .render_catalog
+                    .render_graph_plan_cache_3d,
             ),
             GraphRegistryKind::TwoD => (
                 &mut engine.universal_state.render_catalog.render_graphs_2d,
-                &mut engine.universal_state.render_catalog.render_graph_plan_cache_2d,
+                &mut engine
+                    .universal_state
+                    .render_catalog
+                    .render_graph_plan_cache_2d,
             ),
         };
         let existed = registry

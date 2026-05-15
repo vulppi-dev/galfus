@@ -2,8 +2,8 @@ use std::collections::HashMap;
 
 use crate::{
     LogicalId, RenderGraphDesc, RenderGraphEdge, RenderGraphEdgeReason, RenderGraphLifetime,
-    RenderGraphNode, RenderGraphResource, RenderGraphResourceKind, RenderGraphState,
-    validate_graph,
+    RenderGraphNode, RenderGraphResource, RenderGraphResourceKind, RenderGraphShaderSpec,
+    RenderGraphShaderType, RenderGraphState, validate_graph,
 };
 use vulfram_realm_core::{
     RENDER_PASS_BLOOM, RENDER_PASS_FORWARD, RENDER_PASS_LIGHT_CULL, RENDER_PASS_POST,
@@ -23,7 +23,12 @@ fn resource(name: &str) -> RenderGraphResource {
     }
 }
 
-fn node(pass_id: &str, node_id: &str, inputs: Vec<LogicalId>, outputs: Vec<LogicalId>) -> RenderGraphNode {
+fn node(
+    pass_id: &str,
+    node_id: &str,
+    inputs: Vec<LogicalId>,
+    outputs: Vec<LogicalId>,
+) -> RenderGraphNode {
     RenderGraphNode {
         node_id: id(node_id),
         pass_id: pass_id.into(),
@@ -33,6 +38,7 @@ fn node(pass_id: &str, node_id: &str, inputs: Vec<LogicalId>, outputs: Vec<Logic
         priority: 0,
         enabled: true,
         params: HashMap::new(),
+        shader: None,
     }
 }
 
@@ -137,4 +143,31 @@ fn rejects_dangerous_same_priority_overwrite_when_both_read_write_same_output() 
     };
     let err = validate_graph(&desc).expect_err("graph must fail");
     assert!(err.contains("dangerous same-priority overwrite"));
+}
+
+#[test]
+fn rejects_node_shader_with_forbidden_tokens() {
+    let mut custom = node(
+        RENDER_PASS_POST,
+        "post_with_shader",
+        vec![id("color")],
+        vec![id("color")],
+    );
+    custom.shader = Some(RenderGraphShaderSpec {
+        shader_type: RenderGraphShaderType::Screen,
+        source: "@group(0) @binding(0) var<uniform> x: vec4<f32>; fn fragment(input: FragmentInput) -> FragmentOutput { var out: FragmentOutput; out.color = sample_color(input.uv); return out; }".into(),
+        params: HashMap::new(),
+    });
+    let desc = RenderGraphDesc {
+        graph_id: id("g"),
+        nodes: vec![
+            node(RENDER_PASS_FORWARD, "seed", vec![], vec![id("color")]),
+            custom,
+        ],
+        edges: vec![],
+        resources: vec![resource("color")],
+        fallback: false,
+    };
+    let err = validate_graph(&desc).expect_err("shader with forbidden tokens should fail");
+    assert!(err.contains("Invalid shader in node"));
 }

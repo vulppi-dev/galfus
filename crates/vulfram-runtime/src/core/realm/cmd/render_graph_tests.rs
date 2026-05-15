@@ -21,6 +21,7 @@ fn valid_graph(graph_name: &str, resource_name: &str) -> RenderGraphDesc {
             priority: 0,
             enabled: true,
             params: HashMap::new(),
+            shader: None,
         }],
         edges: Vec::new(),
         resources: vec![RenderGraphResource {
@@ -45,6 +46,7 @@ fn invalid_graph_missing_resource(graph_name: &str) -> RenderGraphDesc {
             priority: 0,
             enabled: true,
             params: HashMap::new(),
+            shader: None,
         }],
         edges: Vec::new(),
         resources: Vec::new(),
@@ -64,6 +66,7 @@ fn ui_only_graph(graph_name: &str, resource_name: &str) -> RenderGraphDesc {
             priority: 0,
             enabled: true,
             params: HashMap::new(),
+            shader: None,
         }],
         edges: Vec::new(),
         resources: vec![RenderGraphResource {
@@ -156,7 +159,11 @@ fn render_graph_upsert_and_list_includes_desc_hash_and_passes() {
             graph: valid_graph("custom_a", "shadow_atlas_custom_a"),
         },
     );
-    assert!(upsert_again.success, "upsert again failed: {}", upsert_again.message);
+    assert!(
+        upsert_again.success,
+        "upsert again failed: {}",
+        upsert_again.message
+    );
     assert_eq!(
         engine
             .universal_state

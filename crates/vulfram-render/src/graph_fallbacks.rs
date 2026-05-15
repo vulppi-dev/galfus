@@ -22,6 +22,7 @@ pub fn ui_fallback_graph() -> RenderGraphDesc {
             priority: 100,
             enabled: true,
             params: HashMap::new(),
+            shader: None,
         }],
         edges: Vec::new(),
         resources: vec![RenderGraphResource {
@@ -47,6 +48,7 @@ pub fn fallback_graph() -> RenderGraphDesc {
                 priority: 10,
                 enabled: true,
                 params: HashMap::new(),
+                shader: None,
             },
             RenderGraphNode {
                 node_id: LogicalId::Str("light_cull_pass".into()),
@@ -57,6 +59,7 @@ pub fn fallback_graph() -> RenderGraphDesc {
                 priority: 20,
                 enabled: true,
                 params: HashMap::new(),
+                shader: None,
             },
             RenderGraphNode {
                 node_id: LogicalId::Str("skybox_pass".into()),
@@ -67,6 +70,7 @@ pub fn fallback_graph() -> RenderGraphDesc {
                 priority: 30,
                 enabled: true,
                 params: HashMap::new(),
+                shader: None,
             },
             RenderGraphNode {
                 node_id: LogicalId::Str("forward_pass".into()),
@@ -83,6 +87,7 @@ pub fn fallback_graph() -> RenderGraphDesc {
                 priority: 40,
                 enabled: true,
                 params: HashMap::new(),
+                shader: None,
             },
             RenderGraphNode {
                 node_id: LogicalId::Str("outline_pass".into()),
@@ -93,6 +98,7 @@ pub fn fallback_graph() -> RenderGraphDesc {
                 priority: 50,
                 enabled: true,
                 params: HashMap::new(),
+                shader: None,
             },
             RenderGraphNode {
                 node_id: LogicalId::Str("ssao_pass".into()),
@@ -103,6 +109,7 @@ pub fn fallback_graph() -> RenderGraphDesc {
                 priority: 60,
                 enabled: true,
                 params: HashMap::new(),
+                shader: None,
             },
             RenderGraphNode {
                 node_id: LogicalId::Str("ssao_blur_pass".into()),
@@ -116,6 +123,7 @@ pub fn fallback_graph() -> RenderGraphDesc {
                 priority: 70,
                 enabled: true,
                 params: HashMap::new(),
+                shader: None,
             },
             RenderGraphNode {
                 node_id: LogicalId::Str("bloom_pass".into()),
@@ -126,6 +134,7 @@ pub fn fallback_graph() -> RenderGraphDesc {
                 priority: 80,
                 enabled: true,
                 params: HashMap::new(),
+                shader: None,
             },
             RenderGraphNode {
                 node_id: LogicalId::Str("post_pass".into()),
@@ -141,6 +150,7 @@ pub fn fallback_graph() -> RenderGraphDesc {
                 priority: 90,
                 enabled: true,
                 params: HashMap::new(),
+                shader: None,
             },
             RenderGraphNode {
                 node_id: LogicalId::Str("compose_pass".into()),
@@ -151,6 +161,7 @@ pub fn fallback_graph() -> RenderGraphDesc {
                 priority: 100,
                 enabled: true,
                 params: HashMap::new(),
+                shader: None,
             },
             RenderGraphNode {
                 node_id: LogicalId::Str("ui_pass".into()),
@@ -161,6 +172,7 @@ pub fn fallback_graph() -> RenderGraphDesc {
                 priority: 110,
                 enabled: true,
                 params: HashMap::new(),
+                shader: None,
             },
         ],
         edges: vec![

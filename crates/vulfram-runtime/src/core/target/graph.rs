@@ -2,9 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 use crate::core::realm::{RealmId, RealmTable};
 use crate::core::render::SceneRuntimeState;
-use crate::core::resources::{
-    PBR_INVALID_SLOT, STANDARD_INVALID_SLOT, TargetTextureBinding,
-};
+use crate::core::resources::{PBR_INVALID_SLOT, STANDARD_INVALID_SLOT, TargetTextureBinding};
 use crate::core::target::graph_hash::{hash_entries, hash_targets_layers_and_realms};
 use crate::core::target::{TargetId, TargetLayerState, TargetState};
 #[allow(unused_imports)]
@@ -56,7 +54,8 @@ impl TargetGraphCache {
     ) -> Option<&TargetGraphDiff> {
         let dependency_hash = hash_target_dependencies(target_dependencies);
         let dependency_changed = dependency_hash != self.last_dependency_hash;
-        let current_hash = hash_targets_layers_and_realms(targets, layers, realms) ^ dependency_hash;
+        let current_hash =
+            hash_targets_layers_and_realms(targets, layers, realms) ^ dependency_hash;
         if current_hash == self.last_hash {
             self.last_diff = None;
             return None;
@@ -93,7 +92,8 @@ impl TargetGraphCache {
         self.last_hash = current_hash;
         self.last_dependency_hash = dependency_hash;
         if diff.plan_dirty {
-            self.last_plan = TargetGraphPlanner.build_plan(targets, target_dependencies, layers, realms);
+            self.last_plan =
+                TargetGraphPlanner.build_plan(targets, target_dependencies, layers, realms);
         }
         self.last_diff = Some(diff);
         self.last_diff.as_ref()
@@ -163,14 +163,21 @@ pub fn collect_target_dependencies(
 
     let mut targets_by_realm: HashMap<u32, Vec<TargetId>> = HashMap::new();
     for ((realm_id, target_id), _layer) in layers {
-        targets_by_realm.entry(*realm_id).or_default().push(*target_id);
+        targets_by_realm
+            .entry(*realm_id)
+            .or_default()
+            .push(*target_id);
     }
     for targets in targets_by_realm.values_mut() {
         targets.sort_by_key(|id| id.0);
         targets.dedup();
     }
 
-    build_target_dependency_edges(&scene.render_resources.target_texture_binds, &textures_by_realm, &targets_by_realm)
+    build_target_dependency_edges(
+        &scene.render_resources.target_texture_binds,
+        &textures_by_realm,
+        &targets_by_realm,
+    )
 }
 
 fn build_target_dependency_edges(
@@ -215,10 +222,14 @@ pub fn collect_render_invocations(
         if !layer.layout.enabled || layer.layout.opacity <= 0.0 {
             continue;
         }
-        layers_by_target.entry(layer.target_id).or_default().push(layer);
+        layers_by_target
+            .entry(layer.target_id)
+            .or_default()
+            .push(layer);
     }
     for target_layers in layers_by_target.values_mut() {
-        target_layers.sort_by_key(|layer| (layer.layout.z_index, layer.realm_id, layer.target_id.0));
+        target_layers
+            .sort_by_key(|layer| (layer.layout.z_index, layer.realm_id, layer.target_id.0));
     }
 
     let mut invocations = Vec::new();
@@ -259,7 +270,9 @@ fn resolve_target_size(
             .window_id
             .and_then(|window_id| window_sizes.get(&window_id).copied())
             .unwrap_or_else(|| glam::UVec2::new(1, 1)),
-        crate::core::target::TargetKind::Texture => target.size.unwrap_or_else(|| glam::UVec2::new(1, 1)),
+        crate::core::target::TargetKind::Texture => {
+            target.size.unwrap_or_else(|| glam::UVec2::new(1, 1))
+        }
     }
 }
 

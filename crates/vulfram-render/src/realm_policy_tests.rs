@@ -20,6 +20,7 @@ fn realm_policy_validates_passes_by_kind() {
             priority: 0,
             enabled: true,
             params: Default::default(),
+            shader: None,
         }],
         order: vec![0],
     };
@@ -33,6 +34,7 @@ fn realm_policy_validates_passes_by_kind() {
             priority: 0,
             enabled: true,
             params: Default::default(),
+            shader: None,
         }],
         order: vec![0],
     };
