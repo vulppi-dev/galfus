@@ -9,11 +9,13 @@ pub struct ComposeOverlay<'a> {
     pub rect: glam::Vec4,
     pub clip: Option<glam::Vec4>,
     pub blend: Option<wgpu::BlendState>,
+    pub opacity: f32,
 }
 
 pub fn pass_compose_overlays(
     render_state: &mut RenderState,
     device: &wgpu::Device,
+    queue: &wgpu::Queue,
     encoder: &mut wgpu::CommandEncoder,
     target_view: &wgpu::TextureView,
     target_format: wgpu::TextureFormat,
@@ -90,7 +92,7 @@ pub fn pass_compose_overlays(
                 },
                 fragment: Some(wgpu::FragmentState {
                     module: &library.compose_shader,
-                    entry_point: Some("fs_main"),
+                    entry_point: Some("fs_overlay"),
                     targets: &[Some(wgpu::ColorTargetState {
                         format: target_format,
                         blend: overlay.blend,
@@ -115,6 +117,8 @@ pub fn pass_compose_overlays(
             &library.fallback_view,
             uniform_buffer,
         );
+        let opacity_uniform = [overlay.opacity.clamp(0.0, 1.0), 0.0, 0.0, 0.0];
+        queue.write_buffer(uniform_buffer, 0, bytemuck::bytes_of(&opacity_uniform));
 
         render_pass.set_pipeline(pipeline);
         render_pass.set_viewport(

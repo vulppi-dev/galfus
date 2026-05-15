@@ -22,6 +22,13 @@ fn fs_main(in: VertexOutput) -> @location(0) vec4<f32> {
     return textureSample(t_diffuse, s_diffuse, in.uv);
 }
 
+@fragment
+fn fs_overlay(in: VertexOutput) -> @location(0) vec4<f32> {
+    let color = textureSample(t_diffuse, s_diffuse, in.uv);
+    let opacity = clamp(_post.x, 0.0, 1.0);
+    return vec4<f32>(color.rgb, color.a * opacity);
+}
+
 fn cover_uv(uv: vec2<f32>, cover: vec4<f32>) -> vec2<f32> {
     return uv * cover.xy + cover.zw;
 }

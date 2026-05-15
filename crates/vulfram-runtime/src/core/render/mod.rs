@@ -245,6 +245,7 @@ pub fn render_frames(engine_state: &mut EngineState) {
             };
             let layer_blend_mode = layer_state.layout.blend_mode;
             let layer_clip = layer_state.layout.clip;
+            let layer_opacity = layer_state.layout.opacity;
             let Some(surface_id) = target_surface_map
                 .get(&target_id)
                 .copied()
@@ -465,10 +466,12 @@ pub fn render_frames(engine_state: &mut EngineState) {
                 ),
                 clip: layer_clip,
                 blend: overlay_blend,
+                opacity: layer_opacity,
             }];
             passes::pass_compose_overlays(
                 render_state,
                 device,
+                queue,
                 &mut encoder,
                 &target_view,
                 target_format,

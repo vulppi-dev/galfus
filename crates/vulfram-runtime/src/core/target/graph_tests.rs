@@ -290,3 +290,86 @@ fn collect_render_invocations_supports_same_realm_multiple_target_sizes() {
     assert_eq!(invocations[0].render_size_px, glam::UVec2::new(1920, 1080));
     assert_eq!(invocations[1].render_size_px, glam::UVec2::new(512, 512));
 }
+
+#[test]
+fn collect_render_invocations_filters_disabled_and_sorts_by_layer_order() {
+    let targets = HashMap::from([(
+        TargetId(21),
+        TargetState {
+            kind: TargetKind::Texture,
+            window_id: None,
+            size: Some(glam::UVec2::new(800, 600)),
+            format_policy: None,
+            alpha_policy: None,
+            msaa_samples: None,
+        },
+    )]);
+    let layers = HashMap::from([
+        (
+            (1, TargetId(21)),
+            TargetLayerState {
+                realm_id: 1,
+                target_id: TargetId(21),
+                layout: TargetLayerLayout {
+                    z_index: 20,
+                    ..TargetLayerLayout::default()
+                },
+                camera_id: None,
+                environment_id: None,
+            },
+        ),
+        (
+            (2, TargetId(21)),
+            TargetLayerState {
+                realm_id: 2,
+                target_id: TargetId(21),
+                layout: TargetLayerLayout {
+                    enabled: false,
+                    z_index: 10,
+                    ..TargetLayerLayout::default()
+                },
+                camera_id: None,
+                environment_id: None,
+            },
+        ),
+        (
+            (3, TargetId(21)),
+            TargetLayerState {
+                realm_id: 3,
+                target_id: TargetId(21),
+                layout: TargetLayerLayout {
+                    opacity: 0.0,
+                    z_index: 0,
+                    ..TargetLayerLayout::default()
+                },
+                camera_id: None,
+                environment_id: None,
+            },
+        ),
+        (
+            (4, TargetId(21)),
+            TargetLayerState {
+                realm_id: 4,
+                target_id: TargetId(21),
+                layout: TargetLayerLayout {
+                    z_index: 5,
+                    ..TargetLayerLayout::default()
+                },
+                camera_id: None,
+                environment_id: None,
+            },
+        ),
+    ]);
+
+    let invocations = crate::core::target::collect_render_invocations(
+        &[TargetId(21)],
+        &targets,
+        &layers,
+        &HashMap::new(),
+        1,
+    );
+
+    assert_eq!(invocations.len(), 2);
+    assert_eq!(invocations[0].realm_id, 4);
+    assert_eq!(invocations[1].realm_id, 1);
+}
