@@ -10,21 +10,19 @@ mod scene_sync;
 pub mod state;
 mod ui_platform_actions;
 use crate::core::profiling::gpu::apply_gpu_timing_report;
-use crate::core::realm::{FrameReport, RealmGraphPlanner, apply_target_graph_stats};
+use crate::core::realm::{FrameReport, apply_target_graph_stats};
 use crate::core::render::passes::UiPlatformAction;
 use crate::core::state::EngineState;
-use crate::core::system::push_error_event;
 use crate::core::ui::events::UiEvent;
 use frame_helpers::{
-    apply_realm_environment_bindings, apply_target_size_requests, build_soft_cut_diagnostic,
+    apply_realm_environment_bindings, apply_target_size_requests,
     build_target_surface_map, collect_window_camera_target_sizes, refresh_window_target_textures,
     should_render_realm,
 };
 use graph_execute::execute_graph_to_view;
 use realm_graph::{
-    collect_connectors_by_realm, collect_cut_connectors, collect_present_sizes,
-    collect_surface_views, compose_realm_connectors, ensure_surface_target, map_realms_to_windows,
-    resolve_realm_surface, update_surface_cache,
+    collect_present_sizes, collect_surface_views, ensure_surface_target, map_realms_to_windows,
+    resolve_realm_surface,
 };
 pub use runtime::RenderManager;
 use scene_sync::{sync_scene_from_realm_and_universal_resources, sync_window_geometry_registry};
@@ -140,22 +138,10 @@ pub fn render_frames(engine_state: &mut EngineState) {
     #[cfg(target_arch = "wasm32")]
     let total_start = now_ns();
 
-    // 1. Render realms in target-scheduler order (fallback keeps legacy continuity)
+    // 1. Render realms in target-scheduler order
     let mut windows_ns: u64 = 0;
     let mut shadow_ns: u64 = 0;
-    let realm_plan = RealmGraphPlanner::default().build_plan(&engine_state.universal_state);
-    let cut_connectors = collect_cut_connectors(&realm_plan);
-    update_surface_cache(&mut engine_state.universal_state, &cut_connectors);
-    let previous_cut_edges = engine_state
-        .universal_state
-        .composition
-        .frame_report
-        .cut_edges
-        .len();
-    let mut frame_report = FrameReport::from_plan(
-        &realm_plan,
-        &engine_state.universal_state.composition.surface_cache,
-    );
+    let mut frame_report = FrameReport::default();
     apply_target_graph_stats(&mut frame_report, &target_plan, target_diff.as_ref());
     let window_sizes: std::collections::HashMap<u32, glam::UVec2> = engine_state
         .window
@@ -185,11 +171,7 @@ pub fn render_frames(engine_state: &mut EngineState) {
             frame_id: invocation.frame_id,
         })
         .collect();
-    frame_report.target_autolink_failures = engine_state
-        .universal_state
-        .targets
-        .target_autolink_failures
-        .clone();
+    frame_report.target_autolink_failures = engine_state.universal_state.targets.target_autolink_failures.clone();
     let realm_windows = map_realms_to_windows(&engine_state.universal_state);
     let mut scheduled_realms: Vec<crate::core::realm::RealmId> = Vec::new();
     for target_id in &target_plan.order {
@@ -211,11 +193,6 @@ pub fn render_frames(engine_state: &mut EngineState) {
             }
         }
     }
-    for realm_id in &realm_plan.order {
-        if !scheduled_realms.contains(realm_id) {
-            scheduled_realms.push(*realm_id);
-        }
-    }
     collect_present_sizes(
         &engine_state.universal_state,
         &engine_state.window.states,
@@ -223,7 +200,6 @@ pub fn render_frames(engine_state: &mut EngineState) {
         &mut engine_state.present_sizes_hash,
     );
     let present_sizes = &engine_state.present_sizes_cache;
-    let connectors_by_realm = collect_connectors_by_realm(&engine_state.universal_state);
     let surface_views = collect_surface_views(
         device,
         &engine_state.universal_state,
@@ -459,23 +435,6 @@ pub fn render_frames(engine_state: &mut EngineState) {
                 &mut shadow_ns,
             );
 
-            compose_realm_connectors(
-                render_state,
-                device,
-                &mut encoder,
-                &engine_state.universal_state,
-                &connectors_by_realm,
-                *realm_id,
-                surface_id,
-                &cut_connectors,
-                &surface_views,
-                &target_view,
-                target_format,
-                target_size,
-                engine_state.runtime.frame_index(),
-                &mut frame_report,
-            );
-
             updated_surfaces.insert(surface_id);
 
             queue.submit(Some(encoder.finish()));
@@ -585,12 +544,6 @@ pub fn render_frames(engine_state: &mut EngineState) {
         }
     }
 
-    let soft_cut_diagnostic = build_soft_cut_diagnostic(
-        &frame_report,
-        previous_cut_edges,
-        engine_state.runtime.frame_index(),
-    );
-
     engine_state.universal_state.composition.frame_report = frame_report;
     for event in ui_events {
         engine_state
@@ -623,9 +576,6 @@ pub fn render_frames(engine_state: &mut EngineState) {
                 }
             }
         }
-    }
-    if let Some(message) = soft_cut_diagnostic {
-        push_error_event(engine_state, "realm-graph-soft-cut", message, None, None);
     }
     apply_ui_platform_actions(engine_state, ui_platform_actions);
     engine_state.profiling.render.shadow_ns = shadow_ns;
