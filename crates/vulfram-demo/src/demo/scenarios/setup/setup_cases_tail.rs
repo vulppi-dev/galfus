@@ -236,7 +236,7 @@ pub(super) fn append_setup_commands_tail(
             let realm_plane_target = ids.target_id + 700;
             cmds.push(EngineCmd::CmdTargetUpsert(CmdTargetUpsertArgs {
                 target_id: realm_plane_target,
-                kind: TargetKind::RealmPlane,
+                kind: TargetKind::Texture,
                 window_id: None,
                 size: None,
                 format_policy: None,
@@ -251,6 +251,8 @@ pub(super) fn append_setup_commands_tail(
                     top: DimensionValue::Px(20.0),
                     width: DimensionValue::Percent(60.0),
                     height: DimensionValue::Percent(60.0),
+                    enabled: true,
+                    opacity: 1.0,
                     z_index: 5,
                     blend_mode: 0,
                     clip: None,

@@ -92,11 +92,11 @@ fn auto_graph_layer_sync_rebuilds_when_link_shape_changes() {
 }
 
 #[test]
-fn auto_graph_layer_sync_updates_connector_layout_when_shape_is_stable() {
+fn auto_graph_layer_sync_rebuilds_obsolete_connector_for_texture_target() {
     let host_realm_index = HashMap::from([(9, RealmId(3))]);
 
     let plan = plan_auto_graph_layer_sync(
-        TargetKind::WidgetRealmViewport,
+        TargetKind::Texture,
         Some(9),
         RealmId(7),
         vulfram_realm_core::RealmKind::ThreeD,
@@ -112,7 +112,7 @@ fn auto_graph_layer_sync_updates_connector_layout_when_shape_is_stable() {
     );
 
     assert_eq!(plan.surface_op, AutoGraphSurfaceSyncOp::Keep);
-    assert_eq!(plan.link_op, AutoGraphLinkSyncOp::UpdateConnectorLayout);
+    assert_eq!(plan.link_op, AutoGraphLinkSyncOp::Rebuild);
 }
 
 #[test]
@@ -255,6 +255,8 @@ fn collects_window_camera_target_sizes_from_layout_or_explicit_size() {
                     top: DimensionValue::Percent(0.0),
                     width: DimensionValue::Percent(50.0),
                     height: DimensionValue::Percent(25.0),
+                    enabled: true,
+                    opacity: 1.0,
                     z_index: 0,
                     blend_mode: 0,
                     clip: None,
@@ -273,6 +275,8 @@ fn collects_window_camera_target_sizes_from_layout_or_explicit_size() {
                     top: DimensionValue::Percent(0.0),
                     width: DimensionValue::Percent(10.0),
                     height: DimensionValue::Percent(10.0),
+                    enabled: true,
+                    opacity: 1.0,
                     z_index: 0,
                     blend_mode: 0,
                     clip: None,

@@ -44,22 +44,22 @@ Com remoção de conceitos legados públicos:
 
 ### Tasks
 - [x] Redefinir `TargetKind` para apenas `Window | Texture`.
-- [ ] Introduzir/ajustar `Layer` com:
-  - [ ] `realm_id`
-  - [ ] `rect`
-  - [ ] `blend`
-  - [ ] `opacity`
-  - [ ] `enabled`
-  - [ ] `order/priority`
-- [ ] Mover `clear` para `Target`.
-- [ ] Garantir que `Realm` não retenha resolução/clear.
-- [ ] Adicionar tipo `RenderInvocation` (runtime/internal):
-  - [ ] `realm`
-  - [ ] `target`
-  - [ ] `layer`
-  - [ ] `resolved_rect_px`
-  - [ ] `render_size_px`
-  - [ ] `frame_id`
+- [x] Introduzir/ajustar `Layer` com:
+  - [x] `realm_id`
+  - [x] `rect`
+  - [x] `blend`
+  - [x] `opacity`
+  - [x] `enabled`
+  - [x] `order/priority` (`z_index` neste corte)
+- [x] Mover `clear` para `Target` (já consolidado no estado atual; layer/realm sem clear próprio).
+- [x] Garantir que `Realm` não retenha resolução/clear.
+- [x] Adicionar tipo `RenderInvocation` (runtime/internal):
+  - [x] `realm`
+  - [x] `target`
+  - [x] `layer`
+  - [x] `resolved_rect_px`
+  - [x] `render_size_px`
+  - [x] `frame_id`
 
 ### Riscos
 - Diferenças semânticas com `TargetLayerLayout` antigo.

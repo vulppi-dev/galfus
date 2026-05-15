@@ -107,13 +107,15 @@ fn target_layer_layout_defaults_to_full_percent_size() {
     let layout = TargetLayerLayout::default();
     assert_eq!(layout.width, DimensionValue::Percent(100.0));
     assert_eq!(layout.height, DimensionValue::Percent(100.0));
+    assert!(layout.enabled);
+    assert_eq!(layout.opacity, 1.0);
 }
 
 #[test]
-fn target_graph_planner_links_viewport_to_window_root() {
+fn target_graph_planner_uses_targets_without_derived_edges() {
     let targets = HashMap::from([
         (TargetId(1), (TargetKind::Window, Some(7))),
-        (TargetId(2), (TargetKind::WidgetRealmViewport, None)),
+        (TargetId(2), (TargetKind::Texture, None)),
     ]);
     let layers = HashMap::from([
         (
@@ -140,7 +142,6 @@ fn target_graph_planner_links_viewport_to_window_root() {
     let realms = HashSet::from([RealmId(3)]);
 
     let plan = TargetGraphPlanner.build_plan(&targets, &layers, &realms);
-    assert_eq!(plan.edges.len(), 1);
-    assert_eq!(plan.edges[0].parent, TargetId(1));
-    assert_eq!(plan.edges[0].child, TargetId(2));
+    assert!(plan.edges.is_empty());
+    assert_eq!(plan.order, vec![TargetId(1), TargetId(2)]);
 }

@@ -50,8 +50,6 @@ pub struct TargetId(pub u64);
 #[serde(rename_all = "kebab-case")]
 pub enum TargetKind {
     Window,
-    WidgetRealmViewport,
-    RealmPlane,
     Texture,
 }
 
@@ -88,9 +86,21 @@ pub struct TargetLayerLayout {
     pub top: DimensionValue,
     pub width: DimensionValue,
     pub height: DimensionValue,
+    #[serde(default = "default_layer_enabled")]
+    pub enabled: bool,
+    #[serde(default = "default_layer_opacity")]
+    pub opacity: f32,
     pub z_index: i32,
     pub blend_mode: u32,
     pub clip: Option<glam::Vec4>,
+}
+
+fn default_layer_enabled() -> bool {
+    true
+}
+
+fn default_layer_opacity() -> f32 {
+    1.0
 }
 
 impl Default for TargetLayerLayout {
@@ -100,6 +110,8 @@ impl Default for TargetLayerLayout {
             top: DimensionValue::Px(0.0),
             width: DimensionValue::Percent(100.0),
             height: DimensionValue::Percent(100.0),
+            enabled: true,
+            opacity: 1.0,
             z_index: 0,
             blend_mode: 0,
             clip: None,
@@ -114,6 +126,16 @@ pub struct TargetLayerState {
     pub layout: TargetLayerLayout,
     pub camera_id: Option<u32>,
     pub environment_id: Option<u32>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct RenderInvocation {
+    pub realm_id: u32,
+    pub target_id: TargetId,
+    pub layer_key: (u32, TargetId),
+    pub resolved_rect_px: glam::UVec4,
+    pub render_size_px: glam::UVec2,
+    pub frame_id: u64,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

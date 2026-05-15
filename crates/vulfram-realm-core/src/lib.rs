@@ -17,7 +17,7 @@ pub use report::{
 pub use state::{
     AutoLink, ConnectorState, DimensionValue, PresentState, RealmState, SurfaceCache, TargetEdge,
     TargetGraphDiff, TargetGraphPlan, TargetGraphPlanner, TargetId, TargetKind, TargetLayerLayout,
-    TargetLayerState,
+    TargetLayerState, RenderInvocation,
 };
 pub use tables::{ConnectorTable, PresentTable, RealmTable, TableEntry};
 pub use vulfram_types::{ConnectorId, PresentId, RealmId, RealmKind, SurfaceId};

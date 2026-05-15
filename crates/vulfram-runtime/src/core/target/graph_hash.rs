@@ -108,6 +108,8 @@ fn hash_layout(layout: &TargetLayerLayout, hasher: &mut impl Hasher) {
     hash_dimension_value(layout.top, hasher);
     hash_dimension_value(layout.width, hasher);
     hash_dimension_value(layout.height, hasher);
+    layout.enabled.hash(hasher);
+    hash_f32(layout.opacity, hasher);
     layout.z_index.hash(hasher);
     layout.blend_mode.hash(hasher);
     if let Some(clip) = layout.clip {
