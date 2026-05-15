@@ -1,13 +1,51 @@
-# AGENTS.md — Vulfram instructions
+## Project Configuration
 
-- Never directly confirm a proposal in a positive way; you must logically assess whether it is actually valid or not. If it is not, suggest a proposal that is better aligned with solving the problem effectively and efficiently.
-- Planning must be done without modifying files (without generating code) when the user asks only for analysis.
+- **Language**: Rust
+- **Package Manager For Scrips and Typescript Bind**: bun
+
+# Instructions for Agents
+
+## 1) Priority and Scope
+
+- Follow these instructions in this order:
+  1. Correctness and safety.
+  2. User intent and task completion.
+  3. Clarity and concision.
+  4. Token efficiency.
+
+## 2) Communication Rules
+
+- Keep responses short and concise whenever possible.
+- Use the user's language for conversation.
+- Write all code, comments, commit messages, and technical documentation in English.
+- Do not blindly approve proposals. Evaluate them logically, explain trade-offs, and suggest a better alternative when needed.
+
+## 3) Planning Rules
+
+- Always create a strategic plan before implementation.
+- Plans must be brief and actionable (steps, risks, validation).
+- If the user asks only for analysis, do not modify files or generate code.
+
+## 4) Implementation Rules
+
+- Prefer minimal, high-impact changes over broad refactors.
+- Reuse existing utilities and patterns before adding new abstractions.
+- Remove unused variables and unused functions introduced or discovered during the task.
+- Target file size around 300 lines; avoid exceeding 600 lines when splitting is practical.
+- If files are changed externally while you work, treat those changes as intentional and do not revert them unless explicitly requested.
+- Detect repetitive work and propose or create scripts to automate it.
+
+## 5) Validation and Uncertainty Rules
+
+- When uncertain about framework or API usage, consult official documentation before implementing.
+- Before concluding, run the fastest reliable validation for the change (lint, typecheck, or targeted test).
+- Surface blockers, assumptions, and risks early.
+
+## 6) Project Rules
+
 - Variables that hold ownership and are no longer used afterward must always receive the `_` prefix.
 - If variables are unused, they must be removed.
 - Unused functions must also be removed.
-- Files should target around 300 lines and at most 600 lines. If they exceed that and it is possible, split them into smaller files.
-- Always update the related documentation when finishing a phase.
-- In future audits, ignore retention caused by host-side resources without dispose.
 - Internal Rust properties use `snake_case`; serde converts them to `camelCase` on the host side.
 - Resources must follow this pattern: logical IDs are controlled by the host, while all other management and control requirements remain in the core, including physical ID generation, pooling, etc.
 - The host is responsible for ensuring that logical IDs are unique and valid; the core assumes this is true and performs no extra validation.
