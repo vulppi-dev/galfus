@@ -134,6 +134,36 @@ fn render_graph_upsert_and_list_includes_desc_hash_and_passes() {
     assert_eq!(entry.pass_count, 1);
     assert_eq!(entry.pass_ids, vec![RENDER_PASS_SHADOW.to_string()]);
     assert_eq!(entry.bound_realm_ids, Vec::<u32>::new());
+    assert_eq!(
+        engine
+            .universal_state
+            .render_catalog
+            .render_graph_compile_cache_misses,
+        1
+    );
+    assert_eq!(
+        engine
+            .universal_state
+            .render_catalog
+            .render_graph_compile_cache_hits,
+        0
+    );
+
+    let upsert_again = engine_cmd_render_graph_upsert(
+        &mut engine,
+        &CmdRenderGraphUpsertArgs {
+            render_graph_id: 110,
+            graph: valid_graph("custom_a", "shadow_atlas_custom_a"),
+        },
+    );
+    assert!(upsert_again.success, "upsert again failed: {}", upsert_again.message);
+    assert_eq!(
+        engine
+            .universal_state
+            .render_catalog
+            .render_graph_compile_cache_hits,
+        1
+    );
 }
 
 #[test]

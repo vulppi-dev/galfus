@@ -72,6 +72,8 @@ pub struct RenderCatalogState {
         std::collections::HashMap<u64, crate::core::render::graph::RenderGraphState>,
     pub render_graph_plan_cache_2d:
         std::collections::HashMap<u64, crate::core::render::graph::RenderGraphState>,
+    pub render_graph_compile_cache_hits: u64,
+    pub render_graph_compile_cache_misses: u64,
 }
 
 pub struct RenderState {

@@ -160,21 +160,69 @@ pub fn engine_cmd_render_graph_upsert(
     }
 
     let desc_hash = crate::core::render::graph::render_graph_desc_hash(&args.graph);
-    let graph_state = match crate::core::render::graph::RenderGraphState::from_desc(args.graph.clone()) {
-        Ok(state) => state,
-        Err(err) => {
+    let cached_2d = engine
+        .universal_state
+        .render_catalog
+        .render_graph_plan_cache_2d
+        .get(&desc_hash)
+        .cloned();
+    let cached_3d = engine
+        .universal_state
+        .render_catalog
+        .render_graph_plan_cache_3d
+        .get(&desc_hash)
+        .cloned();
+
+    let (graph_state, graph_kind, cache_hit) = if let Some(state) = cached_2d {
+        (state, GraphRegistryKind::TwoD, true)
+    } else if let Some(state) = cached_3d {
+        (state, GraphRegistryKind::ThreeD, true)
+    } else {
+        let graph_state = match crate::core::render::graph::RenderGraphState::from_desc(args.graph.clone()) {
+            Ok(state) => state,
+            Err(err) => {
+                let result = emit_render_graph_error(
+                    engine,
+                    format!("Invalid render graph {}: {}", args.render_graph_id, err),
+                    "render-graph-upsert",
+                );
+                return CmdResultRenderGraphUpsert {
+                    success: result.success,
+                    message: result.message,
+                };
+            }
+        };
+        let Some(graph_kind) = classify_graph_registry(graph_state.plan()) else {
             let result = emit_render_graph_error(
                 engine,
-                format!("Invalid render graph {}: {}", args.render_graph_id, err),
+                format!(
+                    "Render graph {} is incompatible with both Graph3D and Graph2D registries",
+                    args.render_graph_id
+                ),
                 "render-graph-upsert",
             );
             return CmdResultRenderGraphUpsert {
                 success: result.success,
                 message: result.message,
             };
-        }
+        };
+        (graph_state, graph_kind, false)
     };
-    let Some(graph_kind) = classify_graph_registry(graph_state.plan()) else {
+    if cache_hit {
+        engine.universal_state.render_catalog.render_graph_compile_cache_hits = engine
+            .universal_state
+            .render_catalog
+            .render_graph_compile_cache_hits
+            .saturating_add(1);
+    } else {
+        engine.universal_state.render_catalog.render_graph_compile_cache_misses = engine
+            .universal_state
+            .render_catalog
+            .render_graph_compile_cache_misses
+            .saturating_add(1);
+    }
+
+    if classify_graph_registry(graph_state.plan()).is_none() {
         let result = emit_render_graph_error(
             engine,
             format!(
@@ -187,7 +235,7 @@ pub fn engine_cmd_render_graph_upsert(
             success: result.success,
             message: result.message,
         };
-    };
+    }
 
     let exists_in_other_registry = match graph_kind {
         GraphRegistryKind::ThreeD => engine
