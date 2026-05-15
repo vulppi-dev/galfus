@@ -140,7 +140,7 @@ pub fn render_frames(engine_state: &mut EngineState) {
     #[cfg(target_arch = "wasm32")]
     let total_start = now_ns();
 
-    // 1. Render all realms (RealmGraph order)
+    // 1. Render realms in target-scheduler order (fallback keeps legacy continuity)
     let mut windows_ns: u64 = 0;
     let mut shadow_ns: u64 = 0;
     let realm_plan = RealmGraphPlanner::default().build_plan(&engine_state.universal_state);
@@ -191,6 +191,31 @@ pub fn render_frames(engine_state: &mut EngineState) {
         .target_autolink_failures
         .clone();
     let realm_windows = map_realms_to_windows(&engine_state.universal_state);
+    let mut scheduled_realms: Vec<crate::core::realm::RealmId> = Vec::new();
+    for target_id in &target_plan.order {
+        let mut layers: Vec<_> = engine_state
+            .universal_state
+            .targets
+            .target_layers
+            .entries
+            .values()
+            .filter(|layer| {
+                layer.target_id == *target_id && layer.layout.enabled && layer.layout.opacity > 0.0
+            })
+            .collect();
+        layers.sort_by_key(|layer| (layer.layout.z_index, layer.realm_id, layer.target_id.0));
+        for layer in layers {
+            let realm_id = crate::core::realm::RealmId(layer.realm_id);
+            if !scheduled_realms.contains(&realm_id) {
+                scheduled_realms.push(realm_id);
+            }
+        }
+    }
+    for realm_id in &realm_plan.order {
+        if !scheduled_realms.contains(realm_id) {
+            scheduled_realms.push(*realm_id);
+        }
+    }
     collect_present_sizes(
         &engine_state.universal_state,
         &engine_state.window.states,
@@ -231,7 +256,7 @@ pub fn render_frames(engine_state: &mut EngineState) {
         frame_report.no_progress_realms.clear();
         let mut window_counter: u32 = 0;
 
-        for realm_id in &realm_plan.order {
+        for realm_id in &scheduled_realms {
             let Some(window_id) = realm_windows.get(realm_id) else {
                 continue;
             };
