@@ -50,11 +50,11 @@ fn realm_state() -> RealmState {
 }
 
 #[test]
-fn planner_links_realm_target_to_smallest_window_fallback() {
+fn planner_keeps_targets_without_derived_realm_edges() {
     let mut targets = HashMap::new();
     targets.insert(TargetId(10), window_target(10));
     targets.insert(TargetId(5), window_target(5));
-    targets.insert(TargetId(100), realm_target(TargetKind::RealmPlane));
+    targets.insert(TargetId(100), realm_target(TargetKind::Texture));
 
     let mut realms = RealmTable::default();
     let _r2 = realms.alloc(realm_state());
@@ -67,13 +67,7 @@ fn planner_links_realm_target_to_smallest_window_fallback() {
     layers.insert((1, TargetId(100)), layer_state(1, TargetId(100)));
 
     let plan = TargetGraphPlanner.build_plan(&targets, &layers, &realms);
-    assert_eq!(
-        plan.edges,
-        vec![crate::core::target::TargetEdge {
-            parent: TargetId(5),
-            child: TargetId(100)
-        }]
-    );
+    assert!(plan.edges.is_empty());
     assert_eq!(plan.order, vec![TargetId(5), TargetId(10), TargetId(100)]);
 }
 

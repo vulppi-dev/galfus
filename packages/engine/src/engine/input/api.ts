@@ -14,16 +14,6 @@ export {
   type InputFrameResetPolicy
 } from './core';
 export {
-  ROUTED_POINTER_FRAME_SEMANTICS,
-  applyRoutedPointerEvent,
-  clearRoutedPointerState,
-  getRoutedPointerSnapshotByTarget,
-  getRoutedPointerSnapshotByWorld,
-  resetRoutedPointerFrame,
-  type RoutedPointerFrameSemantics,
-  type RoutedPointerSnapshot
-} from './routing';
-export {
   getConnectedGamepads,
   getGamepadAxis,
   getGamepadEvents,
@@ -33,11 +23,6 @@ export {
   getLastSystemError,
   getPointerDelta,
   getPointerPosition,
-  getPointerTargetDelta,
-  getPointerTargetId,
-  getPointerTargetPosition,
-  getPointerTargetSize,
-  getPointerTargetUv,
   getPointerWindowSize,
   getScrollDelta,
   getSystemEvents,

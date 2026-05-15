@@ -88,13 +88,13 @@ pub fn vulfram_tick(time: u64, delta_time: u32) -> VulframResult {
         // MARK: Event Loop Pump
         engine.state.profiling.input.event_loop_pump_ns =
             engine.platform.pump_events(&mut engine.state);
-        crate::core::input::route_pointer_events(&mut engine.state);
+        // vNext input policy: keep only global pointer stream.
+        // Target-routed pointer relay is disabled.
         #[cfg(not(target_arch = "wasm32"))]
         let ui_input_start = Instant::now();
         #[cfg(target_arch = "wasm32")]
         let ui_input_start = (Date::now() * 1_000_000.0) as u64;
         crate::core::ui::input::process_ui_input(&mut engine.state);
-        crate::core::input::listeners::emit_target_listener_events(&mut engine.state);
         #[cfg(not(target_arch = "wasm32"))]
         {
             engine.state.profiling.ui.input_ns = ui_input_start.elapsed().as_nanos() as u64;

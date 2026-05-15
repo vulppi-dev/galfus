@@ -8,7 +8,7 @@ Upserts a logical layer between a realm and a target.
 | ------------- | ----------------- | ----------- |
 | realmId       | u32               | Logical realm ID |
 | targetId      | u64               | Logical target ID |
-| layout        | TargetLayerLayout | Layout and routing configuration |
+| layout        | TargetLayerLayout | Layout and composition configuration |
 | cameraId      | Option<u32>       | Optional camera override for Realm3D sampling |
 | environmentId | Option<u32>       | Optional environment profile override |
 
@@ -20,6 +20,8 @@ Upserts a logical layer between a realm and a target.
 | top        | DimensionValue | Y position |
 | width      | DimensionValue | Layer width |
 | height     | DimensionValue | Layer height |
+| enabled    | bool         | Whether the layer is rendered (`default=true`) |
+| opacity    | f32          | Layer opacity in range `[0..1]` (`default=1`) |
 | zIndex     | i32         | Layer order                         |
 | blendMode  | u32         | Blend mode selector                 |
 | clip       | Option<Vec4>| Optional clip rect                  |
@@ -36,16 +38,6 @@ Upserts a logical layer between a realm and a target.
 - `percent`: axis-relative percentage (`left/width` use realm width, `top/height` use realm height)
 - `character`: text width unit (`ch`)
 - `display`: display unit (`dp`, resolved as `value * 4px`)
-
-Pointer routing mode is inferred internally by the core from target kind.
-For `window` and `widget-realm-viewport` layers sourced from `Realm3D`,
-raycast routing is enabled automatically.
-
-Composition behavior for connector-like targets (`window` non-host layer and `realm-plane`):
-
-- Follows **cover fit** semantics.
-- Height is fitted first.
-- Width overflow is center-clipped (no stretch/deformation).
 
 Environment selection priority per layer:
 1. `environmentId` from the layer (if set);

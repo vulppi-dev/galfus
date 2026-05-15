@@ -1,10 +1,6 @@
 use serde::{Deserialize, Serialize};
 
 use crate::core::input::events::{KeyboardEvent, PointerEvent};
-use crate::core::input::listeners::{
-    CmdInputTargetListenerDisposeArgs, CmdInputTargetListenerListArgs,
-    CmdInputTargetListenerUpsertArgs, CmdResultInputTargetListenerList,
-};
 use crate::core::system::SystemEvent;
 use crate::core::ui::events::UiEvent;
 use crate::core::window::WindowEvent;
@@ -89,9 +85,6 @@ pub enum EngineCmd {
     CmdWindowMeasurement(win::CmdWindowMeasurementArgs),
     CmdWindowCursor(win::CmdWindowCursorArgs),
     CmdWindowState(win::CmdWindowStateArgs),
-    CmdInputTargetListenerUpsert(CmdInputTargetListenerUpsertArgs),
-    CmdInputTargetListenerDispose(CmdInputTargetListenerDisposeArgs),
-    CmdInputTargetListenerList(CmdInputTargetListenerListArgs),
     CmdUploadBufferDiscardAll(buf::CmdUploadBufferDiscardAllArgs),
     CmdCameraUpsert(CmdCameraUpsertArgs),
     CmdCameraDispose(res::CmdCameraDisposeArgs),
@@ -184,9 +177,6 @@ pub enum CommandResponse {
     WindowMeasurement(win::CmdResultWindowMeasurement),
     WindowCursor(win::CmdResultWindowCursor),
     WindowState(win::CmdResultWindowState),
-    InputTargetListenerUpsert(CmdResultSimple),
-    InputTargetListenerDispose(CmdResultSimple),
-    InputTargetListenerList(CmdResultInputTargetListenerList),
     UploadBufferDiscardAll(buf::CmdResultUploadBufferDiscardAll),
     CameraUpsert(CmdResultSimple),
     CameraDispose(res::CmdResultCameraDispose),

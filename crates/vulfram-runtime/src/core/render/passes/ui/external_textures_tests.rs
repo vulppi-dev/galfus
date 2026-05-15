@@ -20,7 +20,7 @@ fn prefers_link_from_current_realm_for_same_target() {
     let mut targets = TargetTable::default();
     targets
         .entries
-        .insert(target_id, target(TargetKind::WidgetRealmViewport));
+        .insert(target_id, target(TargetKind::Texture));
     let mut auto_links = HashMap::new();
     auto_links.insert(
         (1, target_id),

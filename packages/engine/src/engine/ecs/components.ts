@@ -118,11 +118,6 @@ export interface InputStateComponent {
   pointerJustReleased: Set<number>;
   pointerWindowId?: number;
   pointerWindowSize?: vec2;
-  pointerTargetId?: number;
-  pointerPositionTarget?: vec2;
-  pointerTargetSize?: vec2;
-  pointerTargetUv?: vec2;
-  pointerTargetDelta?: vec2;
   scrollDelta: vec2;
   imeEnabled: boolean;
   imePreeditText?: string;

@@ -1,10 +1,4 @@
-import type {
-  CmdInputTargetListenerDisposeArgs,
-  CmdInputTargetListenerListArgs,
-  CmdInputTargetListenerUpsertArgs
-} from '../../types/cmds/input';
 import { KeyCode } from '../../types/events/keyboard';
-import type { SystemEvent } from '../../types/events/system';
 import {
   getConnectedGamepads,
   getGamepadAxis,
@@ -16,7 +10,6 @@ import {
   getPointerDelta,
   getPointerPosition,
   getPointerWindowSize,
-  getRoutedPointerSnapshotByWorld,
   getScrollDelta,
   getSystemEvents,
   getWindowLifecycleState,
@@ -35,78 +28,10 @@ import {
   isWindowCloseRequested,
   wasWindowResized
 } from '../input/api';
-import {
-  disposeInputTargetListener as disposeInputTargetListenerRaw,
-  listInputTargetListeners as listInputTargetListenersRaw,
-  upsertInputTargetListener as upsertInputTargetListenerRaw
-} from './entities';
-import type { CommandId, World3DId } from './types';
-import { asCommandId, asWorldNumber } from './types';
+import type { World3DId } from './types';
+import { asWorldNumber } from './types';
 
 export { KeyCode };
-
-/** Creates or updates a pointer listener routed by target id.
- *
- * @example
- * ```ts
- * World3D.upsert3DInputTargetListener(worldId, {
- *   listenerId: 1,
- *   targetId
- * });
- * ```
- */
-export function upsert3DInputTargetListener(
-  worldId: World3DId,
-  args: CmdInputTargetListenerUpsertArgs
-): CommandId {
-  return asCommandId(upsertInputTargetListenerRaw(asWorldNumber(worldId), args));
-}
-
-/** Disposes a pointer listener routed by target id.
- *
- * @example
- * ```ts
- * World3D.dispose3DInputTargetListener(worldId, { listenerId: 1 });
- * ```
- */
-export function dispose3DInputTargetListener(
-  worldId: World3DId,
-  args: CmdInputTargetListenerDisposeArgs
-): CommandId {
-  return asCommandId(disposeInputTargetListenerRaw(asWorldNumber(worldId), args));
-}
-
-/** Requests the current pointer listener list from core.
- *
- * @example
- * ```ts
- * World3D.list3DInputTargetListeners(worldId);
- * ```
- */
-export function list3DInputTargetListeners(
-  worldId: World3DId,
-  args: CmdInputTargetListenerListArgs = {}
-): CommandId {
-  return asCommandId(listInputTargetListenersRaw(asWorldNumber(worldId), args));
-}
-
-/**
- * Returns system events filtered to input-target-listener-event.
- *
- * @example
- * ```ts
- * const events = World3D.get3DTargetPointerEvents(worldId);
- * ```
- */
-export function get3DTargetPointerEvents(
-  worldId: World3DId
-): Extract<SystemEvent, { event: 'input-target-listener-event' }>[] {
-  const events = getSystemEvents(asWorldNumber(worldId));
-  return events.filter(
-    (event): event is Extract<SystemEvent, { event: 'input-target-listener-event' }> =>
-      event.event === 'input-target-listener-event'
-  );
-}
 
 /** Returns true while a key is pressed in this world input state.
  *
@@ -317,52 +242,24 @@ export function get3DPointerDelta(worldId: World3DId): vec2 {
  * const position = World3D.get3DPointerTargetPosition(worldId);
  * ```
  */
-export function get3DPointerTargetPosition(worldId: World3DId): vec2 | null {
-  return getRoutedPointerSnapshotByWorld(asWorldNumber(worldId))?.pointerTargetPosition ?? null;
+export function get3DPointerTargetPosition(_worldId: World3DId): vec2 | null {
+  return null;
 }
 
-/** Returns real drawn target size from the latest pointer event, if available.
- *
- * @example
- * ```ts
- * const size = World3D.get3DPointerTargetSize(worldId);
- * ```
- */
-export function get3DPointerTargetSize(worldId: World3DId): vec2 | null {
-  return getRoutedPointerSnapshotByWorld(asWorldNumber(worldId))?.pointerTargetSize ?? null;
+export function get3DPointerTargetSize(_worldId: World3DId): vec2 | null {
+  return null;
 }
 
-/** Returns pointer delta relative to a routed target for the current frame.
- *
- * @example
- * ```ts
- * const delta = World3D.get3DPointerTargetDelta(worldId);
- * ```
- */
-export function get3DPointerTargetDelta(worldId: World3DId): vec2 | null {
-  return getRoutedPointerSnapshotByWorld(asWorldNumber(worldId))?.pointerTargetDelta ?? null;
+export function get3DPointerTargetDelta(_worldId: World3DId): vec2 | null {
+  return null;
 }
 
-/** Returns the routed target id under the pointer, when available.
- *
- * @example
- * ```ts
- * const targetId = World3D.get3DPointerTargetId(worldId);
- * ```
- */
-export function get3DPointerTargetId(worldId: World3DId): number | null {
-  return getRoutedPointerSnapshotByWorld(asWorldNumber(worldId))?.pointerTargetId ?? null;
+export function get3DPointerTargetId(_worldId: World3DId): number | null {
+  return null;
 }
 
-/** Returns pointer UV coordinates in routed target space, when available.
- *
- * @example
- * ```ts
- * const uv = World3D.get3DPointerTargetUv(worldId);
- * ```
- */
-export function get3DPointerTargetUv(worldId: World3DId): vec2 | null {
-  return getRoutedPointerSnapshotByWorld(asWorldNumber(worldId))?.pointerTargetUv ?? null;
+export function get3DPointerTargetUv(_worldId: World3DId): vec2 | null {
+  return null;
 }
 
 /** Returns true while a pointer button is pressed in this world.

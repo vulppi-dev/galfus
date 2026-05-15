@@ -26,13 +26,13 @@ fn target_upsert_window_requires_window_id() {
 }
 
 #[test]
-fn target_upsert_widget_viewport_allows_missing_window_id() {
+fn target_upsert_texture_allows_missing_window_id() {
     let mut engine = test_engine();
     let result = engine_cmd_target_upsert(
         &mut engine,
         &CmdTargetUpsertArgs {
             target_id: 2,
-            kind: TargetKind::WidgetRealmViewport,
+            kind: TargetKind::Texture,
             window_id: None,
             size: None,
             format_policy: None,
@@ -44,13 +44,13 @@ fn target_upsert_widget_viewport_allows_missing_window_id() {
 }
 
 #[test]
-fn target_upsert_realm_plane_allows_missing_window_id() {
+fn target_upsert_texture_allows_missing_window_id_second_target() {
     let mut engine = test_engine();
     let result = engine_cmd_target_upsert(
         &mut engine,
         &CmdTargetUpsertArgs {
             target_id: 3,
-            kind: TargetKind::RealmPlane,
+            kind: TargetKind::Texture,
             window_id: None,
             size: None,
             format_policy: None,

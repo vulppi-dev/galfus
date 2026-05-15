@@ -8,7 +8,6 @@ import type { System } from '../ecs';
 import { applyGamepadEvent } from '../input/core/gamepad';
 import { applyKeyboardEvent } from '../input/core/keyboard';
 import { applyPointerEvent } from '../input/core/pointer';
-import { applyRoutedPointerEvent } from '../input/routing/pointer-routing';
 import { ensureInputMirrorState, resetInputMirrorFrame } from '../input/core/state';
 
 /**
@@ -36,7 +35,6 @@ export const InputMirrorSystem: System = (world) => {
     else if (event.type === 'pointer') {
       const ptrEvent = event.content as PointerEvent;
       applyPointerEvent(state.inputState, ptrEvent);
-      applyRoutedPointerEvent(state.inputState, ptrEvent);
     }
 
     // Window events

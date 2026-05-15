@@ -64,32 +64,32 @@ export function getPointerDelta(worldId: number): Vec2 {
 
 /** Gets the pointer position relative to the current routed target. */
 export function getPointerTargetPosition(worldId: number): Vec2 | null {
-  const state = getInputState(worldId);
-  return state?.pointerPositionTarget ?? null;
+  void worldId;
+  return null;
 }
 
 /** Gets the real drawn target area associated with the latest pointer event. */
 export function getPointerTargetSize(worldId: number): Vec2 | null {
-  const state = getInputState(worldId);
-  return state?.pointerTargetSize ?? null;
+  void worldId;
+  return null;
 }
 
 /** Gets the pointer movement delta relative to the current routed target. */
 export function getPointerTargetDelta(worldId: number): Vec2 | null {
-  const state = getInputState(worldId);
-  return state?.pointerTargetDelta ?? null;
+  void worldId;
+  return null;
 }
 
 /** Gets the routed target under pointer, when available. */
 export function getPointerTargetId(worldId: number): number | null {
-  const state = getInputState(worldId);
-  return state?.pointerTargetId ?? null;
+  void worldId;
+  return null;
 }
 
 /** Gets pointer UV (0..1) in routed target space, when available. */
 export function getPointerTargetUv(worldId: number): Vec2 | null {
-  const state = getInputState(worldId);
-  return state?.pointerTargetUv ?? null;
+  void worldId;
+  return null;
 }
 
 /** Checks if a pointer button is currently pressed. */

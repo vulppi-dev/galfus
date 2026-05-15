@@ -13,7 +13,6 @@ use crate::demo::loop_utils::run_loop_with_events;
 use vulfram_core::core;
 use vulfram_core::core::cmd::CmdEnvironmentUpsertArgs;
 use vulfram_core::core::cmd::{CmdModelUpsertArgs, CommandResponse, EngineCmd, EngineEvent};
-use vulfram_core::core::input::listeners::CmdInputTargetListenerUpsertArgs;
 use vulfram_core::core::realm::cmd::{CmdRealmCreateArgs, RealmKindDto};
 use vulfram_core::core::resources::shadow::{CmdShadowConfigureArgs, ShadowConfig};
 use vulfram_core::core::resources::{
@@ -365,25 +364,6 @@ pub(super) fn run_demo_7_pointer_listener_lab(ctx: DemoContext) -> bool {
             outline_color: Vec4::ZERO,
         },
     )));
-
-    setup_cmds.push(EngineCmd::CmdInputTargetListenerUpsert(
-        CmdInputTargetListenerUpsertArgs {
-            listener_id: main_listener_id,
-            target_id: window_target_id,
-            enabled: true,
-            events: vec!["pointer-move".into(), "pointer-button".into()],
-            sample_percent: 100,
-        },
-    ));
-    setup_cmds.push(EngineCmd::CmdInputTargetListenerUpsert(
-        CmdInputTargetListenerUpsertArgs {
-            listener_id: inner_listener_id,
-            target_id: inner_target_id,
-            enabled: true,
-            events: vec!["pointer-move".into(), "pointer-button".into()],
-            sample_percent: 100,
-        },
-    ));
 
     let _ = send_commands(setup_cmds);
     let _ = receive_responses();
