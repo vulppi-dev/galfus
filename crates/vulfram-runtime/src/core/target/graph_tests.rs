@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use crate::core::realm::{RealmKind, RealmState, RealmTable};
 use crate::core::target::{
     TargetGraphCache, TargetGraphPlanner, TargetId, TargetKind, TargetLayerLayout,
-    TargetLayerState, TargetState,
+    TargetLayerState, TargetState, TargetEdge,
 };
 
 fn window_target(window_id: u32) -> TargetState {
@@ -66,7 +66,7 @@ fn planner_keeps_targets_without_derived_realm_edges() {
     layers.insert((0, TargetId(100)), layer_state(0, TargetId(100)));
     layers.insert((1, TargetId(100)), layer_state(1, TargetId(100)));
 
-    let plan = TargetGraphPlanner.build_plan(&targets, &layers, &realms);
+    let plan = TargetGraphPlanner.build_plan(&targets, &[], &layers, &realms);
     assert!(plan.edges.is_empty());
     assert_eq!(plan.order, vec![TargetId(5), TargetId(10), TargetId(100)]);
 }
@@ -82,15 +82,15 @@ fn cache_update_reports_changes_and_skips_when_unchanged() {
     let layers = HashMap::new();
     let mut cache = TargetGraphCache::default();
 
-    let first = cache.update(&targets, &layers, &realms);
+    let first = cache.update(&targets, &[], &layers, &realms);
     assert!(first.is_some());
     assert!(cache.last_plan.order.contains(&TargetId(1)));
 
-    let second = cache.update(&targets, &layers, &realms);
+    let second = cache.update(&targets, &[], &layers, &realms);
     assert!(second.is_none());
 
     targets.insert(TargetId(2), realm_target(TargetKind::Texture));
-    let third = cache.update(&targets, &layers, &realms);
+    let third = cache.update(&targets, &[], &layers, &realms);
     assert!(third.is_some());
     assert!(
         third
@@ -98,4 +98,66 @@ fn cache_update_reports_changes_and_skips_when_unchanged() {
             .added_targets
             .contains(&TargetId(2))
     );
+}
+
+#[test]
+fn planner_orders_targets_with_explicit_dependencies() {
+    let targets = HashMap::from([
+        (TargetId(1), realm_target(TargetKind::Texture)),
+        (TargetId(2), realm_target(TargetKind::Texture)),
+        (TargetId(3), window_target(3)),
+    ]);
+    let dependencies = vec![
+        TargetEdge {
+            parent: TargetId(1),
+            child: TargetId(2),
+        },
+        TargetEdge {
+            parent: TargetId(2),
+            child: TargetId(3),
+        },
+    ];
+    let plan = TargetGraphPlanner.build_plan(
+        &targets,
+        &dependencies,
+        &HashMap::new(),
+        &RealmTable::default(),
+    );
+    assert_eq!(plan.order, vec![TargetId(1), TargetId(2), TargetId(3)]);
+    assert!(plan.cut_edges.is_empty());
+}
+
+#[test]
+fn cache_recomputes_when_dependency_edges_change() {
+    let targets = HashMap::from([
+        (TargetId(1), realm_target(TargetKind::Texture)),
+        (TargetId(2), window_target(2)),
+    ]);
+    let realms = RealmTable::default();
+    let layers = HashMap::new();
+    let mut cache = TargetGraphCache::default();
+
+    let first = cache.update(
+        &targets,
+        &[TargetEdge {
+            parent: TargetId(1),
+            child: TargetId(2),
+        }],
+        &layers,
+        &realms,
+    );
+    assert!(first.is_some());
+    assert_eq!(cache.last_plan.order, vec![TargetId(1), TargetId(2)]);
+
+    let second = cache.update(
+        &targets,
+        &[TargetEdge {
+            parent: TargetId(2),
+            child: TargetId(1),
+        }],
+        &layers,
+        &realms,
+    );
+    assert!(second.is_some());
+    assert_eq!(cache.last_plan.order, vec![TargetId(2), TargetId(1)]);
 }

@@ -9,15 +9,18 @@ impl TargetGraphPlanner {
     pub fn build_plan(
         &self,
         targets: &HashMap<TargetId, (TargetKind, Option<u32>)>,
+        target_dependencies: &[TargetEdge],
         _layers: &HashMap<(u32, TargetId), TargetLayerState>,
         _realms: &HashSet<RealmId>,
     ) -> TargetGraphPlan {
-        let mut edges: Vec<TargetEdge> = Vec::new();
-        for (_target_id, (kind, _window_id)) in targets {
-            let _ = kind;
-        }
+        let mut edges: Vec<TargetEdge> = target_dependencies
+            .iter()
+            .copied()
+            .filter(|edge| targets.contains_key(&edge.parent) && targets.contains_key(&edge.child))
+            .collect();
 
         edges.sort_by_key(|edge| (edge.parent.0, edge.child.0));
+        edges.dedup();
         let all_targets: HashSet<TargetId> = targets.keys().copied().collect();
         let (order, cut_edges) = topo_targets_with_soft_cuts(&all_targets, &edges);
 

@@ -44,6 +44,10 @@ fn apply_target_graph_stats_copies_plan_and_diff_data() {
     apply_target_graph_stats(&mut report, &plan, Some(&diff));
     assert_eq!(report.target_nodes, 3);
     assert_eq!(report.target_edges, 1);
+    assert_eq!(report.target_order, vec![1, 2, 3]);
+    assert_eq!(report.target_cut_edges.len(), 1);
+    assert_eq!(report.target_cut_edges[0].from, 2);
+    assert_eq!(report.target_cut_edges[0].to, 3);
     assert_eq!(report.target_added, vec![10]);
     assert_eq!(report.target_plan_dirty, true);
 }

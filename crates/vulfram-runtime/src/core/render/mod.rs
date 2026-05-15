@@ -97,10 +97,15 @@ pub fn render_frames(engine_state: &mut EngineState) {
     apply_target_size_requests(engine_state, &target_size_requests);
 
     let (target_plan, target_diff) = {
+        let target_dependencies = crate::core::target::collect_target_dependencies(
+            &engine_state.universal_state.targets.target_layers.entries,
+            &engine_state.universal_state.scene,
+        );
         let cache = &mut engine_state.universal_state.targets.target_graph_cache;
         let diff = cache
             .update(
                 &engine_state.universal_state.targets.targets.entries,
+                &target_dependencies,
                 &engine_state.universal_state.targets.target_layers.entries,
                 &engine_state.universal_state.composition.realms,
             )
@@ -176,6 +181,7 @@ pub fn render_frames(engine_state: &mut EngineState) {
         &engine_state.universal_state.targets.targets,
         &engine_state.universal_state.targets.auto_links,
     );
+    let blocked_target_ids: HashSet<_> = target_plan.cut_edges.iter().map(|edge| edge.parent).collect();
     refresh_window_target_textures(
         &mut engine_state.render.states,
         &engine_state
@@ -183,6 +189,7 @@ pub fn render_frames(engine_state: &mut EngineState) {
             .scene
             .render_resources
             .target_texture_binds,
+        &blocked_target_ids,
         &target_surface_map,
         &engine_state.surface_targets,
     );

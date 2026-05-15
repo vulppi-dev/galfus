@@ -15,6 +15,8 @@ pub struct FrameReport {
     pub no_progress_realms: Vec<u32>,
     pub target_nodes: usize,
     pub target_edges: usize,
+    pub target_order: Vec<u64>,
+    pub target_cut_edges: Vec<TargetCutEdge>,
     pub target_added: Vec<u64>,
     pub target_removed: Vec<u64>,
     pub target_updated: Vec<u64>,
@@ -61,6 +63,8 @@ impl FrameReport {
             no_progress_realms: Vec::new(),
             target_nodes: 0,
             target_edges: 0,
+            target_order: Vec::new(),
+            target_cut_edges: Vec::new(),
             target_added: Vec::new(),
             target_removed: Vec::new(),
             target_updated: Vec::new(),
@@ -108,4 +112,11 @@ pub struct TargetAutoLinkFailure {
     pub realm_id: u32,
     pub target_id: u64,
     pub reason: String,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TargetCutEdge {
+    pub from: u64,
+    pub to: u64,
 }

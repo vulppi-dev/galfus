@@ -12,7 +12,8 @@ pub use render_passes::{
     RENDER_PASS_SSAO, RENDER_PASS_SSAO_BLUR, RENDER_PASS_UI,
 };
 pub use report::{
-    FrameCutEdge, FrameReport, SurfaceCacheEntry, TargetAutoLinkFailure, TargetLayerReportKey,
+    FrameCutEdge, FrameReport, SurfaceCacheEntry, TargetAutoLinkFailure, TargetCutEdge,
+    TargetLayerReportKey,
 };
 pub use state::{
     AutoLink, ConnectorState, DimensionValue, PresentState, RealmState, SurfaceCache, TargetEdge,

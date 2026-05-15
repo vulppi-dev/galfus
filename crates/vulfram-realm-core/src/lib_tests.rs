@@ -141,7 +141,59 @@ fn target_graph_planner_uses_targets_without_derived_edges() {
     ]);
     let realms = HashSet::from([RealmId(3)]);
 
-    let plan = TargetGraphPlanner.build_plan(&targets, &layers, &realms);
+    let plan = TargetGraphPlanner.build_plan(&targets, &[], &layers, &realms);
     assert!(plan.edges.is_empty());
     assert_eq!(plan.order, vec![TargetId(1), TargetId(2)]);
+}
+
+#[test]
+fn target_graph_planner_orders_targets_from_dependencies() {
+    let targets = HashMap::from([
+        (TargetId(1), (TargetKind::Texture, None)),
+        (TargetId(2), (TargetKind::Texture, None)),
+        (TargetId(3), (TargetKind::Window, Some(7))),
+    ]);
+    let layers = HashMap::new();
+    let realms = HashSet::new();
+    let dependencies = vec![
+        TargetEdge {
+            parent: TargetId(1),
+            child: TargetId(2),
+        },
+        TargetEdge {
+            parent: TargetId(2),
+            child: TargetId(3),
+        },
+    ];
+
+    let plan = TargetGraphPlanner.build_plan(&targets, &dependencies, &layers, &realms);
+    assert_eq!(plan.order, vec![TargetId(1), TargetId(2), TargetId(3)]);
+    assert!(plan.cut_edges.is_empty());
+}
+
+#[test]
+fn target_graph_planner_cuts_cycles_deterministically() {
+    let targets = HashMap::from([
+        (TargetId(10), (TargetKind::Texture, None)),
+        (TargetId(20), (TargetKind::Texture, None)),
+    ]);
+    let dependencies = vec![
+        TargetEdge {
+            parent: TargetId(10),
+            child: TargetId(20),
+        },
+        TargetEdge {
+            parent: TargetId(20),
+            child: TargetId(10),
+        },
+    ];
+
+    let plan = TargetGraphPlanner.build_plan(
+        &targets,
+        &dependencies,
+        &HashMap::new(),
+        &HashSet::new(),
+    );
+    assert_eq!(plan.order, vec![TargetId(10), TargetId(20)]);
+    assert_eq!(plan.cut_edges.len(), 2);
 }

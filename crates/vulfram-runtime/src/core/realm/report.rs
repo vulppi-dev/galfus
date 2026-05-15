@@ -1,5 +1,6 @@
 pub use vulfram_realm_core::{
-    FrameCutEdge, FrameReport, SurfaceCacheEntry, TargetAutoLinkFailure, TargetLayerReportKey,
+    FrameCutEdge, FrameReport, SurfaceCacheEntry, TargetAutoLinkFailure, TargetCutEdge,
+    TargetLayerReportKey,
 };
 
 pub fn apply_target_graph_stats(
@@ -9,6 +10,15 @@ pub fn apply_target_graph_stats(
 ) {
     report.target_nodes = plan.order.len();
     report.target_edges = plan.edges.len().saturating_sub(plan.cut_edges.len());
+    report.target_order = plan.order.iter().map(|id| id.0).collect();
+    report.target_cut_edges = plan
+        .cut_edges
+        .iter()
+        .map(|edge| TargetCutEdge {
+            from: edge.parent.0,
+            to: edge.child.0,
+        })
+        .collect();
     if let Some(diff) = diff {
         report.target_added = diff.added_targets.iter().map(|id| id.0).collect();
         report.target_removed = diff.removed_targets.iter().map(|id| id.0).collect();
