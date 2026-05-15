@@ -50,19 +50,53 @@ fn resolve_realm_render_graph<'a>(
     realm_id: crate::core::realm::RealmId,
 ) -> Option<&'a crate::core::render::graph::RenderGraphState> {
     let realm = universal.composition.realms.entries.get(&realm_id)?;
+    let realm_kind = realm.value.kind;
     let render_graph_id =
-        vulfram_render::resolve_render_graph_id(realm.value.render_graph_id, realm.value.kind);
-    if let Some(graph) = universal.render_catalog.render_graphs.get(&render_graph_id) {
+        vulfram_render::resolve_render_graph_id(realm.value.render_graph_id, realm_kind);
+    let registry = match realm_kind {
+        crate::core::realm::RealmKind::ThreeD => &universal.render_catalog.render_graphs_3d,
+        crate::core::realm::RealmKind::TwoD => &universal.render_catalog.render_graphs_2d,
+    };
+    if let Some(graph) = registry.get(&render_graph_id) {
         return Some(&graph.state);
     }
     None
 }
 
 pub fn ensure_runtime_render_defaults(universal: &mut crate::core::realm::UniversalState) {
-    crate::core::render::graph::ensure_default_render_graphs(
-        &mut universal.render_catalog.render_graphs,
-        &mut universal.render_catalog.render_graph_plan_cache,
-    );
+    let fallback_3d = crate::core::render::graph::fallback_graph();
+    let hash_3d = crate::core::render::graph::render_graph_desc_hash(&fallback_3d);
+    let state_3d = universal
+        .render_catalog
+        .render_graph_plan_cache_3d
+        .entry(hash_3d)
+        .or_default()
+        .clone();
+    universal
+        .render_catalog
+        .render_graphs_3d
+        .entry(crate::core::render::graph::DEFAULT_3D_RENDER_GRAPH_ID)
+        .or_insert(crate::core::render::graph::RenderGraphRecord {
+            state: state_3d,
+            desc_hash: hash_3d,
+        });
+
+    let fallback_2d = crate::core::render::graph::ui_fallback_graph();
+    let hash_2d = crate::core::render::graph::render_graph_desc_hash(&fallback_2d);
+    let state_2d = universal
+        .render_catalog
+        .render_graph_plan_cache_2d
+        .entry(hash_2d)
+        .or_insert_with(crate::core::render::graph::RenderGraphState::new_ui)
+        .clone();
+    universal
+        .render_catalog
+        .render_graphs_2d
+        .entry(crate::core::render::graph::DEFAULT_2D_RENDER_GRAPH_ID)
+        .or_insert(crate::core::render::graph::RenderGraphRecord {
+            state: state_2d,
+            desc_hash: hash_2d,
+        });
     universal
         .scene
         .realm3d

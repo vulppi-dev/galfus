@@ -64,9 +64,13 @@ pub struct SceneRuntimeState {
 
 #[derive(Debug, Default)]
 pub struct RenderCatalogState {
-    pub render_graphs:
+    pub render_graphs_3d:
         std::collections::HashMap<u32, crate::core::render::graph::RenderGraphRecord>,
-    pub render_graph_plan_cache:
+    pub render_graphs_2d:
+        std::collections::HashMap<u32, crate::core::render::graph::RenderGraphRecord>,
+    pub render_graph_plan_cache_3d:
+        std::collections::HashMap<u64, crate::core::render::graph::RenderGraphState>,
+    pub render_graph_plan_cache_2d:
         std::collections::HashMap<u64, crate::core::render::graph::RenderGraphState>,
 }
 

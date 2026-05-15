@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use vulfram_realm_core::RealmKind;
 
 use crate::core::realm::RealmId;
 use crate::core::resources::common::mark_realm_windows_dirty;
@@ -40,6 +41,7 @@ pub struct CmdRenderGraphListArgs {}
 #[serde(default, rename_all = "camelCase")]
 pub struct RenderGraphEntry {
     pub render_graph_id: u32,
+    pub graph_kind: String,
     pub desc_hash: u64,
     pub pass_count: usize,
     pub pass_ids: Vec<String>,
@@ -80,6 +82,38 @@ fn realms_using_graph(engine: &EngineState, render_graph_id: u32) -> Vec<RealmId
         }
     }
     realms
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum GraphRegistryKind {
+    ThreeD,
+    TwoD,
+}
+
+impl GraphRegistryKind {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::ThreeD => "3d",
+            Self::TwoD => "2d",
+        }
+    }
+}
+
+fn classify_graph_registry(plan: &crate::core::render::graph::RenderGraphPlan) -> Option<GraphRegistryKind> {
+    if vulfram_render::graph_is_compatible_with_realm_kind(plan, RealmKind::TwoD) {
+        return Some(GraphRegistryKind::TwoD);
+    }
+    if vulfram_render::graph_is_compatible_with_realm_kind(plan, RealmKind::ThreeD) {
+        return Some(GraphRegistryKind::ThreeD);
+    }
+    None
+}
+
+fn registry_for_realm_kind(realm_kind: RealmKind) -> GraphRegistryKind {
+    match realm_kind {
+        RealmKind::ThreeD => GraphRegistryKind::ThreeD,
+        RealmKind::TwoD => GraphRegistryKind::TwoD,
+    }
 }
 
 fn emit_render_graph_error(
@@ -126,36 +160,65 @@ pub fn engine_cmd_render_graph_upsert(
     }
 
     let desc_hash = crate::core::render::graph::render_graph_desc_hash(&args.graph);
-    let cached_graph_state = engine
-        .universal_state
-        .render_catalog
-        .render_graph_plan_cache
-        .get(&desc_hash)
-        .cloned();
-    let graph_state = if let Some(cached) = cached_graph_state.clone() {
-        cached
-    } else {
-        let compiled =
-            match crate::core::render::graph::RenderGraphState::from_desc(args.graph.clone()) {
-                Ok(state) => state,
-                Err(err) => {
-                    let result = emit_render_graph_error(
-                        engine,
-                        format!("Invalid render graph {}: {}", args.render_graph_id, err),
-                        "render-graph-upsert",
-                    );
-                    return CmdResultRenderGraphUpsert {
-                        success: result.success,
-                        message: result.message,
-                    };
-                }
+    let graph_state = match crate::core::render::graph::RenderGraphState::from_desc(args.graph.clone()) {
+        Ok(state) => state,
+        Err(err) => {
+            let result = emit_render_graph_error(
+                engine,
+                format!("Invalid render graph {}: {}", args.render_graph_id, err),
+                "render-graph-upsert",
+            );
+            return CmdResultRenderGraphUpsert {
+                success: result.success,
+                message: result.message,
             };
-        compiled
+        }
     };
+    let Some(graph_kind) = classify_graph_registry(graph_state.plan()) else {
+        let result = emit_render_graph_error(
+            engine,
+            format!(
+                "Render graph {} is incompatible with both Graph3D and Graph2D registries",
+                args.render_graph_id
+            ),
+            "render-graph-upsert",
+        );
+        return CmdResultRenderGraphUpsert {
+            success: result.success,
+            message: result.message,
+        };
+    };
+
+    let exists_in_other_registry = match graph_kind {
+        GraphRegistryKind::ThreeD => engine
+            .universal_state
+            .render_catalog
+            .render_graphs_2d
+            .contains_key(&args.render_graph_id),
+        GraphRegistryKind::TwoD => engine
+            .universal_state
+            .render_catalog
+            .render_graphs_3d
+            .contains_key(&args.render_graph_id),
+    };
+    if exists_in_other_registry {
+        let result = emit_render_graph_error(
+            engine,
+            format!(
+                "Render graph id {} is already used by the other graph registry",
+                args.render_graph_id
+            ),
+            "render-graph-upsert",
+        );
+        return CmdResultRenderGraphUpsert {
+            success: result.success,
+            message: result.message,
+        };
+    }
 
     let used_by = realms_using_graph(engine, args.render_graph_id);
     for realm_id in &used_by {
-        let Some(realm_kind) = engine
+        let Some(bound_realm_kind) = engine
             .universal_state
             .composition
             .realms
@@ -165,12 +228,12 @@ pub fn engine_cmd_render_graph_upsert(
         else {
             continue;
         };
-        if !vulfram_render::graph_is_compatible_with_realm_kind(graph_state.plan(), realm_kind) {
+        if registry_for_realm_kind(bound_realm_kind) != graph_kind {
             let result = emit_render_graph_error(
                 engine,
                 format!(
-                    "Render graph {} is bound to realm {} ({:?}) and cannot be updated with incompatible passes",
-                    args.render_graph_id, realm_id.0, realm_kind
+                    "Render graph {} is bound to realm {} ({:?}) and cannot change graph registry kind",
+                    args.render_graph_id, realm_id.0, bound_realm_kind
                 ),
                 "render-graph-upsert",
             );
@@ -181,27 +244,31 @@ pub fn engine_cmd_render_graph_upsert(
         }
     }
 
-    let existed = engine
-        .universal_state
-        .render_catalog
-        .render_graphs
-        .insert(
-            args.render_graph_id,
-            crate::core::render::graph::RenderGraphRecord {
-                state: graph_state.clone(),
-                desc_hash,
-            },
-        )
-        .is_some();
+    let existed = {
+        let (registry, cache) = match graph_kind {
+            GraphRegistryKind::ThreeD => (
+                &mut engine.universal_state.render_catalog.render_graphs_3d,
+                &mut engine.universal_state.render_catalog.render_graph_plan_cache_3d,
+            ),
+            GraphRegistryKind::TwoD => (
+                &mut engine.universal_state.render_catalog.render_graphs_2d,
+                &mut engine.universal_state.render_catalog.render_graph_plan_cache_2d,
+            ),
+        };
+        let existed = registry
+            .insert(
+                args.render_graph_id,
+                crate::core::render::graph::RenderGraphRecord {
+                    state: graph_state.clone(),
+                    desc_hash,
+                },
+            )
+            .is_some();
+        cache.entry(desc_hash).or_insert(graph_state.clone());
+        existed
+    };
     for realm_id in used_by {
         mark_realm_windows_dirty(engine, realm_id.0);
-    }
-    if cached_graph_state.is_none() {
-        engine
-            .universal_state
-            .render_catalog
-            .render_graph_plan_cache
-            .insert(desc_hash, graph_state.clone());
     }
 
     CmdResultRenderGraphUpsert {
@@ -254,24 +321,53 @@ pub fn engine_cmd_render_graph_dispose(
         };
     }
 
-    if let Some(removed_graph) = engine
+    let removed = if let Some(record) = engine
         .universal_state
         .render_catalog
-        .render_graphs
+        .render_graphs_3d
         .remove(&args.render_graph_id)
     {
-        let keep_plan_cached = engine
+        Some((GraphRegistryKind::ThreeD, record))
+    } else {
+        engine
             .universal_state
             .render_catalog
-            .render_graphs
-            .values()
-            .any(|record| record.desc_hash == removed_graph.desc_hash);
-        if !keep_plan_cached {
-            engine
+            .render_graphs_2d
+            .remove(&args.render_graph_id)
+            .map(|record| (GraphRegistryKind::TwoD, record))
+    };
+    if let Some((graph_kind, removed_graph)) = removed {
+        let keep_plan_cached = match graph_kind {
+            GraphRegistryKind::ThreeD => engine
                 .universal_state
                 .render_catalog
-                .render_graph_plan_cache
-                .remove(&removed_graph.desc_hash);
+                .render_graphs_3d
+                .values()
+                .any(|record| record.desc_hash == removed_graph.desc_hash),
+            GraphRegistryKind::TwoD => engine
+                .universal_state
+                .render_catalog
+                .render_graphs_2d
+                .values()
+                .any(|record| record.desc_hash == removed_graph.desc_hash),
+        };
+        if !keep_plan_cached {
+            match graph_kind {
+                GraphRegistryKind::ThreeD => {
+                    engine
+                        .universal_state
+                        .render_catalog
+                        .render_graph_plan_cache_3d
+                        .remove(&removed_graph.desc_hash);
+                }
+                GraphRegistryKind::TwoD => {
+                    engine
+                        .universal_state
+                        .render_catalog
+                        .render_graph_plan_cache_2d
+                        .remove(&removed_graph.desc_hash);
+                }
+            }
         }
         CmdResultRenderGraphDispose {
             success: true,
@@ -297,19 +393,37 @@ pub fn engine_cmd_render_graph_list(
     let mut render_graph_ids: Vec<u32> = engine
         .universal_state
         .render_catalog
-        .render_graphs
+        .render_graphs_3d
         .keys()
         .copied()
         .collect();
-    render_graph_ids.sort_unstable();
-    let mut render_graphs = Vec::with_capacity(render_graph_ids.len());
-    for render_graph_id in render_graph_ids {
-        let Some(graph) = engine
+    render_graph_ids.extend(
+        engine
             .universal_state
             .render_catalog
-            .render_graphs
+            .render_graphs_2d
+            .keys()
+            .copied(),
+    );
+    render_graph_ids.sort_unstable();
+    render_graph_ids.dedup();
+    let mut render_graphs = Vec::with_capacity(render_graph_ids.len());
+    for render_graph_id in render_graph_ids {
+        let (graph_kind, graph) = if let Some(graph) = engine
+            .universal_state
+            .render_catalog
+            .render_graphs_3d
             .get(&render_graph_id)
-        else {
+        {
+            (GraphRegistryKind::ThreeD, graph)
+        } else if let Some(graph) = engine
+            .universal_state
+            .render_catalog
+            .render_graphs_2d
+            .get(&render_graph_id)
+        {
+            (GraphRegistryKind::TwoD, graph)
+        } else {
             continue;
         };
         let plan = graph.state.plan();
@@ -321,6 +435,7 @@ pub fn engine_cmd_render_graph_list(
         bound_realm_ids.sort_unstable();
         render_graphs.push(RenderGraphEntry {
             render_graph_id,
+            graph_kind: graph_kind.as_str().into(),
             desc_hash: graph.desc_hash,
             pass_count: plan.nodes.len(),
             pass_ids,
@@ -339,23 +454,6 @@ pub fn engine_cmd_realm_render_graph_bind(
     engine: &mut EngineState,
     args: &CmdRealmRenderGraphBindArgs,
 ) -> CmdResultRealmRenderGraphBind {
-    let Some(graph) = engine
-        .universal_state
-        .render_catalog
-        .render_graphs
-        .get(&args.render_graph_id)
-    else {
-        let result = emit_render_graph_error(
-            engine,
-            format!("Render graph {} not found", args.render_graph_id),
-            "realm-render-graph-bind",
-        );
-        return CmdResultRealmRenderGraphBind {
-            success: result.success,
-            message: result.message,
-        };
-    };
-
     let realm_id = RealmId(args.realm_id);
     let Some(realm_kind) = engine
         .universal_state
@@ -368,6 +466,34 @@ pub fn engine_cmd_realm_render_graph_bind(
         let result = emit_render_graph_error(
             engine,
             format!("Realm {} not found", args.realm_id),
+            "realm-render-graph-bind",
+        );
+        return CmdResultRealmRenderGraphBind {
+            success: result.success,
+            message: result.message,
+        };
+    };
+    let target_registry = registry_for_realm_kind(realm_kind);
+    let graph = match target_registry {
+        GraphRegistryKind::ThreeD => engine
+            .universal_state
+            .render_catalog
+            .render_graphs_3d
+            .get(&args.render_graph_id),
+        GraphRegistryKind::TwoD => engine
+            .universal_state
+            .render_catalog
+            .render_graphs_2d
+            .get(&args.render_graph_id),
+    };
+    let Some(graph) = graph else {
+        let result = emit_render_graph_error(
+            engine,
+            format!(
+                "Render graph {} not found in {} registry",
+                args.render_graph_id,
+                target_registry.as_str()
+            ),
             "realm-render-graph-bind",
         );
         return CmdResultRealmRenderGraphBind {

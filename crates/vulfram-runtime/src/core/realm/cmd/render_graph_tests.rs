@@ -121,6 +121,7 @@ fn render_graph_upsert_and_list_includes_desc_hash_and_passes() {
         .find(|entry| entry.render_graph_id == 100)
         .expect("custom graph must be listed");
     assert_eq!(entry.desc_hash, expected_hash);
+    assert_eq!(entry.graph_kind, "3d");
     assert_eq!(entry.pass_count, 1);
     assert_eq!(entry.pass_ids, vec![RENDER_PASS_SHADOW.to_string()]);
     assert_eq!(entry.bound_realm_ids, Vec::<u32>::new());
@@ -373,7 +374,7 @@ fn upsert_rejects_incompatible_update_for_bound_realms() {
         !engine
             .universal_state
             .render_catalog
-            .render_graph_plan_cache
+            .render_graph_plan_cache_3d
             .contains_key(&rejected_hash),
         "incompatible upsert must not populate plan cache"
     );
@@ -404,7 +405,7 @@ fn dispose_prunes_orphaned_render_graph_plan_cache() {
         engine
             .universal_state
             .render_catalog
-            .render_graph_plan_cache
+            .render_graph_plan_cache_3d
             .contains_key(&desc_hash)
     );
 
@@ -421,7 +422,7 @@ fn dispose_prunes_orphaned_render_graph_plan_cache() {
         !engine
             .universal_state
             .render_catalog
-            .render_graph_plan_cache
+            .render_graph_plan_cache_3d
             .contains_key(&desc_hash),
         "cache entry should be dropped when no graph references desc hash"
     );
