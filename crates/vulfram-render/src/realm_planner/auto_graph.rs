@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use vulfram_realm_core::{RealmId, RealmKind, TargetId, TargetKind, TargetLayerLayout};
+use vulfram_realm_core::{RealmId, RealmKind, SurfaceId, TargetId, TargetKind, TargetLayerLayout};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct AutoGraphResolvedLayout {
@@ -70,8 +70,8 @@ pub fn infer_auto_graph_input_flags(target_kind: TargetKind, source_realm_kind: 
 }
 
 pub fn plan_host_realm_index(
-    presents: &[(u32, vulfram_realm_core::SurfaceId)],
-    realm_output_surfaces: &HashMap<RealmId, Option<vulfram_realm_core::SurfaceId>>,
+    presents: &[(u32, SurfaceId)],
+    realm_output_surfaces: &HashMap<RealmId, Option<SurfaceId>>,
     layers: &HashMap<(u32, TargetId), (TargetKind, Option<u32>)>,
 ) -> HashMap<u32, RealmId> {
     let mut host_realm_index: HashMap<u32, RealmId> = HashMap::new();

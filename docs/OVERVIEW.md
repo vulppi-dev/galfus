@@ -41,7 +41,7 @@ The host is responsible for:
 The host does not:
 
 - create `wgpu` objects
-- create `Surface`, `Present` or `Connector` runtime tables
+- create internal composition runtime tables directly
 - talk directly to platform window APIs through Vulfram internals
 
 ### Core
@@ -83,9 +83,7 @@ Reusable assets/configurations addressed by host IDs:
 
 These are core-owned tables:
 
-- `Surface`
-- `Present`
-- `Connector`
+- internal target/frame composition caches
 
 They are not host-upserted directly. They are derived internally from:
 
@@ -100,22 +98,20 @@ The current composition model is:
 - `Realm`
   - execution scope and bound `render_graph_id`
 - `Target`
-  - logical output anchor such as `Window`, `WidgetRealmViewport`,
-    `RealmPlane` or `Texture`
+  - logical output anchor such as `Window` or `Texture`
 - `TargetLayer`
   - binds one realm to one target with layout/composition metadata
 
 From those host-visible maps, the runtime derives:
 
-- output `Surface` for the realm
-- `Present` when the target is the host window root
-- `Connector` when the realm is composed into another host realm/window
-- `TargetGraph` and `RealmGraph` planning data for diagnostics and execution
+- render invocations per layer
+- target dependency ordering in the frame graph
+- `TargetGraph` and `RealmGraph` diagnostics
 
 Practical rule:
 
 - the host owns `RealmId`, `TargetId`, and all scene/resource IDs
-- the core owns `SurfaceId`, `PresentId`, and `ConnectorId`
+- the core owns physical runtime handles and caches
 
 ## 5. Render Graphs
 

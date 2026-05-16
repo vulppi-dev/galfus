@@ -221,7 +221,6 @@ pub(super) fn run_demo_2_window_ui(ctx: DemoContext) -> bool {
     let mut measured_position = String::from("-");
     let mut measured_size = String::from("-");
     let mut measured_outer_size = String::from("-");
-    let mut measured_surface_size = String::from("-");
     let target_frame_time = Duration::from_millis(16);
 
     loop {
@@ -266,7 +265,6 @@ pub(super) fn run_demo_2_window_ui(ctx: DemoContext) -> bool {
                 if result.position.is_none()
                     && result.size.is_none()
                     && result.outer_size.is_none()
-                    && result.surface_size.is_none()
                 {
                     continue;
                 }
@@ -280,12 +278,9 @@ pub(super) fn run_demo_2_window_ui(ctx: DemoContext) -> bool {
                 if let Some(outer_size) = result.outer_size {
                     measured_outer_size = format!("{}x{}", outer_size.x, outer_size.y);
                 }
-                if let Some(surface_size) = result.surface_size {
-                    measured_surface_size = format!("{}x{}", surface_size.x, surface_size.y);
-                }
                 let text = format!(
-                    "Measurement: pos={} | size={} | outer={} | surface={}",
-                    measured_position, measured_size, measured_outer_size, measured_surface_size
+                    "Measurement: pos={} | size={} | outer={}",
+                    measured_position, measured_size, measured_outer_size
                 );
                 latest_measurement_text = Some(text);
             }

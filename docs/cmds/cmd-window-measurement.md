@@ -6,13 +6,12 @@ Agrupa:
 - posição (`set/get`)
 - tamanho interno (`set/get`)
 - tamanho externo (`get`)
-- tamanho de surface (`get`)
 
 ## Platform Notes
 
 - **WASM:** usa a mesma estrutura de resposta do nativo.
   Enquanto a janela ainda não estiver pronta, retorna payload vazio com `success=true` (eventual consistency).
-- Em HiDPI, o tamanho de surface reflete pixels reais do drawing buffer (não apenas pixels CSS).
+- Em HiDPI, `size` reflete pixels reais do drawing buffer (não apenas pixels CSS).
 
 ## Arguments
 
@@ -24,7 +23,6 @@ Agrupa:
 | getPosition    | bool         | Inclui `position` na resposta |
 | getSize        | bool         | Inclui `size` na resposta |
 | getOuterSize   | bool         | Inclui `outerSize` na resposta |
-| getSurfaceSize | bool         | Inclui `surfaceSize` na resposta |
 
 ## Response
 
@@ -37,7 +35,6 @@ Retorna `CmdResultWindowMeasurement`:
 | position    | Option<IVec2> | Posição atual/atualizada quando solicitada |
 | size        | Option<UVec2> | Tamanho interno atual/atualizado quando solicitado |
 | outerSize   | Option<UVec2> | Tamanho externo atual quando solicitado |
-| surfaceSize | Option<UVec2> | Tamanho atual da surface quando solicitado |
 
 ## Notes
 

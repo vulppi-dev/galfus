@@ -6,7 +6,7 @@ use crate::core::state::EngineState;
 use crate::core::target::TargetId;
 
 #[derive(Debug, Clone, Copy)]
-pub(super) struct RealmPlaneHit {
+pub(super) struct RealmHit {
     pub source_realm_id: RealmId,
     pub target_id: TargetId,
     pub uv: Vec2,
@@ -25,14 +25,14 @@ struct Ray {
     direction: Vec3,
 }
 
-pub(super) fn resolve_realm_plane_hit(
+pub(super) fn resolve_realm_hit(
     engine_state: &EngineState,
     window_id: u32,
     target_realm: RealmId,
     preferred_camera_id: Option<u32>,
     pointer_position: Vec2,
     pointer_surface_size: glam::UVec2,
-) -> Option<RealmPlaneHit> {
+) -> Option<RealmHit> {
     let realm_entry = engine_state
         .universal_state
         .composition
@@ -60,7 +60,7 @@ pub(super) fn resolve_realm_plane_hit(
     let mut ui_source_cache: std::collections::HashMap<u32, Option<UiTextureSource>> =
         std::collections::HashMap::new();
 
-    let mut best_hit: Option<(f32, RealmPlaneHit)> = None;
+    let mut best_hit: Option<(f32, RealmHit)> = None;
     let vertex = render_state.vertex.as_ref()?;
 
     for model in entities.models.values() {
@@ -92,7 +92,7 @@ pub(super) fn resolve_realm_plane_hit(
         };
 
         let mapped_uv = apply_uv_scale_bias(uv, ui_source.uv_scale_bias);
-        let hit = RealmPlaneHit {
+        let hit = RealmHit {
             source_realm_id: ui_source.source_realm_id,
             target_id: ui_source.target_id,
             uv: mapped_uv,
@@ -316,7 +316,7 @@ fn intersect_plane_model(
     if direction_local.z.abs() < 1e-6 {
         return None;
     }
-    // RealmPlane is double-sided in rasterization, but pointer interaction is
+    // Render planes are double-sided in rasterization, but pointer interaction is
     // only valid for the front face (local +Z normal).
     if direction_local.z >= -1e-6 {
         return None;

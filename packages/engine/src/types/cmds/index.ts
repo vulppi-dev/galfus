@@ -19,7 +19,6 @@ export * from './camera';
 export * from './environment';
 export * from './geometry';
 export * from './gizmo';
-export * from './input';
 export * from './light';
 export * from './material';
 export * from './model';

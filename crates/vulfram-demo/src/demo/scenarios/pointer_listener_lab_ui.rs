@@ -1,8 +1,8 @@
 use glam::Vec2;
 
 use vulfram_core::core::ui::types::{
-    UiColor, UiLayout, UiLayoutDirection, UiLength, UiNode, UiNodeKind, UiNodeProps, UiOp,
-    UiPadding, UiSize, UiSplitDirection,
+    UiColor, UiImageSource, UiLayout, UiLayoutDirection, UiLength, UiNode, UiNodeKind,
+    UiNodeProps, UiOp, UiPadding, UiSize, UiSplitDirection,
 };
 
 pub(super) fn build_ui_tree(
@@ -222,9 +222,9 @@ pub(super) fn build_ui_tree(
             parent: Some(bottom_panel_id + 1000),
             node: UiNode {
                 id: viewport_id,
-                kind: UiNodeKind::WidgetRealmViewport,
-                props: UiNodeProps::WidgetRealmViewport {
-                    target_id: inner_target_id,
+                kind: UiNodeKind::Image,
+                props: UiNodeProps::Image {
+                    source: UiImageSource::Target(inner_target_id),
                     size: Some(UiSize {
                         width: UiLength::Fill,
                         height: UiLength::Fill,

@@ -286,8 +286,6 @@ pub struct PointerTraceHop {
     #[serde(default)]
     pub connector_id: Option<u32>,
     #[serde(default)]
-    pub surface_id: Option<u32>,
-    #[serde(default)]
     pub camera_id: Option<u32>,
     #[serde(default)]
     pub uv: Option<Vec2>,
@@ -300,7 +298,7 @@ pub enum PointerTraceStage {
     Capture,
     FocusFallback,
     ConnectorHit,
-    RealmPlaneHit,
+    RealmHit,
     HopForward,
     StopNoHit,
     StopCycle,
@@ -330,40 +328,6 @@ impl Default for PointerTraceConfig {
             sampling_percent: 100,
         }
     }
-}
-
-fn default_true() -> bool {
-    true
-}
-
-const fn u8_100() -> u8 {
-    100
-}
-
-#[derive(Debug, Clone, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct CmdInputTargetListenerUpsertArgs {
-    pub listener_id: u64,
-    pub target_id: u64,
-    #[serde(default = "default_true")]
-    pub enabled: bool,
-    #[serde(default)]
-    pub events: Vec<String>,
-    #[serde(default = "u8_100")]
-    pub sample_percent: u8,
-}
-
-#[derive(Debug, Clone, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct CmdInputTargetListenerDisposeArgs {
-    pub listener_id: u64,
-}
-
-#[derive(Debug, Clone, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct CmdInputTargetListenerListArgs {
-    #[serde(default)]
-    pub target_id: Option<u64>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -441,7 +405,7 @@ pub struct InputRoutingRealmOutput {
 #[derive(Debug, Clone, Copy)]
 pub struct InputRoutingPresentBinding {
     pub window_id: u32,
-    pub surface_id: SurfaceId,
+    pub output_id: SurfaceId,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -472,7 +436,7 @@ pub struct InputRoutingConnectorRecord {
 
 #[derive(Debug, Clone, Copy)]
 pub struct InputRoutingSurfaceSizeRecord {
-    pub surface_id: SurfaceId,
+    pub output_id: SurfaceId,
     pub size: glam::UVec2,
 }
 
@@ -491,16 +455,8 @@ pub struct InputRoutingTopologySnapshot {
 pub struct InputTargetSizing {
     pub source_realm_size: Option<glam::UVec2>,
     pub connector_source_size: Option<glam::UVec2>,
-    pub target_surface_size: Option<glam::UVec2>,
+    pub target_output_size: Option<glam::UVec2>,
     pub target_declared_size: Option<glam::UVec2>,
-}
-
-#[derive(Debug, Default, Clone, Deserialize, Serialize)]
-#[serde(default, rename_all = "camelCase")]
-pub struct CmdResultInputTargetListenerList {
-    pub success: bool,
-    pub message: String,
-    pub listeners: Vec<InputTargetListenerSnapshot>,
 }
 
 #[derive(Debug, Default)]
@@ -1019,7 +975,7 @@ pub fn resolve_target_size(sizing: InputTargetSizing) -> Option<glam::UVec2> {
     sizing
         .source_realm_size
         .or(sizing.connector_source_size)
-        .or(sizing.target_surface_size)
+        .or(sizing.target_output_size)
         .or(sizing.target_declared_size)
 }
 
@@ -1036,8 +992,8 @@ pub fn build_input_routing_cache(snapshot: &InputRoutingTopologySnapshot) -> Inp
 
     let mut realm_by_window = HashMap::new();
     for present in &snapshot.presents {
-        if let Some(realm_id) = realm_by_surface.get(&present.surface_id).copied() {
-            realm_by_window.insert(present.window_id, (realm_id, present.surface_id));
+        if let Some(realm_id) = realm_by_surface.get(&present.output_id).copied() {
+            realm_by_window.insert(present.window_id, (realm_id, present.output_id));
         }
     }
 
@@ -1115,7 +1071,7 @@ pub fn compute_input_topology_hash(snapshot: &InputRoutingTopologySnapshot) -> u
     snapshot.presents.len().hash(&mut hasher);
     for present in &snapshot.presents {
         present.window_id.hash(&mut hasher);
-        present.surface_id.hash(&mut hasher);
+        present.output_id.hash(&mut hasher);
     }
 
     for target in &snapshot.target_order {
@@ -1154,7 +1110,7 @@ pub fn compute_input_topology_hash(snapshot: &InputRoutingTopologySnapshot) -> u
     }
 
     for surface in &snapshot.surfaces {
-        surface.surface_id.hash(&mut hasher);
+        surface.output_id.hash(&mut hasher);
         surface.size.x.hash(&mut hasher);
         surface.size.y.hash(&mut hasher);
     }

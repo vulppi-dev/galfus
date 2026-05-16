@@ -13,7 +13,7 @@
 
 - Pointer/keyboard chegam do subsistema de input.
 - Roteamento passa por `target layer` e resolve realm/document foco.
-- Para `RealmPlane`/`WidgetRealmViewport`, a posição é transformada para coordenadas locais.
+- Para imagem de `Target`, a posição é transformada para coordenadas locais.
 
 ## Saída
 

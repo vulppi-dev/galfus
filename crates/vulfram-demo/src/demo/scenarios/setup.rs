@@ -29,7 +29,6 @@ pub(super) fn window_measurement_cmd(window_id: u32) -> EngineCmd {
         get_position: true,
         get_size: true,
         get_outer_size: true,
-        get_surface_size: true,
         ..Default::default()
     })
 }

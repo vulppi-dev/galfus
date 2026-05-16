@@ -1,6 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
 use super::*;
+use vulfram_types::{ConnectorId, SurfaceId};
 
 #[test]
 fn realm_table_allocates_monotonic_ids() {

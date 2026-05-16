@@ -72,8 +72,6 @@ export const ResponseDecodeSystem: System = (world, context) => {
     } else if (res.type === 'window-create') {
       const created = res.content as {
         realmId?: number;
-        surfaceId?: number;
-        presentId?: number;
       };
       if (typeof created.realmId === 'number') {
         world.coreRealmId = created.realmId;
@@ -81,12 +79,6 @@ export const ResponseDecodeSystem: System = (world, context) => {
         world.nextRealmCreateRetryAtMs = 0;
         markRoutingIndexDirty();
         flushPendingTargetLayerBinds(world, context.worldId);
-      }
-      if (typeof created.surfaceId === 'number') {
-        world.coreSurfaceId = created.surfaceId;
-      }
-      if (typeof created.presentId === 'number') {
-        world.corePresentId = created.presentId;
       }
     }
   }

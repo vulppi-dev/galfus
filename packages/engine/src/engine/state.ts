@@ -63,8 +63,6 @@ export type WorldState = {
   realmCreateRetryCount: number;
   nextRealmCreateRetryAtMs: number;
   realmCreateArgs: CmdRealmCreateArgs;
-  coreSurfaceId?: number;
-  corePresentId?: number;
   /**
    * Constraint-solved world matrices keyed by entity id.
    */

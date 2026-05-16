@@ -1,7 +1,7 @@
 use glam::UVec2;
 
 use crate::core::realm::{
-    PresentId, PresentState, RealmId, RealmKind, RealmState, SurfaceId, SurfaceKind, SurfaceState,
+    PresentState, RealmId, RealmKind, RealmState, SurfaceKind, SurfaceState,
 };
 use crate::core::render::RenderState;
 use crate::core::render::ensure_runtime_render_defaults;
@@ -11,8 +11,6 @@ use crate::core::state::EngineState;
 
 pub struct WindowRealmBinding {
     pub realm_id: RealmId,
-    pub surface_id: SurfaceId,
-    pub present_id: PresentId,
 }
 
 pub struct WindowRenderBootstrapArtifacts {
@@ -53,7 +51,7 @@ pub fn register_window_realm(
         .entities
         .entry(realm_id)
         .or_default();
-    let present_id = engine
+    let _present_id = engine
         .universal_state
         .composition
         .presents
@@ -62,11 +60,7 @@ pub fn register_window_realm(
             surface: surface_id,
         });
 
-    WindowRealmBinding {
-        realm_id,
-        surface_id,
-        present_id,
-    }
+    WindowRealmBinding { realm_id }
 }
 
 pub fn build_window_render_state(

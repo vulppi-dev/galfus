@@ -52,8 +52,8 @@ Host-visible logical output anchor.
 Examples:
 
 - window
-- widget realm viewport
-- realm plane
+- texture target
+- window target
 - texture
 
 ## TargetLayer
@@ -62,23 +62,13 @@ Host-visible mapping from one realm to one target plus layout/composition data.
 
 This is the host-facing composition API.
 
-## Surface
+## Texture Target
 
-Core-owned runtime table representing a renderable/sampleable output.
+Host-visible texture destination used in multi-target composition.
 
-Important:
+## Frame Dependency
 
-- not directly created by the host
-- derived internally from realm/target composition
-
-## Present
-
-Core-owned mapping from a window root to a surface.
-
-## Connector
-
-Core-owned mapping used to compose one realm surface into another realm/window
-host context.
+Runtime-computed ordering between targets based on produced/consumed textures.
 
 ## Auto-Graph
 
@@ -130,8 +120,6 @@ The host guarantees validity and uniqueness.
 
 Core-owned identifiers/handles such as:
 
-- `SurfaceId`
-- `PresentId`
-- `ConnectorId`
+- physical runtime handles
 - GPU resources
 - compiled plans and caches

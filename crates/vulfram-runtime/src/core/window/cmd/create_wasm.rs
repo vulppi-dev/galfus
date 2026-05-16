@@ -38,8 +38,6 @@ pub fn engine_cmd_window_create_async(
                 success: false,
                 message: "canvasId is required in wasm mode".into(),
                 realm_id: None,
-                surface_id: None,
-                present_id: None,
             });
         }
     };
@@ -51,8 +49,6 @@ pub fn engine_cmd_window_create_async(
                 success: false,
                 message: "Web window not available".into(),
                 realm_id: None,
-                surface_id: None,
-                present_id: None,
             });
         }
     };
@@ -63,8 +59,6 @@ pub fn engine_cmd_window_create_async(
                 success: false,
                 message: "Document not available".into(),
                 realm_id: None,
-                surface_id: None,
-                present_id: None,
             });
         }
     };
@@ -75,8 +69,6 @@ pub fn engine_cmd_window_create_async(
                 success: false,
                 message: format!("Canvas with id '{}' not found", canvas_id),
                 realm_id: None,
-                surface_id: None,
-                present_id: None,
             });
         }
     };
@@ -87,8 +79,6 @@ pub fn engine_cmd_window_create_async(
                 success: false,
                 message: format!("Element '{}' is not a canvas", canvas_id),
                 realm_id: None,
-                surface_id: None,
-                present_id: None,
             });
         }
     };
@@ -121,8 +111,6 @@ pub fn engine_cmd_window_create_async(
                                 success: false,
                                 message: format!("WGPU create surface error: {}", e),
                                 realm_id: None,
-                                surface_id: None,
-                                present_id: None,
                             }),
                         });
                     });
@@ -147,8 +135,6 @@ pub fn engine_cmd_window_create_async(
                             success: false,
                             message: "WGPU adapter request error".into(),
                             realm_id: None,
-                            surface_id: None,
-                            present_id: None,
                         }),
                     });
                 });
@@ -173,8 +159,6 @@ pub fn engine_cmd_window_create_async(
                             success: false,
                             message: format!("WGPU device request error: {}", e),
                             realm_id: None,
-                            surface_id: None,
-                            present_id: None,
                         }),
                     });
                 });
@@ -231,8 +215,6 @@ pub fn engine_cmd_window_create_async(
                     success: true,
                     message: "Canvas window created successfully".into(),
                     realm_id: Some(binding.realm_id.0),
-                    surface_id: Some(binding.surface_id.0),
-                    present_id: Some(binding.present_id.0),
                 }),
             });
             {
@@ -264,7 +246,5 @@ pub fn engine_cmd_window_create(
         success: false,
         message: "wasm feature requires the wasm32-unknown-unknown target".into(),
         realm_id: None,
-        surface_id: None,
-        present_id: None,
     }
 }

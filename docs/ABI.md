@@ -190,8 +190,7 @@ Typical flow:
 Current composition note:
 
 - the host composes the scene through `Realm`, `Target`, and `TargetLayer`
-- the core derives internal `Surface`, `Present`, and `Connector` tables from
-  those maps
+- the core derives internal composition links and frame dependencies from those maps
 
 ---
 

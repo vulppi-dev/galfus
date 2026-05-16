@@ -1,4 +1,5 @@
 use super::*;
+use vulfram_core::core::ui::types::UiImageSource;
 
 pub(super) fn append_setup_commands_tail(
     scenario: u32,
@@ -274,9 +275,9 @@ pub(super) fn append_setup_commands_tail(
                         parent: None,
                         node: UiNode {
                             id: ids.ui_node_extra,
-                            kind: UiNodeKind::WidgetRealmViewport,
-                            props: UiNodeProps::WidgetRealmViewport {
-                                target_id: realm_plane_target,
+                            kind: UiNodeKind::Image,
+                            props: UiNodeProps::Image {
+                                source: UiImageSource::Target(realm_plane_target),
                                 size: None,
                             },
                             tooltip: None,

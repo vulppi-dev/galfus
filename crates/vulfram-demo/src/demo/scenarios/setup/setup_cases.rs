@@ -74,7 +74,8 @@ pub(crate) fn extra_setup_commands(
                     CmdMaterialCreateArgs {
                         material_id: mat_id,
                         label: Some(format!("{} Material", label)),
-                        kind: MaterialKind::Standard,
+                        kind: MaterialKind::Shader,
+                        preset: Some(ShaderMaterialPreset::Standard),
                         options: Some(MaterialOptions::Standard(StandardOptions {
                             base_color: Some(*color),
                             surface_type,
@@ -111,7 +112,6 @@ pub(crate) fn extra_setup_commands(
                 get_position: true,
                 get_size: true,
                 get_outer_size: true,
-                get_surface_size: true,
                 ..Default::default()
             }));
             cmds.push(EngineCmd::CmdWindowState(CmdWindowStateArgs {
@@ -273,7 +273,8 @@ pub(crate) fn extra_setup_commands(
                 CmdMaterialCreateArgs {
                     material_id: ids.material_id + 100,
                     label: Some("PBR Material".into()),
-                    kind: MaterialKind::Pbr,
+                    kind: MaterialKind::Shader,
+                    preset: Some(ShaderMaterialPreset::Pbr),
                     options: Some(MaterialOptions::Pbr(PbrOptions {
                         base_color: Some(Vec4::new(0.7, 0.8, 1.0, 1.0)),
                         metallic: Some(0.8),

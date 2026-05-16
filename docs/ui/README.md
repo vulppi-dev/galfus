@@ -21,8 +21,8 @@
 ## Integração com Targets/Layers
 
 - `UiImageSource::Target(targetId)` permite sample de alvo externo.
-- `UiNodeKind::WidgetRealmViewport` permite renderizar target em nó de UI.
-- `TargetKind::RealmPlane` permite UI em plano 3D com raycast/hit.
+- `UiNodeKind::Image` com `UiImageSource::Target` permite renderizar target em nó de UI.
+- UI em plano 3D com raycast/hit usa targets e materiais, sem target kind legado.
 
 ## Referência
 

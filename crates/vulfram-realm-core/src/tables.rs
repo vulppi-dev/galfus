@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
-use crate::{ConnectorId, ConnectorState, PresentId, PresentState, RealmId, RealmState};
+use crate::{ConnectorState, PresentState, RealmId, RealmState};
+use vulfram_types::{ConnectorId, PresentId};
 
 #[derive(Debug, Clone)]
 pub struct TableEntry<T> {

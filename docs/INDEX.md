@@ -26,7 +26,7 @@ Read in this order:
 Important current truths:
 
 - the host composes through `Realm`, `Target` and `TargetLayer`
-- `Surface`, `Present` and `Connector` are internal runtime tables
+- internal composition links are runtime-only
 - render graphs are global resources bound per realm
 
 ## JavaScript Workspace
@@ -49,8 +49,7 @@ Read in this order:
 
 ## Notes
 
-- older planning assumptions that treated `SurfaceId`, `PresentId` and
-  `ConnectorId` as host-managed should be considered obsolete
+- older planning assumptions about host-managed internal composition IDs are obsolete
 - `vulfram-runtime` is the current integration root of the Rust side
 - `vulfram-render` is the home of rendering policy and the preferred long-term
   home of auto-graph planning policy

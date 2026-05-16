@@ -55,17 +55,6 @@ fn keyboard_event_round_trips_through_messagepack() {
 }
 
 #[test]
-fn input_target_listener_upsert_defaults_are_applied() {
-    let decoded: CmdInputTargetListenerUpsertArgs =
-        serde_json::from_str(r#"{ "listenerId": 1, "targetId": 2 }"#)
-            .expect("listener args should decode");
-
-    assert!(decoded.enabled);
-    assert_eq!(decoded.sample_percent, 100);
-    assert!(decoded.events.is_empty());
-}
-
-#[test]
 fn input_target_listener_store_lists_sorted_snapshots() {
     let mut store = InputTargetListenerStore::default();
     store.upsert(InputTargetListenerConfig {
@@ -135,7 +124,6 @@ fn select_trace_payload_basic_strips_detailed_fields() {
             target_id: Some(3),
             layer_realm_id: Some(2),
             connector_id: Some(4),
-            surface_id: Some(6),
             camera_id: Some(7),
             uv: Some(Vec2::new(0.25, 0.75)),
         }],
@@ -292,7 +280,7 @@ fn build_input_routing_cache_sorts_connectors_by_z_then_rank() {
         }],
         presents: vec![InputRoutingPresentBinding {
             window_id: 9,
-            surface_id: SurfaceId(5),
+            output_id: SurfaceId(5),
         }],
         target_order: vec![
             InputRoutingTargetRank {
@@ -345,15 +333,15 @@ fn build_input_routing_cache_sorts_connectors_by_z_then_rank() {
         ],
         surfaces: vec![
             InputRoutingSurfaceSizeRecord {
-                surface_id: SurfaceId(5),
+                output_id: SurfaceId(5),
                 size: glam::UVec2::new(100, 100),
             },
             InputRoutingSurfaceSizeRecord {
-                surface_id: SurfaceId(7),
+                output_id: SurfaceId(7),
                 size: glam::UVec2::new(10, 10),
             },
             InputRoutingSurfaceSizeRecord {
-                surface_id: SurfaceId(8),
+                output_id: SurfaceId(8),
                 size: glam::UVec2::new(10, 10),
             },
         ],
@@ -379,7 +367,7 @@ fn resolve_target_relative_position_uses_first_runtime_size() {
         InputTargetSizing {
             source_realm_size: Some(glam::UVec2::new(200, 100)),
             connector_source_size: Some(glam::UVec2::new(10, 10)),
-            target_surface_size: None,
+            target_output_size: None,
             target_declared_size: None,
         },
         Some(Vec2::new(0.25, 0.5)),
@@ -394,7 +382,7 @@ fn resolve_target_size_falls_back_through_all_sources() {
         resolve_target_size(InputTargetSizing {
             source_realm_size: None,
             connector_source_size: None,
-            target_surface_size: Some(glam::UVec2::new(300, 200)),
+            target_output_size: Some(glam::UVec2::new(300, 200)),
             target_declared_size: Some(glam::UVec2::new(10, 10)),
         }),
         Some(glam::UVec2::new(300, 200))
@@ -404,7 +392,7 @@ fn resolve_target_size_falls_back_through_all_sources() {
         resolve_target_size(InputTargetSizing {
             source_realm_size: None,
             connector_source_size: None,
-            target_surface_size: None,
+            target_output_size: None,
             target_declared_size: Some(glam::UVec2::new(10, 10)),
         }),
         Some(glam::UVec2::new(10, 10))

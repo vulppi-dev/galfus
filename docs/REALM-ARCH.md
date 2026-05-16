@@ -4,7 +4,7 @@ This document records the current realm-composition model and the recommended
 refactor direction for `vulfram-realm-core`.
 
 It replaces the old "phase 0 planning" description as the architecture
-reference for realms, surfaces, presents, connectors and reports.
+reference for realms, targets, layers, textures and reports.
 
 ## 1. Current Model
 
@@ -17,9 +17,7 @@ reference for realms, surfaces, presents, connectors and reports.
 
 ### Core-owned derived tables
 
-- `Surface`
-- `Present`
-- `Connector`
+- internal target/frame composition caches
 
 ### Runtime diagnostics
 
@@ -35,10 +33,8 @@ Each `TargetLayer(realm -> target)` participates in runtime composition.
 Current practical behavior:
 
 - one realm chooses one primary target deterministically
-- the primary target defines the realm output surface characteristics
-- host window roots create `Present`
-- non-root window composition, viewport composition and realm planes create
-  `Connector`
+- the primary target defines the realm render output characteristics
+- target composition is resolved from target/layer graph
 - target graph and realm graph diagnostics are refreshed from these maps
 
 ## 3. Ownership Rules
@@ -52,9 +48,7 @@ Current practical behavior:
 
 ### Core owns
 
-- `SurfaceId`
-- `PresentId`
-- `ConnectorId`
+- physical runtime handles
 - auto-link reconciliation
 - cycle-breaking caches and reports
 
@@ -63,8 +57,7 @@ Current practical behavior:
 `vulfram-realm-core` should own realm-composition semantics:
 
 - `RealmState`
-- `ConnectorState`
-- `PresentState`
+- composition/link runtime state
 - composition tables
 - realm graph and target graph DTOs/plans
 - frame report DTOs
@@ -139,7 +132,7 @@ Safer direction:
 A practical future split is:
 
 - `RealmCompositionState`
-  - realm/surface/present/connector/surface-cache/frame-report
+  - realm/composition-cache/frame-report
 - `TargetRoutingState`
   - targets/target-layers/target-graph-cache/auto-links/indexes/failures
 - `SceneResourceState`

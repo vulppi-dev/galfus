@@ -3,7 +3,7 @@ use vulfram_core::core::cmd::EngineCmd;
 use vulfram_core::core::resources::shadow::{CmdShadowConfigureArgs, ShadowConfig};
 use vulfram_core::core::resources::{
     CameraKind, CmdCameraCreateArgs, CmdLightCreateArgs, CmdMaterialCreateArgs, MaterialKind,
-    MaterialOptions, MaterialSampler, PbrOptions, StandardOptions,
+    MaterialOptions, MaterialSampler, PbrOptions, ShaderMaterialPreset, StandardOptions,
 };
 
 pub fn create_camera_cmd(realm_id: u32, camera_id: u32, label: &str, transform: Mat4) -> EngineCmd {
@@ -85,7 +85,8 @@ pub fn create_standard_material_cmd(
         CmdMaterialCreateArgs {
             material_id,
             label: Some(label.to_string()),
-            kind: MaterialKind::Standard,
+            kind: MaterialKind::Shader,
+            preset: Some(ShaderMaterialPreset::Standard),
             options: Some(MaterialOptions::Standard(StandardOptions {
                 base_color: Some(base_color),
                 base_tex_id,
@@ -109,7 +110,8 @@ pub fn create_pbr_material_cmd(
         CmdMaterialCreateArgs {
             material_id,
             label: Some(label.to_string()),
-            kind: MaterialKind::Pbr,
+            kind: MaterialKind::Shader,
+            preset: Some(ShaderMaterialPreset::Pbr),
             options: Some(MaterialOptions::Pbr(PbrOptions {
                 base_color: Some(base_color),
                 metallic: Some(metallic),

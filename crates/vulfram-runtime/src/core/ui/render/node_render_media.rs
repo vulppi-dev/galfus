@@ -225,25 +225,6 @@ pub(super) fn render_node_inner_media(
                 }
             }
         },
-        UiNodeProps::WidgetRealmViewport { target_id, size } => {
-            if let Some(target_size) = ui_state.external_textures.get(&target_id).copied() {
-                let size = resolve_size_in_ui(ui, size, target_size);
-                ui_state.target_size_requests.insert(
-                    target_id,
-                    glam::UVec2::new(
-                        size.x.max(1.0).round() as u32,
-                        size.y.max(1.0).round() as u32,
-                    ),
-                );
-                let texture = egui::load::SizedTexture::new(egui::TextureId::User(target_id), size);
-                ui.add(egui::Image::from_texture(texture).fit_to_exact_size(size));
-            } else {
-                let fallback = resolve_size(size, [320, 180]);
-                let (rect, _) = ui.allocate_exact_size(fallback, egui::Sense::hover());
-                ui.painter()
-                    .rect_filled(rect, 0.0, egui::Color32::from_rgb(28, 32, 40));
-            }
-        }
         UiNodeProps::Separator => {
             ui.separator();
         }

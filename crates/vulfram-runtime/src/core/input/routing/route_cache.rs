@@ -32,7 +32,7 @@ fn build_input_routing_topology_snapshot(
         .values()
         .map(|entry| vulfram_input::InputRoutingPresentBinding {
             window_id: entry.value.window_id,
-            surface_id: entry.value.surface,
+            output_id: entry.value.surface,
         })
         .collect();
 
@@ -102,7 +102,7 @@ fn build_input_routing_topology_snapshot(
         .iter()
         .map(
             |(surface_id, entry)| vulfram_input::InputRoutingSurfaceSizeRecord {
-                surface_id: *surface_id,
+                output_id: *surface_id,
                 size: entry.value.size,
             },
         )

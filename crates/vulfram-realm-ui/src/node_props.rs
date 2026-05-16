@@ -379,11 +379,6 @@ pub enum UiNodeProps {
         #[serde(default)]
         size: Option<UiSize>,
     },
-    WidgetRealmViewport {
-        target_id: u64,
-        #[serde(default)]
-        size: Option<UiSize>,
-    },
     Separator,
     Spacer {
         #[serde(default)]

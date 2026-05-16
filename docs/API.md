@@ -21,7 +21,7 @@ The workspace is currently organized around these main crates:
   - render target/bootstrap/cache utilities
 - `vulfram-realm-core`
   - realm composition semantics
-  - `RealmState`, `ConnectorState`, `PresentState`
+  - `RealmState` and composition state
   - realm graph plan, target graph plan, frame report DTOs
 - `vulfram-platform`
   - desktop/browser bootstrap and platform policies
@@ -141,8 +141,8 @@ Current behavior:
 
 - the host upserts `Target` and `TargetLayer`
 - the runtime reconciles these logical maps
-- internal `Surface`, `Present`, and `Connector` tables are derived from them
-- render execution later consumes the derived realm/surface/connectors state
+- internal composition links and dependency caches are derived from them
+- render execution later consumes derived target dependencies and invocations
 
 Recommended ownership:
 
@@ -157,9 +157,9 @@ That means the long-term ideal is:
 - `vulfram-render`
   - auto-graph planner and reconciliation planning
   - target/realm composition policy because it directly drives realm ordering,
-    surface sizing, composition and WGPU-facing execution constraints
+    target sizing, composition and WGPU-facing execution constraints
   - per-layer sync ops that tell runtime when to create, rebuild, keep or
-    update derived internal links/surfaces
+    update derived internal links/targets
 - `vulfram-runtime`
   - command decoding
   - applying the planner result into owned runtime tables
@@ -183,15 +183,13 @@ Recommended internal split:
 
 2. `state.rs`
    - `RealmState`
-   - `ConnectorState`
-   - `PresentState`
+   - composition/link state
    - `AutoLink`
    - `SurfaceCache`
 
 3. `tables.rs`
    - `RealmTable`
-   - `ConnectorTable`
-   - `PresentTable`
+   - composition/link tables
    - shared `TableEntry`
 
 4. `realm_graph.rs`
@@ -267,9 +265,9 @@ This organization gives clearer rules:
 
 These are the current rules the rest of the docs should follow:
 
-- `Surface`, `Present`, and `Connector` are internal runtime tables
+- internal composition links are runtime tables
 - the host owns `RealmId`, `TargetId`, resource IDs, component IDs and window IDs
-- the host does not upsert `Surface`, `Present`, or `Connector` directly
+- the host does not upsert internal composition links directly
 - the auto-graph derives runtime composition from `Target` + `TargetLayer`
 - render graph resources are global catalog entries bound per realm through
   `render_graph_id`

@@ -49,7 +49,6 @@ pub enum UiNodeKind {
     TextEdit,
     Input,
     Image,
-    WidgetRealmViewport,
     Separator,
     Spacer,
 }

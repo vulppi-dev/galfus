@@ -116,22 +116,12 @@ pub fn engine_cmd_window_measurement(
             None
         };
 
-        let current_surface_size = if args.get_surface_size {
-            Some(UVec2::new(
-                window_state.config.width,
-                window_state.config.height,
-            ))
-        } else {
-            None
-        };
-
         CmdResultWindowMeasurement {
             success: true,
             message: "Window measurement command applied successfully".into(),
             position: current_position,
             size: current_size,
             outer_size: current_outer_size,
-            surface_size: current_surface_size,
         }
     };
     if let Some(size) = resized_surface_size {
