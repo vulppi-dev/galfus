@@ -1,8 +1,8 @@
 use glam::Vec2;
 
 use vulfram_core::core::ui::types::{
-    UiColor, UiImageSource, UiLayout, UiLayoutDirection, UiLength, UiNode, UiNodeKind,
-    UiNodeProps, UiOp, UiPadding, UiSize, UiSplitDirection,
+    UiColor, UiImageSource, UiLayout, UiLayoutDirection, UiLength, UiNode, UiNodeKind, UiNodeProps,
+    UiOp, UiPadding, UiSize, UiSplitDirection,
 };
 
 pub(super) fn build_ui_tree(

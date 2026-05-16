@@ -1,8 +1,6 @@
 use glam::UVec2;
 
-use crate::core::realm::{
-    PresentState, RealmId, RealmKind, RealmState, SurfaceKind, SurfaceState,
-};
+use crate::core::realm::{PresentState, RealmId, RealmKind, RealmState, SurfaceKind, SurfaceState};
 use crate::core::render::RenderState;
 use crate::core::render::ensure_runtime_render_defaults;
 use crate::core::render::graph::DEFAULT_3D_RENDER_GRAPH_ID;

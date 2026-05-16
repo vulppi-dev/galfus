@@ -262,9 +262,7 @@ pub(super) fn run_demo_2_window_ui(ctx: DemoContext) -> bool {
             if let CommandResponse::WindowMeasurement(result) = envelope.response
                 && result.success
             {
-                if result.position.is_none()
-                    && result.size.is_none()
-                    && result.outer_size.is_none()
+                if result.position.is_none() && result.size.is_none() && result.outer_size.is_none()
                 {
                     continue;
                 }
