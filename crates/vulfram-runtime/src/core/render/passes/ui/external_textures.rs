@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
 
-use crate::core::realm::{AutoLink, RealmId, SurfaceId, SurfaceTable};
+use crate::core::realm::{RealmId, SurfaceId, SurfaceTable};
 use crate::core::resources::RenderTarget;
 use crate::core::target::{TargetId, TargetKind, TargetTable};
 use crate::core::ui::UiState;
@@ -13,20 +13,18 @@ pub fn collect_external_textures(
     targets: &TargetTable,
     _target_layers: &crate::core::target::TargetLayerTable,
     surfaces: &SurfaceTable,
-    auto_links: &HashMap<(u32, TargetId), AutoLink>,
+    target_surface_map: &HashMap<TargetId, SurfaceId>,
     surface_targets: &HashMap<SurfaceId, RenderTarget>,
     realm_id: RealmId,
 ) -> Vec<ExternalTextureInput> {
-    let target_surfaces = resolve_external_target_surfaces(auto_links, targets, realm_id);
+    let target_surfaces = resolve_external_target_surfaces(targets, target_surface_map);
     let mut static_entries: Vec<(TargetId, SurfaceId)> = Vec::new();
-    for (target_id, (surface_id, source_realm_id)) in &target_surfaces {
-        let _ = source_realm_id;
+    for (target_id, surface_id) in &target_surfaces {
         let Some(target) = targets.entries.get(target_id) else {
             continue;
         };
-        match target.kind {
-            TargetKind::Texture => static_entries.push((*target_id, *surface_id)),
-            _ => {}
+        if target.kind == TargetKind::Texture {
+            static_entries.push((*target_id, *surface_id));
         }
     }
     static_entries.sort_by_key(|(target_id, _)| target_id.0);
@@ -100,28 +98,18 @@ fn hash_external_texture_signature(
 }
 
 fn resolve_external_target_surfaces(
-    auto_links: &HashMap<(u32, TargetId), AutoLink>,
     targets: &TargetTable,
-    realm_id: RealmId,
-) -> HashMap<TargetId, (SurfaceId, u32)> {
-    let mut target_surfaces: HashMap<TargetId, (SurfaceId, u32)> = HashMap::new();
-    for ((link_realm, target_id), link) in auto_links {
+    target_surface_map: &HashMap<TargetId, SurfaceId>,
+) -> HashMap<TargetId, SurfaceId> {
+    let mut target_surfaces: HashMap<TargetId, SurfaceId> = HashMap::new();
+    for (target_id, surface_id) in target_surface_map {
         let Some(target) = targets.entries.get(target_id) else {
             continue;
         };
         if target.kind != TargetKind::Texture {
             continue;
         }
-        match target_surfaces.entry(*target_id) {
-            std::collections::hash_map::Entry::Vacant(entry) => {
-                entry.insert((link.surface_id, *link_realm));
-            }
-            std::collections::hash_map::Entry::Occupied(mut entry) => {
-                if *link_realm == realm_id.0 {
-                    entry.insert((link.surface_id, *link_realm));
-                }
-            }
-        }
+        target_surfaces.insert(*target_id, *surface_id);
     }
     target_surfaces
 }

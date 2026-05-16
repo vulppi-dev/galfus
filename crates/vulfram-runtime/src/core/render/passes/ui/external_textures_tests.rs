@@ -1,5 +1,5 @@
 use super::resolve_external_target_surfaces;
-use crate::core::realm::{AutoLink, RealmId, SurfaceId};
+use crate::core::realm::SurfaceId;
 use crate::core::target::{TargetId, TargetKind, TargetState, TargetTable};
 use std::collections::HashMap;
 
@@ -21,26 +21,10 @@ fn prefers_link_from_current_realm_for_same_target() {
     targets
         .entries
         .insert(target_id, target(TargetKind::Texture));
-    let mut auto_links = HashMap::new();
-    auto_links.insert(
-        (1, target_id),
-        AutoLink {
-            surface_id: SurfaceId(10),
-            connector_id: None,
-            present_id: None,
-        },
-    );
-    auto_links.insert(
-        (7, target_id),
-        AutoLink {
-            surface_id: SurfaceId(20),
-            connector_id: None,
-            present_id: None,
-        },
-    );
+    let target_surface_map = HashMap::from([(target_id, SurfaceId(20))]);
 
-    let resolved = resolve_external_target_surfaces(&auto_links, &targets, RealmId(7));
-    assert_eq!(resolved.get(&target_id), Some(&(SurfaceId(20), 7)));
+    let resolved = resolve_external_target_surfaces(&targets, &target_surface_map);
+    assert_eq!(resolved.get(&target_id), Some(&SurfaceId(20)));
 }
 
 #[test]
@@ -54,25 +38,12 @@ fn ignores_non_external_target_kinds() {
     targets
         .entries
         .insert(texture_target, target(TargetKind::Texture));
-    let mut auto_links = HashMap::new();
-    auto_links.insert(
-        (3, window_target),
-        AutoLink {
-            surface_id: SurfaceId(11),
-            connector_id: None,
-            present_id: None,
-        },
-    );
-    auto_links.insert(
-        (3, texture_target),
-        AutoLink {
-            surface_id: SurfaceId(12),
-            connector_id: None,
-            present_id: None,
-        },
-    );
+    let target_surface_map = HashMap::from([
+        (window_target, SurfaceId(11)),
+        (texture_target, SurfaceId(12)),
+    ]);
 
-    let resolved = resolve_external_target_surfaces(&auto_links, &targets, RealmId(3));
+    let resolved = resolve_external_target_surfaces(&targets, &target_surface_map);
     assert!(!resolved.contains_key(&window_target));
-    assert_eq!(resolved.get(&texture_target), Some(&(SurfaceId(12), 3)));
+    assert_eq!(resolved.get(&texture_target), Some(&SurfaceId(12)));
 }

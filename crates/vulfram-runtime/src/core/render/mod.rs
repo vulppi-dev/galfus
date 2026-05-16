@@ -454,7 +454,6 @@ pub fn render_frames(engine_state: &mut EngineState) {
             let targets = &universal.targets.targets;
             let target_layers = &universal.targets.target_layers;
             let surfaces = &universal.composition.surfaces;
-            let auto_links = &universal.targets.auto_links;
             #[cfg(not(target_arch = "wasm32"))]
             let window_focused = engine_state
                 .window
@@ -476,7 +475,7 @@ pub fn render_frames(engine_state: &mut EngineState) {
                 targets,
                 target_layers,
                 surfaces,
-                auto_links,
+                &target_surface_map,
                 &engine_state.surface_targets,
                 device,
                 queue,

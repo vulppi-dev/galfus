@@ -233,9 +233,9 @@ pub(super) fn execute_graph_to_view(
     targets: &crate::core::target::TargetTable,
     target_layers: &crate::core::target::TargetLayerTable,
     surfaces: &crate::core::realm::SurfaceTable,
-    auto_links: &std::collections::HashMap<
-        (u32, crate::core::target::TargetId),
-        crate::core::realm::AutoLink,
+    target_surface_map: &std::collections::HashMap<
+        crate::core::target::TargetId,
+        crate::core::realm::SurfaceId,
     >,
     surface_targets: &std::collections::HashMap<
         crate::core::realm::SurfaceId,
@@ -355,7 +355,7 @@ pub(super) fn execute_graph_to_view(
                     targets,
                     target_layers,
                     surfaces,
-                    auto_links,
+                    target_surface_map,
                     surface_targets,
                     device,
                     queue,

@@ -2,7 +2,7 @@ mod external_textures;
 
 pub use vulfram_render::UiPlatformAction;
 
-use crate::core::realm::{AutoLink, RealmId, SurfaceId, SurfaceTable};
+use crate::core::realm::{RealmId, SurfaceId, SurfaceTable};
 use crate::core::render::RenderState;
 use crate::core::resources::RenderTarget;
 use crate::core::target::{TargetId, TargetLayerTable, TargetTable};
@@ -25,7 +25,7 @@ pub fn pass_ui(
     targets: &TargetTable,
     target_layers: &TargetLayerTable,
     surfaces: &SurfaceTable,
-    auto_links: &HashMap<(u32, TargetId), AutoLink>,
+    target_surface_map: &HashMap<TargetId, SurfaceId>,
     surface_targets: &HashMap<SurfaceId, RenderTarget>,
     device: &wgpu::Device,
     queue: &wgpu::Queue,
@@ -51,7 +51,7 @@ pub fn pass_ui(
         targets,
         target_layers,
         surfaces,
-        auto_links,
+        target_surface_map,
         surface_targets,
         realm_id,
     );
