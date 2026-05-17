@@ -1,31 +1,45 @@
 # CmdMaterialUpsert
 
-Upserts a material (`Create` or `Update`) in the universal resource registry.
+Upserts a unified `ShaderMaterial` (`create` or `update`).
 
-## Arguments
+## Material model
 
-Accepts one of:
+Current contract is replace-only vNext:
 
-- `CmdMaterialCreateArgs`
-- `CmdMaterialUpdateArgs`
+- `kind`: `shader`
+- `preset`: `standard` or `pbr`
+- `options`: preset-specific payload (`standard` or `pbr`)
 
-Key fields:
+Legacy `kind=standard|pbr` payloads are invalid.
 
-- `materialId` (required)
-- `kind` (`standard` or `pbr`)
-- `options` (material-specific payload):
-    - `topology` (optional): `point-list`, `line-list`, `triangle-list` (default)
-    - `polygonMode` (optional): `fill` (default), `line`, `point`
-    - (other standard/pbr specific properties)
+## Create payload (`CmdMaterialCreateArgs`)
 
-## Notes
+Required:
 
-- Material ownership is global (window-agnostic).
-- Models reference materials by logical `materialId`.
-- Missing textures referenced by material keep fallback sampling behavior.
+- `materialId`
+- `kind = "shader"`
+
+Optional:
+
+- `label`
+- `preset` (defaults to `standard`)
+- `options`
+
+## Update payload (`CmdMaterialUpdateArgs`)
+
+Required:
+
+- `materialId`
+
+Optional:
+
+- `label`
+- `kind` (`shader`)
+- `preset`
+- `options`
 
 ## Response
 
-Returns `{ success, message }`.
+`{ success, message }`.
 
-On failure, the core also emits `SystemEvent::Error` (`scope="command"`).
+On command failure, runtime also emits `SystemEvent::Error` with `scope="command"`.
