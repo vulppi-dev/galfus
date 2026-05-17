@@ -1,9 +1,4 @@
-mod assets;
-mod commands;
-mod geometry;
-mod hud;
 mod io;
-mod loop_utils;
 mod scenarios;
 mod session;
 
