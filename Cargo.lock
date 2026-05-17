@@ -4063,17 +4063,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "vulfram-realm-ui"
-version = "0.0.0"
-dependencies = [
- "glam 0.30.10",
- "serde",
- "serde_json",
- "vulfram-input",
- "vulfram-types",
-]
-
-[[package]]
 name = "vulfram-render"
 version = "0.0.0"
 dependencies = [
@@ -4098,7 +4087,6 @@ dependencies = [
  "bytemuck",
  "console_error_panic_hook",
  "ctrlc",
- "egui",
  "encase",
  "env_logger",
  "getrandom 0.3.4",
@@ -4125,7 +4113,6 @@ dependencies = [
  "vulfram-realm-2d",
  "vulfram-realm-3d",
  "vulfram-realm-core",
- "vulfram-realm-ui",
  "vulfram-render",
  "vulfram-types",
  "wasm-bindgen",

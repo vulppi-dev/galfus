@@ -31,8 +31,6 @@ The workspace is currently organized around these main crates:
   - shared logical IDs and base enums
 - `vulfram-input`
   - normalized input routing contracts and helpers
-- `vulfram-realm-ui`
-  - UI semantic state, documents, interaction and trace planning
 - `vulfram-realm-3d`
   - 3D realm sync and pass-facing semantic helpers
   - semantic 3D world state definitions used by the runtime
@@ -78,7 +76,7 @@ realm composition alone. Today it contains:
   - `targets`, `target_layers`, `target_graph_cache`, `auto_links`,
     `host_realm_index`, `target_ui_realm_index`, `target_autolink_failures`
 - `interaction`
-  - `ui`, `input_routing`, `target_listeners`
+  - `ui` (vNext stub), `input_routing`
 - `scene`
   - `realm3d`, `render_resources`
 - `render_catalog`
@@ -128,9 +126,8 @@ aggregate as-is. The runtime now follows this shape internally:
    - `render_graph_plan_cache`
 
 5. `InteractionRuntimeState` in `vulfram-runtime/core/input`
-   - `ui`
+   - `ui` (vNext stub)
    - `input_routing`
-   - `target_listeners`
 
 That gives `realm-core` a sharper purpose: realm composition semantics and
 plans, not the whole runtime world.

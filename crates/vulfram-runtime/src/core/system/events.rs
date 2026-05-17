@@ -158,7 +158,7 @@ pub enum SystemEvent {
     #[serde(rename_all = "camelCase")]
     UiScreenshotRequest { window_id: u32, realm_id: u32 },
 
-    /// UI viewport output emitted by egui to allow host/window-manager integration.
+    /// UI viewport sync event kept for host compatibility during vNext transition.
     #[serde(rename_all = "camelCase")]
     UiViewportSync {
         window_id: u32,

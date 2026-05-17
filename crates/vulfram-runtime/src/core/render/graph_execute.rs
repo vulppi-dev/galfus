@@ -1,8 +1,6 @@
 use crate::core::realm::RealmId;
 use crate::core::render::graph::RenderGraphPlan;
 use crate::core::render::passes;
-use crate::core::render::passes::UiPlatformAction;
-use crate::core::ui::events::UiEvent;
 use std::hash::{DefaultHasher, Hash, Hasher};
 use vulfram_realm_core::{
     RENDER_PASS_BLOOM, RENDER_PASS_COMPOSE, RENDER_PASS_FORWARD, RENDER_PASS_LIGHT_CULL,
@@ -226,18 +224,15 @@ fn execute_custom_screen_pass(
 pub(super) fn execute_graph_to_view(
     plan: &RenderGraphPlan,
     render_state: &mut RenderState,
-    ui_state: &mut crate::core::ui::UiState,
-    realm_id: RealmId,
-    ui_events: &mut Vec<UiEvent>,
-    ui_platform_actions: &mut Vec<UiPlatformAction>,
-    targets: &crate::core::target::TargetTable,
-    target_layers: &crate::core::target::TargetLayerTable,
-    surfaces: &crate::core::realm::SurfaceTable,
-    target_surface_map: &std::collections::HashMap<
+    _realm_id: RealmId,
+    _targets: &crate::core::target::TargetTable,
+    _target_layers: &crate::core::target::TargetLayerTable,
+    _surfaces: &crate::core::realm::SurfaceTable,
+    _target_surface_map: &std::collections::HashMap<
         crate::core::target::TargetId,
         crate::core::realm::SurfaceId,
     >,
-    surface_targets: &std::collections::HashMap<
+    _surface_targets: &std::collections::HashMap<
         crate::core::realm::SurfaceId,
         crate::core::resources::RenderTarget,
     >,
@@ -248,9 +243,9 @@ pub(super) fn execute_graph_to_view(
     target_format: wgpu::TextureFormat,
     target_size: glam::UVec2,
     frame_index: u64,
-    time_seconds: f64,
-    window_id: u32,
-    window_focused: bool,
+    _time_seconds: f64,
+    _window_id: u32,
+    _window_focused: bool,
     gpu_profiler: Option<&crate::core::profiling::gpu::GpuProfiler>,
     gpu_base: Option<u32>,
     shadow_cpu_ns_accum: &mut u64,
@@ -344,31 +339,7 @@ pub(super) fn execute_graph_to_view(
                     write_gpu_timestamp(encoder, gpu_profiler, base + 5, &mut gpu_written);
                 }
             }
-            RENDER_PASS_UI => {
-                let mut actions = passes::pass_ui(
-                    render_state,
-                    ui_state,
-                    realm_id,
-                    window_id,
-                    window_focused,
-                    ui_events,
-                    targets,
-                    target_layers,
-                    surfaces,
-                    target_surface_map,
-                    surface_targets,
-                    device,
-                    queue,
-                    encoder,
-                    target_view,
-                    target_format,
-                    target_size,
-                    frame_index,
-                    time_seconds,
-                );
-                ui_platform_actions.append(&mut actions);
-                gpu_written = true;
-            }
+            RENDER_PASS_UI => {}
             _ => {
                 if execute_custom_screen_pass(
                     node,

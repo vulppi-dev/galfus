@@ -13,7 +13,6 @@ members = [
     "crates/vulfram-protocol",
     "crates/vulfram-realm-2d",
     "crates/vulfram-realm-3d",
-    "crates/vulfram-realm-ui",
     "crates/vulfram-render",
     "crates/vulfram-runtime",
     "crates/vulfram-realm-core",
@@ -35,5 +34,4 @@ opt-level = 3
 lto = true
 codegen-units = 1
 strip = "symbols"
-
 

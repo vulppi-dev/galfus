@@ -8,13 +8,10 @@ mod realm_graph;
 pub mod runtime;
 mod scene_sync;
 pub mod state;
-mod ui_platform_actions;
 use crate::core::profiling::gpu::apply_gpu_timing_report;
 use crate::core::realm::{FrameReport, apply_target_graph_stats};
-use crate::core::render::passes::UiPlatformAction;
 use crate::core::resources::RenderTarget;
 use crate::core::state::EngineState;
-use crate::core::ui::events::UiEvent;
 use frame_helpers::{
     apply_realm_environment_bindings, apply_target_size_requests, build_target_surface_map,
     collect_window_camera_target_sizes, refresh_window_target_textures, should_render_realm,
@@ -31,7 +28,6 @@ pub use state::{
     SceneRuntimeState, UniversalGeometryRecord,
 };
 use std::collections::HashSet;
-use ui_platform_actions::apply_ui_platform_actions;
 pub fn bloom_chain_size(base: u32, level: usize) -> u32 {
     passes::bloom_chain_size(base, level)
 }
@@ -246,8 +242,6 @@ pub fn render_frames(engine_state: &mut EngineState) {
     let mut updated_surfaces: HashSet<crate::core::realm::SurfaceId> = HashSet::new();
     let mut invocation_targets: std::collections::HashMap<(u64, u32), RenderTarget> =
         std::collections::HashMap::new();
-    let mut ui_events: Vec<UiEvent> = Vec::new();
-    let mut ui_platform_actions: Vec<UiPlatformAction> = Vec::new();
     let mut synced_windows: HashSet<u32> = HashSet::new();
     const MAX_REALM_ITERATIONS: u32 = 1;
     let mut iteration: u32 = 0;
@@ -450,7 +444,6 @@ pub fn render_frames(engine_state: &mut EngineState) {
                 window_id,
             );
             let universal = &mut engine_state.universal_state;
-            let ui_state = &mut universal.interaction.ui;
             let targets = &universal.targets.targets;
             let target_layers = &universal.targets.target_layers;
             let surfaces = &universal.composition.surfaces;
@@ -468,10 +461,7 @@ pub fn render_frames(engine_state: &mut EngineState) {
             gpu_written |= execute_graph_to_view(
                 &plan,
                 render_state,
-                ui_state,
                 realm_id,
-                &mut ui_events,
-                &mut ui_platform_actions,
                 targets,
                 target_layers,
                 surfaces,
@@ -631,11 +621,6 @@ pub fn render_frames(engine_state: &mut EngineState) {
     }
 
     engine_state.universal_state.composition.frame_report = frame_report;
-    for event in ui_events {
-        engine_state
-            .runtime
-            .push_event(crate::core::cmd::EngineEvent::Ui(event));
-    }
     if gpu_written {
         if let Some(gpu_profiler) = engine_state.gpu_profiler.as_mut() {
             if gpu_profiler.query_count() > 0 {
@@ -663,7 +648,6 @@ pub fn render_frames(engine_state: &mut EngineState) {
             }
         }
     }
-    apply_ui_platform_actions(engine_state, ui_platform_actions);
     engine_state.profiling.render.shadow_ns = shadow_ns;
     engine_state.profiling.render.windows_ns = windows_ns;
     #[cfg(not(target_arch = "wasm32"))]

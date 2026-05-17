@@ -4,7 +4,6 @@ use glam::Vec2;
 
 use crate::core::cmd::EngineEvent;
 use crate::core::input::events::{PointerEventTrace, PointerTraceHop, PointerTraceStage};
-use crate::core::input::raycast::resolve_realm_hit;
 use crate::core::realm::RealmId;
 use crate::core::state::EngineState;
 
@@ -221,36 +220,6 @@ pub fn route_pointer_events(engine_state: &mut EngineState) {
                             uv,
                         });
                     }
-                } else if source_realm_id.is_none() {
-                    if let Some(realm_hit) = resolve_realm_hit(
-                        engine_state,
-                        window_id,
-                        realm_id,
-                        target_id.and_then(|id| {
-                            layer_camera_by_key
-                                .get(&(realm_id.0, id))
-                                .copied()
-                                .flatten()
-                        }),
-                        position,
-                        root_surface_size.unwrap_or(glam::UVec2::new(1, 1)),
-                    ) {
-                        source_realm_id = Some(realm_hit.source_realm_id);
-                        target_id = Some(realm_hit.target_id);
-                        uv = Some(realm_hit.uv);
-                        hops.push(PointerTraceHop {
-                            stage: PointerTraceStage::RealmHit,
-                            realm_id: Some(realm_hit.source_realm_id.0),
-                            target_id: Some(realm_hit.target_id.0),
-                            layer_realm_id: Some(realm_id.0),
-                            connector_id: None,
-                            camera_id: layer_camera_by_key
-                                .get(&(realm_id.0, realm_hit.target_id))
-                                .copied()
-                                .flatten(),
-                            uv: Some(realm_hit.uv),
-                        });
-                    }
                 }
 
                 let mut visited: HashSet<(RealmId, u16, u16)> = HashSet::new();
@@ -339,36 +308,6 @@ pub fn route_pointer_events(engine_state: &mut EngineState) {
                         }
                     }
 
-                    if let Some(realm_hit) = resolve_realm_hit(
-                        engine_state,
-                        window_id,
-                        current_realm,
-                        target_id.and_then(|id| {
-                            layer_camera_by_key
-                                .get(&(current_realm.0, id))
-                                .copied()
-                                .flatten()
-                        }),
-                        current_position,
-                        surface_size,
-                    ) {
-                        source_realm_id = Some(realm_hit.source_realm_id);
-                        target_id = Some(realm_hit.target_id);
-                        uv = Some(realm_hit.uv);
-                        hops.push(PointerTraceHop {
-                            stage: PointerTraceStage::RealmHit,
-                            realm_id: Some(realm_hit.source_realm_id.0),
-                            target_id: Some(realm_hit.target_id.0),
-                            layer_realm_id: Some(current_realm.0),
-                            connector_id: None,
-                            camera_id: layer_camera_by_key
-                                .get(&(current_realm.0, realm_hit.target_id))
-                                .copied()
-                                .flatten(),
-                            uv: Some(realm_hit.uv),
-                        });
-                        continue;
-                    }
                     hops.push(PointerTraceHop {
                         stage: PointerTraceStage::StopNoHit,
                         realm_id: Some(current_realm.0),

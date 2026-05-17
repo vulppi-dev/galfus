@@ -3,10 +3,8 @@ use std::time::{Duration, Instant};
 use crate::core::cmd::EngineEvent;
 use crate::core::input::events::{KeyboardEvent, PointerEvent};
 use crate::core::platform::{EventLoop, EventLoopExtPumpEvents, EventLoopProxy};
-use crate::core::realm::RealmId;
 use crate::core::singleton::EngineCustomEvents;
 use crate::core::state::EngineState;
-use crate::core::ui::types::{UiImageSource, UiNodeProps};
 use crate::core::window::WindowEvent;
 use crate::core::window::{CmdResultWindowCreate, CmdWindowCreateArgs};
 use vulfram_input::{
@@ -154,21 +152,9 @@ impl PlatformProxy for DesktopProxy {
         let now_ms = state.runtime.time_ms();
         let activity_events = collect_platform_activity_events(state.runtime.events());
         let pending_ui_image_windows = windows_with_pending_ui_images(state);
-        let has_ui_animations = !state.universal_state.interaction.ui.animations.is_empty();
-        let has_ui_repaint_request = state
-            .universal_state
-            .interaction
-            .ui
-            .realms
-            .values()
-            .any(|realm| realm.needs_repaint);
-        let has_unbound_ui_async_loading = state
-            .universal_state
-            .interaction
-            .ui
-            .image_async
-            .has_pending()
-            && pending_ui_image_windows.is_empty();
+        let has_ui_animations = false;
+        let has_ui_repaint_request = false;
+        let has_unbound_ui_async_loading = false && pending_ui_image_windows.is_empty();
         let redraw_inputs: Vec<_> = state
             .window
             .states
@@ -249,101 +235,6 @@ fn collect_platform_activity_events(events: &[EngineEvent]) -> Vec<PlatformActiv
 }
 
 fn windows_with_pending_ui_images(state: &EngineState) -> std::collections::HashSet<u32> {
-    let pending_image_ids = state
-        .universal_state
-        .interaction
-        .ui
-        .image_async
-        .pending_image_ids();
-    if pending_image_ids.is_empty() {
-        return std::collections::HashSet::new();
-    }
-
-    let mut realm_windows: std::collections::HashMap<RealmId, u32> = state
-        .universal_state
-        .composition
-        .presents
-        .entries
-        .values()
-        .filter_map(|present| {
-            state
-                .universal_state
-                .composition
-                .realms
-                .entries
-                .iter()
-                .find_map(|(realm_id, entry)| {
-                    if entry.value.output_surface == Some(present.value.surface) {
-                        Some((*realm_id, present.value.window_id))
-                    } else {
-                        None
-                    }
-                })
-        })
-        .collect();
-    for layer in state.universal_state.targets.target_layers.entries.values() {
-        let Some(target) = state
-            .universal_state
-            .targets
-            .targets
-            .entries
-            .get(&layer.target_id)
-        else {
-            continue;
-        };
-        let Some(window_id) = target.window_id else {
-            continue;
-        };
-        let realm_id = RealmId(layer.realm_id);
-        if !state
-            .universal_state
-            .composition
-            .realms
-            .entries
-            .contains_key(&realm_id)
-        {
-            continue;
-        }
-        match realm_windows.get_mut(&realm_id) {
-            Some(existing_window_id) => {
-                if window_id < *existing_window_id {
-                    *existing_window_id = window_id;
-                }
-            }
-            None => {
-                realm_windows.insert(realm_id, window_id);
-            }
-        }
-    }
-
-    let mut windows = std::collections::HashSet::new();
-    for document in state.universal_state.interaction.ui.documents.values() {
-        let Some(window_id) = realm_windows.get(&document.realm_id).copied() else {
-            continue;
-        };
-
-        let mut found_pending_in_document = false;
-        for node_entry in document.nodes.values() {
-            let image_id = match &node_entry.node.props {
-                UiNodeProps::Image {
-                    source: UiImageSource::UiImage(image_id),
-                    ..
-                }
-                | UiNodeProps::ImageButton {
-                    source: UiImageSource::UiImage(image_id),
-                    ..
-                } => Some(*image_id),
-                _ => None,
-            };
-            if image_id.is_some_and(|id| pending_image_ids.contains(&id)) {
-                found_pending_in_document = true;
-                break;
-            }
-        }
-        if found_pending_in_document {
-            windows.insert(window_id);
-        }
-    }
-
-    windows
+    let _state = state;
+    std::collections::HashSet::new()
 }

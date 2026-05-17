@@ -77,24 +77,6 @@ pub(super) fn command_type_for_cmd(cmd: &EngineCmd) -> &'static str {
         EngineCmd::CmdTargetDispose(_) => "target-dispose",
         EngineCmd::CmdTargetLayerUpsert(_) => "target-layer-upsert",
         EngineCmd::CmdTargetLayerDispose(_) => "target-layer-dispose",
-        EngineCmd::CmdUiThemeDefine(_) => "ui-theme-define",
-        EngineCmd::CmdUiThemeDispose(_) => "ui-theme-dispose",
-        EngineCmd::CmdUiDocumentCreate(_) => "ui-document-create",
-        EngineCmd::CmdUiDocumentDispose(_) => "ui-document-dispose",
-        EngineCmd::CmdUiDocumentSetRect(_) => "ui-document-set-rect",
-        EngineCmd::CmdUiDocumentSetTheme(_) => "ui-document-set-theme",
-        EngineCmd::CmdUiDocumentGetTree(_) => "ui-document-get-tree",
-        EngineCmd::CmdUiDocumentGetLayoutRects(_) => "ui-document-get-layout-rects",
-        EngineCmd::CmdUiApplyOps(_) => "ui-apply-ops",
-        EngineCmd::CmdUiDebugSet(_) => "ui-debug-set",
-        EngineCmd::CmdUiFocusSet(_) => "ui-focus-set",
-        EngineCmd::CmdUiFocusGet(_) => "ui-focus-get",
-        EngineCmd::CmdUiEventTraceSet(_) => "ui-event-trace-set",
-        EngineCmd::CmdUiImageCreateFromBuffer(_) => "ui-image-create-from-buffer",
-        EngineCmd::CmdUiImageDispose(_) => "ui-image-dispose",
-        EngineCmd::CmdUiClipboardPaste(_) => "ui-clipboard-paste",
-        EngineCmd::CmdUiScreenshotReply(_) => "ui-screenshot-reply",
-        EngineCmd::CmdUiAccessKitActionRequest(_) => "ui-access-kit-action-request",
         EngineCmd::CmdModelList(_) => "model-list",
         EngineCmd::CmdMaterialList(_) => "material-list",
         EngineCmd::CmdTextureList(_) => "texture-list",
@@ -173,9 +155,6 @@ fn command_has_pending_dependencies(engine: &EngineState, cmd: &EngineCmd) -> bo
             engine.device.is_none() || engine.queue.is_none()
         }
         EngineCmd::CmdTextureCreateFromBuffer(args) => {
-            !engine.buffers.uploads.contains_key(&args.buffer_id)
-        }
-        EngineCmd::CmdUiImageCreateFromBuffer(args) => {
             !engine.buffers.uploads.contains_key(&args.buffer_id)
         }
         EngineCmd::CmdPoseUpdate(args) => {
@@ -292,65 +271,6 @@ fn command_has_pending_dependencies(engine: &EngineState, cmd: &EngineCmd) -> bo
                     .targets
                     .entries
                     .contains_key(&crate::core::target::TargetId(args.target_id))
-        }
-        EngineCmd::CmdUiDocumentSetRect(args) => !engine
-            .universal_state
-            .interaction
-            .ui
-            .documents
-            .contains_key(&args.document_id),
-        EngineCmd::CmdUiDocumentSetTheme(args) => !engine
-            .universal_state
-            .interaction
-            .ui
-            .documents
-            .contains_key(&args.document_id),
-        // Versioned UI ops are order-sensitive; replaying deferred stale ops can cause visual
-        // oscillation. Keep them immediate (success/fail) instead of deferred.
-        EngineCmd::CmdUiApplyOps(_) => false,
-        EngineCmd::CmdUiFocusSet(args) => {
-            let realm_id = crate::core::realm::RealmId(args.realm_id);
-            !engine
-                .universal_state
-                .composition
-                .realms
-                .entries
-                .contains_key(&realm_id)
-                || !engine
-                    .universal_state
-                    .interaction
-                    .ui
-                    .documents
-                    .contains_key(&args.document_id)
-        }
-        EngineCmd::CmdUiFocusGet(_) => false,
-        EngineCmd::CmdUiClipboardPaste(args) => !engine
-            .universal_state
-            .interaction
-            .ui
-            .focus
-            .realm_by_window
-            .contains_key(&args.window_id),
-        EngineCmd::CmdUiScreenshotReply(args) => {
-            if let Some(realm_id) = args.realm_id {
-                !engine
-                    .universal_state
-                    .interaction
-                    .ui
-                    .realms
-                    .contains_key(&crate::core::realm::RealmId(realm_id))
-            } else {
-                !engine
-                    .universal_state
-                    .interaction
-                    .ui
-                    .focus
-                    .realm_by_window
-                    .contains_key(&args.window_id)
-            }
-        }
-        EngineCmd::CmdUiAccessKitActionRequest(args) => {
-            !engine.window.states.contains_key(&args.window_id)
         }
         _ => false,
     }

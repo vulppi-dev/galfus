@@ -49,24 +49,6 @@ pub(super) fn response_is_success(response: &CommandResponse) -> bool {
         CommandResponse::TargetDispose(result) => result.success,
         CommandResponse::TargetLayerUpsert(result) => result.success,
         CommandResponse::TargetLayerDispose(result) => result.success,
-        CommandResponse::UiThemeDefine(result) => result.success,
-        CommandResponse::UiThemeDispose(result) => result.success,
-        CommandResponse::UiDocumentCreate(result) => result.success,
-        CommandResponse::UiDocumentDispose(result) => result.success,
-        CommandResponse::UiDocumentSetRect(result) => result.success,
-        CommandResponse::UiDocumentSetTheme(result) => result.success,
-        CommandResponse::UiDocumentGetTree(result) => result.success,
-        CommandResponse::UiDocumentGetLayoutRects(result) => result.success,
-        CommandResponse::UiApplyOps(result) => result.success,
-        CommandResponse::UiDebugSet(result) => result.success,
-        CommandResponse::UiFocusSet(result) => result.success,
-        CommandResponse::UiFocusGet(result) => result.success,
-        CommandResponse::UiEventTraceSet(result) => result.success,
-        CommandResponse::UiImageCreateFromBuffer(result) => result.success,
-        CommandResponse::UiImageDispose(result) => result.success,
-        CommandResponse::UiClipboardPaste(result) => result.success,
-        CommandResponse::UiScreenshotReply(result) => result.success,
-        CommandResponse::UiAccessKitActionRequest(result) => result.success,
         CommandResponse::ModelList(result) => result.success,
         CommandResponse::MaterialList(result) => result.success,
         CommandResponse::TextureList(result) => result.success,
@@ -128,24 +110,6 @@ pub(super) fn response_message(response: &CommandResponse) -> Option<String> {
         CommandResponse::TargetDispose(result) => Some(result.message.clone()),
         CommandResponse::TargetLayerUpsert(result) => Some(result.message.clone()),
         CommandResponse::TargetLayerDispose(result) => Some(result.message.clone()),
-        CommandResponse::UiThemeDefine(result) => Some(result.message.clone()),
-        CommandResponse::UiThemeDispose(result) => Some(result.message.clone()),
-        CommandResponse::UiDocumentCreate(result) => Some(result.message.clone()),
-        CommandResponse::UiDocumentDispose(result) => Some(result.message.clone()),
-        CommandResponse::UiDocumentSetRect(result) => Some(result.message.clone()),
-        CommandResponse::UiDocumentSetTheme(result) => Some(result.message.clone()),
-        CommandResponse::UiDocumentGetTree(result) => Some(result.message.clone()),
-        CommandResponse::UiDocumentGetLayoutRects(result) => Some(result.message.clone()),
-        CommandResponse::UiApplyOps(result) => Some(result.message.clone()),
-        CommandResponse::UiDebugSet(result) => Some(result.message.clone()),
-        CommandResponse::UiFocusSet(result) => Some(result.message.clone()),
-        CommandResponse::UiFocusGet(result) => Some(result.message.clone()),
-        CommandResponse::UiEventTraceSet(result) => Some(result.message.clone()),
-        CommandResponse::UiImageCreateFromBuffer(result) => Some(result.message.clone()),
-        CommandResponse::UiImageDispose(result) => Some(result.message.clone()),
-        CommandResponse::UiClipboardPaste(result) => Some(result.message.clone()),
-        CommandResponse::UiScreenshotReply(result) => Some(result.message.clone()),
-        CommandResponse::UiAccessKitActionRequest(result) => Some(result.message.clone()),
         CommandResponse::ModelList(result) => Some(result.message.clone()),
         CommandResponse::MaterialList(result) => Some(result.message.clone()),
         CommandResponse::TextureList(result) => Some(result.message.clone()),
@@ -323,78 +287,6 @@ pub(super) fn response_with_message(response: CommandResponse, message: String) 
         CommandResponse::TargetLayerDispose(mut result) => {
             result.message = message;
             CommandResponse::TargetLayerDispose(result)
-        }
-        CommandResponse::UiThemeDefine(mut result) => {
-            result.message = message;
-            CommandResponse::UiThemeDefine(result)
-        }
-        CommandResponse::UiThemeDispose(mut result) => {
-            result.message = message;
-            CommandResponse::UiThemeDispose(result)
-        }
-        CommandResponse::UiDocumentCreate(mut result) => {
-            result.message = message;
-            CommandResponse::UiDocumentCreate(result)
-        }
-        CommandResponse::UiDocumentDispose(mut result) => {
-            result.message = message;
-            CommandResponse::UiDocumentDispose(result)
-        }
-        CommandResponse::UiDocumentSetRect(mut result) => {
-            result.message = message;
-            CommandResponse::UiDocumentSetRect(result)
-        }
-        CommandResponse::UiDocumentSetTheme(mut result) => {
-            result.message = message;
-            CommandResponse::UiDocumentSetTheme(result)
-        }
-        CommandResponse::UiDocumentGetTree(mut result) => {
-            result.message = message;
-            CommandResponse::UiDocumentGetTree(result)
-        }
-        CommandResponse::UiDocumentGetLayoutRects(mut result) => {
-            result.message = message;
-            CommandResponse::UiDocumentGetLayoutRects(result)
-        }
-        CommandResponse::UiApplyOps(mut result) => {
-            result.message = message;
-            CommandResponse::UiApplyOps(result)
-        }
-        CommandResponse::UiDebugSet(mut result) => {
-            result.message = message;
-            CommandResponse::UiDebugSet(result)
-        }
-        CommandResponse::UiFocusSet(mut result) => {
-            result.message = message;
-            CommandResponse::UiFocusSet(result)
-        }
-        CommandResponse::UiFocusGet(mut result) => {
-            result.message = message;
-            CommandResponse::UiFocusGet(result)
-        }
-        CommandResponse::UiEventTraceSet(mut result) => {
-            result.message = message;
-            CommandResponse::UiEventTraceSet(result)
-        }
-        CommandResponse::UiImageCreateFromBuffer(mut result) => {
-            result.message = message;
-            CommandResponse::UiImageCreateFromBuffer(result)
-        }
-        CommandResponse::UiImageDispose(mut result) => {
-            result.message = message;
-            CommandResponse::UiImageDispose(result)
-        }
-        CommandResponse::UiClipboardPaste(mut result) => {
-            result.message = message;
-            CommandResponse::UiClipboardPaste(result)
-        }
-        CommandResponse::UiScreenshotReply(mut result) => {
-            result.message = message;
-            CommandResponse::UiScreenshotReply(result)
-        }
-        CommandResponse::UiAccessKitActionRequest(mut result) => {
-            result.message = message;
-            CommandResponse::UiAccessKitActionRequest(result)
         }
         CommandResponse::ModelList(mut result) => {
             result.message = message;

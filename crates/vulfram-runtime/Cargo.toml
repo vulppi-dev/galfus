@@ -18,7 +18,6 @@ serde = { version = "1.0", features = ["derive"] }
 serde_path_to_error = "0.1"
 wgpu = "28.0"
 winit = { version = "0.30", optional = true }
-egui = "0.29"
 ctrlc = { version = "3.5", optional = true }
 gilrs = { version = "0.11", optional = true }
 notify-rust = { version = "4.12", optional = true }
@@ -35,7 +34,6 @@ vulfram-realm-3d = { path = "../vulfram-realm-3d" }
 vulfram-render = { path = "../vulfram-render" }
 vulfram-realm-core = { path = "../vulfram-realm-core" }
 vulfram-types = { path = "../vulfram-types" }
-vulfram-realm-ui = { path = "../vulfram-realm-ui" }
 
 js-sys = { version = "0.3", optional = true }
 wasm-bindgen = { version = "0.2", optional = true }

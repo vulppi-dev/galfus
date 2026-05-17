@@ -3,60 +3,6 @@ use crate::core::state::EngineState;
 
 pub(super) fn dispatch_ui_and_misc(engine: &mut EngineState, envelope_id: u64, cmd: EngineCmd) {
     match cmd {
-        EngineCmd::CmdUiThemeDefine(args) => {
-            super::dispatch_ui::cmd_ui_theme_define(engine, envelope_id, args);
-        }
-        EngineCmd::CmdUiThemeDispose(args) => {
-            super::dispatch_ui::cmd_ui_theme_dispose(engine, envelope_id, args);
-        }
-        EngineCmd::CmdUiDocumentCreate(args) => {
-            super::dispatch_ui::cmd_ui_document_create(engine, envelope_id, args);
-        }
-        EngineCmd::CmdUiDocumentDispose(args) => {
-            super::dispatch_ui::cmd_ui_document_dispose(engine, envelope_id, args);
-        }
-        EngineCmd::CmdUiDocumentSetRect(args) => {
-            super::dispatch_ui::cmd_ui_document_set_rect(engine, envelope_id, args);
-        }
-        EngineCmd::CmdUiDocumentSetTheme(args) => {
-            super::dispatch_ui::cmd_ui_document_set_theme(engine, envelope_id, args);
-        }
-        EngineCmd::CmdUiDocumentGetTree(args) => {
-            super::dispatch_ui::cmd_ui_document_get_tree(engine, envelope_id, args);
-        }
-        EngineCmd::CmdUiDocumentGetLayoutRects(args) => {
-            super::dispatch_ui::cmd_ui_document_get_layout_rects(engine, envelope_id, args);
-        }
-        EngineCmd::CmdUiApplyOps(args) => {
-            super::dispatch_ui::cmd_ui_apply_ops(engine, envelope_id, args);
-        }
-        EngineCmd::CmdUiDebugSet(args) => {
-            super::dispatch_ui::cmd_ui_debug_set(engine, envelope_id, args);
-        }
-        EngineCmd::CmdUiFocusSet(args) => {
-            super::dispatch_ui::cmd_ui_focus_set(engine, envelope_id, args);
-        }
-        EngineCmd::CmdUiFocusGet(args) => {
-            super::dispatch_ui::cmd_ui_focus_get(engine, envelope_id, args);
-        }
-        EngineCmd::CmdUiEventTraceSet(args) => {
-            super::dispatch_ui::cmd_ui_event_trace_set(engine, envelope_id, args);
-        }
-        EngineCmd::CmdUiImageCreateFromBuffer(args) => {
-            super::dispatch_ui::cmd_ui_image_create_from_buffer(engine, envelope_id, args);
-        }
-        EngineCmd::CmdUiImageDispose(args) => {
-            super::dispatch_ui::cmd_ui_image_dispose(engine, envelope_id, args);
-        }
-        EngineCmd::CmdUiClipboardPaste(args) => {
-            super::dispatch_ui::cmd_ui_clipboard_paste(engine, envelope_id, args);
-        }
-        EngineCmd::CmdUiScreenshotReply(args) => {
-            super::dispatch_ui::cmd_ui_screenshot_reply(engine, envelope_id, args);
-        }
-        EngineCmd::CmdUiAccessKitActionRequest(args) => {
-            super::dispatch_ui::cmd_ui_accesskit_action_request(engine, envelope_id, args);
-        }
         EngineCmd::CmdModelList(args) => {
             let result = res::engine_cmd_model_list(engine, &args);
             engine.runtime.push_response(CommandResponseEnvelope {

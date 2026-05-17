@@ -2,7 +2,6 @@ use serde::{Deserialize, Serialize};
 
 use crate::core::input::events::{KeyboardEvent, PointerEvent};
 use crate::core::system::SystemEvent;
-use crate::core::ui::events::UiEvent;
 use crate::core::window::WindowEvent;
 use vulfram_input::GamepadEvent;
 
@@ -13,7 +12,6 @@ pub use crate::core::render::gizmos as gizmo;
 pub use crate::core::resources as res;
 pub use crate::core::system as sys;
 pub use crate::core::target::cmd as target;
-pub use crate::core::ui::cmd as ui;
 pub use crate::core::window as win;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -124,24 +122,6 @@ pub enum EngineCmd {
     CmdTargetDispose(target::CmdTargetDisposeArgs),
     CmdTargetLayerUpsert(target::CmdTargetLayerUpsertArgs),
     CmdTargetLayerDispose(target::CmdTargetLayerDisposeArgs),
-    CmdUiThemeDefine(ui::CmdUiThemeDefineArgs),
-    CmdUiThemeDispose(ui::CmdUiThemeDisposeArgs),
-    CmdUiDocumentCreate(ui::CmdUiDocumentCreateArgs),
-    CmdUiDocumentDispose(ui::CmdUiDocumentDisposeArgs),
-    CmdUiDocumentSetRect(ui::CmdUiDocumentSetRectArgs),
-    CmdUiDocumentSetTheme(ui::CmdUiDocumentSetThemeArgs),
-    CmdUiDocumentGetTree(ui::CmdUiDocumentGetTreeArgs),
-    CmdUiDocumentGetLayoutRects(ui::CmdUiDocumentGetLayoutRectsArgs),
-    CmdUiApplyOps(ui::CmdUiApplyOpsArgs),
-    CmdUiDebugSet(ui::CmdUiDebugSetArgs),
-    CmdUiFocusSet(ui::CmdUiFocusSetArgs),
-    CmdUiFocusGet(ui::CmdUiFocusGetArgs),
-    CmdUiEventTraceSet(ui::CmdUiEventTraceSetArgs),
-    CmdUiImageCreateFromBuffer(ui::CmdUiImageCreateFromBufferArgs),
-    CmdUiImageDispose(ui::CmdUiImageDisposeArgs),
-    CmdUiClipboardPaste(ui::CmdUiClipboardPasteArgs),
-    CmdUiScreenshotReply(ui::CmdUiScreenshotReplyArgs),
-    CmdUiAccessKitActionRequest(ui::CmdUiAccessKitActionRequestArgs),
     CmdModelList(res::CmdModelListArgs),
     CmdMaterialList(res::CmdMaterialListArgs),
     CmdTextureList(res::CmdTextureListArgs),
@@ -162,7 +142,6 @@ pub enum EngineEvent {
     Keyboard(KeyboardEvent),
     Gamepad(GamepadEvent),
     System(SystemEvent),
-    Ui(UiEvent),
 }
 
 /// Command responses (answers to commands sent by user)
@@ -216,24 +195,6 @@ pub enum CommandResponse {
     TargetDispose(target::CmdResultTargetDispose),
     TargetLayerUpsert(target::CmdResultTargetLayerUpsert),
     TargetLayerDispose(target::CmdResultTargetLayerDispose),
-    UiThemeDefine(ui::CmdResultUiThemeDefine),
-    UiThemeDispose(ui::CmdResultUiThemeDispose),
-    UiDocumentCreate(ui::CmdResultUiDocumentCreate),
-    UiDocumentDispose(ui::CmdResultUiDocumentDispose),
-    UiDocumentSetRect(ui::CmdResultUiDocumentSetRect),
-    UiDocumentSetTheme(ui::CmdResultUiDocumentSetTheme),
-    UiDocumentGetTree(ui::CmdResultUiDocumentGetTree),
-    UiDocumentGetLayoutRects(ui::CmdResultUiDocumentGetLayoutRects),
-    UiApplyOps(ui::CmdResultUiApplyOps),
-    UiDebugSet(ui::CmdResultUiDebugSet),
-    UiFocusSet(ui::CmdResultUiFocusSet),
-    UiFocusGet(ui::CmdResultUiFocusGet),
-    UiEventTraceSet(ui::CmdResultUiEventTraceSet),
-    UiImageCreateFromBuffer(ui::CmdResultUiImageCreateFromBuffer),
-    UiImageDispose(ui::CmdResultUiImageDispose),
-    UiClipboardPaste(ui::CmdResultUiInputEvent),
-    UiScreenshotReply(ui::CmdResultUiInputEvent),
-    UiAccessKitActionRequest(ui::CmdResultUiInputEvent),
     ModelList(res::CmdResultModelList),
     MaterialList(res::CmdResultMaterialList),
     TextureList(res::CmdResultTextureList),
