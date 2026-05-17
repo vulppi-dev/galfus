@@ -9,6 +9,9 @@
 - realm architecture (vNext): [REALM-ARCH.md](REALM-ARCH.md)
 - render graph model (vNext): [RENDER-GRAPH.md](RENDER-GRAPH.md)
 - canonical examples (vNext): [EXAMPLES-VNEXT.md](EXAMPLES-VNEXT.md)
+- vNext breaking changes: [VNEXT-BREAKING-CHANGES.md](VNEXT-BREAKING-CHANGES.md)
+- vNext migration guide: [VNEXT-MIGRATION.md](VNEXT-MIGRATION.md)
+- vNext release draft: [RELEASE-VNEXT.md](RELEASE-VNEXT.md)
 - terminology: [GLOSSARY.md](GLOSSARY.md)
 - command reference: [cmds/](cmds/)
 
