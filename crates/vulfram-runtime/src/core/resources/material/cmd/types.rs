@@ -1,6 +1,7 @@
 use crate::core::resources::{PolygonMode, PrimitiveTopology, RenderSide, SurfaceType};
 use glam::Vec4;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 #[derive(Debug, Deserialize, Serialize, Clone, Copy, PartialEq)]
 #[serde(rename_all = "kebab-case")]
@@ -85,6 +86,9 @@ pub struct CmdMaterialCreateArgs {
     pub label: Option<String>,
     pub kind: MaterialKind,
     pub preset: Option<crate::core::resources::ShaderMaterialPreset>,
+    pub shader_source: Option<String>,
+    #[serde(default)]
+    pub shader_params_schema: Option<HashMap<String, String>>,
     #[serde(default)]
     pub options: Option<MaterialOptions>,
 }
@@ -105,6 +109,9 @@ pub struct CmdMaterialUpdateArgs {
     pub label: Option<String>,
     pub kind: Option<MaterialKind>,
     pub preset: Option<crate::core::resources::ShaderMaterialPreset>,
+    pub shader_source: Option<String>,
+    #[serde(default)]
+    pub shader_params_schema: Option<HashMap<String, String>>,
     #[serde(default)]
     pub options: Option<MaterialOptions>,
 }

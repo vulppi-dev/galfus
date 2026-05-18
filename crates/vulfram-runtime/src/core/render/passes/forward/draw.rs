@@ -12,6 +12,8 @@ pub(crate) fn draw_batches(
     device: &wgpu::Device,
     cache: &mut crate::core::render::cache::RenderCache,
     sample_count: u32,
+    material_shader_modules: &mut std::collections::HashMap<u64, wgpu::ShaderModule>,
+    log_events: &mut Vec<vulfram_log::LogEvent>,
 ) {
     // 1. PBR Opaque
     draw_group(
@@ -27,6 +29,8 @@ pub(crate) fn draw_batches(
         cache,
         library,
         sample_count,
+        material_shader_modules,
+        log_events,
     );
 
     // 2. PBR Masked
@@ -43,6 +47,8 @@ pub(crate) fn draw_batches(
         cache,
         library,
         sample_count,
+        material_shader_modules,
+        log_events,
     );
 
     // 3. Standard Opaque
@@ -59,6 +65,8 @@ pub(crate) fn draw_batches(
         cache,
         library,
         sample_count,
+        material_shader_modules,
+        log_events,
     );
 
     // 4. Standard Masked
@@ -75,6 +83,8 @@ pub(crate) fn draw_batches(
         cache,
         library,
         sample_count,
+        material_shader_modules,
+        log_events,
     );
 
     // 5. PBR Transparent
@@ -91,6 +101,8 @@ pub(crate) fn draw_batches(
         cache,
         library,
         sample_count,
+        material_shader_modules,
+        log_events,
     );
 
     // 6. Standard Transparent
@@ -107,6 +119,8 @@ pub(crate) fn draw_batches(
         cache,
         library,
         sample_count,
+        material_shader_modules,
+        log_events,
     );
 }
 
@@ -123,6 +137,8 @@ fn draw_group(
     cache: &mut crate::core::render::cache::RenderCache,
     library: &crate::core::render::state::ResourceLibrary,
     sample_count: u32,
+    material_shader_modules: &mut std::collections::HashMap<u64, wgpu::ShaderModule>,
+    log_events: &mut Vec<vulfram_log::LogEvent>,
 ) {
     if items.is_empty() {
         return;
@@ -138,8 +154,34 @@ fn draw_group(
         let topology = item.topology;
         let polygon_mode = item.polygon_mode;
         let render_side = item.render_side;
+        let shader_hash = item.compiled_shader_hash;
+        let Some(material_record) = scene.materials.get(&mat_id) else {
+            i += 1;
+            continue;
+        };
+        let Some(shader_source) = material_record.compiled_shader_source.as_ref() else {
+            i += 1;
+            continue;
+        };
+        let shader_id = if shader_hash == 0 {
+            1
+        } else {
+            shader_hash
+        };
+        material_shader_modules
+            .entry(shader_id)
+            .or_insert_with(|| {
+                device.create_shader_module(wgpu::ShaderModuleDescriptor {
+                    label: Some("Material Shader Module"),
+                    source: wgpu::ShaderSource::Wgsl(shader_source.clone().into()),
+                })
+            });
+        let Some(shader_module) = material_shader_modules.get(&shader_id) else {
+            i += 1;
+            continue;
+        };
 
-        if current_state != Some((topology, polygon_mode, render_side)) {
+        if current_state != Some((shader_id, topology, polygon_mode, render_side)) {
             let pipeline = if is_pbr {
                 branches::pbr::get_pipeline(
                     cache,
@@ -151,6 +193,8 @@ fn draw_group(
                     polygon_mode,
                     render_side,
                     sample_count,
+                    shader_id,
+                    shader_module,
                 )
             } else {
                 branches::standard::get_pipeline(
@@ -163,10 +207,12 @@ fn draw_group(
                     polygon_mode,
                     render_side,
                     sample_count,
+                    shader_id,
+                    shader_module,
                 )
             };
             render_pass.set_pipeline(pipeline);
-            current_state = Some((topology, polygon_mode, render_side));
+            current_state = Some((shader_id, topology, polygon_mode, render_side));
         }
 
         while i < items.len() && items[i].material_id == mat_id && items[i].geometry_id == geom_id {
@@ -193,6 +239,15 @@ fn draw_group(
         if let Ok(Some(index_info)) = vertex_sys.index_info(geom_id) {
             if vertex_sys.bind(render_pass, geom_id).is_ok() {
                 let first_instance = items[batch_start].instance_idx;
+                vulfram_log::vulfram_log_debug!(
+                    log_events,
+                    "forward.draw",
+                    "geom={} idx_count={} instances={}..{}",
+                    geom_id,
+                    index_info.count,
+                    first_instance,
+                    first_instance + batch_count
+                );
                 render_pass.draw_indexed(
                     0..index_info.count,
                     0,

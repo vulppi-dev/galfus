@@ -9,6 +9,7 @@ members = [
     "crates/vulfram-devtools",
     "crates/vulfram-demo",
     "crates/vulfram-input",
+    "crates/vulfram-log",
     "crates/vulfram-platform",
     "crates/vulfram-protocol",
     "crates/vulfram-realm-2d",
@@ -34,4 +35,3 @@ opt-level = 3
 lto = true
 codegen-units = 1
 strip = "symbols"
-

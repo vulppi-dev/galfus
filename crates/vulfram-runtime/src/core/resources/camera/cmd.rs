@@ -194,6 +194,18 @@ pub fn engine_cmd_camera_create(
         },
     );
     mark_realm_windows_dirty(engine, args.realm_id);
+    vulfram_log::vulfram_log_debug!(
+        engine,
+        "realm3d.state",
+        "camera-created realm={} camera={} kind={:?} near={} far={} layer_mask={} order={}",
+        args.realm_id,
+        args.camera_id,
+        args.kind,
+        args.near_far.x,
+        args.near_far.y,
+        args.layer_mask,
+        args.order
+    );
 
     CmdResultCameraCreate {
         success: true,

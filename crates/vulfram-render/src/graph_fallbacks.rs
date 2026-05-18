@@ -163,17 +163,6 @@ pub fn fallback_graph() -> RenderGraphDesc {
                 params: HashMap::new(),
                 shader: None,
             },
-            RenderGraphNode {
-                node_id: LogicalId::Str("ui_pass".into()),
-                pass_id: RENDER_PASS_UI.into(),
-                inputs: vec![LogicalId::Str("swapchain".into())],
-                outputs: vec![LogicalId::Str("swapchain".into())],
-                require: Vec::new(),
-                priority: 110,
-                enabled: true,
-                params: HashMap::new(),
-                shader: None,
-            },
         ],
         edges: vec![
             RenderGraphEdge {
@@ -229,11 +218,6 @@ pub fn fallback_graph() -> RenderGraphDesc {
             RenderGraphEdge {
                 from_node_id: LogicalId::Str("post_pass".into()),
                 to_node_id: LogicalId::Str("compose_pass".into()),
-                reason: Some(RenderGraphEdgeReason::ReadAfterWrite),
-            },
-            RenderGraphEdge {
-                from_node_id: LogicalId::Str("compose_pass".into()),
-                to_node_id: LogicalId::Str("ui_pass".into()),
                 reason: Some(RenderGraphEdgeReason::ReadAfterWrite),
             },
         ],

@@ -4012,6 +4012,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "vulfram-log"
+version = "0.0.0"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "vulfram-platform"
 version = "0.0.0"
 dependencies = [
@@ -4034,6 +4041,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_path_to_error",
+ "vulfram-log",
  "vulfram-types",
 ]
 
@@ -4108,6 +4116,7 @@ dependencies = [
  "smallvec",
  "vulfram-audio",
  "vulfram-input",
+ "vulfram-log",
  "vulfram-platform",
  "vulfram-protocol",
  "vulfram-realm-2d",

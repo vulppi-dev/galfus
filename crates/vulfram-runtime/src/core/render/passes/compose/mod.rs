@@ -148,11 +148,7 @@ pub fn pass_compose_to_view(
         let Some(record) = render_state.scene.cameras.get(&camera_id) else {
             continue;
         };
-        let target = match record
-            .post_target
-            .as_ref()
-            .or(record.render_target.as_ref())
-        {
+        let target = match record.render_target.as_ref() {
             Some(t) => t,
             None => continue,
         };

@@ -142,6 +142,7 @@ pub enum EngineEvent {
     Keyboard(KeyboardEvent),
     Gamepad(GamepadEvent),
     System(SystemEvent),
+    Log(vulfram_log::LogEvent),
 }
 
 /// Command responses (answers to commands sent by user)

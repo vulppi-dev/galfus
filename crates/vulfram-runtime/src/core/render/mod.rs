@@ -1,5 +1,7 @@
 pub mod cache;
 mod frame_helpers;
+#[cfg(not(target_arch = "wasm32"))]
+mod debug_capture;
 pub mod gizmos;
 pub mod graph;
 mod graph_execute;
@@ -12,6 +14,7 @@ use crate::core::profiling::gpu::apply_gpu_timing_report;
 use crate::core::realm::{FrameReport, apply_target_graph_stats};
 use crate::core::resources::RenderTarget;
 use crate::core::state::EngineState;
+use crate::core::target::TargetKind;
 use frame_helpers::{
     apply_realm_environment_bindings, apply_target_size_requests, build_target_surface_map,
     collect_window_camera_target_sizes, refresh_window_target_textures, should_render_realm,
@@ -142,18 +145,18 @@ pub fn render_frames(engine_state: &mut EngineState) {
     };
     crate::core::target::sync_auto_graph(engine_state);
 
-    let device = match &engine_state.device {
-        Some(device) => device,
+    let device = match engine_state.device.as_ref() {
+        Some(device) => device.clone(),
         None => return,
     };
 
-    let queue = match &engine_state.queue {
-        Some(queue) => queue,
+    let queue = match engine_state.queue.as_ref() {
+        Some(queue) => queue.clone(),
         None => return,
     };
 
     if let Some(gpu_profiler) = engine_state.gpu_profiler.as_mut() {
-        gpu_profiler.ensure_capacity(device, queue, engine_state.window.states.len());
+        gpu_profiler.ensure_capacity(&device, &queue, engine_state.window.states.len());
     }
 
     let time = engine_state.runtime.time_ms() as f32 / 1000.0;
@@ -172,6 +175,15 @@ pub fn render_frames(engine_state: &mut EngineState) {
     let mut shadow_ns: u64 = 0;
     let mut frame_report = FrameReport::default();
     apply_target_graph_stats(&mut frame_report, &target_plan, target_diff.as_ref());
+    let realm_plan = crate::core::realm::RealmGraphPlanner.build_plan(&engine_state.universal_state);
+    vulfram_log::vulfram_log_debug!(
+        engine_state,
+        "realmgraph",
+        "realmgraph: realms={} cut_edges={} order={:?}",
+        realm_plan.order.len(),
+        realm_plan.cut_edges.len(),
+        realm_plan.order
+    );
     let window_sizes: std::collections::HashMap<u32, glam::UVec2> = engine_state
         .window
         .states
@@ -184,6 +196,14 @@ pub fn render_frames(engine_state: &mut EngineState) {
         &engine_state.universal_state.targets.target_layers.entries,
         &window_sizes,
         engine_state.runtime.frame_index(),
+    );
+    vulfram_log::vulfram_log_debug!(
+        engine_state,
+        "framegraph",
+        "framegraph: targets={} invocations={} cut_edges={}",
+        target_plan.order.len(),
+        target_invocations.len(),
+        target_plan.cut_edges.len()
     );
     frame_report.target_invocations = target_invocations
         .iter()
@@ -200,6 +220,22 @@ pub fn render_frames(engine_state: &mut EngineState) {
             frame_id: invocation.frame_id,
         })
         .collect();
+    for invocation in &target_invocations {
+        vulfram_log::vulfram_log_debug!(
+            engine_state,
+            "framegraph.intent",
+            "draw-intent realm={} target={} size={}x{} rect=[{},{},{},{}] frame={}",
+            invocation.realm_id,
+            invocation.target_id.0,
+            invocation.render_size_px.x,
+            invocation.render_size_px.y,
+            invocation.resolved_rect_px.x,
+            invocation.resolved_rect_px.y,
+            invocation.resolved_rect_px.z,
+            invocation.resolved_rect_px.w,
+            invocation.frame_id
+        );
+    }
     frame_report.target_autolink_failures = engine_state
         .universal_state
         .targets
@@ -214,7 +250,7 @@ pub fn render_frames(engine_state: &mut EngineState) {
     );
     let present_sizes = &engine_state.present_sizes_cache;
     let surface_views = collect_surface_views(
-        device,
+        &device,
         &engine_state.universal_state,
         &mut engine_state.surface_targets,
         present_sizes,
@@ -282,11 +318,30 @@ pub fn render_frames(engine_state: &mut EngineState) {
             let layer_blend_mode = layer_state.layout.blend_mode;
             let layer_clip = layer_state.layout.clip;
             let layer_opacity = layer_state.layout.opacity;
-            let Some(surface_id) = target_surface_map
-                .get(&target_id)
-                .copied()
-                .or_else(|| resolve_realm_surface(&engine_state.universal_state, realm_id))
-            else {
+            let present_surface_for_window = |window_id: u32| {
+                engine_state
+                    .universal_state
+                    .composition
+                    .presents
+                    .entries
+                    .values()
+                    .find(|entry| entry.value.window_id == window_id)
+                    .map(|entry| entry.value.surface)
+            };
+            let Some(surface_id) = target_surface_map.get(&target_id).copied().or_else(|| {
+                engine_state
+                    .universal_state
+                    .targets
+                    .targets
+                    .entries
+                    .get(&target_id)
+                    .and_then(|target| match (target.kind, target.window_id) {
+                        (TargetKind::Window, Some(window_id)) => {
+                            present_surface_for_window(window_id)
+                        }
+                        _ => None,
+                    })
+            }).or_else(|| resolve_realm_surface(&engine_state.universal_state, realm_id)) else {
                 continue;
             };
             let should_render = engine_state
@@ -328,7 +383,7 @@ pub fn render_frames(engine_state: &mut EngineState) {
 
             let (target_view, target_format) = {
                 let surface_target = ensure_surface_target(
-                    device,
+        &device,
                     &mut engine_state.surface_targets,
                     surface_id,
                     target_size,
@@ -338,7 +393,7 @@ pub fn render_frames(engine_state: &mut EngineState) {
             };
             let invocation_size = invocation.render_size_px;
             let invocation_target = vulfram_render::ensure_surface_target(
-                device,
+                &device,
                 &mut invocation_targets,
                 (target_id.0, invocation.realm_id),
                 invocation_size,
@@ -369,7 +424,7 @@ pub fn render_frames(engine_state: &mut EngineState) {
                 window_state.inner_size,
             );
             if render_state.sync_camera_targets_and_projection(
-                device,
+                &device,
                 window_state.inner_size,
                 Some(&camera_target_sizes),
             ) {
@@ -377,7 +432,14 @@ pub fn render_frames(engine_state: &mut EngineState) {
                     shadow.mark_dirty();
                 }
             }
-            render_state.prepare_render(device, frame_spec, true);
+            render_state.prepare_render(&device, frame_spec, true);
+            let active_camera_order = render_state.camera_order.clone();
+            let enabled_camera_ids: std::collections::HashSet<u32> =
+                layer_state.enabled_camera_ids.iter().copied().collect();
+            render_state.camera_order = active_camera_order
+                .into_iter()
+                .filter(|camera_id| enabled_camera_ids.contains(camera_id))
+                .collect();
 
             let mut encoder =
                 device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
@@ -458,6 +520,7 @@ pub fn render_frames(engine_state: &mut EngineState) {
             #[cfg(target_arch = "wasm32")]
             let window_focused = true;
 
+            let mut pass_logs: Vec<vulfram_log::LogEvent> = Vec::new();
             gpu_written |= execute_graph_to_view(
                 &plan,
                 render_state,
@@ -467,8 +530,8 @@ pub fn render_frames(engine_state: &mut EngineState) {
                 surfaces,
                 &target_surface_map,
                 &engine_state.surface_targets,
-                device,
-                queue,
+                &device,
+                &queue,
                 &mut encoder,
                 &invocation_view,
                 target_format,
@@ -480,11 +543,15 @@ pub fn render_frames(engine_state: &mut EngineState) {
                 engine_state.gpu_profiler.as_ref(),
                 gpu_base,
                 &mut shadow_ns,
+                &mut pass_logs,
             );
+            for log_event in pass_logs {
+                engine_state.runtime.push_event(crate::core::cmd::EngineEvent::Log(log_event));
+            }
             let overlay_blend = match layer_blend_mode {
                 1 => Some(wgpu::BlendState::PREMULTIPLIED_ALPHA_BLENDING),
                 2 => None,
-                _ => Some(wgpu::BlendState::ALPHA_BLENDING),
+                _ => None,
             };
             let overlay = [passes::ComposeOverlay {
                 source_view: &invocation_view,
@@ -501,8 +568,8 @@ pub fn render_frames(engine_state: &mut EngineState) {
             }];
             passes::pass_compose_overlays(
                 render_state,
-                device,
-                queue,
+                &device,
+                &queue,
                 &mut encoder,
                 &target_view,
                 target_format,
@@ -565,8 +632,8 @@ pub fn render_frames(engine_state: &mut EngineState) {
                 .create_view(&wgpu::TextureViewDescriptor::default());
             passes::pass_compose_surface(
                 render_state,
-                device,
-                queue,
+                &device,
+                &queue,
                 &mut encoder,
                 &surface_view,
                 window_state.config.format,
@@ -580,6 +647,67 @@ pub fn render_frames(engine_state: &mut EngineState) {
             );
 
             queue.submit(Some(encoder.finish()));
+            #[cfg(not(target_arch = "wasm32"))]
+            {
+                if engine_state.debug_capture.should_capture() {
+                    let capture_path = engine_state.debug_capture.resolve_path(
+                        engine_state.runtime.frame_index(),
+                        window_id,
+                        present.value.surface.0,
+                    );
+                    let capture_size =
+                        glam::UVec2::new(window_state.config.width, window_state.config.height);
+                    let capture_texture = device.create_texture(&wgpu::TextureDescriptor {
+                        label: Some("DebugCapture.ComposeTarget"),
+                        size: wgpu::Extent3d {
+                            width: capture_size.x,
+                            height: capture_size.y,
+                            depth_or_array_layers: 1,
+                        },
+                        mip_level_count: 1,
+                        sample_count: 1,
+                        dimension: wgpu::TextureDimension::D2,
+                        format: window_state.config.format,
+                        usage: wgpu::TextureUsages::RENDER_ATTACHMENT
+                            | wgpu::TextureUsages::COPY_SRC,
+                        view_formats: &[],
+                    });
+                    let capture_view =
+                        capture_texture.create_view(&wgpu::TextureViewDescriptor::default());
+                    let mut capture_encoder =
+                        device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                            label: Some("DebugCapture.ComposeEncoder"),
+                        });
+                    passes::pass_compose_surface(
+                        render_state,
+                        &device,
+                        &queue,
+                        &mut capture_encoder,
+                        &capture_view,
+                        window_state.config.format,
+                        capture_size,
+                        &surface_target.view,
+                        glam::UVec2::new(
+                            surface_target.texture.size().width,
+                            surface_target.texture.size().height,
+                        ),
+                        engine_state.runtime.frame_index(),
+                    );
+                    queue.submit(Some(capture_encoder.finish()));
+
+                    let _ = debug_capture::capture_texture_png(
+                        &device,
+                        &queue,
+                        &capture_texture,
+                        capture_size,
+                        window_state.config.format,
+                        &capture_path,
+                    );
+                    if !engine_state.debug_capture.capture_every_frame {
+                        engine_state.debug_capture.captured_once = true;
+                    }
+                }
+            }
             surface_texture.present();
             #[cfg(not(target_arch = "wasm32"))]
             {
@@ -642,7 +770,7 @@ pub fn render_frames(engine_state: &mut EngineState) {
                     gpu_profiler.buffer_size(),
                 );
                 queue.submit(Some(resolve_encoder.finish()));
-                if let Some(report) = gpu_profiler.readback_report(device) {
+                if let Some(report) = gpu_profiler.readback_report(&device) {
                     apply_gpu_timing_report(&mut engine_state.profiling, report);
                 }
             }

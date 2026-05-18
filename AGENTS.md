@@ -34,6 +34,7 @@
 - Target file size around 300 lines; avoid exceeding 600 lines when splitting is practical.
 - If files are changed externally while you work, treat those changes as intentional and do not revert them unless explicitly requested.
 - Detect repetitive work and propose or create scripts to automate it.
+- Files on .tmp/ are temporary and used for planning, prototyping, and testing. They can be modified or deleted without warning. This files are not version controlled and should not be used for permanent code or documentation.
 
 ## 5) Validation and Uncertainty Rules
 

@@ -9,14 +9,23 @@ pub(crate) fn collect_objects(
     collector: &mut crate::core::render::state::DrawCollector,
     camera_record: &CameraRecord,
     vertex_sys: &crate::core::resources::VertexAllocatorSystem,
+    log_events: &mut Vec<vulfram_log::LogEvent>,
 ) -> u32 {
     let materials = &scene.materials;
     let frustum = Frustum::from_view_projection(camera_record.data.view_projection);
 
     let mut instance_cursor = 0;
+    let mut skipped_layer_mask = 0u32;
+    let mut skipped_missing_geometry = 0u32;
+    let mut skipped_frustum = 0u32;
+    let mut used_fallback_material = 0u32;
+    let mut used_missing_material_fallback = 0u32;
+    let mut pbr_models = 0u32;
+    let mut standard_models = 0u32;
 
     for (model_id, model_record) in &scene.models {
         if (model_record.layer_mask & camera_record.layer_mask) == 0 {
+            skipped_layer_mask += 1;
             continue;
         }
 
@@ -26,17 +35,22 @@ pub(crate) fn collect_objects(
             .flatten()
             .is_none()
         {
+            skipped_missing_geometry += 1;
             continue;
         }
 
         if let Some(aabb) = vertex_sys.aabb(model_record.geometry_id) {
             let world_aabb = aabb.transform(&model_record.data.transform);
             if !frustum.intersects_aabb(world_aabb.min, world_aabb.max) {
+                skipped_frustum += 1;
                 continue;
             }
         }
 
         let material_id = model_record.material_id.unwrap_or(MATERIAL_FALLBACK_ID);
+        if model_record.material_id.is_none() {
+            used_fallback_material += 1;
+        }
 
         let model_depth = {
             let clip = camera_record.data.view_projection * model_record.data.translation;
@@ -49,14 +63,16 @@ pub(crate) fn collect_objects(
 
         if let Some(record) = materials.get(&material_id)
             && matches!(
-                record.preset,
+                record.base_preset,
                 crate::core::resources::ShaderMaterialPreset::Pbr
             )
         {
+            pbr_models += 1;
             let item = DrawItem {
                 model_id: *model_id,
                 geometry_id: model_record.geometry_id,
                 material_id,
+                compiled_shader_hash: record.compiled_shader_hash,
                 topology: record.topology,
                 polygon_mode: record.polygon_mode,
                 render_side: record.render_side,
@@ -75,6 +91,9 @@ pub(crate) fn collect_objects(
             .material_id
             .filter(|id| materials.contains_key(id))
             .unwrap_or(MATERIAL_FALLBACK_ID);
+        if model_record.material_id.is_some() && material_id == MATERIAL_FALLBACK_ID {
+            used_missing_material_fallback += 1;
+        }
 
         let (surface_type, topology, polygon_mode, render_side) = materials
             .get(&material_id)
@@ -92,11 +111,16 @@ pub(crate) fn collect_objects(
                 PolygonMode::Fill,
                 RenderSide::Front,
             ));
+        standard_models += 1;
 
         let item = DrawItem {
             model_id: *model_id,
             geometry_id: model_record.geometry_id,
             material_id,
+            compiled_shader_hash: materials
+                .get(&material_id)
+                .map(|record| record.compiled_shader_hash)
+                .unwrap_or(0),
             topology,
             polygon_mode,
             render_side,
@@ -113,6 +137,30 @@ pub(crate) fn collect_objects(
 
     // Sort and prepare instance data
     sort_collector(collector);
+    let kept_count = collector.pbr_opaque.len()
+        + collector.standard_opaque.len()
+        + collector.pbr_masked.len()
+        + collector.standard_masked.len()
+        + collector.pbr_transparent.len()
+        + collector.standard_transparent.len();
+    vulfram_log::vulfram_log_debug!(
+        log_events,
+        "forward.collector",
+        "models_total={} kept={} pbr={} standard={} skip_layer={} skip_geom={} skip_frustum={} fallback_none={} fallback_missing={} pbr_o={} std_o={} pbr_t={} std_t={}",
+        scene.models.len(),
+        kept_count,
+        pbr_models,
+        standard_models,
+        skipped_layer_mask,
+        skipped_missing_geometry,
+        skipped_frustum,
+        used_fallback_material,
+        used_missing_material_fallback,
+        collector.pbr_opaque.len(),
+        collector.standard_opaque.len(),
+        collector.pbr_transparent.len(),
+        collector.standard_transparent.len()
+    );
 
     let groups = [
         &mut collector.pbr_opaque,
@@ -142,6 +190,7 @@ fn sort_collector(collector: &mut crate::core::render::state::DrawCollector) {
             a.topology as u32,
             a.polygon_mode as u32,
             a.render_side as u32,
+            a.compiled_shader_hash,
             a.material_id,
             a.geometry_id,
         )
@@ -151,6 +200,7 @@ fn sort_collector(collector: &mut crate::core::render::state::DrawCollector) {
             a.topology as u32,
             a.polygon_mode as u32,
             a.render_side as u32,
+            a.compiled_shader_hash,
             a.material_id,
             a.geometry_id,
         )
@@ -160,6 +210,7 @@ fn sort_collector(collector: &mut crate::core::render::state::DrawCollector) {
             a.topology as u32,
             a.polygon_mode as u32,
             a.render_side as u32,
+            a.compiled_shader_hash,
             a.material_id,
             a.geometry_id,
         )
@@ -169,6 +220,7 @@ fn sort_collector(collector: &mut crate::core::render::state::DrawCollector) {
             a.topology as u32,
             a.polygon_mode as u32,
             a.render_side as u32,
+            a.compiled_shader_hash,
             a.material_id,
             a.geometry_id,
         )

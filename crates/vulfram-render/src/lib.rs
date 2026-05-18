@@ -5,6 +5,7 @@ mod graph;
 mod graph_fallbacks;
 mod layouts;
 mod library;
+mod material_shader;
 mod profiler;
 mod realm_planner;
 mod realm_policy;
@@ -33,6 +34,10 @@ pub use layouts::{
     EffectBuffers, Layouts, PipelineLayouts, create_effect_buffers, create_pipeline_layouts,
 };
 pub use library::ResourceLibrary;
+pub use material_shader::{
+    CompiledMaterialShader, MaterialShaderBasePreset, MaterialShaderCompileSpec,
+    compile_material_shader_spec,
+};
 pub use profiler::{GpuProfiler, GpuTimingReport};
 pub use realm_planner::{
     AUTO_GRAPH_INPUT_FLAG_RAYCAST, AUTO_GRAPH_INPUT_FLAG_WIDGET_VIEW, AutoGraphExistingLink,

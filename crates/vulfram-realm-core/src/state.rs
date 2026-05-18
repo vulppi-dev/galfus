@@ -124,7 +124,7 @@ pub struct TargetLayerState {
     pub realm_id: u32,
     pub target_id: TargetId,
     pub layout: TargetLayerLayout,
-    pub camera_id: Option<u32>,
+    pub enabled_camera_ids: Vec<u32>,
     pub environment_id: Option<u32>,
 }
 

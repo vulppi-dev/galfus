@@ -72,7 +72,7 @@ pub struct CmdTargetLayerUpsertArgs {
     pub target_id: u64,
     pub layout: TargetLayerLayout,
     #[serde(default)]
-    pub camera_id: Option<u32>,
+    pub enabled_camera_ids: Vec<u32>,
     #[serde(default)]
     pub environment_id: Option<u32>,
 }
@@ -278,7 +278,7 @@ pub fn engine_cmd_target_layer_upsert(
             realm_id: args.realm_id,
             target_id,
             layout: args.layout,
-            camera_id: args.camera_id,
+            enabled_camera_ids: args.enabled_camera_ids.clone(),
             environment_id: args.environment_id,
         },
     );

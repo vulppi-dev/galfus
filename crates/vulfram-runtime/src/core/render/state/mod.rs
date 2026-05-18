@@ -91,6 +91,7 @@ pub struct RenderState {
     pub gizmos: GizmoSystem,
     pub shadow: Option<ShadowManager>,
     pub cache: RenderCache,
+    pub material_shader_modules: std::collections::HashMap<u64, wgpu::ShaderModule>,
     pub post_uniform_buffer: Option<wgpu::Buffer>,
     pub compose_uniform_buffer: Option<wgpu::Buffer>,
     pub ssao_uniform_buffer: Option<wgpu::Buffer>,

@@ -71,7 +71,7 @@ fn build_input_routing_topology_snapshot(
             |((realm_id, target_id), layer)| vulfram_input::InputRoutingLayerCameraRecord {
                 realm_id: *realm_id,
                 target_id: *target_id,
-                camera_id: layer.camera_id,
+                camera_id: layer.enabled_camera_ids.first().copied(),
             },
         )
         .collect();

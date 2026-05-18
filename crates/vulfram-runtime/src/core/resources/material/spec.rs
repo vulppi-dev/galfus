@@ -1,6 +1,26 @@
 use bytemuck::{Pod, Zeroable};
 use glam::Vec4;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::hash::{DefaultHasher, Hash, Hasher};
+
+fn preset_shader_source(preset: ShaderMaterialPreset) -> String {
+    match preset {
+        ShaderMaterialPreset::Standard => {
+            include_str!("../../render/passes/forward/branches/forward_standard.wgsl").to_string()
+        }
+        ShaderMaterialPreset::Pbr => {
+            include_str!("../../render/passes/forward/branches/forward_pbr.wgsl").to_string()
+        }
+    }
+}
+
+fn preset_shader_hash(source: &str, preset: ShaderMaterialPreset) -> u64 {
+    let mut hasher = DefaultHasher::new();
+    (preset as u32).hash(&mut hasher);
+    source.hash(&mut hasher);
+    hasher.finish()
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deserialize, Serialize)]
 #[serde(rename_all = "kebab-case")]
@@ -208,6 +228,12 @@ impl MaterialPbrRecord {
 pub struct ShaderMaterialRecord {
     pub label: Option<String>,
     pub preset: ShaderMaterialPreset,
+    pub base_preset: ShaderMaterialPreset,
+    pub shader_source: Option<String>,
+    pub shader_params_schema: HashMap<String, String>,
+    pub compiled_shader_hash: u64,
+    pub compiled_shader_source: Option<String>,
+    pub compile_error: Option<String>,
     pub data_standard: MaterialStandardParams,
     pub data_pbr: MaterialPbrParams,
     pub inputs: Vec<Vec4>,
@@ -222,6 +248,9 @@ pub struct ShaderMaterialRecord {
 
 impl ShaderMaterialRecord {
     pub fn new_standard(label: Option<String>) -> Self {
+        let compiled_shader_source = preset_shader_source(ShaderMaterialPreset::Standard);
+        let compiled_shader_hash =
+            preset_shader_hash(&compiled_shader_source, ShaderMaterialPreset::Standard);
         let mut inputs = vec![Vec4::ZERO; SHADER_MATERIAL_INPUTS_PER_MATERIAL as usize];
         inputs[0] = Vec4::ONE;
         inputs[1] = Vec4::ONE;
@@ -229,6 +258,12 @@ impl ShaderMaterialRecord {
         Self {
             label,
             preset: ShaderMaterialPreset::Standard,
+            base_preset: ShaderMaterialPreset::Standard,
+            shader_source: None,
+            shader_params_schema: HashMap::new(),
+            compiled_shader_hash,
+            compiled_shader_source: Some(compiled_shader_source),
+            compile_error: None,
             data_standard: MaterialStandardParams::default(),
             data_pbr: MaterialPbrParams::default(),
             inputs,
@@ -243,6 +278,8 @@ impl ShaderMaterialRecord {
     }
 
     pub fn new_pbr(label: Option<String>) -> Self {
+        let compiled_shader_source = preset_shader_source(ShaderMaterialPreset::Pbr);
+        let compiled_shader_hash = preset_shader_hash(&compiled_shader_source, ShaderMaterialPreset::Pbr);
         let mut inputs = vec![Vec4::ZERO; SHADER_MATERIAL_INPUTS_PER_MATERIAL as usize];
         inputs[0] = Vec4::ONE;
         inputs[1] = Vec4::ZERO;
@@ -251,6 +288,12 @@ impl ShaderMaterialRecord {
         Self {
             label,
             preset: ShaderMaterialPreset::Pbr,
+            base_preset: ShaderMaterialPreset::Pbr,
+            shader_source: None,
+            shader_params_schema: HashMap::new(),
+            compiled_shader_hash,
+            compiled_shader_source: Some(compiled_shader_source),
+            compile_error: None,
             data_standard: MaterialStandardParams::default(),
             data_pbr: MaterialPbrParams::default(),
             inputs,
@@ -270,5 +313,10 @@ impl ShaderMaterialRecord {
 
     pub fn clear_dirty(&mut self) {
         self.is_dirty = false;
+    }
+
+    pub fn mark_structural_dirty(&mut self) {
+        self.is_dirty = true;
+        self.bind_group = None;
     }
 }

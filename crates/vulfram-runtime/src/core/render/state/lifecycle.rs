@@ -48,6 +48,7 @@ impl RenderState {
             gizmos: GizmoSystem::new(),
             shadow: None,
             cache: RenderCache::new(),
+            material_shader_modules: HashMap::new(),
             post_uniform_buffer: None,
             compose_uniform_buffer: None,
             ssao_uniform_buffer: None,
@@ -100,6 +101,7 @@ impl RenderState {
         self.light_system = None;
         self.shadow = None;
         self.cache.clear();
+        self.material_shader_modules.clear();
         self.post_uniform_buffer = None;
         self.compose_uniform_buffer = None;
         self.ssao_uniform_buffer = None;

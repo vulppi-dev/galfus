@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use std::fmt::{Display, Formatter};
 
 pub use vulfram_types as types;
+pub use vulfram_log::{LogEvent, LogLevel};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProtocolCodecError {

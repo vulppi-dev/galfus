@@ -41,11 +41,26 @@ pub(super) fn apply_realm_environment_bindings(
             };
             target.window_id == Some(window_id)
         })
-        .map(|layer| vulfram_render::EnvironmentLayerBinding {
-            target_id: layer.target_id,
-            camera_id: layer.camera_id,
-            environment_id: layer.environment_id,
-            z_index: layer.layout.z_index,
+        .flat_map(|layer| {
+            if layer.enabled_camera_ids.is_empty() {
+                vec![vulfram_render::EnvironmentLayerBinding {
+                    target_id: layer.target_id,
+                    camera_id: None,
+                    environment_id: layer.environment_id,
+                    z_index: layer.layout.z_index,
+                }]
+            } else {
+                layer
+                    .enabled_camera_ids
+                    .iter()
+                    .map(|camera_id| vulfram_render::EnvironmentLayerBinding {
+                        target_id: layer.target_id,
+                        camera_id: Some(*camera_id),
+                        environment_id: layer.environment_id,
+                        z_index: layer.layout.z_index,
+                    })
+                    .collect::<Vec<_>>()
+            }
         })
         .collect();
 

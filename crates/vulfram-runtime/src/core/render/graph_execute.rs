@@ -249,12 +249,33 @@ pub(super) fn execute_graph_to_view(
     gpu_profiler: Option<&crate::core::profiling::gpu::GpuProfiler>,
     gpu_base: Option<u32>,
     shadow_cpu_ns_accum: &mut u64,
+    log_events: &mut Vec<vulfram_log::LogEvent>,
 ) -> bool {
     let mut gpu_written = false;
     let mut skybox_done = false;
+    let pass_order: Vec<&str> = plan
+        .order
+        .iter()
+        .map(|&node_idx| plan.nodes[node_idx].pass_id.as_str())
+        .collect();
+    vulfram_log::vulfram_log_debug!(
+        log_events,
+        "rendergraph.passes",
+        "realm={} passes={:?}",
+        _realm_id.0,
+        pass_order
+    );
 
     for &node_idx in &plan.order {
         let node = &plan.nodes[node_idx];
+    vulfram_log::vulfram_log_debug!(
+        log_events,
+        "rendergraph.pass",
+        "realm={} pass={} node={:?}",
+        _realm_id.0,
+        node.pass_id,
+        node.node_id
+    );
         match node.pass_id.as_str() {
             RENDER_PASS_SHADOW => {
                 #[cfg(not(target_arch = "wasm32"))]
@@ -300,6 +321,7 @@ pub(super) fn execute_graph_to_view(
                     encoder,
                     frame_index,
                     !skybox_done,
+                    log_events,
                 );
                 if let Some(base) = gpu_base {
                     write_gpu_timestamp(encoder, gpu_profiler, base + 3, &mut gpu_written);

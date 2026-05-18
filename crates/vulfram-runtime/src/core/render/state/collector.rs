@@ -5,6 +5,7 @@ pub struct DrawItem {
     pub model_id: u32,
     pub geometry_id: u32,
     pub material_id: u32,
+    pub compiled_shader_hash: u64,
     pub topology: PrimitiveTopology,
     pub polygon_mode: PolygonMode,
     pub render_side: RenderSide,

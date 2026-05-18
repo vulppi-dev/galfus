@@ -28,6 +28,7 @@ mint = "0.5"
 vulfram-platform = { path = "../vulfram-platform" }
 vulfram-audio = { path = "../vulfram-audio" }
 vulfram-input = { path = "../vulfram-input" }
+vulfram-log = { path = "../vulfram-log" }
 vulfram-protocol = { path = "../vulfram-protocol" }
 vulfram-realm-2d = { path = "../vulfram-realm-2d" }
 vulfram-realm-3d = { path = "../vulfram-realm-3d" }

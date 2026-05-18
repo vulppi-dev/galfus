@@ -218,9 +218,9 @@ pub fn collect_window_camera_target_sizes(
         if layer.realm_id != realm_id.0 {
             continue;
         }
-        let Some(camera_id) = layer.camera_id else {
+        if layer.enabled_camera_ids.is_empty() {
             continue;
-        };
+        }
         let Some((target_window_id, target_size)) = targets.get(&layer.target_id) else {
             continue;
         };
@@ -244,7 +244,10 @@ pub fn collect_window_camera_target_sizes(
             .round() as u32;
 
         let size = target_size.unwrap_or(glam::UVec2::new(layout_width, layout_height));
-        sizes.insert(camera_id, glam::UVec2::new(size.x.max(1), size.y.max(1)));
+        let normalized_size = glam::UVec2::new(size.x.max(1), size.y.max(1));
+        for camera_id in &layer.enabled_camera_ids {
+            sizes.insert(*camera_id, normalized_size);
+        }
     }
     sizes
 }

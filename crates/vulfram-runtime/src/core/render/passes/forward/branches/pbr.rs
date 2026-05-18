@@ -1,4 +1,4 @@
-use crate::core::render::cache::{PipelineKey, RenderCache, ShaderId};
+use crate::core::render::cache::{PipelineKey, RenderCache};
 use crate::core::render::state::ResourceLibrary;
 use crate::core::resources::{
     PolygonMode, PrimitiveTopology, RenderSide, SurfaceType, VertexStream,
@@ -14,6 +14,8 @@ pub fn get_pipeline<'a>(
     polygon_mode: PolygonMode,
     render_side: RenderSide,
     sample_count: u32,
+    shader_id: u64,
+    shader_module: &wgpu::ShaderModule,
 ) -> &'a wgpu::RenderPipeline {
     let (blend, depth_write, depth_compare) = match surface {
         SurfaceType::Transparent => (
@@ -47,7 +49,7 @@ pub fn get_pipeline<'a>(
     };
 
     let key = PipelineKey {
-        shader_id: ShaderId::ForwardPbr as u64,
+        shader_id,
         color_format: wgpu::TextureFormat::Rgba16Float,
         color_target_count: 2,
         depth_format: Some(wgpu::TextureFormat::Depth32Float), // Reverse Z
@@ -66,7 +68,7 @@ pub fn get_pipeline<'a>(
             label: Some("Forward PBR Pipeline"),
             layout: Some(&library.forward_pbr_pipeline_layout),
             vertex: wgpu::VertexState {
-                module: &library.forward_pbr_shader,
+                module: shader_module,
                 entry_point: Some("vs_main"),
                 buffers: &[
                     // 0: Position
@@ -153,7 +155,7 @@ pub fn get_pipeline<'a>(
                 compilation_options: wgpu::PipelineCompilationOptions::default(),
             },
             fragment: Some(wgpu::FragmentState {
-                module: &library.forward_pbr_shader,
+                module: shader_module,
                 entry_point: Some("fs_main"),
                 targets: &[
                     Some(wgpu::ColorTargetState {

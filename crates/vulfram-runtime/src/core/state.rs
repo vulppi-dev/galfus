@@ -57,6 +57,47 @@ pub struct EngineState {
 
     pub(crate) profiling: TickProfiling,
     pub(crate) gpu_profiler: Option<GpuProfiler>,
+    #[cfg(not(target_arch = "wasm32"))]
+    pub(crate) debug_capture: DebugCaptureState,
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) struct DebugCaptureState {
+    pub enabled: bool,
+    pub path_template: String,
+    pub capture_every_frame: bool,
+    pub captured_once: bool,
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+impl DebugCaptureState {
+    fn from_env() -> Self {
+        let path_template = std::env::var("VULFRAM_DEBUG_CAPTURE_PATH")
+            .ok()
+            .filter(|path| !path.trim().is_empty())
+            .unwrap_or_else(|| "build/debug/frame-{frame}.png".to_string());
+        let enabled = std::env::var("VULFRAM_DEBUG_CAPTURE")
+            .map(|value| matches!(value.trim(), "1" | "true" | "TRUE" | "yes" | "YES"))
+            .unwrap_or(false);
+        let capture_every_frame = path_template.contains("{frame}");
+        Self {
+            enabled,
+            path_template,
+            capture_every_frame,
+            captured_once: false,
+        }
+    }
+
+    pub fn should_capture(&self) -> bool {
+        self.enabled && (!self.captured_once || self.capture_every_frame)
+    }
+
+    pub fn resolve_path(&self, frame_index: u64, window_id: u32, surface_id: u32) -> String {
+        self.path_template
+            .replace("{frame}", &frame_index.to_string())
+            .replace("{window}", &window_id.to_string())
+            .replace("{surface}", &surface_id.to_string())
+    }
 }
 
 impl EngineState {
@@ -95,6 +136,8 @@ impl EngineState {
             gamepad_backend: PlatformGamepadBackendState::new(),
             profiling: TickProfiling::default(),
             gpu_profiler: None,
+            #[cfg(not(target_arch = "wasm32"))]
+            debug_capture: DebugCaptureState::from_env(),
         }
     }
 
