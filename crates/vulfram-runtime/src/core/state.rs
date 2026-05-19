@@ -64,9 +64,11 @@ pub struct EngineState {
 #[cfg(not(target_arch = "wasm32"))]
 pub(crate) struct DebugCaptureState {
     pub enabled: bool,
+    pub capture_passes: bool,
     pub path_template: String,
     pub capture_every_frame: bool,
     pub captured_once: bool,
+    pub downscale_factor: f32,
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -79,12 +81,22 @@ impl DebugCaptureState {
         let enabled = std::env::var("VULFRAM_DEBUG_CAPTURE")
             .map(|value| matches!(value.trim(), "1" | "true" | "TRUE" | "yes" | "YES"))
             .unwrap_or(false);
+        let capture_passes = std::env::var("VULFRAM_DEBUG_CAPTURE_PASSES")
+            .map(|value| matches!(value.trim(), "1" | "true" | "TRUE" | "yes" | "YES"))
+            .unwrap_or(false);
         let capture_every_frame = path_template.contains("{frame}");
+        let downscale_factor = std::env::var("VULFRAM_DEBUG_CAPTURE_SCALE")
+            .ok()
+            .and_then(|value| value.trim().parse::<f32>().ok())
+            .map(|value| value.clamp(0.05, 1.0))
+            .unwrap_or(1.0);
         Self {
             enabled,
+            capture_passes,
             path_template,
             capture_every_frame,
             captured_once: false,
+            downscale_factor,
         }
     }
 
@@ -97,6 +109,16 @@ impl DebugCaptureState {
             .replace("{frame}", &frame_index.to_string())
             .replace("{window}", &window_id.to_string())
             .replace("{surface}", &surface_id.to_string())
+    }
+
+    pub fn resolve_capture_size(&self, base_width: u32, base_height: u32) -> glam::UVec2 {
+        let factor = self.downscale_factor.clamp(0.05, 1.0);
+        if (factor - 1.0).abs() < f32::EPSILON {
+            return glam::UVec2::new(base_width.max(1), base_height.max(1));
+        }
+        let width = ((base_width as f32) * factor).round().max(1.0) as u32;
+        let height = ((base_height as f32) * factor).round().max(1.0) as u32;
+        glam::UVec2::new(width, height)
     }
 }
 

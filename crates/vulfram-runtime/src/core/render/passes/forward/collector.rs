@@ -40,6 +40,28 @@ pub(crate) fn collect_objects(
         }
 
         if let Some(aabb) = vertex_sys.aabb(model_record.geometry_id) {
+            let has_position = vertex_sys
+                .geometry_has_streams(model_record.geometry_id, &[crate::core::resources::VertexStream::Position])
+                .unwrap_or(false);
+            let has_normal = vertex_sys
+                .geometry_has_streams(model_record.geometry_id, &[crate::core::resources::VertexStream::Normal])
+                .unwrap_or(false);
+            if instance_cursor == 0 {
+                vulfram_log::vulfram_log_debug!(
+                    log_events,
+                    "forward.geometry",
+                    "geom={} has_pos={} has_nrm={} aabb_min=({:.3},{:.3},{:.3}) aabb_max=({:.3},{:.3},{:.3})",
+                    model_record.geometry_id,
+                    has_position,
+                    has_normal,
+                    aabb.min.x,
+                    aabb.min.y,
+                    aabb.min.z,
+                    aabb.max.x,
+                    aabb.max.y,
+                    aabb.max.z
+                );
+            }
             let world_aabb = aabb.transform(&model_record.data.transform);
             if !frustum.intersects_aabb(world_aabb.min, world_aabb.max) {
                 skipped_frustum += 1;
@@ -54,6 +76,26 @@ pub(crate) fn collect_objects(
 
         let model_depth = {
             let clip = camera_record.data.view_projection * model_record.data.translation;
+            if *model_id == 5002 {
+                let ndc = if clip.w.abs() > 1e-6 {
+                    clip / clip.w
+                } else {
+                    clip
+                };
+                vulfram_log::vulfram_log_debug!(
+                    log_events,
+                    "forward.clip",
+                    "model={} clip=({:.3},{:.3},{:.3},{:.3}) ndc=({:.3},{:.3},{:.3})",
+                    model_id,
+                    clip.x,
+                    clip.y,
+                    clip.z,
+                    clip.w,
+                    ndc.x,
+                    ndc.y,
+                    ndc.z
+                );
+            }
             if clip.w.abs() > 1e-5 {
                 clip.z / clip.w
             } else {
@@ -179,6 +221,23 @@ pub(crate) fn collect_objects(
                 instance_cursor += 1;
             }
         }
+    }
+
+    if let Some(first) = collector.instance_data.first() {
+        vulfram_log::vulfram_log_debug!(
+            log_events,
+            "forward.instance",
+            "instances={} first_translation=({:.3},{:.3},{:.3},{:.3}) first_scale=({:.3},{:.3},{:.3},{:.3})",
+            collector.instance_data.len(),
+            first.translation.x,
+            first.translation.y,
+            first.translation.z,
+            first.translation.w,
+            first.scale.x,
+            first.scale.y,
+            first.scale.z,
+            first.scale.w
+        );
     }
 
     instance_cursor

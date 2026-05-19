@@ -20,9 +20,9 @@ pub fn create_window(window_id: u32, title: &str) -> WindowBinding {
     let create_cmd = EngineCmd::CmdWindowCreate(CmdWindowCreateArgs {
         window_id,
         title: title.into(),
-        size: UVec2::new(1280, 720),
+        size: UVec2::new(640, 360),
         resizable: true,
-        initial_state: vulfram_core::core::window::EngineWindowState::Maximized,
+        initial_state: vulfram_core::core::window::EngineWindowState::Windowed,
         ..Default::default()
     });
     assert_eq!(send_commands(vec![create_cmd]), VulframResult::Success);

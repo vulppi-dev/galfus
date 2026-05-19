@@ -67,13 +67,12 @@ impl CameraComponent {
         let projection = match kind {
             CameraKind::Perspective => {
                 let fov_y = 45.0_f32.to_radians();
-                // Reverse Z: swap near/far
+                // Reverse-Z projection: keep depth clear at 0.0 and depth compare Greater.
                 Mat4::perspective_rh(fov_y, aspect_ratio, near_far.y, near_far.x)
             }
             CameraKind::Orthographic => {
                 let half_height = ortho_scale / 2.0;
                 let half_width = half_height * aspect_ratio;
-                // Reverse Z: swap near/far
                 Mat4::orthographic_rh(
                     -half_width,  // left
                     half_width,   // right

@@ -21,18 +21,18 @@ pub fn get_pipeline<'a>(
         SurfaceType::Transparent => (
             Some(wgpu::BlendState::ALPHA_BLENDING),
             false,
-            wgpu::CompareFunction::Greater,
+            wgpu::CompareFunction::GreaterEqual,
         ),
         _ => (
             None,
             true,
-            wgpu::CompareFunction::Greater, // Reverse Z
+            wgpu::CompareFunction::Greater,
         ),
     };
 
     let cull_mode = match render_side {
-        RenderSide::Front => Some(wgpu::Face::Back),
-        RenderSide::Back => Some(wgpu::Face::Front),
+        RenderSide::Front => Some(wgpu::Face::Front),
+        RenderSide::Back => Some(wgpu::Face::Back),
         RenderSide::DoubleSide => None,
     };
 

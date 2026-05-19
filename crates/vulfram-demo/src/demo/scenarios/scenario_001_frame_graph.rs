@@ -1,6 +1,6 @@
 use std::time::{Duration, Instant};
 
-use glam::{Mat4, Vec2, Vec3, Vec4};
+use glam::{Mat4, Quat, Vec2, Vec3, Vec4};
 use vulfram_core::core;
 use vulfram_core::core::VulframResult;
 use vulfram_core::core::cmd::EngineEvent;
@@ -10,9 +10,9 @@ use vulfram_core::core::cmd::{
 };
 use vulfram_core::core::resources::{
     CameraKind, CmdCameraCreateArgs, CmdEnvironmentCreateArgs, CmdLightCreateArgs,
-    CmdMaterialCreateArgs, CmdModelCreateArgs, CmdPrimitiveGeometryCreateArgs, EnvironmentConfig,
-    LightKind, MaterialKind, MaterialOptions, PrimitiveShape, ShaderMaterialPreset,
-    StandardOptions,
+    CmdMaterialCreateArgs, CmdModelCreateArgs, CmdModelUpdateArgs, CmdPrimitiveGeometryCreateArgs,
+    EnvironmentConfig, LightKind, MaterialKind, MaterialOptions, PostProcessConfig,
+    PrimitiveShape, RenderSide, ShaderMaterialPreset, StandardOptions,
 };
 use vulfram_core::core::target::{
     CmdTargetLayerUpsertArgs, CmdTargetUpsertArgs, DimensionValue, TargetKind, TargetLayerLayout,
@@ -26,16 +26,19 @@ const RUN_DURATION: Duration = Duration::from_secs(6);
 
 const WINDOW_TARGET_ID: u64 = 1;
 
-const GEOMETRY_CUBE_ID: u32 = 1001;
-const MATERIAL_STANDARD_ID: u32 = 2001;
-const MATERIAL_PBR_ID: u32 = 2002;
-const MATERIAL_CUSTOM_SIMPLE_ID: u32 = 2003;
-const CAMERA_ID: u32 = 3001;
-const LIGHT_ID: u32 = 4001;
-const ENVIRONMENT_ID: u32 = 4501;
-const MODEL_CUBE_A_ID: u32 = 5001;
-const MODEL_CUBE_B_ID: u32 = 5002;
-const MODEL_CUBE_C_ID: u32 = 5003;
+const GEOMETRY_CUBE_ID: u32 = 1;
+const GEOMETRY_FLOOR_ID: u32 = 11;
+const MATERIAL_STANDARD_ID: u32 = 2;
+const MATERIAL_PBR_ID: u32 = 3;
+const MATERIAL_CUSTOM_SIMPLE_ID: u32 = 4;
+const MATERIAL_FLOOR_ID: u32 = 12;
+const CAMERA_ID: u32 = 5;
+const LIGHT_ID: u32 = 6;
+const ENVIRONMENT_ID: u32 = 7;
+const MODEL_CUBE_A_ID: u32 = 8;
+const MODEL_CUBE_B_ID: u32 = 9;
+const MODEL_CUBE_C_ID: u32 = 10;
+const MODEL_FLOOR_ID: u32 = 13;
 
 pub fn run(ctx: DemoContext) -> bool {
     let realm_3d = ctx.realm_id;
@@ -65,6 +68,9 @@ pub fn run(ctx: DemoContext) -> bool {
     let start = Instant::now();
 
     while start.elapsed() < RUN_DURATION {
+        let time_seconds = total_ms as f32 / 1000.0;
+        let updates = build_rotating_cube_updates(realm_3d, time_seconds);
+        let _ = send_commands(updates);
         assert_eq!(
             core::vulfram_tick(total_ms, FRAME_MS),
             VulframResult::Success
@@ -76,6 +82,59 @@ pub fn run(ctx: DemoContext) -> bool {
     }
 
     false
+}
+
+fn build_rotating_cube_updates(realm_id: u32, time_seconds: f32) -> Vec<EngineCmd> {
+    let angle_a = time_seconds * 1.80;
+    let angle_b = time_seconds * 2.50 + 0.60;
+    let angle_c = time_seconds * 1.40 + 1.20;
+    vec![
+        EngineCmd::CmdModelUpsert(CmdModelUpsertArgs::Update(CmdModelUpdateArgs {
+            realm_id,
+            model_id: MODEL_CUBE_A_ID,
+            label: None,
+            geometry_id: None,
+            material_id: None,
+            transform: Some(
+                Mat4::from_translation(Vec3::new(-2.0, 0.0, 0.0)) * Mat4::from_rotation_y(angle_a),
+            ),
+            layer_mask: None,
+            cast_shadow: None,
+            receive_shadow: None,
+            cast_outline: None,
+            outline_color: None,
+        })),
+        EngineCmd::CmdModelUpsert(CmdModelUpsertArgs::Update(CmdModelUpdateArgs {
+            realm_id,
+            model_id: MODEL_CUBE_B_ID,
+            label: None,
+            geometry_id: None,
+            material_id: None,
+            transform: Some(
+                Mat4::from_translation(Vec3::new(0.0, 0.0, 0.0)) * Mat4::from_rotation_y(angle_b),
+            ),
+            layer_mask: None,
+            cast_shadow: None,
+            receive_shadow: None,
+            cast_outline: None,
+            outline_color: None,
+        })),
+        EngineCmd::CmdModelUpsert(CmdModelUpsertArgs::Update(CmdModelUpdateArgs {
+            realm_id,
+            model_id: MODEL_CUBE_C_ID,
+            label: None,
+            geometry_id: None,
+            material_id: None,
+            transform: Some(
+                Mat4::from_translation(Vec3::new(2.0, 0.0, 0.0)) * Mat4::from_rotation_y(angle_c),
+            ),
+            layer_mask: None,
+            cast_shadow: None,
+            receive_shadow: None,
+            cast_outline: None,
+            outline_color: None,
+        })),
+    ]
 }
 
 fn print_runtime_logs() {
@@ -124,6 +183,12 @@ fn build_realm3d_scene(realm_id: u32) -> Vec<EngineCmd> {
             shape: PrimitiveShape::Cube,
             options: None,
         }),
+        EngineCmd::CmdPrimitiveGeometryCreate(CmdPrimitiveGeometryCreateArgs {
+            geometry_id: GEOMETRY_FLOOR_ID,
+            label: Some("demo-floor-plane".into()),
+            shape: PrimitiveShape::Plane,
+            options: None,
+        }),
         EngineCmd::CmdMaterialUpsert(CmdMaterialUpsertArgs::Create(CmdMaterialCreateArgs {
             material_id: MATERIAL_STANDARD_ID,
             label: Some("demo-mat-standard".into()),
@@ -133,6 +198,7 @@ fn build_realm3d_scene(realm_id: u32) -> Vec<EngineCmd> {
             shader_params_schema: None,
             options: Some(MaterialOptions::Standard(StandardOptions {
                 base_color: Some(Vec4::new(0.92, 0.35, 0.32, 1.0)),
+                render_side: Some(RenderSide::Back),
                 ..Default::default()
             })),
         })),
@@ -148,6 +214,7 @@ fn build_realm3d_scene(realm_id: u32) -> Vec<EngineCmd> {
                     base_color: Some(Vec4::new(0.25, 0.86, 0.62, 1.0)),
                     metallic: Some(0.55),
                     roughness: Some(0.35),
+                    render_side: Some(RenderSide::Back),
                     ..Default::default()
                 },
             )),
@@ -157,13 +224,34 @@ fn build_realm3d_scene(realm_id: u32) -> Vec<EngineCmd> {
             label: Some("demo-mat-custom-simple".into()),
             kind: MaterialKind::Shader,
             preset: Some(ShaderMaterialPreset::Standard),
+            shader_source: Some(
+                include_str!(
+                    "../../../../vulfram-runtime/src/core/render/passes/forward/branches/forward_standard.wgsl"
+                )
+                .to_string(),
+            ),
+            shader_params_schema: None,
+            options: Some(MaterialOptions::Standard(StandardOptions {
+                base_color: Some(Vec4::new(0.25, 0.45, 0.98, 1.0)),
+                emissive_color: Some(Vec4::new(0.0, 0.0, 0.0, 0.0)),
+                spec_color: Some(Vec4::new(1.0, 1.0, 1.0, 1.0)),
+                spec_power: Some(64.0),
+                render_side: Some(RenderSide::Back),
+                ..Default::default()
+            })),
+        })),
+        EngineCmd::CmdMaterialUpsert(CmdMaterialUpsertArgs::Create(CmdMaterialCreateArgs {
+            material_id: MATERIAL_FLOOR_ID,
+            label: Some("demo-mat-floor".into()),
+            kind: MaterialKind::Shader,
+            preset: Some(ShaderMaterialPreset::Standard),
             shader_source: None,
             shader_params_schema: None,
             options: Some(MaterialOptions::Standard(StandardOptions {
-                base_color: Some(Vec4::new(0.32, 0.46, 0.98, 1.0)),
-                emissive_color: Some(Vec4::new(0.04, 0.08, 0.2, 0.0)),
-                spec_color: Some(Vec4::new(1.0, 1.0, 1.0, 1.0)),
-                spec_power: Some(48.0),
+                base_color: Some(Vec4::new(0.24, 0.24, 0.26, 1.0)),
+                spec_color: Some(Vec4::new(0.05, 0.05, 0.05, 1.0)),
+                spec_power: Some(8.0),
+                render_side: Some(RenderSide::DoubleSide),
                 ..Default::default()
             })),
         })),
@@ -193,13 +281,27 @@ fn build_realm3d_scene(realm_id: u32) -> Vec<EngineCmd> {
             range: Some(30.0),
             spot_inner_outer: None,
             layer_mask: 1,
-            cast_shadow: false,
+            cast_shadow: true,
         })),
         EngineCmd::CmdEnvironmentUpsert(CmdEnvironmentUpsertArgs::Create(
             CmdEnvironmentCreateArgs {
                 environment_id: ENVIRONMENT_ID,
                 config: EnvironmentConfig {
-                    clear_color: Vec4::new(0.03, 0.03, 0.04, 1.0),
+                    clear_color: Vec4::new(0.0, 0.0, 0.0, 1.0),
+                    post: PostProcessConfig {
+                        outline_enabled: true,
+                        outline_strength: 0.5,
+                        outline_threshold: 0.25,
+                        outline_width: 1.25,
+                        ssao_enabled: true,
+                        ssao_strength: 0.9,
+                        ssao_radius: 0.7,
+                        ssao_power: 1.25,
+                        bloom_enabled: true,
+                        bloom_threshold: 1.1,
+                        bloom_intensity: 0.45,
+                        ..Default::default()
+                    },
                     ..Default::default()
                 },
             },
@@ -212,8 +314,8 @@ fn build_realm3d_scene(realm_id: u32) -> Vec<EngineCmd> {
             material_id: Some(MATERIAL_STANDARD_ID),
             transform: Mat4::from_translation(Vec3::new(-2.0, 0.0, 0.0)),
             layer_mask: 1,
-            cast_shadow: false,
-            receive_shadow: false,
+            cast_shadow: true,
+            receive_shadow: true,
             cast_outline: false,
             outline_color: Vec4::ZERO,
         })),
@@ -225,8 +327,8 @@ fn build_realm3d_scene(realm_id: u32) -> Vec<EngineCmd> {
             material_id: Some(MATERIAL_PBR_ID),
             transform: Mat4::from_translation(Vec3::new(0.0, 0.0, 0.0)),
             layer_mask: 1,
-            cast_shadow: false,
-            receive_shadow: false,
+            cast_shadow: true,
+            receive_shadow: true,
             cast_outline: false,
             outline_color: Vec4::ZERO,
         })),
@@ -238,8 +340,25 @@ fn build_realm3d_scene(realm_id: u32) -> Vec<EngineCmd> {
             material_id: Some(MATERIAL_CUSTOM_SIMPLE_ID),
             transform: Mat4::from_translation(Vec3::new(2.0, 0.0, 0.0)),
             layer_mask: 1,
-            cast_shadow: false,
-            receive_shadow: false,
+            cast_shadow: true,
+            receive_shadow: true,
+            cast_outline: false,
+            outline_color: Vec4::ZERO,
+        })),
+        EngineCmd::CmdModelUpsert(CmdModelUpsertArgs::Create(CmdModelCreateArgs {
+            realm_id,
+            model_id: MODEL_FLOOR_ID,
+            label: Some("demo-floor".into()),
+            geometry_id: GEOMETRY_FLOOR_ID,
+            material_id: Some(MATERIAL_FLOOR_ID),
+            transform: Mat4::from_scale_rotation_translation(
+                Vec3::new(20.0, 20.0, 1.0),
+                Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2),
+                Vec3::new(0.0, -1.0, 0.0),
+            ),
+            layer_mask: 1,
+            cast_shadow: true,
+            receive_shadow: true,
             cast_outline: false,
             outline_color: Vec4::ZERO,
         })),

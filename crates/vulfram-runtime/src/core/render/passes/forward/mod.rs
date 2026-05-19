@@ -93,12 +93,17 @@ pub fn pass_forward(
     vulfram_log::vulfram_log_debug!(
         log_events,
         "forward.pass",
-        "frame={} cameras={} lights={} models={} materials={}",
+        "frame={} cameras={} lights={} models={} materials={} has_shared_group={}",
         frame_index,
         camera_ids.len(),
         render_state.scene.lights.len(),
         render_state.scene.models.len(),
-        render_state.scene.materials.len()
+        render_state.scene.materials.len(),
+        render_state
+            .bindings
+            .as_ref()
+            .and_then(|b| b.shared_group.as_ref())
+            .is_some()
     );
     let camera_slots: Vec<Option<u32>> = camera_ids
         .iter()
@@ -151,14 +156,30 @@ pub fn pass_forward(
         vulfram_log::vulfram_log_debug!(
             log_events,
             "forward.camera",
-            "camera={} slot={:?} sample_count={} layer_mask={} order={} has_rt={} has_depth={}",
+            "camera={} slot={:?} sample_count={} layer_mask={} order={} has_rt={} has_depth={} rt={}x{} pos=({:.3},{:.3},{:.3}) dir=({:.3},{:.3},{:.3})",
             camera_id,
             camera_slots.get(camera_index).copied().flatten(),
             sample_count,
             camera_record.layer_mask,
             camera_record.order,
             camera_record.render_target.is_some(),
-            camera_record.forward_depth_target.is_some()
+            camera_record.forward_depth_target.is_some(),
+            camera_record
+                .render_target
+                .as_ref()
+                .map(|t| t.texture.size().width)
+                .unwrap_or(0),
+            camera_record
+                .render_target
+                .as_ref()
+                .map(|t| t.texture.size().height)
+                .unwrap_or(0),
+            camera_record.data.position.x,
+            camera_record.data.position.y,
+            camera_record.data.position.z,
+            camera_record.data.direction.x,
+            camera_record.data.direction.y,
+            camera_record.data.direction.z
         );
         light_system.write_draw_params(camera_index as u32, light_system.max_lights_per_camera);
 

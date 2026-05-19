@@ -43,6 +43,146 @@ fn now_ns() -> u64 {
     (Date::now() * 1_000_000.0) as u64
 }
 
+#[cfg(not(target_arch = "wasm32"))]
+fn pass_capture_path(base_path: &str, suffix: &str) -> String {
+    let path = std::path::Path::new(base_path);
+    let stem = path
+        .file_stem()
+        .and_then(|value| value.to_str())
+        .unwrap_or("capture");
+    let ext = path.extension().and_then(|value| value.to_str()).unwrap_or("png");
+    let parent = path.parent().unwrap_or_else(|| std::path::Path::new(""));
+    let file_name = format!("{stem}-{suffix}.{ext}");
+    if parent.as_os_str().is_empty() {
+        file_name
+    } else {
+        parent.join(file_name).to_string_lossy().to_string()
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn capture_source_view(
+    render_state: &mut RenderState,
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+    frame_index: u64,
+    base_path: &str,
+    capture_size: glam::UVec2,
+    source_view: &wgpu::TextureView,
+    source_size: glam::UVec2,
+    suffix: &str,
+) {
+    let capture_texture = device.create_texture(&wgpu::TextureDescriptor {
+        label: Some("DebugCapture.PassTarget"),
+        size: wgpu::Extent3d {
+            width: capture_size.x,
+            height: capture_size.y,
+            depth_or_array_layers: 1,
+        },
+        mip_level_count: 1,
+        sample_count: 1,
+        dimension: wgpu::TextureDimension::D2,
+        format: wgpu::TextureFormat::Bgra8Unorm,
+        usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::COPY_SRC,
+        view_formats: &[],
+    });
+    let capture_view = capture_texture.create_view(&wgpu::TextureViewDescriptor::default());
+    let mut capture_encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+        label: Some("DebugCapture.PassEncoder"),
+    });
+    passes::pass_compose_surface(
+        render_state,
+        device,
+        queue,
+        &mut capture_encoder,
+        &capture_view,
+        wgpu::TextureFormat::Bgra8Unorm,
+        capture_size,
+        source_view,
+        source_size,
+        frame_index,
+    );
+    queue.submit(Some(capture_encoder.finish()));
+    let path = pass_capture_path(base_path, suffix);
+    let _ = debug_capture::capture_texture_png(
+        device,
+        queue,
+        &capture_texture,
+        capture_size,
+        wgpu::TextureFormat::Bgra8Unorm,
+        &path,
+    );
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn capture_pass_outputs(
+    render_state: &mut RenderState,
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+    capture_passes: bool,
+    downscale_factor: f32,
+    base_path: &str,
+    frame_index: u64,
+    compose_target: &RenderTarget,
+) {
+    if !capture_passes {
+        return;
+    }
+    let resolve_size = |width: u32, height: u32| {
+        let factor = downscale_factor.clamp(0.05, 1.0);
+        if (factor - 1.0).abs() < f32::EPSILON {
+            return glam::UVec2::new(width.max(1), height.max(1));
+        }
+        glam::UVec2::new(
+            ((width as f32) * factor).round().max(1.0) as u32,
+            ((height as f32) * factor).round().max(1.0) as u32,
+        )
+    };
+
+    let mut jobs: Vec<(wgpu::TextureView, glam::UVec2, String)> = Vec::new();
+    let compose_size = compose_target.texture.size();
+    jobs.push((
+        compose_target.view.clone(),
+        glam::UVec2::new(compose_size.width, compose_size.height),
+        "pass-compose".to_string(),
+    ));
+
+    for camera_id in &render_state.camera_order {
+        let Some(camera) = render_state.camera_record(*camera_id) else {
+            continue;
+        };
+        if let Some(target) = camera.render_target.as_ref() {
+            let size = target.texture.size();
+            jobs.push((
+                target.view.clone(),
+                glam::UVec2::new(size.width, size.height),
+                format!("cam-{camera_id}-pass-forward"),
+            ));
+        }
+        if let Some(target) = camera.post_target.as_ref() {
+            let size = target.texture.size();
+            jobs.push((
+                target.view.clone(),
+                glam::UVec2::new(size.width, size.height),
+                format!("cam-{camera_id}-pass-post"),
+            ));
+        }
+    }
+    for (source_view, source_size, suffix) in jobs {
+        capture_source_view(
+            render_state,
+            device,
+            queue,
+            frame_index,
+            base_path,
+            resolve_size(source_size.x, source_size.y),
+            &source_view,
+            source_size,
+            &suffix,
+        );
+    }
+}
+
 fn resolve_realm_render_graph<'a>(
     universal: &'a crate::core::realm::UniversalState,
     realm_id: crate::core::realm::RealmId,
@@ -164,6 +304,12 @@ pub fn render_frames(engine_state: &mut EngineState) {
     let frame_index = engine_state.runtime.frame_index() as u32;
     let frame_spec = crate::core::resources::FrameComponent::new(time, delta_time, frame_index);
     let mut gpu_written = false;
+    #[cfg(not(target_arch = "wasm32"))]
+    let debug_capture_path_template = engine_state.debug_capture.path_template.clone();
+    #[cfg(not(target_arch = "wasm32"))]
+    let debug_capture_passes_enabled = engine_state.debug_capture.capture_passes;
+    #[cfg(not(target_arch = "wasm32"))]
+    let debug_capture_downscale_factor = engine_state.debug_capture.downscale_factor;
 
     #[cfg(not(target_arch = "wasm32"))]
     let total_start = std::time::Instant::now();
@@ -441,7 +587,7 @@ pub fn render_frames(engine_state: &mut EngineState) {
                 .filter(|camera_id| enabled_camera_ids.contains(camera_id))
                 .collect();
 
-            let mut encoder =
+            let mut graph_encoder =
                 device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
 
             let already_rendered_surface = updated_surfaces.contains(&surface_id);
@@ -454,7 +600,7 @@ pub fn render_frames(engine_state: &mut EngineState) {
                 .map(|entry| vulfram_render::clear_alpha_for_realm_kind(entry.value.kind))
                 .unwrap_or(1.0);
             {
-                let _clear_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                let _clear_pass = graph_encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                     label: Some("Realm Target Clear"),
                     color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                         view: &target_view,
@@ -532,7 +678,7 @@ pub fn render_frames(engine_state: &mut EngineState) {
                 &engine_state.surface_targets,
                 &device,
                 &queue,
-                &mut encoder,
+                &mut graph_encoder,
                 &invocation_view,
                 target_format,
                 invocation_size,
@@ -548,39 +694,44 @@ pub fn render_frames(engine_state: &mut EngineState) {
             for log_event in pass_logs {
                 engine_state.runtime.push_event(crate::core::cmd::EngineEvent::Log(log_event));
             }
-            let overlay_blend = match layer_blend_mode {
-                1 => Some(wgpu::BlendState::PREMULTIPLIED_ALPHA_BLENDING),
-                2 => None,
-                _ => None,
-            };
-            let overlay = [passes::ComposeOverlay {
-                source_view: &invocation_view,
-                source_size: invocation_size,
-                rect: glam::Vec4::new(
-                    invocation.resolved_rect_px.x as f32,
-                    invocation.resolved_rect_px.y as f32,
-                    invocation.resolved_rect_px.z as f32,
-                    invocation.resolved_rect_px.w as f32,
-                ),
-                clip: layer_clip,
-                blend: overlay_blend,
-                opacity: layer_opacity,
-            }];
-            passes::pass_compose_overlays(
+            queue.submit(Some(graph_encoder.finish()));
+
+            let mut overlay_encoder =
+                device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
+            let _ = (layer_blend_mode, layer_clip, layer_opacity);
+            passes::pass_compose_surface(
                 render_state,
                 &device,
                 &queue,
-                &mut encoder,
+                &mut overlay_encoder,
                 &target_view,
                 target_format,
                 target_size,
-                &overlay,
+                &invocation_view,
+                invocation_size,
                 engine_state.runtime.frame_index(),
             );
 
             updated_surfaces.insert(surface_id);
 
-            queue.submit(Some(encoder.finish()));
+            queue.submit(Some(overlay_encoder.finish()));
+            #[cfg(not(target_arch = "wasm32"))]
+            {
+                let base_path = debug_capture_path_template
+                    .replace("{frame}", &engine_state.runtime.frame_index().to_string())
+                    .replace("{window}", &window_id.to_string())
+                    .replace("{surface}", &surface_id.0.to_string());
+                capture_pass_outputs(
+                    render_state,
+                    &device,
+                    &queue,
+                    debug_capture_passes_enabled,
+                    debug_capture_downscale_factor,
+                    &base_path,
+                    engine_state.runtime.frame_index(),
+                    invocation_target,
+                );
+            }
             #[cfg(not(target_arch = "wasm32"))]
             {
                 windows_ns = windows_ns.saturating_add(window_start.elapsed().as_nanos() as u64);
@@ -655,8 +806,10 @@ pub fn render_frames(engine_state: &mut EngineState) {
                         window_id,
                         present.value.surface.0,
                     );
-                    let capture_size =
-                        glam::UVec2::new(window_state.config.width, window_state.config.height);
+                    let capture_size = engine_state.debug_capture.resolve_capture_size(
+                        window_state.config.width,
+                        window_state.config.height,
+                    );
                     let capture_texture = device.create_texture(&wgpu::TextureDescriptor {
                         label: Some("DebugCapture.ComposeTarget"),
                         size: wgpu::Extent3d {

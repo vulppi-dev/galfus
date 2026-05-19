@@ -14,9 +14,14 @@ use vulfram_realm_core::{
 #[test]
 fn threed_realm_accepts_full_pipeline_passes() {
     assert!(supports_render_pass(RENDER_PASS_SHADOW));
-    assert!(supports_render_pass(RENDER_PASS_UI));
+    assert!(!supports_render_pass(RENDER_PASS_UI));
     assert!(!supports_render_pass("unknown"));
     assert!(graph_is_compatible([
+        RENDER_PASS_SHADOW,
+        RENDER_PASS_FORWARD,
+        RENDER_PASS_COMPOSE,
+    ]));
+    assert!(!graph_is_compatible([
         RENDER_PASS_SHADOW,
         RENDER_PASS_FORWARD,
         RENDER_PASS_COMPOSE,

@@ -226,6 +226,14 @@ fn draw_group(
                     let material_offset = bindings.material_pbr_pool.get_offset(mat_id) as u32;
                     render_pass.set_bind_group(1, group, &[material_offset]);
                 }
+                vulfram_log::vulfram_log_debug!(
+                    log_events,
+                    "forward.material",
+                    "material={} preset={:?} has_bind_group={}",
+                    mat_id,
+                    material.base_preset,
+                    material.bind_group.is_some()
+                );
             }
         } else {
             if let Some(material) = scene.materials.get(&mat_id) {
@@ -233,6 +241,14 @@ fn draw_group(
                     let material_offset = bindings.material_standard_pool.get_offset(mat_id) as u32;
                     render_pass.set_bind_group(1, group, &[material_offset]);
                 }
+                vulfram_log::vulfram_log_debug!(
+                    log_events,
+                    "forward.material",
+                    "material={} preset={:?} has_bind_group={}",
+                    mat_id,
+                    material.base_preset,
+                    material.bind_group.is_some()
+                );
             }
         }
 
