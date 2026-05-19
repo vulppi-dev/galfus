@@ -98,6 +98,8 @@ pub type CmdResultSimple = galfus_protocol::CmdResultSimple;
 pub enum EngineCmd {
     CmdNotificationSend(sys::CmdNotificationSendArgs),
     CmdSystemDiagnosticsSet(sys::CmdSystemDiagnosticsSetArgs),
+    CmdSystemLogLevelSet(sys::CmdSystemLogLevelSetArgs),
+    CmdSystemLogLevelGet(sys::CmdSystemLogLevelGetArgs),
     CmdSystemBuildVersionGet(sys::CmdSystemBuildVersionGetArgs),
     CmdWindowCreate(win::CmdWindowCreateArgs),
     CmdWindowClose(win::CmdWindowCloseArgs),
@@ -200,6 +202,8 @@ pub enum EngineEvent {
 pub enum CommandResponse {
     NotificationSend(sys::CmdResultNotificationSend),
     SystemDiagnosticsSet(sys::CmdResultSystemDiagnosticsSet),
+    SystemLogLevelSet(sys::CmdResultSystemLogLevelSet),
+    SystemLogLevelGet(sys::CmdResultSystemLogLevelGet),
     SystemBuildVersionGet(sys::CmdResultSystemBuildVersionGet),
     WindowCreate(win::CmdResultWindowCreate),
     WindowClose(win::CmdResultWindowClose),

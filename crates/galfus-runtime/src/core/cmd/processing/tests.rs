@@ -5,6 +5,7 @@ use crate::core::platforms::PlatformProxy;
 use crate::core::singleton::EngineCustomEvents;
 use crate::core::state::EngineState;
 use crate::core::window::{CmdResultWindowCreate, CmdWindowCreateArgs};
+use galfus_log::LogLevel;
 use galfus_runtime::defer_backoff_frames;
 
 struct TestPlatformProxy;
@@ -179,6 +180,48 @@ fn engine_process_batch_preserves_response_order_and_ids_for_multiple_commands()
         CommandResponse::WindowMeasurement(payload) => {
             assert!(payload.success);
             assert!(payload.message.contains("Window 777 not ready yet"));
+        }
+        other => panic!("unexpected second response type: {other:?}"),
+    }
+}
+
+#[test]
+fn engine_process_batch_dispatches_system_log_level_set_and_get() {
+    let mut engine = EngineState::new();
+    let mut platform = TestPlatformProxy;
+    let batch = vec![
+        EngineCmdEnvelope {
+            id: 200,
+            cmd: EngineCmd::CmdSystemLogLevelSet(sys::CmdSystemLogLevelSetArgs {
+                level: LogLevel::Error,
+            }),
+        },
+        EngineCmdEnvelope {
+            id: 201,
+            cmd: EngineCmd::CmdSystemLogLevelGet(sys::CmdSystemLogLevelGetArgs {}),
+        },
+    ];
+
+    let result = super::engine_process_batch(&mut engine, &mut platform, batch);
+    assert!(matches!(result, crate::core::GalfusResult::Success));
+
+    let responses = engine.runtime.response_batch();
+    assert_eq!(responses.len(), 2);
+    assert_eq!(responses[0].id, 200);
+    assert_eq!(responses[1].id, 201);
+
+    match &responses[0].response {
+        CommandResponse::SystemLogLevelSet(payload) => {
+            assert!(payload.success);
+            assert_eq!(payload.current_level, LogLevel::Error);
+        }
+        other => panic!("unexpected first response type: {other:?}"),
+    }
+
+    match &responses[1].response {
+        CommandResponse::SystemLogLevelGet(payload) => {
+            assert!(payload.success);
+            assert_eq!(payload.current_level, LogLevel::Error);
         }
         other => panic!("unexpected second response type: {other:?}"),
     }

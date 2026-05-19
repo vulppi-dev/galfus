@@ -14,6 +14,7 @@ use crate::core::resources::{RenderTarget, TextureAsyncManager, TextureDecodeRes
 use crate::core::window::WindowManager;
 use crate::core::{realm, target};
 use galfus_input::GamepadState;
+use galfus_log::LogLevel;
 #[cfg(not(target_arch = "wasm32"))]
 use galfus_platform::PlatformGamepadBackendState;
 use std::collections::HashMap;
@@ -47,6 +48,7 @@ pub struct EngineState {
     pub present_sizes_hash: u64,
 
     pub runtime: EngineRuntimeState,
+    pub log_level: LogLevel,
     pub revision: u64,
     pub pending_texture_decode_results: Vec<TextureDecodeResult>,
 
@@ -151,6 +153,7 @@ impl EngineState {
             present_sizes_cache: HashMap::new(),
             present_sizes_hash: 0,
             runtime: EngineRuntimeState::default(),
+            log_level: LogLevel::Info,
             revision: 0,
             pending_texture_decode_results: Vec::new(),
             #[cfg(not(target_arch = "wasm32"))]

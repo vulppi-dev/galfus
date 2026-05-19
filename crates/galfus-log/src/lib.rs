@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 #[serde(rename_all = "kebab-case")]
 pub enum LogLevel {
     Trace,
@@ -8,6 +8,12 @@ pub enum LogLevel {
     Info,
     Warn,
     Error,
+}
+
+impl LogLevel {
+    pub fn allows(self, incoming: LogLevel) -> bool {
+        incoming >= self
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -121,4 +127,26 @@ macro_rules! galfus_log_error {
     ($sink:expr, $tag:expr, $($arg:tt)*) => {
         $crate::emit_error($sink, $tag, format!($($arg)*))
     };
+}
+
+#[cfg(test)]
+mod tests {
+    use super::LogLevel;
+
+    #[test]
+    fn log_level_ordering_matches_expected_severity() {
+        assert!(LogLevel::Trace < LogLevel::Debug);
+        assert!(LogLevel::Debug < LogLevel::Info);
+        assert!(LogLevel::Info < LogLevel::Warn);
+        assert!(LogLevel::Warn < LogLevel::Error);
+    }
+
+    #[test]
+    fn allows_filters_levels_using_threshold() {
+        assert!(!LogLevel::Info.allows(LogLevel::Debug));
+        assert!(LogLevel::Info.allows(LogLevel::Info));
+        assert!(LogLevel::Info.allows(LogLevel::Warn));
+        assert!(LogLevel::Error.allows(LogLevel::Error));
+        assert!(LogLevel::Trace.allows(LogLevel::Debug));
+    }
 }

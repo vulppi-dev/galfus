@@ -50,6 +50,20 @@ pub(super) fn dispatch_command(
                 response: CommandResponse::SystemDiagnosticsSet(result),
             });
         }
+        EngineCmd::CmdSystemLogLevelSet(args) => {
+            let result = sys::engine_cmd_system_log_level_set(engine, &args);
+            engine.runtime.push_response(CommandResponseEnvelope {
+                id: pack.id,
+                response: CommandResponse::SystemLogLevelSet(result),
+            });
+        }
+        EngineCmd::CmdSystemLogLevelGet(args) => {
+            let result = sys::engine_cmd_system_log_level_get(engine, &args);
+            engine.runtime.push_response(CommandResponseEnvelope {
+                id: pack.id,
+                response: CommandResponse::SystemLogLevelGet(result),
+            });
+        }
         EngineCmd::CmdSystemBuildVersionGet(args) => {
             let result = sys::engine_cmd_system_build_version_get(engine, &args);
             engine.runtime.push_response(CommandResponseEnvelope {

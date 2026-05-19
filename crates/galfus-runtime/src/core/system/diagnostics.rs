@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use crate::core::input::events::PointerTraceLevel;
 use crate::core::profiling::state::ProfilingDetailLevel;
 use crate::core::state::EngineState;
+use galfus_log::LogLevel;
 
 #[derive(Debug, Deserialize, Serialize, Clone, Default)]
 #[serde(default, rename_all = "camelCase")]
@@ -21,6 +22,32 @@ pub struct CmdSystemDiagnosticsSetArgs {
 pub struct CmdResultSystemDiagnosticsSet {
     pub success: bool,
     pub message: String,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct CmdSystemLogLevelSetArgs {
+    pub level: LogLevel,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct CmdResultSystemLogLevelSet {
+    pub success: bool,
+    pub message: String,
+    pub current_level: LogLevel,
+}
+
+#[derive(Debug, Default, Deserialize, Serialize, Clone)]
+#[serde(default, rename_all = "camelCase")]
+pub struct CmdSystemLogLevelGetArgs {}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct CmdResultSystemLogLevelGet {
+    pub success: bool,
+    pub message: String,
+    pub current_level: LogLevel,
 }
 
 pub fn engine_cmd_system_diagnostics_set(
@@ -64,6 +91,29 @@ pub fn engine_cmd_system_build_version_get(
         success: true,
         message: "Build version retrieved".into(),
         build_version: env!("CARGO_PKG_VERSION").into(),
+    }
+}
+
+pub fn engine_cmd_system_log_level_set(
+    engine: &mut EngineState,
+    args: &CmdSystemLogLevelSetArgs,
+) -> CmdResultSystemLogLevelSet {
+    engine.log_level = args.level;
+    CmdResultSystemLogLevelSet {
+        success: true,
+        message: "System log level updated".into(),
+        current_level: engine.log_level,
+    }
+}
+
+pub fn engine_cmd_system_log_level_get(
+    engine: &mut EngineState,
+    _args: &CmdSystemLogLevelGetArgs,
+) -> CmdResultSystemLogLevelGet {
+    CmdResultSystemLogLevelGet {
+        success: true,
+        message: "System log level retrieved".into(),
+        current_level: engine.log_level,
     }
 }
 

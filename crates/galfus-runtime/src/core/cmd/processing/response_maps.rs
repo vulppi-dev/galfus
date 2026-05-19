@@ -4,6 +4,8 @@ pub(super) fn response_is_success(response: &CommandResponse) -> bool {
     match response {
         CommandResponse::NotificationSend(result) => result.success,
         CommandResponse::SystemDiagnosticsSet(result) => result.success,
+        CommandResponse::SystemLogLevelSet(result) => result.success,
+        CommandResponse::SystemLogLevelGet(result) => result.success,
         CommandResponse::SystemBuildVersionGet(result) => result.success,
         CommandResponse::WindowCreate(result) => result.success,
         CommandResponse::WindowClose(_) => true,
@@ -70,6 +72,8 @@ pub(super) fn response_message(response: &CommandResponse) -> Option<String> {
     match response {
         CommandResponse::NotificationSend(_) => None,
         CommandResponse::SystemDiagnosticsSet(result) => Some(result.message.clone()),
+        CommandResponse::SystemLogLevelSet(result) => Some(result.message.clone()),
+        CommandResponse::SystemLogLevelGet(result) => Some(result.message.clone()),
         CommandResponse::SystemBuildVersionGet(result) => Some(result.message.clone()),
         CommandResponse::WindowCreate(result) => Some(result.message.clone()),
         CommandResponse::WindowClose(_) => None,
@@ -137,6 +141,14 @@ pub(super) fn response_with_message(response: CommandResponse, message: String) 
         CommandResponse::SystemDiagnosticsSet(mut result) => {
             result.message = message;
             CommandResponse::SystemDiagnosticsSet(result)
+        }
+        CommandResponse::SystemLogLevelSet(mut result) => {
+            result.message = message;
+            CommandResponse::SystemLogLevelSet(result)
+        }
+        CommandResponse::SystemLogLevelGet(mut result) => {
+            result.message = message;
+            CommandResponse::SystemLogLevelGet(result)
         }
         CommandResponse::SystemBuildVersionGet(mut result) => {
             result.message = message;
