@@ -1,6 +1,6 @@
-# Vulfram Engine Overview
+# Galfus Engine Overview
 
-Vulfram Engine is the TypeScript host runtime for the Vulfram core. It manages worlds, entities, and resources, then sends batched commands to the native/WASM core via a transport.
+Galfus Engine is the TypeScript host runtime for the Galfus core. It manages worlds, entities, and resources, then sends batched commands to the native/WASM core via a transport.
 
 ## Core Concepts
 
@@ -23,7 +23,7 @@ Vulfram Engine is the TypeScript host runtime for the Vulfram core. It manages w
 - The host sends sparse intent whenever the core already owns the default.
 - TypeScript command types aim to mirror the core serialization shape closely, especially for nested UI/audio payloads, render graph ids, bytes, and fixed-size matrices.
 - Repeated mergeable commands in the same frame are compacted before serialization so the core receives only the latest effective patch.
-- Internal vector and matrix fallback values are initialized directly through `@vulfram/engine/math`, with the vendored implementation living inside the engine package, to keep math-shaped defaults consistent across systems.
+- Internal vector and matrix fallback values are initialized directly through `@galfus/engine/math`, with the vendored implementation living inside the engine package, to keep math-shaped defaults consistent across systems.
 
 ## Where to Start
 

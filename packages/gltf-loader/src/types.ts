@@ -1,12 +1,12 @@
 import type { Accessor, Material, Node, Primitive, Texture } from '@gltf-transform/core';
-import type { Quat as quat, Vec3 as vec3 } from '@vulfram/engine/math';
+import type { Quat as quat, Vec3 as vec3 } from '@galfus/engine/math';
 import type {
   EntityId,
   GeometryId,
   MaterialId,
   TextureId,
   World3DId
-} from '@vulfram/engine/world3d';
+} from '@galfus/engine/world3d';
 
 /** Supported source formats for glTF scene loading. */
 export type GltfSourceFormat = 'gltf' | 'glb';

@@ -114,7 +114,7 @@ function resolveWorldUIContext(worldId: number): {
  *
  * @example
  * ```ts
- * import { WorldUI } from '@vulfram/engine';
+ * import { WorldUI } from '@galfus/engine';
  *
  * const worldId = WorldUI.createUIWorld();
  * ```

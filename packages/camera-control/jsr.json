@@ -1,5 +1,5 @@
 {
-  "name": "@vulfram/camera-control",
+  "name": "@galfus/camera-control",
   "version": "0.0.0",
   "license": "MIT",
   "exports": "./mod.ts"

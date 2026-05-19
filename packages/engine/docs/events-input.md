@@ -81,7 +81,7 @@ The raw event types live in `Types`:
 
 ## World3D Convenience Wrappers
 
-`@vulfram/engine/world3d` re-exports the same semantics with `3D`-prefixed helpers, for example:
+`@galfus/engine/world3d` re-exports the same semantics with `3D`-prefixed helpers, for example:
 
 - `get3DPointerDelta(worldId)`
 - `is3DPointerButtonPressed(worldId, button)`

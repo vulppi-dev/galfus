@@ -6,8 +6,8 @@ import {
   disposeEngine,
   initEngine,
   tick
-} from '@vulfram/engine';
-import { transportBunFfi } from '@vulfram/transport-bun';
+} from '@galfus/engine';
+import { transportBunFfi } from '@galfus/transport-bun';
 
 const RUN_DURATION_MS = 5_000;
 const FRAME_TARGET_MS = 16;
@@ -15,7 +15,7 @@ const FRAME_TARGET_MS = 16;
 async function main() {
   initEngine({ transport: transportBunFfi });
   const { windowId } = createWindow({
-    title: 'Vulfram Demo 001 - Minimal 3D',
+    title: 'Galfus Demo 001 - Minimal 3D',
     size: [1280, 720],
     position: [100, 100],
     borderless: false,

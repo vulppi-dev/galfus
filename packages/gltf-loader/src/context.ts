@@ -1,4 +1,4 @@
-import { uploadBuffer } from '@vulfram/engine/core';
+import { uploadBuffer } from '@galfus/engine/core';
 import { BUFFER_ID_BASE } from './constants';
 import type { GltfLoadInput, LoaderContext } from './types';
 

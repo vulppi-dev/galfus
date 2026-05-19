@@ -1,10 +1,10 @@
 {
-  "name": "@vulfram/engine",
+  "name": "@galfus/engine",
   "version": "0.0.0",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/vulppi-dev/vulfram.git",
+    "url": "git+https://github.com/vulppi-dev/galfus.git",
     "directory": "packages/engine"
   },
   "module": "src/index.ts",
@@ -74,7 +74,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@vulfram/transport-types": "^0.3.0",
+    "@galfus/transport-types": "^0.3.0",
     "msgpackr": "^1.11.9"
   },
   "devDependencies": {

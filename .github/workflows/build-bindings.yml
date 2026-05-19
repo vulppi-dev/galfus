@@ -153,7 +153,7 @@ jobs:
         id: build
         shell: bash
         run: |
-          PACKAGE_NAME="vulfram-bindings-${{ matrix.binding }}"
+          PACKAGE_NAME="galfus-bindings-${{ matrix.binding }}"
           ARTIFACT_STEM="${PACKAGE_NAME//-/_}"
 
           if [ "${{ matrix.os }}" == "ubuntu-latest" ]; then
@@ -228,9 +228,9 @@ jobs:
             exit 1
           fi
 
-          OUTPUT_NAME="vulfram_core.${EXTENSION}"
+          OUTPUT_NAME="galfus_core.${EXTENSION}"
           if [[ "${{ matrix.binding }}" == "napi" ]]; then
-            OUTPUT_NAME="vulfram_core.node"
+            OUTPUT_NAME="galfus_core.node"
           fi
 
           DIST_DIR="dist/${{ matrix.binding }}/${PLATFORM}"
@@ -297,7 +297,7 @@ jobs:
         run: cargo install wasm-bindgen-cli --version 0.2.114
 
       - name: Build
-        run: cargo build -p vulfram-bindings-wasm --release --target wasm32-unknown-unknown
+        run: cargo build -p galfus-bindings-wasm --release --target wasm32-unknown-unknown
 
       - name: Package distributable
         id: package
@@ -309,10 +309,10 @@ jobs:
           wasm-bindgen \
             --target web \
             --out-dir "${DIST_DIR}" \
-            --out-name vulfram_core \
-            build/cargo-target/wasm32-unknown-unknown/release/vulfram_bindings_wasm.wasm
+            --out-name galfus_core \
+            build/cargo-target/wasm32-unknown-unknown/release/galfus_bindings_wasm.wasm
 
-          DEST_PATH="${DIST_DIR}/vulfram_core_bg.wasm"
+          DEST_PATH="${DIST_DIR}/galfus_core_bg.wasm"
           if [[ ! -f "${DEST_PATH}" ]]; then
             echo "Expected wasm output not found at ${DEST_PATH}"
             ls -la "${DIST_DIR}"
@@ -329,7 +329,7 @@ jobs:
             "binding": "wasm",
             "platform": "browser",
             "rust_target": "wasm32-unknown-unknown",
-            "artifact": "vulfram_core_bg.wasm",
+            "artifact": "galfus_core_bg.wasm",
             "sha256": "${HASH}"
           }
           JSON
@@ -379,7 +379,7 @@ jobs:
           mkdir -p release-assets
 
           for binding in ffi napi wasm python lua; do
-            ARCHIVE="release-assets/vulfram-${binding}-${{ needs.resolve-meta.outputs.packageVersion }}.zip"
+            ARCHIVE="release-assets/galfus-${binding}-${{ needs.resolve-meta.outputs.packageVersion }}.zip"
             (
               cd merged
               zip -rq "../${ARCHIVE}" "${binding}"

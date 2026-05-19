@@ -38,7 +38,7 @@ export interface PointerRaycastWgpuInput extends PointerRaycastInput {}
  *
  * @example
  * ```ts
- * import { createPerspectiveRhZo } from '@vulfram/engine/helpers';
+ * import { createPerspectiveRhZo } from '@galfus/engine/helpers';
  *
  * const projection = createPerspectiveRhZo(Math.PI / 3, 16 / 9, 0.1, 1000);
  * ```
@@ -107,7 +107,7 @@ function pointOnRay(ray: Ray3, distance: number): Vec3 {
  *
  * @example
  * ```ts
- * import { createPointerRay } from '@vulfram/engine/helpers';
+ * import { createPointerRay } from '@galfus/engine/helpers';
  *
  * const ray = createPointerRay({
  *   pointer: [320, 180],
@@ -179,7 +179,7 @@ export function createPointerRay(input: PointerRaycastInput): Ray3 | null {
  *
  * @example
  * ```ts
- * import { createPointerRayWgpuReverseZ } from '@vulfram/engine/helpers';
+ * import { createPointerRayWgpuReverseZ } from '@galfus/engine/helpers';
  *
  * const ray = createPointerRayWgpuReverseZ({
  *   pointer: [pointerX, pointerY],
@@ -275,7 +275,7 @@ export function createPointerRayWgpuReverseZ(input: PointerRaycastWgpuInput): Ra
  *
  * @example
  * ```ts
- * import { createPointerRayFromEvent } from '@vulfram/engine/helpers';
+ * import { createPointerRayFromEvent } from '@galfus/engine/helpers';
  *
  * const ray = createPointerRayFromEvent({
  *   pointerEvent,
@@ -342,7 +342,7 @@ export function createPointerRayFromEvent(input: PointerEventRaycastInput): Ray3
  *
  * @example
  * ```ts
- * import { intersectRayPlane } from '@vulfram/engine/helpers';
+ * import { intersectRayPlane } from '@galfus/engine/helpers';
  *
  * const hit = intersectRayPlane(ray, [0, 0, 0], [0, 1, 0]);
  * ```
@@ -381,7 +381,7 @@ export function intersectRayPlane(
  *
  * @example
  * ```ts
- * import { intersectRaySphere } from '@vulfram/engine/helpers';
+ * import { intersectRaySphere } from '@galfus/engine/helpers';
  *
  * const hit = intersectRaySphere(ray, [0, 1, 0], 0.5);
  * ```
@@ -421,7 +421,7 @@ export function intersectRaySphere(ray: Ray3, center: ReadonlyVec3, radius: numb
  *
  * @example
  * ```ts
- * import { intersectRayAabb } from '@vulfram/engine/helpers';
+ * import { intersectRayAabb } from '@galfus/engine/helpers';
  *
  * const hit = intersectRayAabb(ray, [-1, -1, -1], [1, 1, 1]);
  * ```

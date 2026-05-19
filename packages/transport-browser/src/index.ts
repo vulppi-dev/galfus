@@ -1,16 +1,16 @@
-import type { EngineTransport, EngineTransportFactory } from '@vulfram/transport-types';
-import { detectRuntime } from '@vulfram/transport-types';
-import type { InitInput as WasmInitInput } from '../dist/vulfram_core.js';
+import type { EngineTransport, EngineTransportFactory } from '@galfus/transport-types';
+import { detectRuntime } from '@galfus/transport-types';
+import type { InitInput as WasmInitInput } from '../dist/galfus_core.js';
 import initWasmBindings, {
-  vulfram_dispose,
-  vulfram_get_profiling,
-  vulfram_init,
-  vulfram_receive_events,
-  vulfram_receive_queue,
-  vulfram_send_queue,
-  vulfram_tick,
-  vulfram_upload_buffer
-} from '../dist/vulfram_core.js';
+  galfus_dispose,
+  galfus_get_profiling,
+  galfus_init,
+  galfus_receive_events,
+  galfus_receive_queue,
+  galfus_send_queue,
+  galfus_tick,
+  galfus_upload_buffer
+} from '../dist/galfus_core.js';
 
 export type InitInput = WasmInitInput | Promise<WasmInitInput>;
 
@@ -21,26 +21,26 @@ type WasmBufferResult = {
 };
 
 type WasmBindings = {
-  vulfram_dispose: () => number;
-  vulfram_get_profiling: () => WasmBufferResult;
-  vulfram_init: () => number;
-  vulfram_receive_events: () => WasmBufferResult;
-  vulfram_receive_queue: () => WasmBufferResult;
-  vulfram_send_queue: (data: Uint8Array) => number;
-  vulfram_tick: (timeMs: number, deltaMs: number) => number;
-  vulfram_upload_buffer: (id: bigint, uploadType: number, data: Uint8Array) => number;
+  galfus_dispose: () => number;
+  galfus_get_profiling: () => WasmBufferResult;
+  galfus_init: () => number;
+  galfus_receive_events: () => WasmBufferResult;
+  galfus_receive_queue: () => WasmBufferResult;
+  galfus_send_queue: (data: Uint8Array) => number;
+  galfus_tick: (timeMs: number, deltaMs: number) => number;
+  galfus_upload_buffer: (id: bigint, uploadType: number, data: Uint8Array) => number;
 };
 
 let initialized = false;
 const bindings: WasmBindings = {
-  vulfram_dispose,
-  vulfram_get_profiling,
-  vulfram_init,
-  vulfram_receive_events,
-  vulfram_receive_queue,
-  vulfram_send_queue,
-  vulfram_tick,
-  vulfram_upload_buffer
+  galfus_dispose,
+  galfus_get_profiling,
+  galfus_init,
+  galfus_receive_events,
+  galfus_receive_queue,
+  galfus_send_queue,
+  galfus_tick,
+  galfus_upload_buffer
 };
 
 function ensureInitialized(): void {
@@ -67,7 +67,7 @@ export async function initBrowserTransport(moduleOrPath?: InitInput): Promise<vo
   } catch (error) {
     const runtime = detectRuntime();
     const expectedArtifact =
-      moduleOrPath === undefined ? '../dist/vulfram_core_bg.wasm' : 'custom-init-input';
+      moduleOrPath === undefined ? '../dist/galfus_core_bg.wasm' : 'custom-init-input';
     throw new Error(
       `Failed to initialize browser transport (runtime=${runtime.runtime}, platform=${runtime.platform ?? 'unknown'}, arch=${runtime.arch ?? 'unknown'}, expected=${expectedArtifact}): ${String(error)}`
     );
@@ -77,37 +77,37 @@ export async function initBrowserTransport(moduleOrPath?: InitInput): Promise<vo
 }
 
 const transportImpl: EngineTransport = {
-  vulframInit: () => {
+  galfusInit: () => {
     ensureInitialized();
-    return bindings.vulfram_init();
+    return bindings.galfus_init();
   },
-  vulframDispose: () => {
+  galfusDispose: () => {
     ensureInitialized();
-    return bindings.vulfram_dispose();
+    return bindings.galfus_dispose();
   },
-  vulframSendQueue: (buffer) => {
+  galfusSendQueue: (buffer) => {
     ensureInitialized();
-    return bindings.vulfram_send_queue(buffer);
+    return bindings.galfus_send_queue(buffer);
   },
-  vulframReceiveQueue: () => {
+  galfusReceiveQueue: () => {
     ensureInitialized();
-    return unwrapBufferResult(bindings.vulfram_receive_queue());
+    return unwrapBufferResult(bindings.galfus_receive_queue());
   },
-  vulframReceiveEvents: () => {
+  galfusReceiveEvents: () => {
     ensureInitialized();
-    return unwrapBufferResult(bindings.vulfram_receive_events());
+    return unwrapBufferResult(bindings.galfus_receive_events());
   },
-  vulframUploadBuffer: (id, uploadType, buffer) => {
+  galfusUploadBuffer: (id, uploadType, buffer) => {
     ensureInitialized();
-    return bindings.vulfram_upload_buffer(BigInt(id), uploadType, buffer);
+    return bindings.galfus_upload_buffer(BigInt(id), uploadType, buffer);
   },
-  vulframTick: (timeMs, deltaMs) => {
+  galfusTick: (timeMs, deltaMs) => {
     ensureInitialized();
-    return bindings.vulfram_tick(timeMs, deltaMs);
+    return bindings.galfus_tick(timeMs, deltaMs);
   },
-  vulframGetProfiling: () => {
+  galfusGetProfiling: () => {
     ensureInitialized();
-    return unwrapBufferResult(bindings.vulfram_get_profiling());
+    return unwrapBufferResult(bindings.galfus_get_profiling());
   }
 };
 

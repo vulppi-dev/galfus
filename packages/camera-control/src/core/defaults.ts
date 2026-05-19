@@ -1,4 +1,4 @@
-import { quat, vec3 } from '@vulfram/engine/math';
+import { quat, vec3 } from '@galfus/engine/math';
 import { slerpArc } from './math';
 import { createCameraTarget } from './pipeline';
 import type {
@@ -13,7 +13,7 @@ import type {
  *
  * @example
  * ```ts
- * import { linearTranslationStrategy } from '@vulfram/camera-control';
+ * import { linearTranslationStrategy } from '@galfus/camera-control';
  *
  * const config = { translationStrategy: linearTranslationStrategy };
  * ```
@@ -26,7 +26,7 @@ export const linearTranslationStrategy: TranslationStrategy = (next: CameraTarge
  *
  * @example
  * ```ts
- * import { linearEasing } from '@vulfram/camera-control';
+ * import { linearEasing } from '@galfus/camera-control';
  *
  * const config = { easing: linearEasing };
  * ```
@@ -40,7 +40,7 @@ export const linearEasing: EasingFunction = (next: CameraTarget): CameraTarget =
  *
  * @example
  * ```ts
- * import { createExponentialEasing } from '@vulfram/camera-control';
+ * import { createExponentialEasing } from '@galfus/camera-control';
  *
  * const easing = createExponentialEasing(12);
  * ```
@@ -67,7 +67,7 @@ export function createExponentialEasing(factorPerSecond = 10): EasingFunction {
  *
  * @example
  * ```ts
- * import { createWeightedTranslationStrategy } from '@vulfram/camera-control';
+ * import { createWeightedTranslationStrategy } from '@galfus/camera-control';
  *
  * const translationStrategy = createWeightedTranslationStrategy(0.5);
  * ```

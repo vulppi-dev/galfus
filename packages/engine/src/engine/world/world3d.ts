@@ -100,7 +100,7 @@ type Create3DAudioSourceArgs = Omit<CmdAudioSourceCreateArgs, 'realmId' | 'model
  *
  * @example
  * ```ts
- * import { World3D } from '@vulfram/engine';
+ * import { World3D } from '@galfus/engine';
  *
  * const worldId = World3D.create3DWorld();
  * ```

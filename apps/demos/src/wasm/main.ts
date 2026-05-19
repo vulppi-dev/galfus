@@ -7,16 +7,16 @@ import {
   type EntityId,
   type WindowId,
   type World3DId
-} from '@vulfram/engine';
+} from '@galfus/engine';
 import {
   attachCollisionAabb,
   createPointerRay,
   drawCollisionAabbGizmo,
   raycastCollisionAabb
-} from '@vulfram/engine/helpers';
-import { loadGltfAsset } from '@vulfram/gltf-loader';
-import { mat4, quat, vec2 } from '@vulfram/engine/math';
-import { initWasmTransport, transportWasm } from '@vulfram/transport-browser';
+} from '@galfus/engine/helpers';
+import { loadGltfAsset } from '@galfus/gltf-loader';
+import { mat4, quat, vec2 } from '@galfus/engine/math';
+import { initWasmTransport, transportWasm } from '@galfus/transport-browser';
 
 let WORLD_ID = 0 as unknown as World3DId;
 let WINDOW_ID = 0 as unknown as WindowId;
@@ -49,11 +49,11 @@ function getDemoId(): string {
 
 function setupCommonWindow(): void {
   const { windowId } = createWindow({
-    title: 'Vulfram WASM Demo',
+    title: 'Galfus WASM Demo',
     size: [1024, 640],
     position: [0, 0],
     resizable: true,
-    canvasId: 'vulfram-canvas'
+    canvasId: 'galfus-canvas'
   });
   WINDOW_ID = windowId;
   WORLD_ID = World3D.create3DWorld();
@@ -609,7 +609,7 @@ async function boot() {
     try {
       tick(now, delta);
     } catch (error) {
-      console.error(`[Vulfram WASM] Tick failed on demo ${demoId}:`, error);
+      console.error(`[Galfus WASM] Tick failed on demo ${demoId}:`, error);
       return;
     }
     if (!presented && Mount.isWorldMountReady(WORLD_ID)) {
@@ -635,7 +635,7 @@ async function boot() {
             return resolvedUpdate;
           })
           .catch((error) => {
-            console.error(`[Vulfram WASM] Failed to setup demo ${demoId}:`, error);
+            console.error(`[Galfus WASM] Failed to setup demo ${demoId}:`, error);
             throw error;
           });
       }
@@ -648,5 +648,5 @@ async function boot() {
 }
 
 boot().catch((err) => {
-  console.error('[Vulfram WASM] Failed to boot:', err);
+  console.error('[Galfus WASM] Failed to boot:', err);
 });

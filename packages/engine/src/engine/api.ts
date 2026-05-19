@@ -1,4 +1,4 @@
-import type { EngineTransportFactory } from '@vulfram/transport-types';
+import type { EngineTransportFactory } from '@galfus/transport-types';
 import {
   collectCommands,
   enqueueGlobalCommand,
@@ -62,8 +62,8 @@ export type CreateWorldOptions = {
  *
  * @example
  * ```ts
- * import { initEngine } from '@vulfram/engine/core';
- * import { createBrowserTransport } from '@vulfram/transport-browser';
+ * import { initEngine } from '@galfus/engine/core';
+ * import { createBrowserTransport } from '@galfus/transport-browser';
  *
  * initEngine({
  *   transport: () => createBrowserTransport()
@@ -109,9 +109,9 @@ export function initEngine(config: {
   engineState.flags.debugEnabled = config.debug ?? false;
 
   const transport = config.transport();
-  const result = transport.vulframInit();
+  const result = transport.galfusInit();
   if (result !== 0) {
-    throw new EngineError('InitFailed', `vulframInit failed with code ${result}.`);
+    throw new EngineError('InitFailed', `galfusInit failed with code ${result}.`);
   }
 
   engineState.transport = transport;
@@ -135,7 +135,7 @@ export function initEngine(config: {
  *
  * @example
  * ```ts
- * import { disposeEngine } from '@vulfram/engine/core';
+ * import { disposeEngine } from '@galfus/engine/core';
  *
  * disposeEngine();
  * ```
@@ -144,7 +144,7 @@ export function disposeEngine(): void {
   requireInitialized();
   const transport = engineState.transport;
   if (transport) {
-    transport.vulframDispose();
+    transport.galfusDispose();
   }
   engineState.transport = null;
   engineState.worlds.clear();
@@ -170,7 +170,7 @@ export function disposeEngine(): void {
  *
  * @example
  * ```ts
- * import { registerComponent } from '@vulfram/engine/core';
+ * import { registerComponent } from '@galfus/engine/core';
  *
  * registerComponent('Health', {
  *   fields: {
@@ -196,7 +196,7 @@ export function registerComponent(name: string, schema: ComponentSchema): void {
  *
  * @example
  * ```ts
- * import { registerSystem } from '@vulfram/engine/core';
+ * import { registerSystem } from '@galfus/engine/core';
  *
  * registerSystem('update', (world, context) => {
  *   void world;
@@ -233,7 +233,7 @@ function uploadTypeToId(type: UploadType): number {
  *
  * @example
  * ```ts
- * import { uploadBuffer } from '@vulfram/engine/core';
+ * import { uploadBuffer } from '@galfus/engine/core';
  *
  * uploadBuffer(10, 'image-data', pngBytes);
  * ```
@@ -241,11 +241,11 @@ function uploadTypeToId(type: UploadType): number {
 export function uploadBuffer(bufferId: number, type: UploadType, data: Uint8Array): void {
   requireInitialized();
   const transport = engineState.transport!;
-  const result = transport.vulframUploadBuffer(bufferId, uploadTypeToId(type), data);
+  const result = transport.galfusUploadBuffer(bufferId, uploadTypeToId(type), data);
   if (result !== 0) {
     throw new EngineError(
       'UploadFailed',
-      `vulframUploadBuffer failed for ID ${bufferId} with code ${result}.`
+      `galfusUploadBuffer failed for ID ${bufferId} with code ${result}.`
     );
   }
 }
@@ -255,7 +255,7 @@ export function uploadBuffer(bufferId: number, type: UploadType, data: Uint8Arra
  *
  * @example
  * ```ts
- * import { setSystemDiagnostics } from '@vulfram/engine/core';
+ * import { setSystemDiagnostics } from '@galfus/engine/core';
  *
  * setSystemDiagnostics({ enabled: true });
  * ```
@@ -270,7 +270,7 @@ export function setSystemDiagnostics(args: CmdSystemDiagnosticsSetArgs): number 
  *
  * @example
  * ```ts
- * import { getCoreBuildVersion } from '@vulfram/engine/core';
+ * import { getCoreBuildVersion } from '@galfus/engine/core';
  *
  * const commandId = getCoreBuildVersion();
  * ```
@@ -285,7 +285,7 @@ export function getCoreBuildVersion(args: CmdSystemBuildVersionGetArgs = {}): nu
  *
  * @example
  * ```ts
- * import { discardAllUploadBuffers } from '@vulfram/engine/core';
+ * import { discardAllUploadBuffers } from '@galfus/engine/core';
  *
  * discardAllUploadBuffers();
  * ```
@@ -393,7 +393,7 @@ export function createWorldUI(config?: CreateWorldOptions): WorldId {
  *
  * @example
  * ```ts
- * import { createWorld } from '@vulfram/engine/core';
+ * import { createWorld } from '@galfus/engine/core';
  *
  * const worldId = createWorld();
  * ```
@@ -408,7 +408,7 @@ export function createWorld(config?: CreateWorldOptions): WorldId {
  *
  * @example
  * ```ts
- * import { tick } from '@vulfram/engine/core';
+ * import { tick } from '@galfus/engine/core';
  *
  * tick(performance.now(), 16.67);
  * ```
@@ -421,13 +421,13 @@ export function tick(timeMs: number, deltaMs: number): void {
 
   // 1. Engine Phase: Receive from Core (Input Pipeline)
   // We process events and responses received since last frame
-  const eventsResult = transport.vulframReceiveEvents();
+  const eventsResult = transport.galfusReceiveEvents();
   if (eventsResult.result === 0 && eventsResult.buffer.length > 0) {
     const events = deserializeEvents(eventsResult.buffer);
     routeEvents(events);
   }
 
-  const responsesResult = transport.vulframReceiveQueue();
+  const responsesResult = transport.galfusReceiveQueue();
   if (responsesResult.result === 0 && responsesResult.buffer.length > 0) {
     const responses = deserializeResponses(responsesResult.buffer);
     routeResponses(responses);
@@ -465,10 +465,10 @@ export function tick(timeMs: number, deltaMs: number): void {
 
   if (engineState.commandBatch.length > 0) {
     const batchBuffer = serializeBatch(engineState.commandBatch);
-    const result = transport.vulframSendQueue(batchBuffer);
+    const result = transport.galfusSendQueue(batchBuffer);
     if (result !== 0) {
       console.error(
-        `[Vulfram] vulframSendQueue failed with result ${result}. This usually indicates a MessagePack serialization mismatch between Host and Core.`
+        `[Galfus] galfusSendQueue failed with result ${result}. This usually indicates a MessagePack serialization mismatch between Host and Core.`
       );
       for (const cmd of engineState.commandBatch) {
         engineState.commandTracker.delete(cmd.id);
@@ -481,7 +481,7 @@ export function tick(timeMs: number, deltaMs: number): void {
         engineState.pendingWindowCloseByCommandId.delete(cmd.id);
       }
       if (engineState.flags.debugEnabled) {
-        console.group('[Vulfram Debug] Failed Batch');
+        console.group('[Galfus Debug] Failed Batch');
         console.debug('Result:', result);
         console.debug('Batch Size:', batchBuffer.length, 'bytes');
         console.debug(
@@ -495,7 +495,7 @@ export function tick(timeMs: number, deltaMs: number): void {
   }
 
   // 5. Core Phase: Execute Tick
-  transport.vulframTick(coreTimeMs, coreDeltaMs);
+  transport.galfusTick(coreTimeMs, coreDeltaMs);
 }
 
 function processGlobalResponses(): void {

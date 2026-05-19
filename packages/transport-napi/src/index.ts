@@ -1,4 +1,4 @@
-import type { EngineTransportFactory } from '@vulfram/transport-types';
-import { VULFRAM_CORE } from './bind/napi-loader';
+import type { EngineTransportFactory } from '@galfus/transport-types';
+import { GALFUS_CORE } from './bind/napi-loader';
 
-export const transportNapi: EngineTransportFactory = () => VULFRAM_CORE;
+export const transportNapi: EngineTransportFactory = () => GALFUS_CORE;

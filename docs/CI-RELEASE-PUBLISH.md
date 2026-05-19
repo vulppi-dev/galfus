@@ -54,19 +54,19 @@ Each promotion branch publish also creates or updates a GitHub Release with grou
 
 Each group is uploaded as:
 
-- `vulfram-<binding>-<package-version>.zip`
-- `vulfram-<binding>-<package-version>.zip.sha256`
+- `galfus-<binding>-<package-version>.zip`
+- `galfus-<binding>-<package-version>.zip.sha256`
 
 ## npm publish behavior
 
 After the GitHub Release is published, the npm job syncs transport artifacts and publishes:
 
-- `@vulfram/transport-browser`
-- `@vulfram/transport-bun`
-- `@vulfram/transport-napi`
-- `@vulfram/engine`
-- `@vulfram/gltf-loader`
-- `@vulfram/camera-control`
+- `@galfus/transport-browser`
+- `@galfus/transport-bun`
+- `@galfus/transport-napi`
+- `@galfus/engine`
+- `@galfus/gltf-loader`
+- `@galfus/camera-control`
 
 npm dist-tags are mapped directly from the branch channel:
 
@@ -101,13 +101,13 @@ Optional flags:
 
 The JSR publish job is enabled only for packages with registry-safe payloads:
 
-- `@vulfram/transport-types`
-- `@vulfram/transport-browser`
-- `@vulfram/engine`
-- `@vulfram/gltf-loader`
-- `@vulfram/camera-control`
+- `@galfus/transport-types`
+- `@galfus/transport-browser`
+- `@galfus/engine`
+- `@galfus/gltf-loader`
+- `@galfus/camera-control`
 
-`@vulfram/transport-bun` and `@vulfram/transport-napi` remain excluded from JSR
+`@galfus/transport-bun` and `@galfus/transport-napi` remain excluded from JSR
 because their native multi-platform artifacts make the publish payload too
 large for the registry.
 

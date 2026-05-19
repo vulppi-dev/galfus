@@ -1,6 +1,6 @@
 # Realm Architecture
 
-This document defines the active composition architecture used by Vulfram vNext.
+This document defines the active composition architecture used by Galfus.
 
 ## Core primitives
 

@@ -1,6 +1,6 @@
 # Input Usage Guide
 
-This guide shows how to consume input queries from `@vulfram/engine/world3d`.
+This guide shows how to consume input queries from `@galfus/engine/world3d`.
 
 ## Keyboard
 

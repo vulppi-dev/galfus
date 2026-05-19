@@ -6,10 +6,10 @@ import {
   disposeEngine,
   initEngine,
   tick
-} from '@vulfram/engine';
-import { loadGltfAsset } from '@vulfram/gltf-loader';
-import { transportBunFfi } from '@vulfram/transport-bun';
-import { quat } from '@vulfram/engine/math';
+} from '@galfus/engine';
+import { loadGltfAsset } from '@galfus/gltf-loader';
+import { transportBunFfi } from '@galfus/transport-bun';
+import { quat } from '@galfus/engine/math';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
@@ -21,7 +21,7 @@ async function main() {
   initEngine({ transport: transportBunFfi });
 
   const { windowId } = createWindow({
-    title: 'Vulfram Demo 006 - GLTF Loader',
+    title: 'Galfus Demo 006 - GLTF Loader',
     size: [1280, 720],
     position: [100, 100],
     borderless: false,

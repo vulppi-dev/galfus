@@ -37,7 +37,7 @@ export type WaitWorldReadyOptions = {
  *
  * @example
  * ```ts
- * import { Mount } from '@vulfram/engine';
+ * import { Mount } from '@galfus/engine';
  *
  * const ready = Mount.isWorldMountReady(worldId);
  * ```
@@ -56,7 +56,7 @@ export function isWorldMountReady(worldId: WorldId): boolean {
  *
  * @example
  * ```ts
- * import { Mount, tick } from '@vulfram/engine';
+ * import { Mount, tick } from '@galfus/engine';
  *
  * const ready = await Mount.waitWorldReady(worldId, {
  *   onPoll: () => tick(performance.now(), 16.67)
@@ -118,7 +118,7 @@ function defaultLayout(): TargetLayerLayout {
  *
  * @example
  * ```ts
- * import { Mount } from '@vulfram/engine';
+ * import { Mount } from '@galfus/engine';
  *
  * const mount = Mount.mountWorld(worldId, {
  *   target: { kind: 'window', windowId }
@@ -161,7 +161,7 @@ export function mountWorld(
  *
  * @example
  * ```ts
- * import { Mount } from '@vulfram/engine';
+ * import { Mount } from '@galfus/engine';
  *
  * Mount.mountWorldToWindow(worldId, windowId);
  * ```
@@ -193,7 +193,7 @@ export function mountWorldToWindow(
  *
  * @example
  * ```ts
- * import { Mount } from '@vulfram/engine';
+ * import { Mount } from '@galfus/engine';
  *
  * Mount.unmountWorld(worldId, targetId);
  * ```
@@ -214,7 +214,7 @@ export function unmountWorld(worldId: WorldId, targetId: TargetId): CommandId {
  *
  * @example
  * ```ts
- * import { Mount } from '@vulfram/engine';
+ * import { Mount } from '@galfus/engine';
  *
  * Mount.remountWorld(worldId, {
  *   targetId,
@@ -240,7 +240,7 @@ export function remountWorld(
  *
  * @example
  * ```ts
- * import { Mount } from '@vulfram/engine';
+ * import { Mount } from '@galfus/engine';
  *
  * Mount.measureMountedTarget(worldId, { targetId });
  * ```

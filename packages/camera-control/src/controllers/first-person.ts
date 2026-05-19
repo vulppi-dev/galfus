@@ -1,5 +1,5 @@
-import type { EntityId, World3DId } from '@vulfram/engine/world3d';
-import { quat, vec3, type Quat, type ReadonlyVec3 } from '@vulfram/engine/math';
+import type { EntityId, World3DId } from '@galfus/engine/world3d';
+import { quat, vec3, type Quat, type ReadonlyVec3 } from '@galfus/engine/math';
 import {
   clearMotionImpulse,
   createMotionActionState,
@@ -46,7 +46,7 @@ export interface FirstPersonControllerConfig extends CameraControllerOptions {
  *
  * @example
  * ```ts
- * import { createFirstPersonController } from '@vulfram/camera-control';
+ * import { createFirstPersonController } from '@galfus/camera-control';
  *
  * const controller = createFirstPersonController(worldId, cameraEntityId, {
  *   position: [0, 1.7, 4]

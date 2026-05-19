@@ -1,5 +1,5 @@
 {
-  "name": "@vulfram/transport-types",
+  "name": "@galfus/transport-types",
   "version": "0.3.0",
   "license": "MIT",
   "exports": "./mod.ts"

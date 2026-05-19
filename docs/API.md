@@ -1,10 +1,10 @@
-# Vulfram Internal API
+# Galfus Internal API
 
-This document describes the active architectural contracts after the vNext replace phases.
+This document describes the active architectural contracts.
 
 ## Runtime integration root
 
-`vulfram-runtime` remains the integration root for:
+`galfus-runtime` remains the integration root for:
 
 - command processing
 - response/event emission
@@ -32,9 +32,9 @@ Removed from public composition API:
 
 ## Render ownership model
 
-- `vulfram-render`: render policy and pass/frame execution policy
-- `vulfram-realm-core`: composition DTO/state semantics shared by runtime
-- `vulfram-runtime`: applies commands and drives frame loop
+- `galfus-render`: render policy and pass/frame execution policy
+- `galfus-realm-core`: composition DTO/state semantics shared by runtime
+- `galfus-runtime`: applies commands and drives frame loop
 
 ## Graph model
 

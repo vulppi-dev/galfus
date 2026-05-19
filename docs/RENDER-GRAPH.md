@@ -1,6 +1,6 @@
 # Render Graph
 
-In vNext, render graph behavior is split into two scopes.
+Render graph behavior is split into two scopes.
 
 ## 1. Global frame scope: `FrameGraph`
 

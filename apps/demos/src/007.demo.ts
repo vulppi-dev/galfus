@@ -9,7 +9,7 @@ import {
   initEngine,
   tick,
   updateWindow
-} from '@vulfram/engine';
+} from '@galfus/engine';
 import {
   createFirstPersonController,
   createOrbitController,
@@ -21,9 +21,9 @@ import {
   type OrbitControllerHandle,
   type ThirdPersonControllerHandle,
   type TopViewControllerHandle
-} from '@vulfram/camera-control';
-import { transportBunFfi } from '@vulfram/transport-bun';
-import { vec3 } from '@vulfram/engine/math';
+} from '@galfus/camera-control';
+import { transportBunFfi } from '@galfus/transport-bun';
+import { vec3 } from '@galfus/engine/math';
 
 const FRAME_TARGET_MS = 16;
 const POINTER_DEBUG_INTERVAL_MS = 250;
@@ -85,7 +85,7 @@ async function main() {
   initEngine({ transport: transportBunFfi });
 
   const { windowId } = createWindow({
-    title: 'Vulfram Demo 007 - Camera Controllers + UI',
+    title: 'Galfus Demo 007 - Camera Controllers + UI',
     size: [1280, 720],
     position: [100, 100],
     borderless: false,

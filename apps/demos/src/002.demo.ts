@@ -1,4 +1,4 @@
-import { quat, vec3, type Vec3 } from '@vulfram/engine/math';
+import { quat, vec3, type Vec3 } from '@galfus/engine/math';
 import {
   Mount,
   World3D,
@@ -9,8 +9,8 @@ import {
   tick,
   updateWindow,
   type EntityId
-} from '@vulfram/engine';
-import { transportBunFfi } from '@vulfram/transport-bun';
+} from '@galfus/engine';
+import { transportBunFfi } from '@galfus/transport-bun';
 
 const RUN_DURATION_MS = 5_000;
 const FRAME_TARGET_MS = 16;
@@ -18,7 +18,7 @@ const FRAME_TARGET_MS = 16;
 async function main() {
   initEngine({ transport: transportBunFfi });
   const { windowId } = createWindow({
-    title: 'Vulfram ECS Demo',
+    title: 'Galfus ECS Demo',
     size: [1280, 720],
     position: [100, 100],
     borderless: false,
@@ -208,7 +208,7 @@ async function main() {
     const t = totalMs / 1000;
 
     if (!updatedTitle && t > 2) {
-      updateWindow(windowId, { title: 'Vulfram ECS Demo (Realm-bound)' });
+      updateWindow(windowId, { title: 'Galfus ECS Demo (Realm-bound)' });
       updatedTitle = true;
     }
 

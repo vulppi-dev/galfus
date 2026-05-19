@@ -1377,6 +1377,220 @@ dependencies = [
 ]
 
 [[package]]
+name = "galfus-audio"
+version = "0.0.0"
+dependencies = [
+ "glam 0.30.10",
+ "js-sys",
+ "kira",
+ "mint",
+ "serde",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
+]
+
+[[package]]
+name = "galfus-bindings-ffi"
+version = "0.0.0"
+dependencies = [
+ "galfus-runtime",
+]
+
+[[package]]
+name = "galfus-bindings-lua"
+version = "0.0.0"
+dependencies = [
+ "galfus-runtime",
+ "mlua",
+]
+
+[[package]]
+name = "galfus-bindings-napi"
+version = "0.0.0"
+dependencies = [
+ "galfus-runtime",
+ "napi",
+ "napi-derive",
+]
+
+[[package]]
+name = "galfus-bindings-python"
+version = "0.0.0"
+dependencies = [
+ "galfus-runtime",
+ "pyo3",
+]
+
+[[package]]
+name = "galfus-bindings-wasm"
+version = "0.0.0"
+dependencies = [
+ "console_error_panic_hook",
+ "galfus-runtime",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "galfus-demo"
+version = "0.0.0"
+dependencies = [
+ "bytemuck",
+ "galfus-runtime",
+ "glam 0.30.10",
+ "rmp-serde",
+]
+
+[[package]]
+name = "galfus-devtools"
+version = "0.0.0"
+dependencies = [
+ "naga",
+]
+
+[[package]]
+name = "galfus-input"
+version = "0.0.0"
+dependencies = [
+ "galfus-realm-core",
+ "galfus-types",
+ "glam 0.30.10",
+ "rmp-serde",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "galfus-log"
+version = "0.0.0"
+dependencies = [
+ "serde",
+]
+
+[[package]]
+name = "galfus-platform"
+version = "0.0.0"
+dependencies = [
+ "galfus-input",
+ "gilrs",
+ "glam 0.30.10",
+ "js-sys",
+ "log",
+ "wasm-bindgen",
+ "web-sys",
+ "winit",
+]
+
+[[package]]
+name = "galfus-protocol"
+version = "0.0.0"
+dependencies = [
+ "galfus-log",
+ "galfus-types",
+ "glam 0.30.10",
+ "rmp-serde",
+ "serde",
+ "serde_json",
+ "serde_path_to_error",
+]
+
+[[package]]
+name = "galfus-realm-2d"
+version = "0.0.0"
+dependencies = [
+ "galfus-realm-core",
+]
+
+[[package]]
+name = "galfus-realm-3d"
+version = "0.0.0"
+dependencies = [
+ "bytemuck",
+ "galfus-realm-core",
+ "galfus-types",
+]
+
+[[package]]
+name = "galfus-realm-core"
+version = "0.0.0"
+dependencies = [
+ "galfus-types",
+ "glam 0.30.10",
+ "serde",
+]
+
+[[package]]
+name = "galfus-render"
+version = "0.0.0"
+dependencies = [
+ "bytemuck",
+ "egui",
+ "galfus-platform",
+ "galfus-protocol",
+ "galfus-realm-2d",
+ "galfus-realm-3d",
+ "galfus-realm-core",
+ "glam 0.30.10",
+ "naga",
+ "rmp-serde",
+ "serde",
+ "wgpu",
+]
+
+[[package]]
+name = "galfus-runtime"
+version = "0.0.0"
+dependencies = [
+ "bytemuck",
+ "console_error_panic_hook",
+ "ctrlc",
+ "encase",
+ "env_logger",
+ "galfus-audio",
+ "galfus-input",
+ "galfus-log",
+ "galfus-platform",
+ "galfus-protocol",
+ "galfus-realm-2d",
+ "galfus-realm-3d",
+ "galfus-realm-core",
+ "galfus-render",
+ "galfus-types",
+ "getrandom 0.3.4",
+ "gilrs",
+ "glam 0.30.10",
+ "half",
+ "image",
+ "js-sys",
+ "kira",
+ "log",
+ "mint",
+ "notify-rust",
+ "once_cell",
+ "pollster",
+ "rand",
+ "rmp-serde",
+ "serde",
+ "serde_path_to_error",
+ "smallvec",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
+ "web-time",
+ "wgpu",
+ "winit",
+]
+
+[[package]]
+name = "galfus-types"
+version = "0.0.0"
+dependencies = [
+ "rmp-serde",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "gethostname"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3926,220 +4140,6 @@ name = "version_check"
 version = "0.9.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
-
-[[package]]
-name = "vulfram-audio"
-version = "0.0.0"
-dependencies = [
- "glam 0.30.10",
- "js-sys",
- "kira",
- "mint",
- "serde",
- "wasm-bindgen",
- "wasm-bindgen-futures",
- "web-sys",
-]
-
-[[package]]
-name = "vulfram-bindings-ffi"
-version = "0.0.0"
-dependencies = [
- "vulfram-runtime",
-]
-
-[[package]]
-name = "vulfram-bindings-lua"
-version = "0.0.0"
-dependencies = [
- "mlua",
- "vulfram-runtime",
-]
-
-[[package]]
-name = "vulfram-bindings-napi"
-version = "0.0.0"
-dependencies = [
- "napi",
- "napi-derive",
- "vulfram-runtime",
-]
-
-[[package]]
-name = "vulfram-bindings-python"
-version = "0.0.0"
-dependencies = [
- "pyo3",
- "vulfram-runtime",
-]
-
-[[package]]
-name = "vulfram-bindings-wasm"
-version = "0.0.0"
-dependencies = [
- "console_error_panic_hook",
- "vulfram-runtime",
- "wasm-bindgen",
-]
-
-[[package]]
-name = "vulfram-demo"
-version = "0.0.0"
-dependencies = [
- "bytemuck",
- "glam 0.30.10",
- "rmp-serde",
- "vulfram-runtime",
-]
-
-[[package]]
-name = "vulfram-devtools"
-version = "0.0.0"
-dependencies = [
- "naga",
-]
-
-[[package]]
-name = "vulfram-input"
-version = "0.0.0"
-dependencies = [
- "glam 0.30.10",
- "rmp-serde",
- "serde",
- "serde_json",
- "vulfram-realm-core",
- "vulfram-types",
-]
-
-[[package]]
-name = "vulfram-log"
-version = "0.0.0"
-dependencies = [
- "serde",
-]
-
-[[package]]
-name = "vulfram-platform"
-version = "0.0.0"
-dependencies = [
- "gilrs",
- "glam 0.30.10",
- "js-sys",
- "log",
- "vulfram-input",
- "wasm-bindgen",
- "web-sys",
- "winit",
-]
-
-[[package]]
-name = "vulfram-protocol"
-version = "0.0.0"
-dependencies = [
- "glam 0.30.10",
- "rmp-serde",
- "serde",
- "serde_json",
- "serde_path_to_error",
- "vulfram-log",
- "vulfram-types",
-]
-
-[[package]]
-name = "vulfram-realm-2d"
-version = "0.0.0"
-dependencies = [
- "vulfram-realm-core",
-]
-
-[[package]]
-name = "vulfram-realm-3d"
-version = "0.0.0"
-dependencies = [
- "bytemuck",
- "vulfram-realm-core",
- "vulfram-types",
-]
-
-[[package]]
-name = "vulfram-realm-core"
-version = "0.0.0"
-dependencies = [
- "glam 0.30.10",
- "serde",
- "vulfram-types",
-]
-
-[[package]]
-name = "vulfram-render"
-version = "0.0.0"
-dependencies = [
- "bytemuck",
- "egui",
- "glam 0.30.10",
- "naga",
- "rmp-serde",
- "serde",
- "vulfram-platform",
- "vulfram-protocol",
- "vulfram-realm-2d",
- "vulfram-realm-3d",
- "vulfram-realm-core",
- "wgpu",
-]
-
-[[package]]
-name = "vulfram-runtime"
-version = "0.0.0"
-dependencies = [
- "bytemuck",
- "console_error_panic_hook",
- "ctrlc",
- "encase",
- "env_logger",
- "getrandom 0.3.4",
- "gilrs",
- "glam 0.30.10",
- "half",
- "image",
- "js-sys",
- "kira",
- "log",
- "mint",
- "notify-rust",
- "once_cell",
- "pollster",
- "rand",
- "rmp-serde",
- "serde",
- "serde_path_to_error",
- "smallvec",
- "vulfram-audio",
- "vulfram-input",
- "vulfram-log",
- "vulfram-platform",
- "vulfram-protocol",
- "vulfram-realm-2d",
- "vulfram-realm-3d",
- "vulfram-realm-core",
- "vulfram-render",
- "vulfram-types",
- "wasm-bindgen",
- "wasm-bindgen-futures",
- "web-sys",
- "web-time",
- "wgpu",
- "winit",
-]
-
-[[package]]
-name = "vulfram-types"
-version = "0.0.0"
-dependencies = [
- "rmp-serde",
- "serde",
- "serde_json",
-]
 
 [[package]]
 name = "walkdir"

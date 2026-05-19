@@ -1,4 +1,4 @@
-import type { EngineTransportFactory } from '@vulfram/transport-types';
-import { VULFRAM_CORE } from './bind/ffi-loader';
+import type { EngineTransportFactory } from '@galfus/transport-types';
+import { GALFUS_CORE } from './bind/ffi-loader';
 
-export const transportBunFfi: EngineTransportFactory = () => VULFRAM_CORE;
+export const transportBunFfi: EngineTransportFactory = () => GALFUS_CORE;

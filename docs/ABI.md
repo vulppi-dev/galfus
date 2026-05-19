@@ -1,6 +1,6 @@
-# 🦊 Vulfram — Functions, ABI and Usage Contract
+# 🦊 Galfus — Functions, ABI and Usage Contract
 
-This document describes the **public C-ABI surface** exposed by the Vulfram core,
+This document describes the **public C-ABI surface** exposed by the Galfus core,
 and the **usage contract** expected from hosts and language bindings.
 
 It is intended for:
@@ -12,12 +12,12 @@ It is intended for:
 
 ## 1. Global Conventions
 
-### 1.1 Return Type: `VulframResult (u32)`
+### 1.1 Return Type: `GalfusResult (u32)`
 
-All `vulfram_*` functions return a `u32` status code:
+All `galfus_*` functions return a `u32` status code:
 
-- `0` → success (`VULFRAM_SUCCESS`)
-- non-zero → error (`VulframResult` enum)
+- `0` → success (`GALFUS_SUCCESS`)
+- non-zero → error (`GalfusResult` enum)
 
 The binding **must** map this to language-level error handling. For example:
 
@@ -32,10 +32,10 @@ The exact enum values live in the Rust core, but the important contract is:
 
 ### 1.2 Threading / Reentrancy
 
-- All `vulfram_*` functions are **main-thread only**.
+- All `galfus_*` functions are **main-thread only**.
 - The host must **not** call them concurrently from multiple threads.
 - Any multithreading should be implemented on the host side, with a
-  single thread delegating to Vulfram.
+  single thread delegating to Galfus.
 
 ### 1.3 Serialization Format
 
@@ -46,10 +46,10 @@ All structured data that crosses the ABI uses **MessagePack**, via:
 
 This includes:
 
-- Command batches (`vulfram_send_queue`)
-- Response batches (`vulfram_receive_queue`)
-- Event batches (`vulfram_receive_events`)
-- Profiling data (`vulfram_get_profiling`)
+- Command batches (`galfus_send_queue`)
+- Response batches (`galfus_receive_queue`)
+- Event batches (`galfus_receive_events`)
+- Profiling data (`galfus_get_profiling`)
 
 Binding responsibilities:
 
@@ -61,12 +61,12 @@ Binding responsibilities:
 Several functions return data via pointer-out parameters:
 
 ```c
-u32 vulfram_xxx(uint8_t** out_ptr, size_t* out_length);
+u32 galfus_xxx(uint8_t** out_ptr, size_t* out_length);
 ```
 
 Contract:
 
-- Vulfram allocates a contiguous byte buffer and sets:
+- Galfus allocates a contiguous byte buffer and sets:
   - `*out_ptr` to the buffer address
   - `*out_length` to the number of bytes
 
@@ -83,30 +83,30 @@ The binding hides this complexity.
 
 ## 2. Function List
 
-All functions have the `vulfram_` prefix and use C-ABI (`extern "C"`).
+All functions have the `galfus_` prefix and use C-ABI (`extern "C"`).
 
 ### 2.1 Initialization and Shutdown
 
 ```c
-u32 vulfram_init(void);
-u32 vulfram_dispose(void);
+u32 galfus_init(void);
+u32 galfus_dispose(void);
 ```
 
-- `vulfram_init()`
+- `galfus_init()`
   - Initializes the core state, subsystems, and any global allocations.
   - Must be called **exactly once** before any other function.
 
-- `vulfram_dispose()`
+- `galfus_dispose()`
   - Shuts down the core, frees resources, and tears down subsystems.
-  - After calling this, no other `vulfram_*` functions may be used
-    unless a fresh `vulfram_init()` is called (full restart).
+  - After calling this, no other `galfus_*` functions may be used
+    unless a fresh `galfus_init()` is called (full restart).
 
 ---
 
 ### 2.2 Command Queue (Host → Core)
 
 ```c
-u32 vulfram_send_queue(const uint8_t* buffer, size_t length);
+u32 galfus_send_queue(const uint8_t* buffer, size_t length);
 ```
 
 - `buffer`
@@ -119,7 +119,7 @@ Core behavior:
 
 1. Copies the `buffer` contents into internal memory.
 2. Decodes it into one or more internal command structures.
-3. Enqueues these commands to be processed on the next `vulfram_tick()`.
+3. Enqueues these commands to be processed on the next `galfus_tick()`.
 
 Decode failures:
 
@@ -140,7 +140,7 @@ Typical commands include:
 ### 2.3 Response Queue (Core → Host)
 
 ```c
-u32 vulfram_receive_queue(uint8_t** out_ptr, size_t* out_length);
+u32 galfus_receive_queue(uint8_t** out_ptr, size_t* out_length);
 ```
 
 - On success, returns a MessagePack buffer with a batch of **responses**:
@@ -151,19 +151,19 @@ u32 vulfram_receive_queue(uint8_t** out_ptr, size_t* out_length);
 
 Binding responsibilities:
 
-1. Call `vulfram_receive_queue(&ptr, &len)`.
+1. Call `galfus_receive_queue(&ptr, &len)`.
 2. If `len > 0`, copy `[ptr .. ptr+len)` to host memory.
 3. Release the core-allocated buffer using the agreed mechanism.
 4. Deserialize MessagePack and route responses to the host/application.
 
-Calling `vulfram_receive_queue` consumes and clears the response queue.
+Calling `galfus_receive_queue` consumes and clears the response queue.
 
 ---
 
 ### 2.4 Event Queue (Input / Window)
 
 ```c
-u32 vulfram_receive_events(uint8_t** out_ptr, size_t* out_length);
+u32 galfus_receive_events(uint8_t** out_ptr, size_t* out_length);
 ```
 
 - Returns a MessagePack buffer containing a batch of **events**:
@@ -177,13 +177,13 @@ u32 vulfram_receive_events(uint8_t** out_ptr, size_t* out_length);
   - Deferred retries are throttled with backoff and may be dropped after limits;
     hosts should listen to `CommandDropped` for unrecoverable eventual-consistency cases.
 
-Semantics are identical to `vulfram_receive_queue`, but the content is
+Semantics are identical to `galfus_receive_queue`, but the content is
 strictly _event_ data, not responses.
 
 Typical flow:
 
-1. The core collects events during `vulfram_tick()`.
-2. The host calls `vulfram_receive_events()`.
+1. The core collects events during `galfus_tick()`.
+2. The host calls `galfus_receive_events()`.
 3. Binding copies and frees the buffer.
 4. Binding decodes events and forwards them into the host-side input system.
 
@@ -197,13 +197,13 @@ Current composition note:
 ### 2.5 Upload of Raw Blobs
 
 ```c
-u32 vulfram_upload_buffer(uint64_t id,
+u32 galfus_upload_buffer(uint64_t id,
                           uint32_t type,
                           const uint8_t* buffer,
                           size_t length);
 ```
 
-#### 2.5.1 `vulfram_upload_buffer`
+#### 2.5.1 `galfus_upload_buffer`
 
 Direction: **Host → Core**
 
@@ -245,7 +245,7 @@ Behavior:
 ### 2.6 Tick / Frame Advance
 
 ```c
-u32 vulfram_tick(uint64_t time, uint32_t delta_time);
+u32 galfus_tick(uint64_t time, uint32_t delta_time);
 ```
 
 Called **once per frame** by the host.
@@ -296,7 +296,7 @@ rendering falls back gracefully.
 ### 2.9 Profiling
 
 ```c
-u32 vulfram_get_profiling(uint8_t** out_ptr, size_t* out_length);
+u32 galfus_get_profiling(uint8_t** out_ptr, size_t* out_length);
 ```
 
 - Returns a MessagePack buffer containing **profiling information**:
@@ -366,30 +366,30 @@ per frame on the main thread:
 
 2. **Uploads** (optional, zero or more calls)
    - For each heavy blob:
-     - `vulfram_upload_buffer(buffer_id, type, ptr, length)`
+     - `galfus_upload_buffer(buffer_id, type, ptr, length)`
 
 3. **Send commands**
    - Build a MessagePack batch of commands (create/update components & resources,
      maintenance commands).
-   - `vulfram_send_queue(buffer, length)`
+   - `galfus_send_queue(buffer, length)`
 
 4. **Advance the core**
-   - `vulfram_tick(time, delta_time)`
+   - `galfus_tick(time, delta_time)`
 
 5. **Receive responses** (consumes response queue)
-   - `vulfram_receive_queue(&ptr, &len)`
+   - `galfus_receive_queue(&ptr, &len)`
    - If `len > 0`:
      - copy & free buffer
      - decode MessagePack and process responses
 
 6. **Receive events**
-   - `vulfram_receive_events(&ptr, &len)`
+   - `galfus_receive_events(&ptr, &len)`
    - If `len > 0`:
      - copy & free buffer
      - decode MessagePack and feed the host’s input/window system
 
 7. **Profiling (optional)**
-   - `vulfram_get_profiling(&ptr, &len)`
+   - `galfus_get_profiling(&ptr, &len)`
    - If `len > 0`:
      - copy & free buffer
      - decode and feed debug UI / logs
@@ -398,7 +398,7 @@ per frame on the main thread:
 
 ## 4. Error Handling Guidelines for Bindings
 
-- On **non-zero** return from any `vulfram_*` function:
+- On **non-zero** return from any `galfus_*` function:
   - The binding should surface an error in the host language.
 
 - For debuggability, the core may emit additional structured error
@@ -406,7 +406,7 @@ per frame on the main thread:
 
 A typical pattern:
 
-1. Binding call fails (non-zero `VulframResult`).
+1. Binding call fails (non-zero `GalfusResult`).
 2. Binding throws/returns an error.
-3. Host can additionally call `vulfram_receive_queue` to fetch
+3. Host can additionally call `galfus_receive_queue` to fetch
    detailed error responses, if desired.

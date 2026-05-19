@@ -14,4 +14,4 @@ export type {
   BufferResult,
   EngineTransport,
   EngineTransportFactory
-} from '@vulfram/transport-types';
+} from '@galfus/transport-types';

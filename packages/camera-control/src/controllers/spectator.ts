@@ -1,5 +1,5 @@
-import type { EntityId, World3DId } from '@vulfram/engine/world3d';
-import { quat, vec3, type Quat, type ReadonlyVec3 } from '@vulfram/engine/math';
+import type { EntityId, World3DId } from '@galfus/engine/world3d';
+import { quat, vec3, type Quat, type ReadonlyVec3 } from '@galfus/engine/math';
 import {
   clearMotionImpulse,
   createMotionActionState,
@@ -45,7 +45,7 @@ export interface SpectatorControllerConfig extends CameraControllerOptions {
  *
  * @example
  * ```ts
- * import { createSpectatorController } from '@vulfram/camera-control';
+ * import { createSpectatorController } from '@galfus/camera-control';
  *
  * const controller = createSpectatorController(worldId, cameraEntityId, {
  *   position: [0, 2, 6]

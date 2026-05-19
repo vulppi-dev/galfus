@@ -9,8 +9,8 @@ import {
   uploadBuffer,
   type EntityId,
   type World3DId
-} from '@vulfram/engine';
-import { transportBunFfi } from '@vulfram/transport-bun';
+} from '@galfus/engine';
+import { transportBunFfi } from '@galfus/transport-bun';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
@@ -55,7 +55,7 @@ interface GameState {
 async function main() {
   initEngine({ transport: transportBunFfi });
   const { windowId } = createWindow({
-    title: 'Vulfram Pong',
+    title: 'Galfus Pong',
     size: [1024, 768],
     position: [100, 100]
   });

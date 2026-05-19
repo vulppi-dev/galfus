@@ -1,4 +1,4 @@
-import type { EngineTransport } from '@vulfram/transport-types';
+import type { EngineTransport } from '@galfus/transport-types';
 import type { CommandResponseEnvelope, EngineCmdEnvelope } from '../types/cmds';
 import type { EngineEvent } from '../types/events';
 import type { CmdRealmCreateArgs, RealmKind } from '../types/cmds/realm';

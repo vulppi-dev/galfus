@@ -6,7 +6,7 @@ import {
   type ReadonlyQuat,
   type ReadonlyVec3,
   type Vec3
-} from '@vulfram/engine/math';
+} from '@galfus/engine/math';
 
 export function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));

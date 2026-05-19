@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "vulfram-monorepo",
+      "name": "galfus-monorepo",
       "devDependencies": {
         "@msgpack/msgpack": "^3.1.3",
         "@types/bun": "^1.3.11",
@@ -16,32 +16,32 @@
       "version": "0.0.0",
       "devDependencies": {
         "@types/bun": "^1.3.11",
-        "@vulfram/camera-control": "workspace:*",
-        "@vulfram/engine": "workspace:*",
-        "@vulfram/gltf-loader": "workspace:*",
-        "@vulfram/transport-browser": "workspace:*",
-        "@vulfram/transport-bun": "workspace:*",
-        "@vulfram/transport-napi": "workspace:*",
+        "@galfus/camera-control": "workspace:*",
+        "@galfus/engine": "workspace:*",
+        "@galfus/gltf-loader": "workspace:*",
+        "@galfus/transport-browser": "workspace:*",
+        "@galfus/transport-bun": "workspace:*",
+        "@galfus/transport-napi": "workspace:*",
         "typescript": "^6.0.2",
         "vite": "^8.0.2",
       },
     },
     "packages/camera-control": {
-      "name": "@vulfram/camera-control",
+      "name": "@galfus/camera-control",
       "version": "0.0.0",
       "devDependencies": {
         "@types/bun": "^1.3.11",
-        "@vulfram/engine": "workspace:*",
+        "@galfus/engine": "workspace:*",
       },
       "peerDependencies": {
-        "@vulfram/engine": "^0.0.0",
+        "@galfus/engine": "^0.0.0",
       },
     },
     "packages/engine": {
-      "name": "@vulfram/engine",
+      "name": "@galfus/engine",
       "version": "0.0.0",
       "dependencies": {
-        "@vulfram/transport-types": "^0.3.0",
+        "@galfus/transport-types": "^0.3.0",
         "msgpackr": "^1.11.9",
       },
       "devDependencies": {
@@ -50,7 +50,7 @@
       },
     },
     "packages/gltf-loader": {
-      "name": "@vulfram/gltf-loader",
+      "name": "@galfus/gltf-loader",
       "version": "0.0.0",
       "dependencies": {
         "@gltf-transform/core": "^4.3.0",
@@ -59,44 +59,44 @@
       },
       "devDependencies": {
         "@types/bun": "^1.3.11",
-        "@vulfram/engine": "workspace:*",
+        "@galfus/engine": "workspace:*",
       },
       "peerDependencies": {
-        "@vulfram/engine": "^0.0.0",
+        "@galfus/engine": "^0.0.0",
       },
     },
     "packages/transport-browser": {
-      "name": "@vulfram/transport-browser",
+      "name": "@galfus/transport-browser",
       "version": "0.0.0",
       "dependencies": {
-        "@vulfram/transport-types": "^0.3.0",
+        "@galfus/transport-types": "^0.3.0",
       },
       "devDependencies": {
         "@types/bun": "^1.3.11",
       },
     },
     "packages/transport-bun": {
-      "name": "@vulfram/transport-bun",
+      "name": "@galfus/transport-bun",
       "version": "0.0.0",
       "dependencies": {
-        "@vulfram/transport-types": "^0.3.0",
+        "@galfus/transport-types": "^0.3.0",
       },
       "devDependencies": {
         "@types/bun": "^1.3.11",
       },
     },
     "packages/transport-napi": {
-      "name": "@vulfram/transport-napi",
+      "name": "@galfus/transport-napi",
       "version": "0.0.0",
       "dependencies": {
-        "@vulfram/transport-types": "^0.3.0",
+        "@galfus/transport-types": "^0.3.0",
       },
       "devDependencies": {
         "@types/bun": "^1.3.11",
       },
     },
     "packages/transport-types": {
-      "name": "@vulfram/transport-types",
+      "name": "@galfus/transport-types",
       "version": "0.3.0",
       "devDependencies": {
         "@types/bun": "^1.3.11",
@@ -224,19 +224,19 @@
 
     "@types/node": ["@types/node@25.5.2", "", { "dependencies": { "undici-types": "~7.18.0" } }, "sha512-tO4ZIRKNC+MDWV4qKVZe3Ql/woTnmHDr5JD8UI5hn2pwBrHEwOEMZK7WlNb5RKB6EoJ02gwmQS9OrjuFnZYdpg=="],
 
-    "@vulfram/camera-control": ["@vulfram/camera-control@workspace:packages/camera-control"],
+    "@galfus/camera-control": ["@galfus/camera-control@workspace:packages/camera-control"],
 
-    "@vulfram/engine": ["@vulfram/engine@workspace:packages/engine"],
+    "@galfus/engine": ["@galfus/engine@workspace:packages/engine"],
 
-    "@vulfram/gltf-loader": ["@vulfram/gltf-loader@workspace:packages/gltf-loader"],
+    "@galfus/gltf-loader": ["@galfus/gltf-loader@workspace:packages/gltf-loader"],
 
-    "@vulfram/transport-browser": ["@vulfram/transport-browser@workspace:packages/transport-browser"],
+    "@galfus/transport-browser": ["@galfus/transport-browser@workspace:packages/transport-browser"],
 
-    "@vulfram/transport-bun": ["@vulfram/transport-bun@workspace:packages/transport-bun"],
+    "@galfus/transport-bun": ["@galfus/transport-bun@workspace:packages/transport-bun"],
 
-    "@vulfram/transport-napi": ["@vulfram/transport-napi@workspace:packages/transport-napi"],
+    "@galfus/transport-napi": ["@galfus/transport-napi@workspace:packages/transport-napi"],
 
-    "@vulfram/transport-types": ["@vulfram/transport-types@workspace:packages/transport-types"],
+    "@galfus/transport-types": ["@galfus/transport-types@workspace:packages/transport-types"],
 
     "balanced-match": ["balanced-match@4.0.4", "", {}, "sha512-BLrgEcRTwX2o6gGxGOCNyMvGSp35YofuYzw9h1IMTRmKqttAZZVU67bdb9Pr2vUHA8+j3i2tJfjO6C6+4myGTA=="],
 

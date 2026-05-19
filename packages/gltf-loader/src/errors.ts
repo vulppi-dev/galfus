@@ -5,7 +5,7 @@ import type { GltfLoaderErrorCode } from './types';
  *
  * @example
  * ```ts
- * import { GltfLoaderError, loadGltfAsset } from '@vulfram/gltf-loader';
+ * import { GltfLoaderError, loadGltfAsset } from '@galfus/gltf-loader';
  *
  * try {
  *   await loadGltfAsset({ worldId, data });

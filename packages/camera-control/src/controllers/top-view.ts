@@ -1,5 +1,5 @@
-import type { EntityId, World3DId } from '@vulfram/engine/world3d';
-import { quat, vec3, type ReadonlyVec3 } from '@vulfram/engine/math';
+import type { EntityId, World3DId } from '@galfus/engine/world3d';
+import { quat, vec3, type ReadonlyVec3 } from '@galfus/engine/math';
 import {
   applyLookAtIfEnabled,
   applyToWorld,
@@ -51,7 +51,7 @@ export interface TopViewControllerHandle extends BaseCameraControllerHandle {
  *
  * @example
  * ```ts
- * import { createTopViewController } from '@vulfram/camera-control';
+ * import { createTopViewController } from '@galfus/camera-control';
  *
  * const controller = createTopViewController(worldId, cameraEntityId, {
  *   focus: [0, 0, 0],
