@@ -4,6 +4,9 @@ area:core:
           - 'crates/vulfram-runtime/**'
           - 'crates/vulfram-protocol/**'
           - 'crates/vulfram-types/**'
+          - 'crates/vulfram-input/**'
+          - 'crates/vulfram-platform/**'
+          - 'crates/vulfram-log/**'
           - 'packages/transport-types/**'
           - 'packages/engine/**'
 
@@ -11,17 +14,12 @@ area:render:
   - changed-files:
       - any-glob-to-any-file:
           - 'crates/vulfram-render/**'
-          - 'crates/vulfram-realm-*/**'
+          - 'crates/vulfram-realm-core/**'
 
 area:bindings:
   - changed-files:
       - any-glob-to-any-file:
           - 'crates/vulfram-bindings-*/**'
-
-area:ui:
-  - changed-files:
-      - any-glob-to-any-file:
-          - 'crates/vulfram-realm-ui/**'
 
 area:2d:
   - changed-files:
@@ -50,12 +48,11 @@ area:tooling:
           - '.github/**'
           - 'scripts/**'
           - 'crates/vulfram-devtools/**'
-          - 'crates/vulfram-input/**'
-          - 'crates/vulfram-platform/**'
           - 'package.json'
           - 'bun.lock'
           - 'Cargo.toml'
           - 'Cargo.lock'
+          - 'tsconfig.json'
           - 'packages/transport-*/**'
           - 'packages/gltf-loader/**'
           - 'packages/camera-control/**'
