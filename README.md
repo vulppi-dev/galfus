@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://www.vulppi.dev/images/galfus/brand.png" alt="Galfus" width="400" />
+  <img src="/assets/brand-effect.png" alt="Galfus" width="400" />
   
   # Galfus
   
