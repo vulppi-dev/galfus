@@ -90,6 +90,7 @@ pub(super) fn command_type_for_cmd(cmd: &EngineCmd) -> &'static str {
         EngineCmd::CmdGizmoDrawLine(_) => "gizmo-draw-line",
         EngineCmd::CmdGizmoDrawAabb(_) => "gizmo-draw-aabb",
         EngineCmd::CmdGizmoDrawPolyline(_) => "gizmo-draw-polyline",
+        _ => "query-or-extended",
     }
 }
 

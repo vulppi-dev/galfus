@@ -8,6 +8,27 @@ fn mark_windows_dirty(engine: &mut EngineState) {
     }
 }
 
+fn emit_resource_mutation(
+    engine: &mut EngineState,
+    kind: &str,
+    id: u64,
+    action: &str,
+    realm_id: Option<u32>,
+    window_id: Option<u32>,
+) {
+    engine.revision = engine.revision.saturating_add(1);
+    engine
+        .runtime
+        .push_event(EngineEvent::System(SystemEvent::ResourceMutation {
+            kind: kind.to_string(),
+            id,
+            action: action.to_string(),
+            realm_id,
+            window_id,
+            revision: engine.revision,
+        }));
+}
+
 pub(super) fn dispatch_command(
     engine: &mut EngineState,
     platform: &mut dyn PlatformProxy,
@@ -83,6 +104,18 @@ pub(super) fn dispatch_command(
             });
         }
         EngineCmd::CmdCameraUpsert(args) => {
+            let (_id, _realm_id, _action) = match &args {
+                CmdCameraUpsertArgs::Create(create_args) => (
+                    create_args.camera_id as u64,
+                    Some(create_args.realm_id),
+                    "created",
+                ),
+                CmdCameraUpsertArgs::Update(update_args) => (
+                    update_args.camera_id as u64,
+                    Some(update_args.realm_id),
+                    "updated",
+                ),
+            };
             let result = match args {
                 CmdCameraUpsertArgs::Create(create_args) => {
                     let create_result = res::engine_cmd_camera_create(engine, &create_args);
@@ -99,10 +132,14 @@ pub(super) fn dispatch_command(
                     }
                 }
             };
+            let success = result.success;
             engine.runtime.push_response(CommandResponseEnvelope {
                 id: pack.id,
                 response: CommandResponse::CameraUpsert(result),
             });
+            if success {
+                emit_resource_mutation(engine, "camera", _id, _action, _realm_id, None);
+            }
         }
         EngineCmd::CmdCameraDispose(args) => {
             let result = res::engine_cmd_camera_dispose(engine, &args);
@@ -260,6 +297,47 @@ pub(super) fn dispatch_command(
                 id: pack.id,
                 response: CommandResponse::TextureCreateSolidColor(result),
             });
+        }
+        EngineCmd::CmdTextureUpsert(args) => {
+            let (texture_id, result) = match args {
+                CmdTextureUpsertArgs::FromBuffer(create_args) => {
+                    let texture_id = create_args.texture_id;
+                    let result = res::engine_cmd_texture_create_from_buffer(engine, &create_args);
+                    (
+                        texture_id,
+                        CmdResultSimple {
+                            success: result.success,
+                            message: result.message,
+                        },
+                    )
+                }
+                CmdTextureUpsertArgs::SolidColor(create_args) => {
+                    let texture_id = create_args.texture_id;
+                    let result = res::engine_cmd_texture_create_solid_color(engine, &create_args);
+                    (
+                        texture_id,
+                        CmdResultSimple {
+                            success: result.success,
+                            message: result.message,
+                        },
+                    )
+                }
+            };
+            let success = result.success;
+            engine.runtime.push_response(CommandResponseEnvelope {
+                id: pack.id,
+                response: CommandResponse::TextureUpsert(result),
+            });
+            if success {
+                emit_resource_mutation(
+                    engine,
+                    "texture",
+                    texture_id as u64,
+                    "upserted",
+                    None,
+                    None,
+                );
+            }
         }
         EngineCmd::CmdTextureDispose(args) => {
             let result = res::engine_cmd_texture_dispose(engine, &args);
@@ -496,6 +574,14 @@ pub(super) fn dispatch_command(
             let result = target::engine_cmd_target_upsert(engine, &args);
             if result.success {
                 mark_windows_dirty(engine);
+                emit_resource_mutation(
+                    engine,
+                    "target",
+                    args.target_id,
+                    "upserted",
+                    None,
+                    args.window_id,
+                );
             }
             engine.runtime.push_response(CommandResponseEnvelope {
                 id: pack.id,
@@ -513,6 +599,7 @@ pub(super) fn dispatch_command(
             let result = target::engine_cmd_target_dispose(engine, &args);
             if result.success {
                 mark_windows_dirty(engine);
+                emit_resource_mutation(engine, "target", args.target_id, "disposed", None, None);
             }
             engine.runtime.push_response(CommandResponseEnvelope {
                 id: pack.id,
@@ -523,6 +610,14 @@ pub(super) fn dispatch_command(
             let result = target::engine_cmd_target_layer_upsert(engine, &args);
             if result.success {
                 mark_windows_dirty(engine);
+                emit_resource_mutation(
+                    engine,
+                    "target-layer",
+                    args.target_id,
+                    "upserted",
+                    Some(args.realm_id),
+                    None,
+                );
             }
             engine.runtime.push_response(CommandResponseEnvelope {
                 id: pack.id,
@@ -533,6 +628,14 @@ pub(super) fn dispatch_command(
             let result = target::engine_cmd_target_layer_dispose(engine, &args);
             if result.success {
                 mark_windows_dirty(engine);
+                emit_resource_mutation(
+                    engine,
+                    "target-layer",
+                    args.target_id,
+                    "disposed",
+                    Some(args.realm_id),
+                    None,
+                );
             }
             engine.runtime.push_response(CommandResponseEnvelope {
                 id: pack.id,
@@ -540,11 +643,34 @@ pub(super) fn dispatch_command(
             });
         }
         cmd @ (EngineCmd::CmdModelList(_)
+        | EngineCmd::CmdModelGet(_)
+        | EngineCmd::CmdMaterialGet(_)
         | EngineCmd::CmdMaterialList(_)
+        | EngineCmd::CmdTextureGet(_)
         | EngineCmd::CmdTextureList(_)
+        | EngineCmd::CmdGeometryGet(_)
         | EngineCmd::CmdGeometryList(_)
+        | EngineCmd::CmdLightGet(_)
         | EngineCmd::CmdLightList(_)
+        | EngineCmd::CmdCameraGet(_)
         | EngineCmd::CmdCameraList(_)
+        | EngineCmd::CmdEnvironmentGet(_)
+        | EngineCmd::CmdEnvironmentList(_)
+        | EngineCmd::CmdMaterialDefinitionGet(_)
+        | EngineCmd::CmdMaterialDefinitionList(_)
+        | EngineCmd::CmdMaterialInstanceGet(_)
+        | EngineCmd::CmdMaterialInstanceList(_)
+        | EngineCmd::CmdAudioListenerGet(_)
+        | EngineCmd::CmdAudioSourceGet(_)
+        | EngineCmd::CmdAudioSourceList(_)
+        | EngineCmd::CmdAudioResourceGet(_)
+        | EngineCmd::CmdAudioResourceList(_)
+        | EngineCmd::CmdRealmGet(_)
+        | EngineCmd::CmdRealmList(_)
+        | EngineCmd::CmdTargetGet(_)
+        | EngineCmd::CmdTargetList(_)
+        | EngineCmd::CmdTargetLayerGet(_)
+        | EngineCmd::CmdTargetLayerList(_)
         | EngineCmd::CmdGizmoDrawLine(_)
         | EngineCmd::CmdGizmoDrawAabb(_)
         | EngineCmd::CmdGizmoDrawPolyline(_)) => {

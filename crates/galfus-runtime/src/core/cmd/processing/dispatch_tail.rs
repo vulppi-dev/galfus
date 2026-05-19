@@ -17,6 +17,90 @@ pub(super) fn dispatch_ui_and_misc(engine: &mut EngineState, envelope_id: u64, c
                 response: CommandResponse::MaterialList(result),
             });
         }
+        EngineCmd::CmdModelGet(args) => {
+            let result = res::engine_cmd_model_get(engine, &args);
+            engine.runtime.push_response(CommandResponseEnvelope {
+                id: envelope_id,
+                response: CommandResponse::ModelGet(result),
+            });
+        }
+        EngineCmd::CmdMaterialGet(args) => {
+            let result = res::engine_cmd_material_get(engine, &args);
+            engine.runtime.push_response(CommandResponseEnvelope {
+                id: envelope_id,
+                response: CommandResponse::MaterialGet(result),
+            });
+        }
+        EngineCmd::CmdTextureGet(args) => {
+            let result = res::engine_cmd_texture_get(engine, &args);
+            engine.runtime.push_response(CommandResponseEnvelope {
+                id: envelope_id,
+                response: CommandResponse::TextureGet(result),
+            });
+        }
+        EngineCmd::CmdGeometryGet(args) => {
+            let result = res::engine_cmd_geometry_get(engine, &args);
+            engine.runtime.push_response(CommandResponseEnvelope {
+                id: envelope_id,
+                response: CommandResponse::GeometryGet(result),
+            });
+        }
+        EngineCmd::CmdLightGet(args) => {
+            let result = res::engine_cmd_light_get(engine, &args);
+            engine.runtime.push_response(CommandResponseEnvelope {
+                id: envelope_id,
+                response: CommandResponse::LightGet(result),
+            });
+        }
+        EngineCmd::CmdCameraGet(args) => {
+            let result = res::engine_cmd_camera_get(engine, &args);
+            engine.runtime.push_response(CommandResponseEnvelope {
+                id: envelope_id,
+                response: CommandResponse::CameraGet(result),
+            });
+        }
+        EngineCmd::CmdEnvironmentGet(args) => {
+            let result = res::engine_cmd_environment_get(engine, &args);
+            engine.runtime.push_response(CommandResponseEnvelope {
+                id: envelope_id,
+                response: CommandResponse::EnvironmentGet(result),
+            });
+        }
+        EngineCmd::CmdEnvironmentList(args) => {
+            let result = res::engine_cmd_environment_list(engine, &args);
+            engine.runtime.push_response(CommandResponseEnvelope {
+                id: envelope_id,
+                response: CommandResponse::EnvironmentList(result),
+            });
+        }
+        EngineCmd::CmdMaterialDefinitionGet(args) => {
+            let result = res::engine_cmd_material_definition_get(engine, &args);
+            engine.runtime.push_response(CommandResponseEnvelope {
+                id: envelope_id,
+                response: CommandResponse::MaterialDefinitionGet(result),
+            });
+        }
+        EngineCmd::CmdMaterialDefinitionList(args) => {
+            let result = res::engine_cmd_material_definition_list(engine, &args);
+            engine.runtime.push_response(CommandResponseEnvelope {
+                id: envelope_id,
+                response: CommandResponse::MaterialDefinitionList(result),
+            });
+        }
+        EngineCmd::CmdMaterialInstanceGet(args) => {
+            let result = res::engine_cmd_material_instance_get(engine, &args);
+            engine.runtime.push_response(CommandResponseEnvelope {
+                id: envelope_id,
+                response: CommandResponse::MaterialInstanceGet(result),
+            });
+        }
+        EngineCmd::CmdMaterialInstanceList(args) => {
+            let result = res::engine_cmd_material_instance_list(engine, &args);
+            engine.runtime.push_response(CommandResponseEnvelope {
+                id: envelope_id,
+                response: CommandResponse::MaterialInstanceList(result),
+            });
+        }
         EngineCmd::CmdTextureList(args) => {
             let result = res::engine_cmd_texture_list(engine, &args);
             engine.runtime.push_response(CommandResponseEnvelope {
@@ -43,6 +127,83 @@ pub(super) fn dispatch_ui_and_misc(engine: &mut EngineState, envelope_id: u64, c
             engine.runtime.push_response(CommandResponseEnvelope {
                 id: envelope_id,
                 response: CommandResponse::CameraList(result),
+            });
+        }
+        EngineCmd::CmdAudioListenerGet(args) => {
+            let result = audio::engine_cmd_audio_listener_get(engine, &args);
+            engine.runtime.push_response(CommandResponseEnvelope {
+                id: envelope_id,
+                response: CommandResponse::AudioListenerGet(result),
+            });
+        }
+        EngineCmd::CmdAudioSourceGet(args) => {
+            let result = audio::engine_cmd_audio_source_get(engine, &args);
+            engine.runtime.push_response(CommandResponseEnvelope {
+                id: envelope_id,
+                response: CommandResponse::AudioSourceGet(result),
+            });
+        }
+        EngineCmd::CmdAudioSourceList(args) => {
+            let result = audio::engine_cmd_audio_source_list(engine, &args);
+            engine.runtime.push_response(CommandResponseEnvelope {
+                id: envelope_id,
+                response: CommandResponse::AudioSourceList(result),
+            });
+        }
+        EngineCmd::CmdAudioResourceGet(args) => {
+            let result = audio::engine_cmd_audio_resource_get(engine, &args);
+            engine.runtime.push_response(CommandResponseEnvelope {
+                id: envelope_id,
+                response: CommandResponse::AudioResourceGet(result),
+            });
+        }
+        EngineCmd::CmdAudioResourceList(args) => {
+            let result = audio::engine_cmd_audio_resource_list(engine, &args);
+            engine.runtime.push_response(CommandResponseEnvelope {
+                id: envelope_id,
+                response: CommandResponse::AudioResourceList(result),
+            });
+        }
+        EngineCmd::CmdRealmGet(args) => {
+            let result = realm::engine_cmd_realm_get(engine, &args);
+            engine.runtime.push_response(CommandResponseEnvelope {
+                id: envelope_id,
+                response: CommandResponse::RealmGet(result),
+            });
+        }
+        EngineCmd::CmdRealmList(args) => {
+            let result = realm::engine_cmd_realm_list(engine, &args);
+            engine.runtime.push_response(CommandResponseEnvelope {
+                id: envelope_id,
+                response: CommandResponse::RealmList(result),
+            });
+        }
+        EngineCmd::CmdTargetGet(args) => {
+            let result = target::engine_cmd_target_get(engine, &args);
+            engine.runtime.push_response(CommandResponseEnvelope {
+                id: envelope_id,
+                response: CommandResponse::TargetGet(result),
+            });
+        }
+        EngineCmd::CmdTargetList(args) => {
+            let result = target::engine_cmd_target_list(engine, &args);
+            engine.runtime.push_response(CommandResponseEnvelope {
+                id: envelope_id,
+                response: CommandResponse::TargetList(result),
+            });
+        }
+        EngineCmd::CmdTargetLayerGet(args) => {
+            let result = target::engine_cmd_target_layer_get(engine, &args);
+            engine.runtime.push_response(CommandResponseEnvelope {
+                id: envelope_id,
+                response: CommandResponse::TargetLayerGet(result),
+            });
+        }
+        EngineCmd::CmdTargetLayerList(args) => {
+            let result = target::engine_cmd_target_layer_list(engine, &args);
+            engine.runtime.push_response(CommandResponseEnvelope {
+                id: envelope_id,
+                response: CommandResponse::TargetLayerList(result),
             });
         }
         EngineCmd::CmdGizmoDrawLine(args) => {

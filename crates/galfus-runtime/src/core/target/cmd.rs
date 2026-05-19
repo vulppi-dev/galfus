@@ -98,6 +98,89 @@ pub struct CmdResultTargetLayerDispose {
     pub message: String,
 }
 
+#[derive(Debug, Default, Deserialize, Serialize, Clone)]
+#[serde(default, rename_all = "camelCase")]
+pub struct CmdTargetGetArgs {
+    pub target_id: u64,
+}
+
+#[derive(Debug, Default, Deserialize, Serialize, Clone)]
+#[serde(default, rename_all = "camelCase")]
+pub struct CmdResultTargetGet {
+    pub success: bool,
+    pub message: String,
+    pub target_id: u64,
+    pub kind: Option<TargetKind>,
+    pub window_id: Option<u32>,
+    pub size: Option<UVec2>,
+}
+
+#[derive(Debug, Default, Deserialize, Serialize, Clone)]
+#[serde(default, rename_all = "camelCase")]
+pub struct CmdTargetListArgs {
+    pub window_id: Option<u32>,
+    pub ids: Option<Vec<u64>>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct TargetListItem {
+    pub target_id: u64,
+    pub kind: TargetKind,
+    pub window_id: Option<u32>,
+    pub size: Option<UVec2>,
+}
+
+#[derive(Debug, Default, Deserialize, Serialize, Clone)]
+#[serde(default, rename_all = "camelCase")]
+pub struct CmdResultTargetList {
+    pub success: bool,
+    pub message: String,
+    pub items: Vec<TargetListItem>,
+}
+
+#[derive(Debug, Default, Deserialize, Serialize, Clone)]
+#[serde(default, rename_all = "camelCase")]
+pub struct CmdTargetLayerGetArgs {
+    pub realm_id: u32,
+    pub target_id: u64,
+}
+
+#[derive(Debug, Default, Deserialize, Serialize, Clone)]
+#[serde(default, rename_all = "camelCase")]
+pub struct CmdResultTargetLayerGet {
+    pub success: bool,
+    pub message: String,
+    pub realm_id: u32,
+    pub target_id: u64,
+    pub enabled_camera_ids: Vec<u32>,
+    pub environment_id: Option<u32>,
+}
+
+#[derive(Debug, Default, Deserialize, Serialize, Clone)]
+#[serde(default, rename_all = "camelCase")]
+pub struct CmdTargetLayerListArgs {
+    pub realm_id: Option<u32>,
+    pub target_id: Option<u64>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct TargetLayerListItem {
+    pub realm_id: u32,
+    pub target_id: u64,
+    pub enabled_camera_ids: Vec<u32>,
+    pub environment_id: Option<u32>,
+}
+
+#[derive(Debug, Default, Deserialize, Serialize, Clone)]
+#[serde(default, rename_all = "camelCase")]
+pub struct CmdResultTargetLayerList {
+    pub success: bool,
+    pub message: String,
+    pub items: Vec<TargetLayerListItem>,
+}
+
 pub fn engine_cmd_target_upsert(
     engine: &mut EngineState,
     args: &CmdTargetUpsertArgs,
@@ -307,6 +390,122 @@ pub fn engine_cmd_target_layer_dispose(
     CmdResultTargetLayerDispose {
         success: true,
         message: "TargetLayer disposed".into(),
+    }
+}
+
+pub fn engine_cmd_target_get(
+    engine: &mut EngineState,
+    args: &CmdTargetGetArgs,
+) -> CmdResultTargetGet {
+    let target_id = TargetId(args.target_id);
+    let Some(target) = engine
+        .universal_state
+        .targets
+        .targets
+        .entries
+        .get(&target_id)
+    else {
+        return CmdResultTargetGet {
+            success: false,
+            message: format!("Target {} not found", args.target_id),
+            target_id: args.target_id,
+            ..Default::default()
+        };
+    };
+    CmdResultTargetGet {
+        success: true,
+        message: "Target found".into(),
+        target_id: args.target_id,
+        kind: Some(target.kind),
+        window_id: target.window_id,
+        size: target.size,
+    }
+}
+
+pub fn engine_cmd_target_list(
+    engine: &mut EngineState,
+    args: &CmdTargetListArgs,
+) -> CmdResultTargetList {
+    let items = engine
+        .universal_state
+        .targets
+        .targets
+        .entries
+        .iter()
+        .filter(|(id, state)| {
+            args.window_id
+                .is_none_or(|window_id| state.window_id == Some(window_id))
+                && args.ids.as_ref().is_none_or(|ids| ids.contains(&id.0))
+        })
+        .map(|(id, state)| TargetListItem {
+            target_id: id.0,
+            kind: state.kind,
+            window_id: state.window_id,
+            size: state.size,
+        })
+        .collect();
+
+    CmdResultTargetList {
+        success: true,
+        message: "Targets listed".into(),
+        items,
+    }
+}
+
+pub fn engine_cmd_target_layer_get(
+    engine: &mut EngineState,
+    args: &CmdTargetLayerGetArgs,
+) -> CmdResultTargetLayerGet {
+    let Some(layer) = engine
+        .universal_state
+        .targets
+        .target_layers
+        .entries
+        .get(&(args.realm_id, TargetId(args.target_id)))
+    else {
+        return CmdResultTargetLayerGet {
+            success: false,
+            message: "Target layer not found".into(),
+            realm_id: args.realm_id,
+            target_id: args.target_id,
+            ..Default::default()
+        };
+    };
+    CmdResultTargetLayerGet {
+        success: true,
+        message: "Target layer found".into(),
+        realm_id: args.realm_id,
+        target_id: args.target_id,
+        enabled_camera_ids: layer.enabled_camera_ids.clone(),
+        environment_id: layer.environment_id,
+    }
+}
+
+pub fn engine_cmd_target_layer_list(
+    engine: &mut EngineState,
+    args: &CmdTargetLayerListArgs,
+) -> CmdResultTargetLayerList {
+    let items = engine
+        .universal_state
+        .targets
+        .target_layers
+        .entries
+        .iter()
+        .filter(|((realm_id, target_id), _)| {
+            args.realm_id.is_none_or(|id| id == *realm_id)
+                && args.target_id.is_none_or(|id| id == target_id.0)
+        })
+        .map(|((realm_id, target_id), layer)| TargetLayerListItem {
+            realm_id: *realm_id,
+            target_id: target_id.0,
+            enabled_camera_ids: layer.enabled_camera_ids.clone(),
+            environment_id: layer.environment_id,
+        })
+        .collect();
+    CmdResultTargetLayerList {
+        success: true,
+        message: "Target layers listed".into(),
+        items,
     }
 }
 

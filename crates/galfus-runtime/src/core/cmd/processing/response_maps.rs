@@ -62,6 +62,7 @@ pub(super) fn response_is_success(response: &CommandResponse) -> bool {
         CommandResponse::GizmoDrawLine(result) => result.status == 0,
         CommandResponse::GizmoDrawAabb(result) => result.status == 0,
         CommandResponse::GizmoDrawPolyline(result) => result.status == 0,
+        _ => true,
     }
 }
 
@@ -127,6 +128,7 @@ pub(super) fn response_message(response: &CommandResponse) -> Option<String> {
         CommandResponse::GizmoDrawLine(_) => None,
         CommandResponse::GizmoDrawAabb(_) => None,
         CommandResponse::GizmoDrawPolyline(_) => None,
+        _ => None,
     }
 }
 

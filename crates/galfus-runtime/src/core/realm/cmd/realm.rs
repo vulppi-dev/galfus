@@ -44,6 +44,45 @@ pub struct CmdResultRealmDispose {
     pub message: String,
 }
 
+#[derive(Debug, Default, Deserialize, Serialize, Clone)]
+#[serde(default, rename_all = "camelCase")]
+pub struct CmdRealmGetArgs {
+    pub realm_id: u32,
+}
+
+#[derive(Debug, Default, Deserialize, Serialize, Clone)]
+#[serde(default, rename_all = "camelCase")]
+pub struct CmdResultRealmGet {
+    pub success: bool,
+    pub message: String,
+    pub realm_id: u32,
+    pub kind: Option<RealmKindDto>,
+    pub render_graph_id: Option<u32>,
+}
+
+#[derive(Debug, Default, Deserialize, Serialize, Clone)]
+#[serde(default, rename_all = "camelCase")]
+pub struct CmdRealmListArgs {
+    pub kind: Option<RealmKindDto>,
+    pub ids: Option<Vec<u32>>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct RealmListItem {
+    pub realm_id: u32,
+    pub kind: RealmKindDto,
+    pub render_graph_id: Option<u32>,
+}
+
+#[derive(Debug, Default, Deserialize, Serialize, Clone)]
+#[serde(default, rename_all = "camelCase")]
+pub struct CmdResultRealmList {
+    pub success: bool,
+    pub message: String,
+    pub items: Vec<RealmListItem>,
+}
+
 pub fn engine_cmd_realm_create(
     engine: &mut EngineState,
     args: &CmdRealmCreateArgs,
@@ -110,3 +149,71 @@ pub fn engine_cmd_realm_dispose(
         message: "Realm disposed".into(),
     }
 }
+
+fn realm_kind_to_dto(kind: RealmKind) -> RealmKindDto {
+    match kind {
+        RealmKind::ThreeD => RealmKindDto::ThreeD,
+        RealmKind::TwoD => RealmKindDto::TwoD,
+    }
+}
+
+pub fn engine_cmd_realm_get(engine: &mut EngineState, args: &CmdRealmGetArgs) -> CmdResultRealmGet {
+    let realm_id = RealmId(args.realm_id);
+    let Some(entry) = engine
+        .universal_state
+        .composition
+        .realms
+        .entries
+        .get(&realm_id)
+    else {
+        return CmdResultRealmGet {
+            success: false,
+            message: format!("Realm {} not found", args.realm_id),
+            realm_id: args.realm_id,
+            ..Default::default()
+        };
+    };
+    CmdResultRealmGet {
+        success: true,
+        message: "Realm found".into(),
+        realm_id: args.realm_id,
+        kind: Some(realm_kind_to_dto(entry.value.kind)),
+        render_graph_id: entry.value.render_graph_id,
+    }
+}
+
+pub fn engine_cmd_realm_list(
+    engine: &mut EngineState,
+    args: &CmdRealmListArgs,
+) -> CmdResultRealmList {
+    let items = engine
+        .universal_state
+        .composition
+        .realms
+        .entries
+        .iter()
+        .filter(|(realm_id, entry)| {
+            args.ids
+                .as_ref()
+                .is_none_or(|ids| ids.contains(&realm_id.0))
+                && args
+                    .kind
+                    .is_none_or(|kind| realm_kind_to_dto(entry.value.kind) == kind)
+        })
+        .map(|(realm_id, entry)| RealmListItem {
+            realm_id: realm_id.0,
+            kind: realm_kind_to_dto(entry.value.kind),
+            render_graph_id: entry.value.render_graph_id,
+        })
+        .collect();
+
+    CmdResultRealmList {
+        success: true,
+        message: "Realms listed".into(),
+        items,
+    }
+}
+
+#[cfg(test)]
+#[path = "realm_tests.rs"]
+mod tests;

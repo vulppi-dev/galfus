@@ -47,6 +47,7 @@ pub struct EngineState {
     pub present_sizes_hash: u64,
 
     pub runtime: EngineRuntimeState,
+    pub revision: u64,
     pub pending_texture_decode_results: Vec<TextureDecodeResult>,
 
     #[cfg(not(target_arch = "wasm32"))]
@@ -150,6 +151,7 @@ impl EngineState {
             present_sizes_cache: HashMap::new(),
             present_sizes_hash: 0,
             runtime: EngineRuntimeState::default(),
+            revision: 0,
             pending_texture_decode_results: Vec::new(),
             #[cfg(not(target_arch = "wasm32"))]
             input: InputState::new(),

@@ -14,5 +14,8 @@ pub use source::{
     engine_cmd_audio_source_transport, engine_cmd_audio_source_update,
     process_audio_source_bindings,
 };
-pub use state::engine_cmd_audio_state_get;
+pub use state::{
+    engine_cmd_audio_listener_get, engine_cmd_audio_resource_get, engine_cmd_audio_resource_list,
+    engine_cmd_audio_source_get, engine_cmd_audio_source_list, engine_cmd_audio_state_get,
+};
 pub use types::*;

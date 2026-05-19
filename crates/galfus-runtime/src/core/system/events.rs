@@ -204,4 +204,14 @@ pub enum SystemEvent {
         key_code: Option<u32>,
         key_state: Option<ElementState>,
     },
+
+    #[serde(rename_all = "camelCase")]
+    ResourceMutation {
+        kind: String,
+        id: u64,
+        action: String,
+        realm_id: Option<u32>,
+        window_id: Option<u32>,
+        revision: u64,
+    },
 }
