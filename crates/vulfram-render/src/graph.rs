@@ -1,3 +1,4 @@
+use crate::RenderGraphShaderSpec;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::hash::{DefaultHasher, Hash, Hasher};
@@ -114,7 +115,19 @@ pub struct RenderGraphNode {
     #[serde(default)]
     pub outputs: Vec<LogicalId>,
     #[serde(default)]
+    pub require: Vec<LogicalId>,
+    #[serde(default)]
+    pub priority: i32,
+    #[serde(default = "default_graph_node_enabled")]
+    pub enabled: bool,
+    #[serde(default)]
     pub params: HashMap<String, RenderGraphValue>,
+    #[serde(default)]
+    pub shader: Option<RenderGraphShaderSpec>,
+}
+
+fn default_graph_node_enabled() -> bool {
+    true
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -245,7 +258,8 @@ pub fn ensure_default_render_graphs(
 
 pub fn validate_graph(desc: &RenderGraphDesc) -> Result<RenderGraphPlan, String> {
     let mut node_ids: HashSet<LogicalId> = HashSet::new();
-    for node in &desc.nodes {
+    let enabled_nodes: Vec<_> = desc.nodes.iter().filter(|node| node.enabled).collect();
+    for node in &enabled_nodes {
         if !node_ids.insert(node.node_id.clone()) {
             return Err(format!("Duplicate node_id: {}", node.node_id));
         }
@@ -259,14 +273,29 @@ pub fn validate_graph(desc: &RenderGraphDesc) -> Result<RenderGraphPlan, String>
     }
 
     let mut node_index: HashMap<LogicalId, usize> = HashMap::new();
-    for (idx, node) in desc.nodes.iter().enumerate() {
+    let filtered_nodes: Vec<_> = enabled_nodes.into_iter().cloned().collect();
+    for (idx, node) in filtered_nodes.iter().enumerate() {
         node_index.insert(node.node_id.clone(), idx);
         if !is_known_pass(&node.pass_id) {
             return Err(format!("Unknown pass_id: {}", node.pass_id));
         }
+        if let Some(shader) = &node.shader {
+            crate::shader_dsl::validate_shader_spec(
+                shader,
+                &node.inputs,
+                &node.outputs,
+                &node.params,
+            )
+            .map_err(|err| format!("Invalid shader in node '{}': {}", node.node_id, err))?;
+        }
     }
 
     for edge in &desc.edges {
+        if !node_index.contains_key(&edge.from_node_id)
+            || !node_index.contains_key(&edge.to_node_id)
+        {
+            continue;
+        }
         if !node_index.contains_key(&edge.from_node_id) {
             return Err(format!("Edge from unknown node: {}", edge.from_node_id));
         }
@@ -275,7 +304,7 @@ pub fn validate_graph(desc: &RenderGraphDesc) -> Result<RenderGraphPlan, String>
         }
     }
 
-    for node in &desc.nodes {
+    for node in &filtered_nodes {
         let mut node_inputs: HashSet<&LogicalId> = HashSet::new();
         for input in &node.inputs {
             if !node_inputs.insert(input) {
@@ -286,6 +315,18 @@ pub fn validate_graph(desc: &RenderGraphDesc) -> Result<RenderGraphPlan, String>
             }
             if !res_ids.contains(input) {
                 return Err(format!("Input resource '{}' not declared", input));
+            }
+        }
+        let mut node_require: HashSet<&LogicalId> = HashSet::new();
+        for required in &node.require {
+            if !node_require.insert(required) {
+                return Err(format!(
+                    "Duplicate require '{}' in node '{}'",
+                    required, node.node_id
+                ));
+            }
+            if !res_ids.contains(required) {
+                return Err(format!("Required resource '{}' not declared", required));
             }
         }
         let mut node_outputs: HashSet<&LogicalId> = HashSet::new();
@@ -302,13 +343,40 @@ pub fn validate_graph(desc: &RenderGraphDesc) -> Result<RenderGraphPlan, String>
         }
     }
 
-    let order = topo_sort(&desc.nodes, &desc.edges)?;
-    crate::validation::validate_graph_semantics(desc, &order)?;
+    let derived_edges = crate::validation::derive_graph_edges(&filtered_nodes);
+    let mut all_edges: Vec<RenderGraphEdge> = Vec::new();
+    for edge in &desc.edges {
+        if node_index.contains_key(&edge.from_node_id) && node_index.contains_key(&edge.to_node_id)
+        {
+            all_edges.push(edge.clone());
+        }
+    }
+    all_edges.extend(derived_edges);
+    dedupe_edges(&mut all_edges);
+
+    let filtered_desc = RenderGraphDesc {
+        graph_id: desc.graph_id.clone(),
+        nodes: filtered_nodes.clone(),
+        edges: all_edges,
+        resources: desc.resources.clone(),
+        fallback: desc.fallback,
+    };
+    let order = topo_sort(&filtered_desc.nodes, &filtered_desc.edges)?;
+    crate::validation::validate_graph_semantics(&filtered_desc, &order)?;
 
     Ok(RenderGraphPlan {
-        nodes: desc.nodes.clone(),
+        nodes: filtered_nodes,
         order,
     })
+}
+
+fn dedupe_edges(edges: &mut Vec<RenderGraphEdge>) {
+    edges.sort_by(|a, b| {
+        let ak = (a.from_node_id.to_string(), a.to_node_id.to_string());
+        let bk = (b.from_node_id.to_string(), b.to_node_id.to_string());
+        ak.cmp(&bk)
+    });
+    edges.dedup_by(|a, b| a.from_node_id == b.from_node_id && a.to_node_id == b.to_node_id);
 }
 
 fn topo_sort(nodes: &[RenderGraphNode], edges: &[RenderGraphEdge]) -> Result<Vec<usize>, String> {

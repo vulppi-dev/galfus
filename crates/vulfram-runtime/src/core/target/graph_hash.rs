@@ -92,7 +92,7 @@ fn hash_target_state(state: &TargetState) -> u64 {
 fn hash_layer_state(layer: &TargetLayerState) -> u64 {
     let mut hasher = std::collections::hash_map::DefaultHasher::new();
     hash_layout(&layer.layout, &mut hasher);
-    layer.camera_id.hash(&mut hasher);
+    layer.enabled_camera_ids.hash(&mut hasher);
     layer.environment_id.hash(&mut hasher);
     hasher.finish()
 }
@@ -108,6 +108,8 @@ fn hash_layout(layout: &TargetLayerLayout, hasher: &mut impl Hasher) {
     hash_dimension_value(layout.top, hasher);
     hash_dimension_value(layout.width, hasher);
     hash_dimension_value(layout.height, hasher);
+    layout.enabled.hash(hasher);
+    hash_f32(layout.opacity, hasher);
     layout.z_index.hash(hasher);
     layout.blend_mode.hash(hasher);
     if let Some(clip) = layout.clip {

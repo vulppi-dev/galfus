@@ -4012,6 +4012,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "vulfram-log"
+version = "0.0.0"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "vulfram-platform"
 version = "0.0.0"
 dependencies = [
@@ -4034,6 +4041,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_path_to_error",
+ "vulfram-log",
  "vulfram-types",
 ]
 
@@ -4063,23 +4071,13 @@ dependencies = [
 ]
 
 [[package]]
-name = "vulfram-realm-ui"
-version = "0.0.0"
-dependencies = [
- "glam 0.30.10",
- "serde",
- "serde_json",
- "vulfram-input",
- "vulfram-types",
-]
-
-[[package]]
 name = "vulfram-render"
 version = "0.0.0"
 dependencies = [
  "bytemuck",
  "egui",
  "glam 0.30.10",
+ "naga",
  "rmp-serde",
  "serde",
  "vulfram-platform",
@@ -4097,7 +4095,6 @@ dependencies = [
  "bytemuck",
  "console_error_panic_hook",
  "ctrlc",
- "egui",
  "encase",
  "env_logger",
  "getrandom 0.3.4",
@@ -4119,12 +4116,12 @@ dependencies = [
  "smallvec",
  "vulfram-audio",
  "vulfram-input",
+ "vulfram-log",
  "vulfram-platform",
  "vulfram-protocol",
  "vulfram-realm-2d",
  "vulfram-realm-3d",
  "vulfram-realm-core",
- "vulfram-realm-ui",
  "vulfram-render",
  "vulfram-types",
  "wasm-bindgen",

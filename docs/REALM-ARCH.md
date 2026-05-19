@@ -1,155 +1,111 @@
-# Realm Composition Architecture
+# Realm Architecture
 
-This document records the current realm-composition model and the recommended
-refactor direction for `vulfram-realm-core`.
+This document defines the active composition architecture used by Vulfram vNext.
 
-It replaces the old "phase 0 planning" description as the architecture
-reference for realms, surfaces, presents, connectors and reports.
-
-## 1. Current Model
-
-### Host-visible inputs
+## Core primitives
 
 - `Realm`
 - `Target`
-- `TargetLayer`
-- `render_graph_id` bound per realm
+- `Layer`
+- `Texture`
+- `FrameGraph`
+- `RenderInvocation`
 
-### Core-owned derived tables
+Removed from public architecture:
 
-- `Surface`
-- `Present`
+- `WidgetRealmViewport`
+- `RealmPlane`
 - `Connector`
+- `Present`
+- `Surface` as public composition concept
 
-### Runtime diagnostics
+## Realm
 
-- `RealmGraphPlan`
-- `TargetGraphPlan`
-- `FrameReport`
-- auto-link failure records
+A `Realm` is a logical render domain.
 
-## 2. Composition Rules
+- `realm-3d`: scene, cameras, lights, materials, models, internal `Graph3D`
+- `realm-2d`: scene, sprites/shapes, internal `Graph2D`
 
-Each `TargetLayer(realm -> target)` participates in runtime composition.
+A realm is not a window and not a texture. It has no fixed output size and no clear policy.
 
-Current practical behavior:
+The same realm can be rendered multiple times in the same frame through different target layers.
 
-- one realm chooses one primary target deterministically
-- the primary target defines the realm output surface characteristics
-- host window roots create `Present`
-- non-root window composition, viewport composition and realm planes create
-  `Connector`
-- target graph and realm graph diagnostics are refreshed from these maps
+## Target
 
-## 3. Ownership Rules
+A `Target` is a final composition destination.
 
-### Host owns
+Kinds:
 
-- `RealmId`
-- `TargetId`
-- resource/component IDs
-- correctness/uniqueness of logical IDs
+- `window`
+- `texture`
 
-### Core owns
+A target owns:
 
-- `SurfaceId`
-- `PresentId`
-- `ConnectorId`
-- auto-link reconciliation
-- cycle-breaking caches and reports
+- `kind`
+- resolved size
+- clear policy
+- list of layers
 
-## 4. What Belongs in `vulfram-realm-core`
+Clear happens at target scope only.
 
-`vulfram-realm-core` should own realm-composition semantics:
+## Layer
 
-- `RealmState`
-- `ConnectorState`
-- `PresentState`
-- composition tables
-- realm graph and target graph DTOs/plans
-- frame report DTOs
-- small shared composition math/value types
+A `Layer` is a composition instruction inside one target.
 
-It should not own broader runtime state such as:
+It defines:
 
-- UI document state
-- input routing captures/listeners
-- texture/material registries
-- render graph catalogs
-- WGPU caches/targets
-- 3D semantic state that belongs to specialized realm crates such as
-  `vulfram-realm-3d`
+- which realm to render
+- where (`rect`)
+- how to compose (`blend`, `opacity`)
+- whether it is active (`enabled`)
+- visual ordering (`zIndex`, with deterministic tie-break by insertion key)
 
-## 5. Internal Split Recommendation
+A layer does not embed a realm and does not own clear state.
 
-Recommended file/module layout:
+## RenderInvocation
 
-```text
-vulfram-realm-core/
-  types.rs
-  state.rs
-  tables.rs
-  realm_graph.rs
-  target_graph.rs
-  report.rs
-  render_passes.rs
-```
+Each concrete layer execution becomes one `RenderInvocation`.
 
-Why:
+`RenderInvocation` carries runtime-only execution context:
 
-- composition state becomes easier to audit
-- planners stop sharing a mega-file with unrelated DTOs
-- future extraction of auto-graph planning policy becomes simpler
+- `realm`
+- `target`
+- `layer`
+- `resolved_rect_px`
+- `render_size_px`
+- `frame_id`
 
-## 6. Auto-Graph Boundary
+This guarantees that one realm rendered in multiple places/sizes does not share ambiguous per-frame size state.
 
-Recommended long-term boundary:
+## FrameGraph
 
-- `vulfram-realm-core`
-  - composition state and DTOs
-- `vulfram-render`
-  - auto-graph planning policy
-  - realm ordering/composition rules related to rendering
-  - layer sync decisions for derived internal links
-- `vulfram-runtime`
-  - command handling
-  - applying planner results
-  - emitting events/diagnostics
+`FrameGraph` is the global per-frame scheduler.
 
-This boundary is preferable to putting the whole auto-graph in runtime because
-the planner exists to support render composition, not generic command routing.
+It resolves:
 
-## 7. UniversalState Decision
+- active targets
+- resolved layers
+- produced textures
+- consumed textures
+- dependency edges between targets
+- deterministic target execution order
 
-`UniversalState` should not move into `vulfram-realm-core` in its current form.
+Cycles are handled by using previous-frame cached texture data on cyclic reads.
 
-Reason:
+## Composition flow
 
-- it contains much more than realm composition
-- moving it as-is would make `realm-core` a misleading "misc runtime state"
-  crate
+1. Resolve active targets.
+2. Resolve layer rects against target size.
+3. Build render invocations.
+4. Build target dependency graph from texture production/consumption.
+5. Order targets deterministically.
+6. For each target: clear, render each layer invocation, compose layer image.
 
-Safer direction:
+## Graph separation
 
-- extract a smaller composition-only state into `vulfram-realm-core`
-- keep runtime-specific aggregates in `vulfram-runtime`
+There are two graph levels:
 
-## 8. Target State Recommendation
+- `FrameGraph`: orders targets/layers/textures globally
+- `Graph3D` / `Graph2D`: orders passes inside one render invocation
 
-A practical future split is:
-
-- `RealmCompositionState`
-  - realm/surface/present/connector/surface-cache/frame-report
-- `TargetRoutingState`
-  - targets/target-layers/target-graph-cache/auto-links/indexes/failures
-- `SceneResourceState`
-  - scene/resource registries instantiated by runtime, with semantic 3D types
-    defined in `vulfram-realm-3d`
-- `RenderCatalogState`
-  - render graph catalog + plan cache
-- `UiRuntimeState`
-  - UI runtime
-- `InputRoutingRuntimeState`
-  - captures/focus/listeners
-
-That preserves a clean meaning for each state tree.
+These levels are independent and complementary.

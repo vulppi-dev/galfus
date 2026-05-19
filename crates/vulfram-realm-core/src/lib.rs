@@ -12,12 +12,13 @@ pub use render_passes::{
     RENDER_PASS_SSAO, RENDER_PASS_SSAO_BLUR, RENDER_PASS_UI,
 };
 pub use report::{
-    FrameCutEdge, FrameReport, SurfaceCacheEntry, TargetAutoLinkFailure, TargetLayerReportKey,
+    FrameCutEdge, FrameReport, SurfaceCacheEntry, TargetAutoLinkFailure, TargetCutEdge,
+    TargetInvocationReport, TargetLayerReportKey,
 };
 pub use state::{
-    AutoLink, ConnectorState, DimensionValue, PresentState, RealmState, SurfaceCache, TargetEdge,
-    TargetGraphDiff, TargetGraphPlan, TargetGraphPlanner, TargetId, TargetKind, TargetLayerLayout,
-    TargetLayerState,
+    AutoLink, ConnectorState, DimensionValue, PresentState, RealmState, RenderInvocation,
+    SurfaceCache, TargetEdge, TargetGraphDiff, TargetGraphPlan, TargetGraphPlanner, TargetId,
+    TargetKind, TargetLayerLayout, TargetLayerState,
 };
 pub use tables::{ConnectorTable, PresentTable, RealmTable, TableEntry};
 pub use vulfram_types::{ConnectorId, PresentId, RealmId, RealmKind, SurfaceId};

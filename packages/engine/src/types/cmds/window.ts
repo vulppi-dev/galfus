@@ -19,8 +19,6 @@ export interface CmdResultWindowCreate {
   success: boolean;
   message: string;
   realmId?: number;
-  surfaceId?: number;
-  presentId?: number;
 }
 
 /** Command payload for closing a window. */
@@ -42,7 +40,6 @@ export interface CmdWindowMeasurementArgs {
   getPosition?: boolean;
   getSize?: boolean;
   getOuterSize?: boolean;
-  getSurfaceSize?: boolean;
 }
 
 /** Result payload for window measurement command. */
@@ -52,7 +49,6 @@ export interface CmdResultWindowMeasurement {
   position?: vec2;
   size?: vec2;
   outerSize?: vec2;
-  surfaceSize?: vec2;
 }
 
 /** Command payload for cursor updates. */

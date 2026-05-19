@@ -1,21 +1,21 @@
 use super::types::{MaterialSampler, PbrOptions, StandardOptions};
 use crate::core::resources::{
-    MaterialPbrRecord, MaterialStandardRecord, PBR_INPUTS_PER_MATERIAL, PBR_TEXTURE_SLOTS,
-    STANDARD_INPUTS_PER_MATERIAL, STANDARD_TEXTURE_SLOTS,
+    SHADER_MATERIAL_INPUTS_PER_MATERIAL, SHADER_MATERIAL_TEXTURE_SLOTS, ShaderMaterialRecord,
 };
 use glam::Vec4;
 
 pub(crate) fn pack_standard_material(
     material_id: u32,
     opts: &StandardOptions,
-    record: &mut MaterialStandardRecord,
+    record: &mut ShaderMaterialRecord,
 ) {
     let previous_texture_ids = record.texture_ids;
-    let inputs_offset = material_id.saturating_mul(STANDARD_INPUTS_PER_MATERIAL);
+    let inputs_offset = material_id.saturating_mul(SHADER_MATERIAL_INPUTS_PER_MATERIAL);
 
-    record.data.inputs_offset_count = glam::UVec2::new(inputs_offset, STANDARD_INPUTS_PER_MATERIAL);
+    record.data_standard.inputs_offset_count =
+        glam::UVec2::new(inputs_offset, SHADER_MATERIAL_INPUTS_PER_MATERIAL);
 
-    let mut flags = opts.flags.unwrap_or(record.data.surface_flags.y);
+    let mut flags = opts.flags.unwrap_or(record.data_standard.surface_flags.y);
     if opts.spec_color.is_some() || opts.spec_power.is_some() || opts.spec_tex_id.is_some() {
         flags |= 1;
     }
@@ -28,13 +28,13 @@ pub(crate) fn pack_standard_material(
     flags |= (record.render_side as u32) << 1;
 
     let surface_type = opts.surface_type.unwrap_or(record.surface_type);
-    record.data.surface_flags = glam::UVec2::new(surface_type as u32, flags);
+    record.data_standard.surface_flags = glam::UVec2::new(surface_type as u32, flags);
 
-    let mut texture_slots = record.data.texture_slots;
-    let mut sampler_indices = record.data.sampler_indices;
-    let tex_sources = record.data.tex_sources;
-    let atlas_layers = record.data.atlas_layers;
-    let atlas_scale_bias = record.data.atlas_scale_bias;
+    let mut texture_slots = record.data_standard.texture_slots;
+    let mut sampler_indices = record.data_standard.sampler_indices;
+    let tex_sources = record.data_standard.tex_sources;
+    let atlas_layers = record.data_standard.atlas_layers;
+    let atlas_scale_bias = record.data_standard.atlas_scale_bias;
 
     let assign_slot = |slots: &mut [glam::UVec4; 2], index: usize, value: u32| {
         let vec_index = index / 4;
@@ -64,7 +64,7 @@ pub(crate) fn pack_standard_material(
 
     if let Some(tex_id) = opts.base_tex_id {
         let slot = 0;
-        if slot < STANDARD_TEXTURE_SLOTS {
+        if slot < SHADER_MATERIAL_TEXTURE_SLOTS {
             record.texture_ids[slot] = tex_id;
             assign_slot(&mut texture_slots, 0, slot as u32);
             assign_sampler(
@@ -79,7 +79,7 @@ pub(crate) fn pack_standard_material(
 
     if let Some(tex_id) = opts.spec_tex_id {
         let slot = 1;
-        if slot < STANDARD_TEXTURE_SLOTS {
+        if slot < SHADER_MATERIAL_TEXTURE_SLOTS {
             record.texture_ids[slot] = tex_id;
             assign_slot(&mut texture_slots, 1, slot as u32);
             assign_sampler(
@@ -94,7 +94,7 @@ pub(crate) fn pack_standard_material(
 
     if let Some(tex_id) = opts.normal_tex_id {
         let slot = 2;
-        if slot < STANDARD_TEXTURE_SLOTS {
+        if slot < SHADER_MATERIAL_TEXTURE_SLOTS {
             record.texture_ids[slot] = tex_id;
             assign_slot(&mut texture_slots, 2, slot as u32);
             assign_sampler(
@@ -109,7 +109,7 @@ pub(crate) fn pack_standard_material(
 
     if let Some(tex_id) = opts.toon_ramp_tex_id {
         let slot = 3;
-        if slot < STANDARD_TEXTURE_SLOTS {
+        if slot < SHADER_MATERIAL_TEXTURE_SLOTS {
             record.texture_ids[slot] = tex_id;
             assign_slot(&mut texture_slots, 3, slot as u32);
             assign_sampler(
@@ -125,7 +125,7 @@ pub(crate) fn pack_standard_material(
 
     if let Some(tex_id) = opts.emissive_tex_id {
         let slot = 4;
-        if slot < STANDARD_TEXTURE_SLOTS {
+        if slot < SHADER_MATERIAL_TEXTURE_SLOTS {
             record.texture_ids[slot] = tex_id;
             assign_slot(&mut texture_slots, 4, slot as u32);
             assign_sampler(
@@ -139,11 +139,11 @@ pub(crate) fn pack_standard_material(
         assign_sampler(&mut sampler_indices, 4, sampler as u32);
     }
 
-    record.data.texture_slots = texture_slots;
-    record.data.sampler_indices = sampler_indices;
-    record.data.tex_sources = tex_sources;
-    record.data.atlas_layers = atlas_layers;
-    record.data.atlas_scale_bias = atlas_scale_bias;
+    record.data_standard.texture_slots = texture_slots;
+    record.data_standard.sampler_indices = sampler_indices;
+    record.data_standard.tex_sources = tex_sources;
+    record.data_standard.atlas_layers = atlas_layers;
+    record.data_standard.atlas_scale_bias = atlas_scale_bias;
 
     record.surface_type = surface_type;
     if let Some(topology) = opts.topology {
@@ -155,8 +155,8 @@ pub(crate) fn pack_standard_material(
     if record.texture_ids != previous_texture_ids {
         record.bind_group = None;
     }
-    if record.inputs.len() != STANDARD_INPUTS_PER_MATERIAL as usize {
-        record.inputs = vec![Vec4::ZERO; STANDARD_INPUTS_PER_MATERIAL as usize];
+    if record.inputs.len() != SHADER_MATERIAL_INPUTS_PER_MATERIAL as usize {
+        record.inputs = vec![Vec4::ZERO; SHADER_MATERIAL_INPUTS_PER_MATERIAL as usize];
     }
     if let Some(color) = opts.base_color {
         record.inputs[0] = color;
@@ -180,15 +180,16 @@ pub(crate) fn pack_standard_material(
 pub(crate) fn pack_pbr_material(
     material_id: u32,
     opts: &PbrOptions,
-    record: &mut MaterialPbrRecord,
+    record: &mut ShaderMaterialRecord,
 ) {
     let previous_texture_ids = record.texture_ids;
-    let inputs_offset = material_id.saturating_mul(PBR_INPUTS_PER_MATERIAL);
+    let inputs_offset = material_id.saturating_mul(SHADER_MATERIAL_INPUTS_PER_MATERIAL);
 
-    record.data.inputs_offset_count = glam::UVec2::new(inputs_offset, PBR_INPUTS_PER_MATERIAL);
+    record.data_pbr.inputs_offset_count =
+        glam::UVec2::new(inputs_offset, SHADER_MATERIAL_INPUTS_PER_MATERIAL);
 
     let surface_type = opts.surface_type.unwrap_or(record.surface_type);
-    let mut flags = opts.flags.unwrap_or(record.data.surface_flags.y);
+    let mut flags = opts.flags.unwrap_or(record.data_pbr.surface_flags.y);
 
     if let Some(side) = opts.render_side {
         record.render_side = side;
@@ -197,13 +198,13 @@ pub(crate) fn pack_pbr_material(
     flags &= !(0b11 << 1);
     flags |= (record.render_side as u32) << 1;
 
-    record.data.surface_flags = glam::UVec2::new(surface_type as u32, flags);
+    record.data_pbr.surface_flags = glam::UVec2::new(surface_type as u32, flags);
 
-    let mut texture_slots = record.data.texture_slots;
-    let mut sampler_indices = record.data.sampler_indices;
-    let tex_sources = record.data.tex_sources;
-    let atlas_layers = record.data.atlas_layers;
-    let atlas_scale_bias = record.data.atlas_scale_bias;
+    let mut texture_slots = record.data_pbr.texture_slots;
+    let mut sampler_indices = record.data_pbr.sampler_indices;
+    let tex_sources = record.data_pbr.tex_sources;
+    let atlas_layers = record.data_pbr.atlas_layers;
+    let atlas_scale_bias = record.data_pbr.atlas_scale_bias;
 
     let assign_slot = |slots: &mut [glam::UVec4; 2], index: usize, value: u32| {
         let vec_index = index / 4;
@@ -233,7 +234,7 @@ pub(crate) fn pack_pbr_material(
 
     if let Some(tex_id) = opts.base_tex_id {
         let slot = 0;
-        if slot < PBR_TEXTURE_SLOTS {
+        if slot < SHADER_MATERIAL_TEXTURE_SLOTS {
             record.texture_ids[slot] = tex_id;
             assign_slot(&mut texture_slots, 0, slot as u32);
             assign_sampler(
@@ -248,7 +249,7 @@ pub(crate) fn pack_pbr_material(
 
     if let Some(tex_id) = opts.normal_tex_id {
         let slot = 1;
-        if slot < PBR_TEXTURE_SLOTS {
+        if slot < SHADER_MATERIAL_TEXTURE_SLOTS {
             record.texture_ids[slot] = tex_id;
             assign_slot(&mut texture_slots, 1, slot as u32);
             assign_sampler(
@@ -263,7 +264,7 @@ pub(crate) fn pack_pbr_material(
 
     if let Some(tex_id) = opts.metallic_roughness_tex_id {
         let slot = 2;
-        if slot < PBR_TEXTURE_SLOTS {
+        if slot < SHADER_MATERIAL_TEXTURE_SLOTS {
             record.texture_ids[slot] = tex_id;
             assign_slot(&mut texture_slots, 2, slot as u32);
             assign_sampler(
@@ -279,7 +280,7 @@ pub(crate) fn pack_pbr_material(
 
     if let Some(tex_id) = opts.emissive_tex_id {
         let slot = 3;
-        if slot < PBR_TEXTURE_SLOTS {
+        if slot < SHADER_MATERIAL_TEXTURE_SLOTS {
             record.texture_ids[slot] = tex_id;
             assign_slot(&mut texture_slots, 3, slot as u32);
             assign_sampler(
@@ -295,7 +296,7 @@ pub(crate) fn pack_pbr_material(
 
     if let Some(tex_id) = opts.ao_tex_id {
         let slot = 4;
-        if slot < PBR_TEXTURE_SLOTS {
+        if slot < SHADER_MATERIAL_TEXTURE_SLOTS {
             record.texture_ids[slot] = tex_id;
             assign_slot(&mut texture_slots, 4, slot as u32);
             assign_sampler(
@@ -308,11 +309,11 @@ pub(crate) fn pack_pbr_material(
         assign_sampler(&mut sampler_indices, 4, sampler as u32);
     }
 
-    record.data.texture_slots = texture_slots;
-    record.data.sampler_indices = sampler_indices;
-    record.data.tex_sources = tex_sources;
-    record.data.atlas_layers = atlas_layers;
-    record.data.atlas_scale_bias = atlas_scale_bias;
+    record.data_pbr.texture_slots = texture_slots;
+    record.data_pbr.sampler_indices = sampler_indices;
+    record.data_pbr.tex_sources = tex_sources;
+    record.data_pbr.atlas_layers = atlas_layers;
+    record.data_pbr.atlas_scale_bias = atlas_scale_bias;
 
     record.surface_type = surface_type;
     if let Some(topology) = opts.topology {
@@ -324,8 +325,8 @@ pub(crate) fn pack_pbr_material(
     if record.texture_ids != previous_texture_ids {
         record.bind_group = None;
     }
-    if record.inputs.len() != PBR_INPUTS_PER_MATERIAL as usize {
-        record.inputs = vec![Vec4::ZERO; PBR_INPUTS_PER_MATERIAL as usize];
+    if record.inputs.len() != SHADER_MATERIAL_INPUTS_PER_MATERIAL as usize {
+        record.inputs = vec![Vec4::ZERO; SHADER_MATERIAL_INPUTS_PER_MATERIAL as usize];
     }
     if let Some(color) = opts.base_color {
         record.inputs[0] = color;

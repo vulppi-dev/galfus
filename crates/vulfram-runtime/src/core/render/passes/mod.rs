@@ -7,7 +7,6 @@ mod post;
 mod shadow;
 mod skybox;
 mod ssao;
-mod ui;
 mod utils;
 
 pub use bloom::*;
@@ -19,5 +18,4 @@ pub use post::*;
 pub use shadow::*;
 pub use skybox::*;
 pub use ssao::*;
-pub use ui::*;
 pub use utils::*;

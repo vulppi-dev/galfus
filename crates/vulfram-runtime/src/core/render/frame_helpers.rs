@@ -41,11 +41,26 @@ pub(super) fn apply_realm_environment_bindings(
             };
             target.window_id == Some(window_id)
         })
-        .map(|layer| vulfram_render::EnvironmentLayerBinding {
-            target_id: layer.target_id,
-            camera_id: layer.camera_id,
-            environment_id: layer.environment_id,
-            z_index: layer.layout.z_index,
+        .flat_map(|layer| {
+            if layer.enabled_camera_ids.is_empty() {
+                vec![vulfram_render::EnvironmentLayerBinding {
+                    target_id: layer.target_id,
+                    camera_id: None,
+                    environment_id: layer.environment_id,
+                    z_index: layer.layout.z_index,
+                }]
+            } else {
+                layer
+                    .enabled_camera_ids
+                    .iter()
+                    .map(|camera_id| vulfram_render::EnvironmentLayerBinding {
+                        target_id: layer.target_id,
+                        camera_id: Some(*camera_id),
+                        environment_id: layer.environment_id,
+                        z_index: layer.layout.z_index,
+                    })
+                    .collect::<Vec<_>>()
+            }
         })
         .collect();
 
@@ -181,6 +196,7 @@ pub(super) fn refresh_window_target_textures(
         u32,
         crate::core::resources::TargetTextureBinding,
     >,
+    blocked_target_ids: &std::collections::HashSet<TargetId>,
     target_surfaces: &std::collections::HashMap<TargetId, crate::core::realm::SurfaceId>,
     surface_targets: &std::collections::HashMap<
         crate::core::realm::SurfaceId,
@@ -191,6 +207,9 @@ pub(super) fn refresh_window_target_textures(
         let next_sources: Vec<_> = target_texture_binds
             .iter()
             .filter_map(|(texture_id, binding)| {
+                if blocked_target_ids.contains(&binding.target_id) {
+                    return None;
+                }
                 let surface_id = target_surfaces.get(&binding.target_id)?;
                 let surface_target = surface_targets.get(surface_id)?;
                 Some(vulfram_render::ExternalTextureSource {
@@ -224,6 +243,14 @@ pub(super) fn refresh_window_target_textures(
                 .insert(texture_id, source_key);
         }
         for texture_id in plan.stale_ids {
+            let Some(binding) = target_texture_binds.get(&texture_id) else {
+                render_state.external_textures.remove(&texture_id);
+                render_state.external_texture_sources.remove(&texture_id);
+                continue;
+            };
+            if blocked_target_ids.contains(&binding.target_id) {
+                continue;
+            }
             render_state.external_textures.remove(&texture_id);
             render_state.external_texture_sources.remove(&texture_id);
         }
@@ -251,19 +278,3 @@ pub(super) fn collect_window_camera_target_sizes(
         window_size,
     )
 }
-
-pub(super) fn build_soft_cut_diagnostic(
-    frame_report: &crate::core::realm::FrameReport,
-    previous_cut_edges: usize,
-    frame_index: u64,
-) -> Option<String> {
-    vulfram_render::build_soft_cut_diagnostic(
-        &frame_report.cut_edges,
-        previous_cut_edges,
-        frame_index,
-    )
-}
-
-#[cfg(test)]
-#[path = "frame_helpers_tests.rs"]
-mod tests;

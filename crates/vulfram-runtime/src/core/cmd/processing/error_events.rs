@@ -37,6 +37,18 @@ pub(super) fn maybe_emit_response_error_event(
         CommandResponse::LightDispose(result) => failure_case!(result, "light-dispose"),
         CommandResponse::MaterialUpsert(result) => failure_case!(result, "material-upsert"),
         CommandResponse::MaterialDispose(result) => failure_case!(result, "material-dispose"),
+        CommandResponse::MaterialDefinitionUpsert(result) => {
+            failure_case!(result, "material-definition-upsert")
+        }
+        CommandResponse::MaterialDefinitionDispose(result) => {
+            failure_case!(result, "material-definition-dispose")
+        }
+        CommandResponse::MaterialInstanceUpsert(result) => {
+            failure_case!(result, "material-instance-upsert")
+        }
+        CommandResponse::MaterialInstanceDispose(result) => {
+            failure_case!(result, "material-instance-dispose")
+        }
         CommandResponse::TextureCreateFromBuffer(result) => {
             failure_case!(result, "texture-create-from-buffer")
         }
@@ -98,35 +110,6 @@ pub(super) fn maybe_emit_response_error_event(
         CommandResponse::TargetLayerDispose(result) => {
             failure_case!(result, "target-layer-dispose")
         }
-        CommandResponse::UiThemeDefine(result) => failure_case!(result, "ui-theme-define"),
-        CommandResponse::UiThemeDispose(result) => failure_case!(result, "ui-theme-dispose"),
-        CommandResponse::UiDocumentCreate(result) => failure_case!(result, "ui-document-create"),
-        CommandResponse::UiDocumentDispose(result) => {
-            failure_case!(result, "ui-document-dispose")
-        }
-        CommandResponse::UiDocumentSetRect(result) => {
-            failure_case!(result, "ui-document-set-rect")
-        }
-        CommandResponse::UiDocumentSetTheme(result) => {
-            failure_case!(result, "ui-document-set-theme")
-        }
-        CommandResponse::UiDocumentGetTree(result) => {
-            failure_case!(result, "ui-document-get-tree")
-        }
-        CommandResponse::UiDocumentGetLayoutRects(result) => {
-            failure_case!(result, "ui-document-get-layout-rects")
-        }
-        CommandResponse::UiApplyOps(result) => failure_case!(result, "ui-apply-ops"),
-        CommandResponse::UiDebugSet(result) => failure_case!(result, "ui-debug-set"),
-        CommandResponse::UiFocusSet(result) => failure_case!(result, "ui-focus-set"),
-        CommandResponse::UiFocusGet(result) => failure_case!(result, "ui-focus-get"),
-        CommandResponse::UiEventTraceSet(result) => {
-            failure_case!(result, "ui-event-trace-set")
-        }
-        CommandResponse::UiImageCreateFromBuffer(result) => {
-            failure_case!(result, "ui-image-create-from-buffer")
-        }
-        CommandResponse::UiImageDispose(result) => failure_case!(result, "ui-image-dispose"),
         CommandResponse::ModelList(result) => failure_case!(result, "model-list"),
         CommandResponse::MaterialList(result) => failure_case!(result, "material-list"),
         CommandResponse::TextureList(result) => failure_case!(result, "texture-list"),

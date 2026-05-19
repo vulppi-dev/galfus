@@ -1,6 +1,69 @@
 use std::collections::{HashMap, HashSet, VecDeque};
 
-use crate::{LogicalId, RenderGraphDesc, RenderGraphEdgeReason};
+use crate::{LogicalId, RenderGraphDesc, RenderGraphEdge, RenderGraphEdgeReason, RenderGraphNode};
+
+pub(super) fn derive_graph_edges(nodes: &[RenderGraphNode]) -> Vec<RenderGraphEdge> {
+    let mut edges: Vec<RenderGraphEdge> = Vec::new();
+    let mut writers: HashMap<&LogicalId, Vec<usize>> = HashMap::new();
+    for (idx, node) in nodes.iter().enumerate() {
+        for output in &node.outputs {
+            writers.entry(output).or_default().push(idx);
+        }
+    }
+
+    for (consumer_idx, node) in nodes.iter().enumerate() {
+        for input in &node.inputs {
+            let Some(resource_writers) = writers.get(input) else {
+                continue;
+            };
+            if let Some(writer_idx) = resource_writers.iter().copied().max() {
+                if writer_idx != consumer_idx {
+                    edges.push(RenderGraphEdge {
+                        from_node_id: nodes[writer_idx].node_id.clone(),
+                        to_node_id: node.node_id.clone(),
+                        reason: Some(RenderGraphEdgeReason::ReadAfterWrite),
+                    });
+                }
+            }
+        }
+    }
+
+    for output_writers in writers.values() {
+        if output_writers.len() <= 1 {
+            continue;
+        }
+        let mut sorted = output_writers.clone();
+        sorted.sort_by_key(|idx| (nodes[*idx].priority, nodes[*idx].node_id.to_string()));
+        for pair in sorted.windows(2) {
+            let from = pair[0];
+            let to = pair[1];
+            edges.push(RenderGraphEdge {
+                from_node_id: nodes[from].node_id.clone(),
+                to_node_id: nodes[to].node_id.clone(),
+                reason: Some(RenderGraphEdgeReason::WriteAfterRead),
+            });
+        }
+    }
+
+    for (consumer_idx, node) in nodes.iter().enumerate() {
+        for required in &node.require {
+            let Some(resource_writers) = writers.get(required) else {
+                continue;
+            };
+            if let Some(writer_idx) = resource_writers.iter().copied().max() {
+                if writer_idx != consumer_idx {
+                    edges.push(RenderGraphEdge {
+                        from_node_id: nodes[writer_idx].node_id.clone(),
+                        to_node_id: node.node_id.clone(),
+                        reason: Some(RenderGraphEdgeReason::ReadAfterWrite),
+                    });
+                }
+            }
+        }
+    }
+
+    edges
+}
 
 pub(super) fn validate_graph_semantics(
     desc: &RenderGraphDesc,
@@ -24,11 +87,11 @@ pub(super) fn validate_graph_semantics(
     }
 
     for (consumer_idx, node) in desc.nodes.iter().enumerate() {
-        for input in &node.inputs {
-            let Some(resource_writers) = writers.get(input) else {
+        for required in &node.require {
+            let Some(resource_writers) = writers.get(required) else {
                 return Err(format!(
-                    "Input resource '{}' in node '{}' has no producer",
-                    input, node.node_id
+                    "Required resource '{}' in node '{}' has no producer",
+                    required, node.node_id
                 ));
             };
             let has_prior_writer = resource_writers
@@ -37,9 +100,21 @@ pub(super) fn validate_graph_semantics(
                 .any(|writer_idx| topo_pos[writer_idx] < topo_pos[consumer_idx]);
             if !has_prior_writer {
                 return Err(format!(
-                    "Input resource '{}' in node '{}' is consumed before any producer",
-                    input, node.node_id
+                    "Required resource '{}' in node '{}' is consumed before any producer",
+                    required, node.node_id
                 ));
+            }
+        }
+        for input in &node.inputs {
+            let Some(resource_writers) = writers.get(input) else {
+                continue;
+            };
+            let has_prior_writer = resource_writers
+                .iter()
+                .copied()
+                .any(|writer_idx| topo_pos[writer_idx] < topo_pos[consumer_idx]);
+            if !has_prior_writer {
+                continue;
             }
         }
     }
@@ -49,8 +124,27 @@ pub(super) fn validate_graph_semantics(
         if resource_writers.len() <= 1 {
             continue;
         }
+        let mut read_write_nodes: Vec<usize> = resource_writers
+            .iter()
+            .copied()
+            .filter(|node_idx| contains_id(&desc.nodes[*node_idx].inputs, resource_id))
+            .collect();
+        if read_write_nodes.len() > 1 {
+            read_write_nodes.sort_by_key(|idx| desc.nodes[*idx].priority);
+            for pair in read_write_nodes.windows(2) {
+                let a = pair[0];
+                let b = pair[1];
+                if desc.nodes[a].priority == desc.nodes[b].priority {
+                    return Err(format!(
+                        "Resource '{}' has dangerous same-priority overwrite between '{}' and '{}'; set explicit priority",
+                        resource_id, desc.nodes[a].node_id, desc.nodes[b].node_id
+                    ));
+                }
+            }
+        }
         let mut sorted_writers = resource_writers.clone();
-        sorted_writers.sort_by_key(|node_idx| topo_pos[*node_idx]);
+        sorted_writers
+            .sort_by_key(|node_idx| (topo_pos[*node_idx], desc.nodes[*node_idx].priority));
         for writer_pair in sorted_writers.windows(2) {
             let previous_writer = writer_pair[0];
             let next_writer = writer_pair[1];

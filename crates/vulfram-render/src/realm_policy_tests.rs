@@ -16,7 +16,11 @@ fn realm_policy_validates_passes_by_kind() {
             pass_id: RENDER_PASS_UI.into(),
             inputs: Vec::new(),
             outputs: Vec::new(),
+            require: Vec::new(),
+            priority: 0,
+            enabled: true,
             params: Default::default(),
+            shader: None,
         }],
         order: vec![0],
     };
@@ -26,7 +30,11 @@ fn realm_policy_validates_passes_by_kind() {
             pass_id: RENDER_PASS_FORWARD.into(),
             inputs: Vec::new(),
             outputs: Vec::new(),
+            require: Vec::new(),
+            priority: 0,
+            enabled: true,
             params: Default::default(),
+            shader: None,
         }],
         order: vec![0],
     };

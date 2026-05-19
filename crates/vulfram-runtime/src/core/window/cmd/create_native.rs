@@ -58,8 +58,6 @@ pub fn engine_cmd_window_create(
                 success: false,
                 message: format!("Winit create window error: {}", e),
                 realm_id: None,
-                surface_id: None,
-                present_id: None,
             };
         }
     };
@@ -69,8 +67,6 @@ pub fn engine_cmd_window_create(
             success: false,
             message,
             realm_id: None,
-            surface_id: None,
-            present_id: None,
         };
     }
 
@@ -97,8 +93,6 @@ pub fn engine_cmd_window_create(
                 success: false,
                 message: format!("WGPU create surface error: {}", e),
                 realm_id: None,
-                surface_id: None,
-                present_id: None,
             };
         }
     };
@@ -121,8 +115,6 @@ pub fn engine_cmd_window_create(
                         success: false,
                         message: "WGPU adapter request error".into(),
                         realm_id: None,
-                        surface_id: None,
-                        present_id: None,
                     };
                 }
             };
@@ -141,8 +133,6 @@ pub fn engine_cmd_window_create(
                     success: false,
                     message: format!("WGPU device request error: {}", e),
                     realm_id: None,
-                    surface_id: None,
-                    present_id: None,
                 };
             }
         };
@@ -169,8 +159,6 @@ pub fn engine_cmd_window_create(
                         "Surface is not compatible with existing WGPU adapter. Cannot create window."
                             .into(),
                     realm_id: None,
-                    surface_id: None,
-                    present_id: None,
                 };
             }
         };
@@ -187,8 +175,6 @@ pub fn engine_cmd_window_create(
                     success: false,
                     message: "Surface capabilities not initialized".into(),
                     realm_id: None,
-                    surface_id: None,
-                    present_id: None,
                 };
             }
         }
@@ -203,8 +189,6 @@ pub fn engine_cmd_window_create(
                     success: false,
                     message: "Surface capabilities not initialized".into(),
                     realm_id: None,
-                    surface_id: None,
-                    present_id: None,
                 };
             }
         }
@@ -217,8 +201,6 @@ pub fn engine_cmd_window_create(
                 success: false,
                 message: "Graphics device not initialized".into(),
                 realm_id: None,
-                surface_id: None,
-                present_id: None,
             };
         }
     };
@@ -229,8 +211,6 @@ pub fn engine_cmd_window_create(
                 success: false,
                 message: "Graphics queue not initialized".into(),
                 realm_id: None,
-                surface_id: None,
-                present_id: None,
             };
         }
     };
@@ -292,7 +272,5 @@ pub fn engine_cmd_window_create(
         success: true,
         message: "Window created successfully".into(),
         realm_id: Some(binding.realm_id.0),
-        surface_id: Some(binding.surface_id.0),
-        present_id: Some(binding.present_id.0),
     }
 }

@@ -15,7 +15,7 @@ external contract must stay identical. Platform proxies isolate:
 - Window creation and lifecycle
 - Input plumbing (keyboard, pointer, touch, gamepad)
 - Event loop pumping
-- Surface configuration and redraw requests
+- swapchain/window configuration and redraw requests
 
 This keeps the core stable while allowing new environments (mobile, consoles,
 headless, etc.) to be added later.

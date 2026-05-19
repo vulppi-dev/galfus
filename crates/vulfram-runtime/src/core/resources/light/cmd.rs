@@ -137,6 +137,18 @@ pub fn engine_cmd_light_create(
         ),
     );
     mark_realm_windows_dirty(engine, args.realm_id);
+    vulfram_log::vulfram_log_debug!(
+        engine,
+        "realm3d.state",
+        "light-created realm={} light={} kind={:?} intensity={} range={} layer_mask={} cast_shadow={}",
+        args.realm_id,
+        args.light_id,
+        kind,
+        intensity,
+        range,
+        args.layer_mask,
+        args.cast_shadow
+    );
 
     CmdResultLightCreate {
         success: true,

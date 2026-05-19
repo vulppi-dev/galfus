@@ -3,7 +3,6 @@ import * as Cam from './camera';
 import * as Env from './environment';
 import * as Geo from './geometry';
 import * as Giz from './gizmo';
-import * as Input from './input';
 import * as Lite from './light';
 import * as Mat from './material';
 import * as Mod from './model';
@@ -20,7 +19,6 @@ export * from './camera';
 export * from './environment';
 export * from './geometry';
 export * from './gizmo';
-export * from './input';
 export * from './light';
 export * from './material';
 export * from './model';
@@ -56,18 +54,6 @@ export type EngineCmd =
   | { type: 'cmd-window-measurement'; content: Win.CmdWindowMeasurementArgs }
   | { type: 'cmd-window-cursor'; content: Win.CmdWindowCursorArgs }
   | { type: 'cmd-window-state'; content: Win.CmdWindowStateArgs }
-  | {
-      type: 'cmd-input-target-listener-upsert';
-      content: Input.CmdInputTargetListenerUpsertArgs;
-    }
-  | {
-      type: 'cmd-input-target-listener-dispose';
-      content: Input.CmdInputTargetListenerDisposeArgs;
-    }
-  | {
-      type: 'cmd-input-target-listener-list';
-      content: Input.CmdInputTargetListenerListArgs;
-    }
   | {
       type: 'cmd-upload-buffer-discard-all';
       content: Sys.CmdUploadBufferDiscardAllArgs;
@@ -217,18 +203,6 @@ export type CommandResponse =
   | { type: 'window-measurement'; content: Win.CmdResultWindowMeasurement }
   | { type: 'window-cursor'; content: Win.CmdResultWindowCursor }
   | { type: 'window-state'; content: Win.CmdResultWindowState }
-  | {
-      type: 'input-target-listener-upsert';
-      content: Input.CmdResultInputTargetListenerUpsert;
-    }
-  | {
-      type: 'input-target-listener-dispose';
-      content: Input.CmdResultInputTargetListenerDispose;
-    }
-  | {
-      type: 'input-target-listener-list';
-      content: Input.CmdResultInputTargetListenerList;
-    }
   | {
       type: 'upload-buffer-discard-all';
       content: Sys.CmdResultUploadBufferDiscardAll;

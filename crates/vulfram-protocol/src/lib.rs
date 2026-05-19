@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use std::fmt::{Display, Formatter};
 
 pub use vulfram_types as types;
+pub use vulfram_log::{LogEvent, LogLevel};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProtocolCodecError {
@@ -328,10 +329,6 @@ pub struct CmdResultWindowCreate {
     pub message: String,
     #[serde(default)]
     pub realm_id: Option<u32>,
-    #[serde(default)]
-    pub surface_id: Option<u32>,
-    #[serde(default)]
-    pub present_id: Option<u32>,
 }
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize, PartialEq)]
@@ -343,7 +340,6 @@ pub struct CmdWindowMeasurementArgs {
     pub get_position: bool,
     pub get_size: bool,
     pub get_outer_size: bool,
-    pub get_surface_size: bool,
 }
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize, PartialEq)]
@@ -357,8 +353,6 @@ pub struct CmdResultWindowMeasurement {
     pub size: Option<glam::UVec2>,
     #[serde(default)]
     pub outer_size: Option<glam::UVec2>,
-    #[serde(default)]
-    pub surface_size: Option<glam::UVec2>,
 }
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize, PartialEq)]

@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use vulfram_realm_core::{RealmId, RealmKind, TargetId, TargetKind, TargetLayerLayout};
+use vulfram_realm_core::{RealmId, RealmKind, SurfaceId, TargetId, TargetKind, TargetLayerLayout};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct AutoGraphResolvedLayout {
@@ -62,26 +62,16 @@ pub fn resolve_auto_graph_layout(
 
 pub fn infer_auto_graph_input_flags(target_kind: TargetKind, source_realm_kind: RealmKind) -> u32 {
     match target_kind {
-        TargetKind::WidgetRealmViewport => {
-            let mut flags = AUTO_GRAPH_INPUT_FLAG_WIDGET_VIEW;
-            if source_realm_kind == RealmKind::ThreeD {
-                flags |= AUTO_GRAPH_INPUT_FLAG_RAYCAST;
-            }
-            flags
-        }
-        TargetKind::RealmPlane if source_realm_kind == RealmKind::ThreeD => {
-            AUTO_GRAPH_INPUT_FLAG_RAYCAST
-        }
         TargetKind::Window if source_realm_kind == RealmKind::ThreeD => {
             AUTO_GRAPH_INPUT_FLAG_RAYCAST
         }
-        TargetKind::RealmPlane | TargetKind::Window | TargetKind::Texture => 0,
+        TargetKind::Window | TargetKind::Texture => 0,
     }
 }
 
 pub fn plan_host_realm_index(
-    presents: &[(u32, vulfram_realm_core::SurfaceId)],
-    realm_output_surfaces: &HashMap<RealmId, Option<vulfram_realm_core::SurfaceId>>,
+    presents: &[(u32, SurfaceId)],
+    realm_output_surfaces: &HashMap<RealmId, Option<SurfaceId>>,
     layers: &HashMap<(u32, TargetId), (TargetKind, Option<u32>)>,
 ) -> HashMap<u32, RealmId> {
     let mut host_realm_index: HashMap<u32, RealmId> = HashMap::new();
@@ -213,20 +203,11 @@ pub fn plan_auto_graph_surface_spec(
                     .unwrap_or_else(|| glam::UVec2::new(1, 1))
             }
         }
-        TargetKind::WidgetRealmViewport | TargetKind::RealmPlane => target_size
-            .or(layer_size)
-            .or_else(|| {
-                target_window_id.and_then(|window_id| window_sizes.get(&window_id).copied())
-            })
-            .unwrap_or_else(|| glam::UVec2::new(1, 1)),
     };
 
     let kind = match target_kind {
         TargetKind::Window if !is_window_connector => AutoGraphSurfaceKind::Onscreen,
-        TargetKind::Window
-        | TargetKind::WidgetRealmViewport
-        | TargetKind::RealmPlane
-        | TargetKind::Texture => AutoGraphSurfaceKind::Offscreen,
+        TargetKind::Window | TargetKind::Texture => AutoGraphSurfaceKind::Offscreen,
     };
 
     AutoGraphSurfaceSpec {
@@ -260,18 +241,6 @@ pub fn plan_auto_graph_link(
                     target_realm: host_realm,
                     input_flags: infer_auto_graph_input_flags(target_kind, source_realm_kind),
                 }
-            }
-        }
-        TargetKind::WidgetRealmViewport | TargetKind::RealmPlane => {
-            let Some(window_id) = target_window_id else {
-                return AutoGraphLinkPlan::None;
-            };
-            let Some(host_realm) = host_realm_index.get(&window_id).copied() else {
-                return AutoGraphLinkPlan::None;
-            };
-            AutoGraphLinkPlan::Connector {
-                target_realm: host_realm,
-                input_flags: infer_auto_graph_input_flags(target_kind, source_realm_kind),
             }
         }
         TargetKind::Texture => AutoGraphLinkPlan::None,

@@ -57,6 +57,69 @@ pub struct EngineState {
 
     pub(crate) profiling: TickProfiling,
     pub(crate) gpu_profiler: Option<GpuProfiler>,
+    #[cfg(not(target_arch = "wasm32"))]
+    pub(crate) debug_capture: DebugCaptureState,
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+pub(crate) struct DebugCaptureState {
+    pub enabled: bool,
+    pub capture_passes: bool,
+    pub path_template: String,
+    pub capture_every_frame: bool,
+    pub captured_once: bool,
+    pub downscale_factor: f32,
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+impl DebugCaptureState {
+    fn from_env() -> Self {
+        let path_template = std::env::var("VULFRAM_DEBUG_CAPTURE_PATH")
+            .ok()
+            .filter(|path| !path.trim().is_empty())
+            .unwrap_or_else(|| "build/debug/frame-{frame}.png".to_string());
+        let enabled = std::env::var("VULFRAM_DEBUG_CAPTURE")
+            .map(|value| matches!(value.trim(), "1" | "true" | "TRUE" | "yes" | "YES"))
+            .unwrap_or(false);
+        let capture_passes = std::env::var("VULFRAM_DEBUG_CAPTURE_PASSES")
+            .map(|value| matches!(value.trim(), "1" | "true" | "TRUE" | "yes" | "YES"))
+            .unwrap_or(false);
+        let capture_every_frame = path_template.contains("{frame}");
+        let downscale_factor = std::env::var("VULFRAM_DEBUG_CAPTURE_SCALE")
+            .ok()
+            .and_then(|value| value.trim().parse::<f32>().ok())
+            .map(|value| value.clamp(0.05, 1.0))
+            .unwrap_or(1.0);
+        Self {
+            enabled,
+            capture_passes,
+            path_template,
+            capture_every_frame,
+            captured_once: false,
+            downscale_factor,
+        }
+    }
+
+    pub fn should_capture(&self) -> bool {
+        self.enabled && (!self.captured_once || self.capture_every_frame)
+    }
+
+    pub fn resolve_path(&self, frame_index: u64, window_id: u32, surface_id: u32) -> String {
+        self.path_template
+            .replace("{frame}", &frame_index.to_string())
+            .replace("{window}", &window_id.to_string())
+            .replace("{surface}", &surface_id.to_string())
+    }
+
+    pub fn resolve_capture_size(&self, base_width: u32, base_height: u32) -> glam::UVec2 {
+        let factor = self.downscale_factor.clamp(0.05, 1.0);
+        if (factor - 1.0).abs() < f32::EPSILON {
+            return glam::UVec2::new(base_width.max(1), base_height.max(1));
+        }
+        let width = ((base_width as f32) * factor).round().max(1.0) as u32;
+        let height = ((base_height as f32) * factor).round().max(1.0) as u32;
+        glam::UVec2::new(width, height)
+    }
 }
 
 impl EngineState {
@@ -64,7 +127,7 @@ impl EngineState {
         let mut universal_state = UniversalState::default();
         ensure_runtime_render_defaults(&mut universal_state);
 
-        Self {
+        let mut state = Self {
             window: WindowManager::new(),
             render: RenderManager::default(),
             #[cfg(any(not(target_arch = "wasm32"), target_arch = "wasm32"))]
@@ -95,7 +158,68 @@ impl EngineState {
             gamepad_backend: PlatformGamepadBackendState::new(),
             profiling: TickProfiling::default(),
             gpu_profiler: None,
-        }
+            #[cfg(not(target_arch = "wasm32"))]
+            debug_capture: DebugCaptureState::from_env(),
+        };
+
+        let _ = crate::core::resources::engine_cmd_material_definition_create(
+            &mut state,
+            &crate::core::resources::CmdMaterialDefinitionCreateArgs {
+                definition_id: crate::core::resources::MATERIAL_DEFINITION_STANDARD_ID,
+                slug: crate::core::resources::MATERIAL_DEFINITION_STANDARD_SLUG.to_string(),
+                label: Some("builtin-standard".to_string()),
+                preset: crate::core::resources::ShaderMaterialPreset::Standard,
+                shader_type: Some(crate::core::resources::MaterialShaderType::Model),
+                shader_source: r#"
+fn vertex(input: VertexInput) -> VertexOutput {
+    var out: VertexOutput;
+    out.world_position = input.position;
+    out.world_normal = input.normal;
+    out.uv = input.uv;
+    out.clip_position = vec4<f32>(0.0);
+    return out;
+}
+fn fragment(input: FragmentInput) -> FragmentOutput {
+    var out: FragmentOutput;
+    out.color = vec4<f32>(1.0, 0.7, 0.6, 1.0);
+    out.emissive = vec4<f32>(0.0);
+    return out;
+}
+"#
+                .to_string(),
+                shader_params_schema: None,
+            },
+        );
+        let _ = crate::core::resources::engine_cmd_material_definition_create(
+            &mut state,
+            &crate::core::resources::CmdMaterialDefinitionCreateArgs {
+                definition_id: crate::core::resources::MATERIAL_DEFINITION_PBR_ID,
+                slug: crate::core::resources::MATERIAL_DEFINITION_PBR_SLUG.to_string(),
+                label: Some("builtin-pbr".to_string()),
+                preset: crate::core::resources::ShaderMaterialPreset::Pbr,
+                shader_type: Some(crate::core::resources::MaterialShaderType::Model),
+                shader_source: r#"
+fn vertex(input: VertexInput) -> VertexOutput {
+    var out: VertexOutput;
+    out.world_position = input.position;
+    out.world_normal = input.normal;
+    out.uv = input.uv;
+    out.clip_position = vec4<f32>(0.0);
+    return out;
+}
+fn fragment(input: FragmentInput) -> FragmentOutput {
+    var out: FragmentOutput;
+    out.color = vec4<f32>(0.6, 0.9, 0.65, 1.0);
+    out.emissive = vec4<f32>(0.0);
+    return out;
+}
+"#
+                .to_string(),
+                shader_params_schema: None,
+            },
+        );
+
+        state
     }
 
     pub fn cleanup_window(&mut self, window_id: u32) -> bool {
@@ -129,5 +253,39 @@ impl EngineState {
             target::prune_target_graph_cache(&mut self.universal_state);
         }
         cleaned
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::resources::{
+        MATERIAL_DEFINITION_PBR_ID, MATERIAL_DEFINITION_STANDARD_ID, MaterialShaderType,
+    };
+
+    #[test]
+    fn builtin_material_definitions_compile_without_parse_errors() {
+        let state = EngineState::new();
+        let defs = &state.universal_state.scene.material_definitions;
+
+        let standard = defs
+            .get(&MATERIAL_DEFINITION_STANDARD_ID)
+            .expect("standard definition must exist");
+        let pbr = defs
+            .get(&MATERIAL_DEFINITION_PBR_ID)
+            .expect("pbr definition must exist");
+
+        for definition in [standard, pbr] {
+            assert_eq!(definition.shader_type, MaterialShaderType::Model);
+            assert!(definition.compile_error.is_none());
+            let source = definition
+                .compiled_shader_source
+                .as_ref()
+                .expect("compiled shader source must exist");
+            assert!(source.contains("@vertex"));
+            assert!(source.contains("@fragment"));
+            assert!(source.contains("fn vs_main"));
+            assert!(source.contains("fn fs_main"));
+        }
     }
 }

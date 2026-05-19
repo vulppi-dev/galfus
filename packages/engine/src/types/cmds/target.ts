@@ -1,5 +1,5 @@
 import type { Vec2 as vec2, Vec4 as vec4 } from '../../math/index';
-export type TargetKind = 'window' | 'widget-realm-viewport' | 'realm-plane' | 'texture';
+export type TargetKind = 'window' | 'texture';
 
 export type SurfaceFormat =
   | 'rgba16-float'
@@ -21,6 +21,8 @@ export interface TargetLayerLayout {
   top: DimensionValue;
   width: DimensionValue;
   height: DimensionValue;
+  enabled?: boolean;
+  opacity?: number;
   zIndex: number;
   blendMode: number;
   clip?: vec4 | null;

@@ -151,6 +151,18 @@ pub fn engine_cmd_model_create(
     );
     entities.models.insert(args.model_id, record);
     mark_realm_windows_dirty(engine, args.realm_id);
+    vulfram_log::vulfram_log_debug!(
+        engine,
+        "realm3d.state",
+        "model-created realm={} model={} geometry={} material={:?} layer_mask={} cast_shadow={} receive_shadow={}",
+        args.realm_id,
+        args.model_id,
+        args.geometry_id,
+        args.material_id,
+        args.layer_mask,
+        args.cast_shadow,
+        args.receive_shadow
+    );
 
     CmdResultModelCreate {
         success: true,

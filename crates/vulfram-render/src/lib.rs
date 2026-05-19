@@ -5,12 +5,14 @@ mod graph;
 mod graph_fallbacks;
 mod layouts;
 mod library;
+mod material_shader;
 mod profiler;
 mod realm_planner;
 mod realm_policy;
 mod render_bootstrap;
 mod resource_init;
 mod samplers;
+mod shader_dsl;
 mod shaders;
 mod target;
 mod ui_actions;
@@ -32,6 +34,12 @@ pub use layouts::{
     EffectBuffers, Layouts, PipelineLayouts, create_effect_buffers, create_pipeline_layouts,
 };
 pub use library::ResourceLibrary;
+pub use material_shader::{
+    builtin_material_source,
+    CompiledMaterialShader, MaterialShaderBasePreset, MaterialShaderCompileSpec,
+    MaterialShaderType,
+    compile_material_shader_spec,
+};
 pub use profiler::{GpuProfiler, GpuTimingReport};
 pub use realm_planner::{
     AUTO_GRAPH_INPUT_FLAG_RAYCAST, AUTO_GRAPH_INPUT_FLAG_WIDGET_VIEW, AutoGraphExistingLink,
@@ -60,6 +68,7 @@ pub use render_bootstrap::{
 };
 pub use resource_init::build_resource_library;
 pub use samplers::{SamplerSet, create_standard_samplers};
+pub use shader_dsl::{RenderGraphShaderSpec, RenderGraphShaderType, validate_shader_spec};
 pub use shaders::{ShaderModules, create_shader_modules};
 pub use target::{
     RenderTarget, ensure_render_target, ensure_surface_target, estimate_texture_bytes,

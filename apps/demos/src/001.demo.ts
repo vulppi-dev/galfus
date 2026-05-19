@@ -5,23 +5,17 @@ import {
   createWindow,
   disposeEngine,
   initEngine,
-  tick,
-  uploadBuffer
+  tick
 } from '@vulfram/engine';
 import { transportBunFfi } from '@vulfram/transport-bun';
-import { quat } from '@vulfram/engine/math';
-import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
 
 const RUN_DURATION_MS = 5_000;
 const FRAME_TARGET_MS = 16;
-const TEXTURE_BUFFER_ID = 1;
-const TEXTURE_PATH = fileURLToPath(new URL('../assets/color_texture.png', import.meta.url));
 
 async function main() {
   initEngine({ transport: transportBunFfi });
   const { windowId } = createWindow({
-    title: 'Vulfram Demo 001',
+    title: 'Vulfram Demo 001 - Minimal 3D',
     size: [1280, 720],
     position: [100, 100],
     borderless: false,
@@ -29,6 +23,7 @@ async function main() {
     transparent: false,
     initialState: 'maximized'
   });
+
   let totalMs = 0;
 
   const worldId = World3D.create3DWorld();
@@ -48,7 +43,7 @@ async function main() {
     clearColor: [0.03, 0.03, 0.04, 1],
     post: {
       filterEnabled: false,
-      filterExposure: 1.1,
+      filterExposure: 1,
       filterGamma: 2,
       filterSaturation: 1,
       filterContrast: 1,
@@ -80,42 +75,53 @@ async function main() {
     }
   });
 
-  World3D.configure3DShadows(worldId, {
-    tileResolution: 512,
-    atlasTilesW: 16,
-    atlasTilesH: 16,
-    atlasLayers: 2,
-    virtualGridSize: 1,
-    smoothing: 2,
-    normalBias: 0.02
-  });
-
-  const textureBytes = readFileSync(TEXTURE_PATH);
-  uploadBuffer(TEXTURE_BUFFER_ID, 'image-data', textureBytes);
-
-  const textureId = World3D.create3DTexture(worldId, {
-    source: { type: 'buffer', bufferId: TEXTURE_BUFFER_ID },
-    srgb: true,
-    mode: 'standalone',
-    label: 'Test Texture'
-  });
-
-  const geometryId = World3D.create3DGeometry(worldId, {
+  const cubeGeometryId = World3D.create3DGeometry(worldId, {
     type: 'primitive',
     shape: 'cube',
-    label: 'Cube'
+    label: 'Demo001Cube'
   });
 
-  const materialId = World3D.create3DMaterial(worldId, {
+  const standardMaterialId = World3D.create3DMaterial(worldId, {
     kind: 'standard',
-    label: 'Textured Material',
+    label: 'Demo001Standard',
     options: {
       type: 'standard',
       content: {
-        baseColor: [1, 1, 1, 1],
+        baseColor: [0.9, 0.3, 0.3, 1],
         surfaceType: 'opaque',
-        baseTexId: textureId,
-        baseSampler: 'linear-clamp',
+        flags: 0
+      }
+    }
+  });
+
+  const pbrMaterialId = World3D.create3DMaterial(worldId, {
+    kind: 'pbr',
+    label: 'Demo001Pbr',
+    options: {
+      type: 'pbr',
+      content: {
+        baseColor: [0.3, 0.9, 0.35, 1],
+        metallic: 0.6,
+        roughness: 0.35,
+        ao: 1,
+        normalScale: 1,
+        flags: 0,
+        surfaceType: 'opaque'
+      }
+    }
+  });
+
+  const customSimpleMaterialId = World3D.create3DMaterial(worldId, {
+    kind: 'standard',
+    label: 'Demo001CustomSimplePlaceholder',
+    options: {
+      type: 'standard',
+      content: {
+        baseColor: [0.3, 0.45, 1, 1],
+        emissiveColor: [0.06, 0.1, 0.22, 1],
+        specColor: [1, 1, 1, 1],
+        specPower: 48,
+        surfaceType: 'opaque',
         flags: 0
       }
     }
@@ -123,8 +129,8 @@ async function main() {
 
   const cameraEntity = World3D.create3DEntity(worldId);
   World3D.update3DTransform(worldId, cameraEntity, {
-    position: [0, 6, 12],
-    rotation: [-0.17364818, 0, 0, 0.98480775]
+    position: [0, 2.5, 8],
+    rotation: [-0.1305262, 0, 0, 0.9914449]
   });
   World3D.create3DCamera(worldId, cameraEntity, {
     kind: 'perspective',
@@ -135,41 +141,54 @@ async function main() {
 
   const lightEntity = World3D.create3DEntity(worldId);
   World3D.update3DTransform(worldId, lightEntity, {
-    position: [0, 8, 4],
+    position: [3, 5, 5],
     rotation: [0, 0, 0, 1]
   });
   World3D.create3DLight(worldId, lightEntity, {
     kind: 'point',
     color: [1, 1, 1],
-    intensity: 12,
+    intensity: 10,
     range: 30,
-    castShadow: true
+    castShadow: false
   });
 
-  const cubeEntity = World3D.create3DEntity(worldId);
-  World3D.update3DTransform(worldId, cubeEntity, {
+  const cube1 = World3D.create3DEntity(worldId);
+  World3D.update3DTransform(worldId, cube1, {
+    position: [-2, 0, 0],
+    rotation: [0, 0, 0, 1],
+    scale: [1, 1, 1]
+  });
+  World3D.create3DModel(worldId, cube1, {
+    geometryId: cubeGeometryId,
+    materialId: standardMaterialId,
+    castShadow: false,
+    receiveShadow: false
+  });
+
+  const cube2 = World3D.create3DEntity(worldId);
+  World3D.update3DTransform(worldId, cube2, {
     position: [0, 0, 0],
     rotation: [0, 0, 0, 1],
     scale: [1, 1, 1]
   });
-  World3D.create3DModel(worldId, cubeEntity, {
-    geometryId,
-    materialId,
-    castShadow: true,
-    receiveShadow: true
+  World3D.create3DModel(worldId, cube2, {
+    geometryId: cubeGeometryId,
+    materialId: pbrMaterialId,
+    castShadow: false,
+    receiveShadow: false
   });
 
-  const floorEntity = World3D.create3DEntity(worldId);
-  World3D.update3DTransform(worldId, floorEntity, {
-    position: [0, -2.5, 0],
+  const cube3 = World3D.create3DEntity(worldId);
+  World3D.update3DTransform(worldId, cube3, {
+    position: [2, 0, 0],
     rotation: [0, 0, 0, 1],
-    scale: [20, 0.1, 20]
+    scale: [1, 1, 1]
   });
-  World3D.create3DModel(worldId, floorEntity, {
-    geometryId,
-    materialId,
+  World3D.create3DModel(worldId, cube3, {
+    geometryId: cubeGeometryId,
+    materialId: customSimpleMaterialId,
     castShadow: false,
-    receiveShadow: true
+    receiveShadow: false
   });
 
   const start = performance.now();
@@ -181,37 +200,10 @@ async function main() {
     last = now;
     totalMs += dtMs;
 
-    const t = totalMs / 1000;
-    const q = quat.fromEuler(quat.create(), t * 20, t * 45, 0);
-    World3D.update3DTransform(worldId, cubeEntity, {
-      rotation: [q[0], q[1], q[2], q[3]],
-      position: [0, Math.sin(t) * 0.4, 0]
-    });
-
-    World3D.draw3DGizmoLine(worldId, {
-      start: [0, 0, 0],
-      end: [5, 0, 0],
-      color: [1, 0, 0, 1]
-    });
-    World3D.draw3DGizmoLine(worldId, {
-      start: [0, 0, 0],
-      end: [0, 5, 0],
-      color: [0, 1, 0, 1]
-    });
-    World3D.draw3DGizmoLine(worldId, {
-      start: [0, 0, 0],
-      end: [0, 0, 5],
-      color: [0, 0, 1, 1]
-    });
-    World3D.draw3DGizmoAabb(worldId, {
-      min: [-5, -5, -5],
-      max: [5, 5, 5],
-      color: [1, 1, 1, 0.2]
-    });
-
     tick(totalMs, dtMs);
+
     const frameElapsed = performance.now() - now;
-    await new Promise((r) => setTimeout(r, Math.max(0, FRAME_TARGET_MS - frameElapsed)));
+    await new Promise((resolve) => setTimeout(resolve, Math.max(0, FRAME_TARGET_MS - frameElapsed)));
   }
 
   closeWindow(windowId);

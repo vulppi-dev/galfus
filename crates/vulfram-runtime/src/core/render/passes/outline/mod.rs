@@ -24,6 +24,15 @@ pub fn pass_outline(
     if scene.cameras.is_empty() {
         return;
     }
+    let camera_slots: std::collections::HashMap<u32, u32> = render_state
+        .camera_order
+        .iter()
+        .filter_map(|camera_id| {
+            render_state
+                .camera_uniform_slot(*camera_id)
+                .map(|slot| (*camera_id, slot))
+        })
+        .collect();
 
     let library = match render_state.library.as_ref() {
         Some(lib) => lib,
@@ -45,7 +54,9 @@ pub fn pass_outline(
     };
 
     for (camera_index, camera_id) in render_state.camera_order.iter().copied().enumerate() {
-        let camera_slot = camera_index as u32;
+        let Some(camera_slot) = camera_slots.get(&camera_id).copied() else {
+            continue;
+        };
         let post_config = camera_posts
             .get(&camera_id)
             .map(|env| env.post.clone())

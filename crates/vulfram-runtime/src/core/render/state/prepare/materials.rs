@@ -1,37 +1,36 @@
 use super::super::RenderState;
 use crate::core::resources::{
-    MaterialPbrParams, MaterialStandardParams, PBR_INVALID_SLOT, PBR_TEXTURE_SLOTS,
-    STANDARD_INVALID_SLOT, STANDARD_TEXTURE_SLOTS, TEX_SOURCE_ATLAS, TEX_SOURCE_INVALID,
-    TEX_SOURCE_STANDALONE,
+    MaterialPbrParams, MaterialStandardParams, SHADER_MATERIAL_INVALID_SLOT,
+    SHADER_MATERIAL_TEXTURE_SLOTS, TEX_SOURCE_ATLAS, TEX_SOURCE_INVALID, TEX_SOURCE_STANDALONE,
 };
+
+fn set_uvec4_lane(vecs: &mut [glam::UVec4; 2], index: usize, value: u32) {
+    let vec_index = index / 4;
+    let lane = index % 4;
+    let mut v = vecs[vec_index];
+    match lane {
+        0 => v.x = value,
+        1 => v.y = value,
+        2 => v.z = value,
+        _ => v.w = value,
+    }
+    vecs[vec_index] = v;
+}
 
 impl RenderState {
     pub(crate) fn prepare_materials(&mut self, device: &wgpu::Device) {
-        let bindings = self.bindings.as_mut().unwrap();
-        let library = self.library.as_ref().unwrap();
+        let bindings = self.bindings.as_mut().expect("bindings must exist");
+        let library = self.library.as_ref().expect("library must exist");
 
-        for (id, record) in &mut self.scene.materials_standard {
+        for (id, record) in &mut self.scene.materials {
             let mut atlas_changed = false;
-            let set_uvec4_lane = |vecs: &mut [glam::UVec4; 2], index: usize, value: u32| {
-                let vec_index = index / 4;
-                let lane = index % 4;
-                let mut v = vecs[vec_index];
-                match lane {
-                    0 => v.x = value,
-                    1 => v.y = value,
-                    2 => v.z = value,
-                    _ => v.w = value,
-                }
-                vecs[vec_index] = v;
-            };
-
-            for slot in 0..STANDARD_TEXTURE_SLOTS {
+            for slot in 0..SHADER_MATERIAL_TEXTURE_SLOTS {
                 let tex_id = record.texture_ids[slot];
                 let mut desired_source = TEX_SOURCE_INVALID;
                 let mut desired_layer = 0u32;
                 let mut desired_scale_bias = glam::Vec4::new(1.0, 1.0, 0.0, 0.0);
 
-                if tex_id != STANDARD_INVALID_SLOT {
+                if tex_id != SHADER_MATERIAL_INVALID_SLOT {
                     if let Some(entry) = self.scene.forward_atlas_entries.get(&tex_id) {
                         desired_source = TEX_SOURCE_ATLAS;
                         desired_layer = entry.layer;
@@ -44,53 +43,78 @@ impl RenderState {
                     }
                 }
 
+                let (tex_sources, atlas_layers, atlas_scale_bias) = match record.preset {
+                    crate::core::resources::ShaderMaterialPreset::Standard => (
+                        &mut record.data_standard.tex_sources,
+                        &mut record.data_standard.atlas_layers,
+                        &mut record.data_standard.atlas_scale_bias,
+                    ),
+                    crate::core::resources::ShaderMaterialPreset::Pbr => (
+                        &mut record.data_pbr.tex_sources,
+                        &mut record.data_pbr.atlas_layers,
+                        &mut record.data_pbr.atlas_scale_bias,
+                    ),
+                };
                 let current_source = match (slot / 4, slot % 4) {
-                    (0, 0) => record.data.tex_sources[0].x,
-                    (0, 1) => record.data.tex_sources[0].y,
-                    (0, 2) => record.data.tex_sources[0].z,
-                    (0, 3) => record.data.tex_sources[0].w,
-                    (1, 0) => record.data.tex_sources[1].x,
-                    (1, 1) => record.data.tex_sources[1].y,
-                    (1, 2) => record.data.tex_sources[1].z,
-                    _ => record.data.tex_sources[1].w,
+                    (0, 0) => tex_sources[0].x,
+                    (0, 1) => tex_sources[0].y,
+                    (0, 2) => tex_sources[0].z,
+                    (0, 3) => tex_sources[0].w,
+                    (1, 0) => tex_sources[1].x,
+                    (1, 1) => tex_sources[1].y,
+                    (1, 2) => tex_sources[1].z,
+                    _ => tex_sources[1].w,
                 };
                 let current_layer = match (slot / 4, slot % 4) {
-                    (0, 0) => record.data.atlas_layers[0].x,
-                    (0, 1) => record.data.atlas_layers[0].y,
-                    (0, 2) => record.data.atlas_layers[0].z,
-                    (0, 3) => record.data.atlas_layers[0].w,
-                    (1, 0) => record.data.atlas_layers[1].x,
-                    (1, 1) => record.data.atlas_layers[1].y,
-                    (1, 2) => record.data.atlas_layers[1].z,
-                    _ => record.data.atlas_layers[1].w,
+                    (0, 0) => atlas_layers[0].x,
+                    (0, 1) => atlas_layers[0].y,
+                    (0, 2) => atlas_layers[0].z,
+                    (0, 3) => atlas_layers[0].w,
+                    (1, 0) => atlas_layers[1].x,
+                    (1, 1) => atlas_layers[1].y,
+                    (1, 2) => atlas_layers[1].z,
+                    _ => atlas_layers[1].w,
                 };
-                let current_scale_bias = record.data.atlas_scale_bias[slot];
-
+                let current_scale_bias = atlas_scale_bias[slot];
                 if current_source != desired_source {
-                    set_uvec4_lane(&mut record.data.tex_sources, slot, desired_source);
+                    set_uvec4_lane(tex_sources, slot, desired_source);
                     atlas_changed = true;
                 }
                 if current_layer != desired_layer {
-                    set_uvec4_lane(&mut record.data.atlas_layers, slot, desired_layer);
+                    set_uvec4_lane(atlas_layers, slot, desired_layer);
                     atlas_changed = true;
                 }
                 if current_scale_bias != desired_scale_bias {
-                    record.data.atlas_scale_bias[slot] = desired_scale_bias;
+                    atlas_scale_bias[slot] = desired_scale_bias;
                     atlas_changed = true;
                 }
             }
 
             if record.is_dirty || atlas_changed {
-                bindings.material_standard_pool.write(*id, &record.data);
-                if record.is_dirty {
-                    bindings
-                        .material_standard_inputs
-                        .write_slice(record.data.inputs_offset_count.x, &record.inputs);
-                    record.clear_dirty();
+                match record.preset {
+                    crate::core::resources::ShaderMaterialPreset::Standard => {
+                        bindings
+                            .material_standard_pool
+                            .write(*id, &record.data_standard);
+                        if record.is_dirty {
+                            bindings.material_standard_inputs.write_slice(
+                                record.data_standard.inputs_offset_count.x,
+                                &record.inputs,
+                            );
+                        }
+                    }
+                    crate::core::resources::ShaderMaterialPreset::Pbr => {
+                        bindings.material_pbr_pool.write(*id, &record.data_pbr);
+                        if record.is_dirty {
+                            bindings
+                                .material_pbr_inputs
+                                .write_slice(record.data_pbr.inputs_offset_count.x, &record.inputs);
+                        }
+                    }
                 }
+                record.clear_dirty();
             }
 
-            // Update Bind Group
             if record.bind_group.is_none() {
                 let mut entries = Vec::with_capacity(12);
                 entries.push(wgpu::BindGroupEntry {
@@ -101,31 +125,60 @@ impl RenderState {
                         size: None,
                     }),
                 });
-                entries.push(wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
-                        buffer: bindings.material_standard_pool.buffer(),
-                        offset: 0,
-                        size: Some(
-                            std::num::NonZeroU64::new(
-                                std::mem::size_of::<MaterialStandardParams>() as u64,
-                            )
-                            .unwrap(),
-                        ),
-                    }),
-                });
-                entries.push(wgpu::BindGroupEntry {
-                    binding: 2,
-                    resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
-                        buffer: bindings.material_standard_inputs.buffer(),
-                        offset: 0,
-                        size: None,
-                    }),
-                });
+                match record.preset {
+                    crate::core::resources::ShaderMaterialPreset::Standard => {
+                        entries.push(wgpu::BindGroupEntry {
+                            binding: 1,
+                            resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
+                                buffer: bindings.material_standard_pool.buffer(),
+                                offset: 0,
+                                size: Some(
+                                    std::num::NonZeroU64::new(std::mem::size_of::<
+                                        MaterialStandardParams,
+                                    >(
+                                    )
+                                        as u64)
+                                    .expect("nz"),
+                                ),
+                            }),
+                        });
+                        entries.push(wgpu::BindGroupEntry {
+                            binding: 2,
+                            resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
+                                buffer: bindings.material_standard_inputs.buffer(),
+                                offset: 0,
+                                size: None,
+                            }),
+                        });
+                    }
+                    crate::core::resources::ShaderMaterialPreset::Pbr => {
+                        entries.push(wgpu::BindGroupEntry {
+                            binding: 1,
+                            resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
+                                buffer: bindings.material_pbr_pool.buffer(),
+                                offset: 0,
+                                size: Some(
+                                    std::num::NonZeroU64::new(
+                                        std::mem::size_of::<MaterialPbrParams>() as u64,
+                                    )
+                                    .expect("nz"),
+                                ),
+                            }),
+                        });
+                        entries.push(wgpu::BindGroupEntry {
+                            binding: 2,
+                            resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
+                                buffer: bindings.material_pbr_inputs.buffer(),
+                                offset: 0,
+                                size: None,
+                            }),
+                        });
+                    }
+                }
 
-                for slot in 0..STANDARD_TEXTURE_SLOTS {
+                for slot in 0..SHADER_MATERIAL_TEXTURE_SLOTS {
                     let tex_id = record.texture_ids[slot];
-                    let view = if tex_id != STANDARD_INVALID_SLOT {
+                    let view = if tex_id != SHADER_MATERIAL_INVALID_SLOT {
                         self.scene
                             .textures
                             .get(&tex_id)
@@ -150,155 +203,15 @@ impl RenderState {
                 });
 
                 record.bind_group = Some(device.create_bind_group(&wgpu::BindGroupDescriptor {
-                    label: Some("BindGroup Material Standard"),
-                    layout: &library.layout_object_standard,
-                    entries: &entries,
-                }));
-            }
-        }
-
-        for (id, record) in &mut self.scene.materials_pbr {
-            let mut atlas_changed = false;
-            let set_uvec4_lane = |vecs: &mut [glam::UVec4; 2], index: usize, value: u32| {
-                let vec_index = index / 4;
-                let lane = index % 4;
-                let mut v = vecs[vec_index];
-                match lane {
-                    0 => v.x = value,
-                    1 => v.y = value,
-                    2 => v.z = value,
-                    _ => v.w = value,
-                }
-                vecs[vec_index] = v;
-            };
-
-            for slot in 0..PBR_TEXTURE_SLOTS {
-                let tex_id = record.texture_ids[slot];
-                let mut desired_source = TEX_SOURCE_INVALID;
-                let mut desired_layer = 0u32;
-                let mut desired_scale_bias = glam::Vec4::new(1.0, 1.0, 0.0, 0.0);
-
-                if tex_id != PBR_INVALID_SLOT {
-                    if let Some(entry) = self.scene.forward_atlas_entries.get(&tex_id) {
-                        desired_source = TEX_SOURCE_ATLAS;
-                        desired_layer = entry.layer;
-                        desired_scale_bias = entry.uv_scale_bias;
-                    } else {
-                        desired_source = TEX_SOURCE_STANDALONE;
-                        if self.external_textures.contains_key(&tex_id) {
-                            desired_scale_bias = glam::Vec4::new(-1.0, -1.0, 1.0, 1.0);
+                    label: Some("BindGroup ShaderMaterial"),
+                    layout: match record.preset {
+                        crate::core::resources::ShaderMaterialPreset::Standard => {
+                            &library.layout_object_standard
                         }
-                    }
-                }
-
-                let current_source = match (slot / 4, slot % 4) {
-                    (0, 0) => record.data.tex_sources[0].x,
-                    (0, 1) => record.data.tex_sources[0].y,
-                    (0, 2) => record.data.tex_sources[0].z,
-                    (0, 3) => record.data.tex_sources[0].w,
-                    (1, 0) => record.data.tex_sources[1].x,
-                    (1, 1) => record.data.tex_sources[1].y,
-                    (1, 2) => record.data.tex_sources[1].z,
-                    _ => record.data.tex_sources[1].w,
-                };
-                let current_layer = match (slot / 4, slot % 4) {
-                    (0, 0) => record.data.atlas_layers[0].x,
-                    (0, 1) => record.data.atlas_layers[0].y,
-                    (0, 2) => record.data.atlas_layers[0].z,
-                    (0, 3) => record.data.atlas_layers[0].w,
-                    (1, 0) => record.data.atlas_layers[1].x,
-                    (1, 1) => record.data.atlas_layers[1].y,
-                    (1, 2) => record.data.atlas_layers[1].z,
-                    _ => record.data.atlas_layers[1].w,
-                };
-                let current_scale_bias = record.data.atlas_scale_bias[slot];
-
-                if current_source != desired_source {
-                    set_uvec4_lane(&mut record.data.tex_sources, slot, desired_source);
-                    atlas_changed = true;
-                }
-                if current_layer != desired_layer {
-                    set_uvec4_lane(&mut record.data.atlas_layers, slot, desired_layer);
-                    atlas_changed = true;
-                }
-                if current_scale_bias != desired_scale_bias {
-                    record.data.atlas_scale_bias[slot] = desired_scale_bias;
-                    atlas_changed = true;
-                }
-            }
-
-            if record.is_dirty || atlas_changed {
-                bindings.material_pbr_pool.write(*id, &record.data);
-                if record.is_dirty {
-                    bindings
-                        .material_pbr_inputs
-                        .write_slice(record.data.inputs_offset_count.x, &record.inputs);
-                    record.clear_dirty();
-                }
-            }
-
-            // Update Bind Group
-            if record.bind_group.is_none() {
-                let mut entries = Vec::with_capacity(12);
-                entries.push(wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
-                        buffer: bindings.instance_pool.buffer(),
-                        offset: 0,
-                        size: None,
-                    }),
-                });
-                entries.push(wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
-                        buffer: bindings.material_pbr_pool.buffer(),
-                        offset: 0,
-                        size: Some(
-                            std::num::NonZeroU64::new(
-                                std::mem::size_of::<MaterialPbrParams>() as u64
-                            )
-                            .unwrap(),
-                        ),
-                    }),
-                });
-                entries.push(wgpu::BindGroupEntry {
-                    binding: 2,
-                    resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
-                        buffer: bindings.material_pbr_inputs.buffer(),
-                        offset: 0,
-                        size: None,
-                    }),
-                });
-
-                for slot in 0..PBR_TEXTURE_SLOTS {
-                    let tex_id = record.texture_ids[slot];
-                    let view = if tex_id != PBR_INVALID_SLOT {
-                        self.scene
-                            .textures
-                            .get(&tex_id)
-                            .map(|t| &t.view)
-                            .or_else(|| self.external_textures.get(&tex_id))
-                            .unwrap_or(&library.fallback_view)
-                    } else {
-                        &library.fallback_view
-                    };
-                    entries.push(wgpu::BindGroupEntry {
-                        binding: (3 + slot) as u32,
-                        resource: wgpu::BindingResource::TextureView(view),
-                    });
-                }
-                entries.push(wgpu::BindGroupEntry {
-                    binding: 11,
-                    resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
-                        buffer: bindings.bones_pool.buffer(),
-                        offset: 0,
-                        size: None,
-                    }),
-                });
-
-                record.bind_group = Some(device.create_bind_group(&wgpu::BindGroupDescriptor {
-                    label: Some("BindGroup Material PBR"),
-                    layout: &library.layout_object_pbr,
+                        crate::core::resources::ShaderMaterialPreset::Pbr => {
+                            &library.layout_object_pbr
+                        }
+                    },
                     entries: &entries,
                 }));
             }

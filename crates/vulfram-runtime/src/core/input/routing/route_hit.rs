@@ -38,7 +38,7 @@ pub(super) fn resolve_target_relative_position(
                 .and_then(|realm_id| realm_surface_size(universal, realm_id)),
             connector_source_size: connector_id
                 .and_then(|connector_id| connector_source_size(universal, connector_id)),
-            target_surface_size: None,
+            target_output_size: None,
             target_declared_size: None,
         },
         uv,
@@ -56,7 +56,7 @@ pub(super) fn resolve_target_size(
             .and_then(|realm_id| realm_surface_size(universal, realm_id)),
         connector_source_size: connector_id
             .and_then(|connector_id| connector_source_size(universal, connector_id)),
-        target_surface_size: target_id
+        target_output_size: target_id
             .and_then(|target_id| target_surface_size(universal, target_id)),
         target_declared_size: target_id.and_then(|target_id| {
             universal

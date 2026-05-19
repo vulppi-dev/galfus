@@ -8,7 +8,7 @@ export type PointerTraceStage =
   | 'capture'
   | 'focus-fallback'
   | 'connector-hit'
-  | 'realm-plane-hit'
+  | 'realm-hit'
   | 'hop-forward'
   | 'stop-no-hit'
   | 'stop-cycle'
@@ -20,7 +20,6 @@ export interface PointerTraceHop {
   targetId?: number;
   layerRealmId?: number;
   connectorId?: number;
-  surfaceId?: number;
   cameraId?: number;
   uv?: vec2;
 }

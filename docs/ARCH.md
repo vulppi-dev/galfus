@@ -44,9 +44,7 @@ The host owns and manages:
 
 The core owns:
 
-- `Surface`
-- `Present`
-- `Connector`
+- internal target/frame composition caches
 - GPU resources/handles
 - render targets and compiled plans
 
@@ -59,7 +57,7 @@ The current auto-graph model is:
 - host upserts `Target`
 - host upserts `TargetLayer`
 - runtime reconciles logical maps
-- core derives `Surface`, `Present`, and `Connector`
+- core derives internal composition links and target dependencies
 - render execution consumes the derived composition
 
 Design direction:
@@ -203,7 +201,7 @@ tables:
 
 The rest of the documentation should assume:
 
-- `Surface`, `Present`, and `Connector` are internal-only runtime tables
+- internal composition links are runtime-only tables
 - `Target` and `TargetLayer` are the host-facing composition API
 - render graphs are global resources bound per realm
 - `vulfram-runtime` is the current integration root

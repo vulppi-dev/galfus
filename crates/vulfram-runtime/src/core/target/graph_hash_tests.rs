@@ -21,7 +21,7 @@ fn layer_state(realm_id: u32, target_id: TargetId, z_index: i32) -> TargetLayerS
             z_index,
             ..TargetLayerLayout::default()
         },
-        camera_id: None,
+        enabled_camera_ids: Vec::new(),
         environment_id: None,
     }
 }

@@ -7,7 +7,6 @@ import type {
   WindowStateComponent
 } from '../../ecs/components';
 import type { WorldState } from '../../state';
-import { resetRoutedPointerFrame } from '../routing/pointer-routing';
 
 const WORLD_ENTITY_ID = 0;
 
@@ -23,7 +22,6 @@ function createInputState(): InputStateComponent {
     pointerJustPressed: new Set(),
     pointerJustReleased: new Set(),
     pointerWindowSize: undefined,
-    pointerTargetSize: undefined,
     scrollDelta: vec2.create(),
     imeEnabled: false
   };
@@ -132,7 +130,6 @@ export function resetInputMirrorFrame(state: InputMirrorStateStore): void {
   state.inputState.pointerJustPressed.clear();
   state.inputState.pointerJustReleased.clear();
   state.inputState.pointerDelta = vec2.create();
-  resetRoutedPointerFrame(state.inputState);
   state.inputState.scrollDelta = vec2.create();
   state.inputState.imeCommitText = undefined;
 

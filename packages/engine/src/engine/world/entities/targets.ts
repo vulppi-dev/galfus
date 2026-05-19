@@ -6,11 +6,6 @@ import type {
   CmdTargetUpsertArgs,
   TargetLayerLayout
 } from '../../../types/cmds/target';
-import type {
-  CmdInputTargetListenerDisposeArgs,
-  CmdInputTargetListenerListArgs,
-  CmdInputTargetListenerUpsertArgs
-} from '../../../types/cmds/input';
 import { enqueueCommand, markRoutingIndexDirty } from '../../bridge/dispatch';
 import { getWorldOrThrow, requireInitialized } from '../../bridge/guards';
 import type { CameraComponent } from '../../ecs';
@@ -41,36 +36,6 @@ export function upsertTarget(worldId: number, args: CmdTargetUpsertArgs): number
  */
 export function measureTarget(worldId: number, args: CmdTargetMeasurementArgs): number {
   return enqueueCommand(worldId, 'cmd-target-measurement', args);
-}
-
-/**
- * Creates or updates an input listener bound to a routed target.
- */
-export function upsertInputTargetListener(
-  worldId: number,
-  args: CmdInputTargetListenerUpsertArgs
-): number {
-  return enqueueCommand(worldId, 'cmd-input-target-listener-upsert', args);
-}
-
-/**
- * Disposes an input listener bound to routed targets.
- */
-export function disposeInputTargetListener(
-  worldId: number,
-  args: CmdInputTargetListenerDisposeArgs
-): number {
-  return enqueueCommand(worldId, 'cmd-input-target-listener-dispose', args);
-}
-
-/**
- * Lists input listeners (optionally filtered by target id).
- */
-export function listInputTargetListeners(
-  worldId: number,
-  args: CmdInputTargetListenerListArgs = {}
-): number {
-  return enqueueCommand(worldId, 'cmd-input-target-listener-list', args);
 }
 
 /**
@@ -189,6 +154,8 @@ export function presentWorldInWindow(
       top: { unit: 'percent', value: 0 },
       width: { unit: 'percent', value: 100 },
       height: { unit: 'percent', value: 100 },
+      enabled: true,
+      opacity: 1,
       zIndex: 0,
       blendMode: 0
     },

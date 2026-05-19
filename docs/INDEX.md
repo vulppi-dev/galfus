@@ -5,13 +5,15 @@
 - high-level overview: [OVERVIEW.md](OVERVIEW.md)
 - public ABI contract: [ABI.md](ABI.md)
 - current runtime architecture: [ARCH.md](ARCH.md)
-- internal Rust architecture: [API.md](API.md)
-- realm composition architecture: [REALM-ARCH.md](REALM-ARCH.md)
-- render graph resource format: [RENDER-GRAPH.md](RENDER-GRAPH.md)
+- internal API snapshot: [API.md](API.md)
+- realm architecture (vNext): [REALM-ARCH.md](REALM-ARCH.md)
+- render graph model (vNext): [RENDER-GRAPH.md](RENDER-GRAPH.md)
+- canonical examples (vNext): [EXAMPLES-VNEXT.md](EXAMPLES-VNEXT.md)
+- vNext breaking changes: [VNEXT-BREAKING-CHANGES.md](VNEXT-BREAKING-CHANGES.md)
+- vNext migration guide: [VNEXT-MIGRATION.md](VNEXT-MIGRATION.md)
+- vNext release draft: [RELEASE-VNEXT.md](RELEASE-VNEXT.md)
 - terminology: [GLOSSARY.md](GLOSSARY.md)
-- validation policy: [VALIDATION.md](VALIDATION.md)
-- release and registry publishing: [CI-RELEASE-PUBLISH.md](CI-RELEASE-PUBLISH.md)
-- OIDC setup for npm and JSR: [OIDC-PUBLISH-SETUP.md](OIDC-PUBLISH-SETUP.md)
+- command reference: [cmds/](cmds/)
 
 ## For Binding Authors and Integrators
 
@@ -19,38 +21,31 @@ Read in this order:
 
 1. [OVERVIEW.md](OVERVIEW.md)
 2. [ABI.md](ABI.md)
-3. [ARCH.md](ARCH.md)
-4. [cmds/](cmds/)
-5. [GLOSSARY.md](GLOSSARY.md)
+3. [REALM-ARCH.md](REALM-ARCH.md)
+4. [RENDER-GRAPH.md](RENDER-GRAPH.md)
+5. [EXAMPLES-VNEXT.md](EXAMPLES-VNEXT.md)
+6. [cmds/](cmds/)
 
-Important current truths:
+Current baseline rules:
 
-- the host composes through `Realm`, `Target` and `TargetLayer`
-- `Surface`, `Present` and `Connector` are internal runtime tables
-- render graphs are global resources bound per realm
-
-## JavaScript Workspace
-
-- transport packages live under `packages/transport-*`
-- the source-first engine packages live under `packages/engine`,
-  `packages/gltf-loader` and `packages/camera-control`
-- browser-facing demos live under `apps/demos`
+- host composition uses `Realm`, `Target`, `TargetLayer`
+- targets are only `window` and `texture`
+- pointer flow is global (no target-routed relay)
+- materials are unified as `ShaderMaterial` with composer-generated WGSL
 
 ## For Core Contributors
 
 Read in this order:
 
-1. [OVERVIEW.md](OVERVIEW.md)
-2. [ARCH.md](ARCH.md)
-3. [API.md](API.md)
-4. [REALM-ARCH.md](REALM-ARCH.md)
-5. [RENDER-GRAPH.md](RENDER-GRAPH.md)
-6. [GLOSSARY.md](GLOSSARY.md)
+1. [ARCH.md](ARCH.md)
+2. [API.md](API.md)
+3. [REALM-ARCH.md](REALM-ARCH.md)
+4. [RENDER-GRAPH.md](RENDER-GRAPH.md)
+5. [GLOSSARY.md](GLOSSARY.md)
+6. [EXAMPLES-VNEXT.md](EXAMPLES-VNEXT.md)
 
-## Notes
+## Release / Validation Supporting Docs
 
-- older planning assumptions that treated `SurfaceId`, `PresentId` and
-  `ConnectorId` as host-managed should be considered obsolete
-- `vulfram-runtime` is the current integration root of the Rust side
-- `vulfram-render` is the home of rendering policy and the preferred long-term
-  home of auto-graph planning policy
+- [VALIDATION.md](VALIDATION.md)
+- [CI-RELEASE-PUBLISH.md](CI-RELEASE-PUBLISH.md)
+- [OIDC-PUBLISH-SETUP.md](OIDC-PUBLISH-SETUP.md)

@@ -4,7 +4,6 @@ use glam::Vec2;
 
 use crate::core::cmd::EngineEvent;
 use crate::core::input::events::{PointerEventTrace, PointerTraceHop, PointerTraceStage};
-use crate::core::input::raycast::resolve_realm_plane_hit;
 use crate::core::realm::RealmId;
 use crate::core::state::EngineState;
 
@@ -101,7 +100,6 @@ pub fn route_pointer_events(engine_state: &mut EngineState) {
                 target_id: None,
                 layer_realm_id: None,
                 connector_id: None,
-                surface_id: Some(root_surface_id.0),
                 camera_id: None,
                 uv: None,
             });
@@ -132,7 +130,6 @@ pub fn route_pointer_events(engine_state: &mut EngineState) {
                         target_id: target_id.map(|id| id.0),
                         layer_realm_id: Some(realm_id.0),
                         connector_id: connector_id.map(|id| id.0),
-                        surface_id: None,
                         camera_id: target_id.and_then(|id| {
                             layer_camera_by_key
                                 .get(&(realm_id.0, id))
@@ -154,7 +151,6 @@ pub fn route_pointer_events(engine_state: &mut EngineState) {
                         target_id: connector_targets.get(&hit.connector_id).map(|id| id.0),
                         layer_realm_id: Some(realm_id.0),
                         connector_id: Some(hit.connector_id.0),
-                        surface_id: None,
                         camera_id: connector_targets.get(&hit.connector_id).and_then(|id| {
                             layer_camera_by_key
                                 .get(&(realm_id.0, *id))
@@ -178,7 +174,6 @@ pub fn route_pointer_events(engine_state: &mut EngineState) {
                             target_id: Some(focused_target.0),
                             layer_realm_id: Some(realm_id.0),
                             connector_id: connector_id.map(|id| id.0),
-                            surface_id: None,
                             camera_id: layer_camera_by_key
                                 .get(&(realm_id.0, focused_target))
                                 .copied()
@@ -216,7 +211,6 @@ pub fn route_pointer_events(engine_state: &mut EngineState) {
                             target_id: target_id.map(|id| id.0),
                             layer_realm_id: Some(connector.target_realm.0),
                             connector_id: Some(connector_id.0),
-                            surface_id: Some(connector.source_surface.0),
                             camera_id: target_id.and_then(|id| {
                                 layer_camera_by_key
                                     .get(&(connector.target_realm.0, id))
@@ -224,37 +218,6 @@ pub fn route_pointer_events(engine_state: &mut EngineState) {
                                     .flatten()
                             }),
                             uv,
-                        });
-                    }
-                } else if source_realm_id.is_none() {
-                    if let Some(realm_plane_hit) = resolve_realm_plane_hit(
-                        engine_state,
-                        window_id,
-                        realm_id,
-                        target_id.and_then(|id| {
-                            layer_camera_by_key
-                                .get(&(realm_id.0, id))
-                                .copied()
-                                .flatten()
-                        }),
-                        position,
-                        root_surface_size.unwrap_or(glam::UVec2::new(1, 1)),
-                    ) {
-                        source_realm_id = Some(realm_plane_hit.source_realm_id);
-                        target_id = Some(realm_plane_hit.target_id);
-                        uv = Some(realm_plane_hit.uv);
-                        hops.push(PointerTraceHop {
-                            stage: PointerTraceStage::RealmPlaneHit,
-                            realm_id: Some(realm_plane_hit.source_realm_id.0),
-                            target_id: Some(realm_plane_hit.target_id.0),
-                            layer_realm_id: Some(realm_id.0),
-                            connector_id: None,
-                            surface_id: None,
-                            camera_id: layer_camera_by_key
-                                .get(&(realm_id.0, realm_plane_hit.target_id))
-                                .copied()
-                                .flatten(),
-                            uv: Some(realm_plane_hit.uv),
                         });
                     }
                 }
@@ -277,7 +240,6 @@ pub fn route_pointer_events(engine_state: &mut EngineState) {
                             target_id: target_id.map(|id| id.0),
                             layer_realm_id: Some(current_realm.0),
                             connector_id: connector_id.map(|id| id.0),
-                            surface_id: None,
                             camera_id: None,
                             uv: Some(current_uv),
                         });
@@ -328,7 +290,6 @@ pub fn route_pointer_events(engine_state: &mut EngineState) {
                             target_id: target_id.map(|id| id.0),
                             layer_realm_id: Some(current_realm.0),
                             connector_id: Some(hit.connector_id.0),
-                            surface_id: Some(connector.source_surface.0),
                             camera_id: target_id.and_then(|id| {
                                 layer_camera_by_key
                                     .get(&(current_realm.0, id))
@@ -347,44 +308,12 @@ pub fn route_pointer_events(engine_state: &mut EngineState) {
                         }
                     }
 
-                    if let Some(realm_plane_hit) = resolve_realm_plane_hit(
-                        engine_state,
-                        window_id,
-                        current_realm,
-                        target_id.and_then(|id| {
-                            layer_camera_by_key
-                                .get(&(current_realm.0, id))
-                                .copied()
-                                .flatten()
-                        }),
-                        current_position,
-                        surface_size,
-                    ) {
-                        source_realm_id = Some(realm_plane_hit.source_realm_id);
-                        target_id = Some(realm_plane_hit.target_id);
-                        uv = Some(realm_plane_hit.uv);
-                        hops.push(PointerTraceHop {
-                            stage: PointerTraceStage::RealmPlaneHit,
-                            realm_id: Some(realm_plane_hit.source_realm_id.0),
-                            target_id: Some(realm_plane_hit.target_id.0),
-                            layer_realm_id: Some(current_realm.0),
-                            connector_id: None,
-                            surface_id: None,
-                            camera_id: layer_camera_by_key
-                                .get(&(current_realm.0, realm_plane_hit.target_id))
-                                .copied()
-                                .flatten(),
-                            uv: Some(realm_plane_hit.uv),
-                        });
-                        continue;
-                    }
                     hops.push(PointerTraceHop {
                         stage: PointerTraceStage::StopNoHit,
                         realm_id: Some(current_realm.0),
                         target_id: target_id.map(|id| id.0),
                         layer_realm_id: Some(current_realm.0),
                         connector_id: connector_id.map(|id| id.0),
-                        surface_id: None,
                         camera_id: None,
                         uv: Some(current_uv),
                     });
@@ -398,7 +327,6 @@ pub fn route_pointer_events(engine_state: &mut EngineState) {
                         target_id: target_id.map(|id| id.0),
                         layer_realm_id: source_realm_id.map(|id| id.0),
                         connector_id: connector_id.map(|id| id.0),
-                        surface_id: None,
                         camera_id: None,
                         uv,
                     });

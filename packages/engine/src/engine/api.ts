@@ -314,8 +314,6 @@ function createRealmWorld(kind: RealmKind, config: CreateWorldOptions = {}): Wor
       cachePolicy: config.cachePolicy,
       flags: config.flags
     },
-    coreSurfaceId: undefined,
-    corePresentId: undefined,
     resolvedEntityTransforms: new Map(),
     constraintDirtyEntities: new Set(),
     constraintScratchResolved: new Map(),

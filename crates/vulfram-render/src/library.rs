@@ -23,8 +23,6 @@ pub struct ResourceLibrary {
     pub ssao_blur_msaa_pipeline_layout: wgpu::PipelineLayout,
     pub bloom_pipeline_layout: wgpu::PipelineLayout,
     pub skybox_pipeline_layout: wgpu::PipelineLayout,
-    pub forward_standard_shader: wgpu::ShaderModule,
-    pub forward_pbr_shader: wgpu::ShaderModule,
     pub post_shader: wgpu::ShaderModule,
     pub compose_shader: wgpu::ShaderModule,
     pub outline_shader: wgpu::ShaderModule,

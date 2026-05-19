@@ -75,32 +75,6 @@ pub(super) fn dispatch_command(
                 response: CommandResponse::WindowState(result),
             });
         }
-        EngineCmd::CmdInputTargetListenerUpsert(args) => {
-            let result = crate::core::input::listeners::engine_cmd_input_target_listener_upsert(
-                engine, &args,
-            );
-            engine.runtime.push_response(CommandResponseEnvelope {
-                id: pack.id,
-                response: CommandResponse::InputTargetListenerUpsert(result),
-            });
-        }
-        EngineCmd::CmdInputTargetListenerDispose(args) => {
-            let result = crate::core::input::listeners::engine_cmd_input_target_listener_dispose(
-                engine, &args,
-            );
-            engine.runtime.push_response(CommandResponseEnvelope {
-                id: pack.id,
-                response: CommandResponse::InputTargetListenerDispose(result),
-            });
-        }
-        EngineCmd::CmdInputTargetListenerList(args) => {
-            let result =
-                crate::core::input::listeners::engine_cmd_input_target_listener_list(engine, &args);
-            engine.runtime.push_response(CommandResponseEnvelope {
-                id: pack.id,
-                response: CommandResponse::InputTargetListenerList(result),
-            });
-        }
         EngineCmd::CmdUploadBufferDiscardAll(args) => {
             let result = buf::engine_cmd_upload_buffer_discard_all(engine, &args);
             engine.runtime.push_response(CommandResponseEnvelope {
@@ -229,6 +203,48 @@ pub(super) fn dispatch_command(
             engine.runtime.push_response(CommandResponseEnvelope {
                 id: pack.id,
                 response: CommandResponse::MaterialDispose(result),
+            });
+        }
+        EngineCmd::CmdMaterialDefinitionUpsert(args) => {
+            let result = match args {
+                CmdMaterialDefinitionUpsertArgs::Create(create_args) => {
+                    res::engine_cmd_material_definition_create(engine, &create_args)
+                }
+                CmdMaterialDefinitionUpsertArgs::Update(update_args) => {
+                    res::engine_cmd_material_definition_update(engine, &update_args)
+                }
+            };
+            engine.runtime.push_response(CommandResponseEnvelope {
+                id: pack.id,
+                response: CommandResponse::MaterialDefinitionUpsert(result),
+            });
+        }
+        EngineCmd::CmdMaterialDefinitionDispose(args) => {
+            let result = res::engine_cmd_material_definition_dispose(engine, &args);
+            engine.runtime.push_response(CommandResponseEnvelope {
+                id: pack.id,
+                response: CommandResponse::MaterialDefinitionDispose(result),
+            });
+        }
+        EngineCmd::CmdMaterialInstanceUpsert(args) => {
+            let result = match args {
+                CmdMaterialInstanceUpsertArgs::Create(create_args) => {
+                    res::engine_cmd_material_instance_create(engine, &create_args)
+                }
+                CmdMaterialInstanceUpsertArgs::Update(update_args) => {
+                    res::engine_cmd_material_instance_update(engine, &update_args)
+                }
+            };
+            engine.runtime.push_response(CommandResponseEnvelope {
+                id: pack.id,
+                response: CommandResponse::MaterialInstanceUpsert(result),
+            });
+        }
+        EngineCmd::CmdMaterialInstanceDispose(args) => {
+            let result = res::engine_cmd_material_instance_dispose(engine, &args);
+            engine.runtime.push_response(CommandResponseEnvelope {
+                id: pack.id,
+                response: CommandResponse::MaterialInstanceDispose(result),
             });
         }
         EngineCmd::CmdTextureCreateFromBuffer(args) => {
@@ -523,25 +539,7 @@ pub(super) fn dispatch_command(
                 response: CommandResponse::TargetLayerDispose(result),
             });
         }
-        cmd @ (EngineCmd::CmdUiThemeDefine(_)
-        | EngineCmd::CmdUiThemeDispose(_)
-        | EngineCmd::CmdUiDocumentCreate(_)
-        | EngineCmd::CmdUiDocumentDispose(_)
-        | EngineCmd::CmdUiDocumentSetRect(_)
-        | EngineCmd::CmdUiDocumentSetTheme(_)
-        | EngineCmd::CmdUiDocumentGetTree(_)
-        | EngineCmd::CmdUiDocumentGetLayoutRects(_)
-        | EngineCmd::CmdUiApplyOps(_)
-        | EngineCmd::CmdUiDebugSet(_)
-        | EngineCmd::CmdUiFocusSet(_)
-        | EngineCmd::CmdUiFocusGet(_)
-        | EngineCmd::CmdUiEventTraceSet(_)
-        | EngineCmd::CmdUiImageCreateFromBuffer(_)
-        | EngineCmd::CmdUiImageDispose(_)
-        | EngineCmd::CmdUiClipboardPaste(_)
-        | EngineCmd::CmdUiScreenshotReply(_)
-        | EngineCmd::CmdUiAccessKitActionRequest(_)
-        | EngineCmd::CmdModelList(_)
+        cmd @ (EngineCmd::CmdModelList(_)
         | EngineCmd::CmdMaterialList(_)
         | EngineCmd::CmdTextureList(_)
         | EngineCmd::CmdGeometryList(_)

@@ -17,7 +17,11 @@ fn valid_graph(graph_name: &str, resource_name: &str) -> RenderGraphDesc {
             pass_id: RENDER_PASS_SHADOW.into(),
             inputs: Vec::new(),
             outputs: vec![LogicalId::Str(resource_name.into())],
+            require: Vec::new(),
+            priority: 0,
+            enabled: true,
             params: HashMap::new(),
+            shader: None,
         }],
         edges: Vec::new(),
         resources: vec![RenderGraphResource {
@@ -38,7 +42,11 @@ fn invalid_graph_missing_resource(graph_name: &str) -> RenderGraphDesc {
             pass_id: RENDER_PASS_FORWARD.into(),
             inputs: vec![LogicalId::Str("missing".into())],
             outputs: Vec::new(),
+            require: vec![LogicalId::Str("missing".into())],
+            priority: 0,
+            enabled: true,
             params: HashMap::new(),
+            shader: None,
         }],
         edges: Vec::new(),
         resources: Vec::new(),
@@ -54,7 +62,11 @@ fn ui_only_graph(graph_name: &str, resource_name: &str) -> RenderGraphDesc {
             pass_id: RENDER_PASS_UI.into(),
             inputs: Vec::new(),
             outputs: vec![LogicalId::Str(resource_name.into())],
+            require: Vec::new(),
+            priority: 0,
+            enabled: true,
             params: HashMap::new(),
+            shader: None,
         }],
         edges: Vec::new(),
         resources: vec![RenderGraphResource {
@@ -121,9 +133,44 @@ fn render_graph_upsert_and_list_includes_desc_hash_and_passes() {
         .find(|entry| entry.render_graph_id == 100)
         .expect("custom graph must be listed");
     assert_eq!(entry.desc_hash, expected_hash);
+    assert_eq!(entry.graph_kind, "3d");
     assert_eq!(entry.pass_count, 1);
     assert_eq!(entry.pass_ids, vec![RENDER_PASS_SHADOW.to_string()]);
     assert_eq!(entry.bound_realm_ids, Vec::<u32>::new());
+    assert_eq!(
+        engine
+            .universal_state
+            .render_catalog
+            .render_graph_compile_cache_misses,
+        1
+    );
+    assert_eq!(
+        engine
+            .universal_state
+            .render_catalog
+            .render_graph_compile_cache_hits,
+        0
+    );
+
+    let upsert_again = engine_cmd_render_graph_upsert(
+        &mut engine,
+        &CmdRenderGraphUpsertArgs {
+            render_graph_id: 110,
+            graph: valid_graph("custom_a", "shadow_atlas_custom_a"),
+        },
+    );
+    assert!(
+        upsert_again.success,
+        "upsert again failed: {}",
+        upsert_again.message
+    );
+    assert_eq!(
+        engine
+            .universal_state
+            .render_catalog
+            .render_graph_compile_cache_hits,
+        1
+    );
 }
 
 #[test]
@@ -373,7 +420,7 @@ fn upsert_rejects_incompatible_update_for_bound_realms() {
         !engine
             .universal_state
             .render_catalog
-            .render_graph_plan_cache
+            .render_graph_plan_cache_3d
             .contains_key(&rejected_hash),
         "incompatible upsert must not populate plan cache"
     );
@@ -404,7 +451,7 @@ fn dispose_prunes_orphaned_render_graph_plan_cache() {
         engine
             .universal_state
             .render_catalog
-            .render_graph_plan_cache
+            .render_graph_plan_cache_3d
             .contains_key(&desc_hash)
     );
 
@@ -421,7 +468,7 @@ fn dispose_prunes_orphaned_render_graph_plan_cache() {
         !engine
             .universal_state
             .render_catalog
-            .render_graph_plan_cache
+            .render_graph_plan_cache_3d
             .contains_key(&desc_hash),
         "cache entry should be dropped when no graph references desc hash"
     );

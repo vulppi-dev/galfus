@@ -1,21 +1,23 @@
 flowchart LR
-  RE["realm_entities[realm_id]"]
-  GR["universal_resources"]
-  SYNC["sync_scene_from_realm_and_universal_resources"]
-  SCN["RenderState.scene (cameras/models/lights/materials/textures)"]
-  CAM["sync_camera_targets_and_projection"]
+  RE["realm entities [realm_id]"]
+  UR["universal_resources (material definitions/instances textures/geometries)"]
+  SYNC["sync scene from realm and universal resources"]
+  SCN["RenderState.scene (cameras/models/lights/material slots)"]
   PREP["prepare_render"]
+  MAT["resolve compiled material program (cache hit/miss + compile if needed)"]
+  FB["draw-time fallback invalid/missing material -> standard fallback instance"]
 
   RE --> SYNC
-  GR --> SYNC
+  UR --> SYNC
   SYNC --> SCN
-  SCN --> CAM
-  CAM --> PREP
+  SCN --> PREP
+  PREP --> MAT
+  MAT --> FB
 
-  C1["cameras/models/lights come from current realm only"]
-  C2["materials/textures/geometries are shared universal resources"]
-  C3["projection size tracks resolved target/surface size"]
+  C1["cameras/models/lights come from active realm"]
+  C2["material source is definition + instance"]
+  C3["fallback only at draw stage"]
 
   RE --> C1
-  GR --> C2
-  CAM --> C3
+  UR --> C2
+  FB --> C3

@@ -7,11 +7,10 @@ use crate::core::render::cache::RenderCache;
 use crate::core::render::gizmos::GizmoSystem;
 #[cfg(any(not(target_arch = "wasm32"), target_arch = "wasm32"))]
 use crate::core::render::state::collector::DrawCollector;
-use crate::core::resources::{
-    MATERIAL_FALLBACK_ID, MaterialStandardParams, MaterialStandardRecord,
-};
+use crate::core::resources::{MATERIAL_FALLBACK_ID, ShaderMaterialRecord};
 #[cfg(any(not(target_arch = "wasm32"), target_arch = "wasm32"))]
 use std::collections::HashMap;
+use std::collections::HashSet;
 
 impl RenderState {
     const VERTEX_COMPACT_FRAME_INTERVAL: u64 = 120;
@@ -22,13 +21,10 @@ impl RenderState {
     /// Create a new RenderState with empty systems
     #[cfg(any(not(target_arch = "wasm32"), target_arch = "wasm32"))]
     pub fn new(_surface_format: wgpu::TextureFormat) -> Self {
-        let mut materials_standard = HashMap::new();
-        materials_standard.insert(
+        let mut materials = HashMap::new();
+        materials.insert(
             MATERIAL_FALLBACK_ID,
-            MaterialStandardRecord::new(
-                Some("Fallback Material".into()),
-                MaterialStandardParams::default(),
-            ),
+            ShaderMaterialRecord::new_standard(Some("Fallback Material".into())),
         );
 
         Self {
@@ -36,8 +32,7 @@ impl RenderState {
                 cameras: HashMap::new(),
                 models: HashMap::new(),
                 lights: HashMap::new(),
-                materials_standard,
-                materials_pbr: HashMap::new(),
+                materials,
                 textures: HashMap::new(),
                 forward_atlas_entries: HashMap::new(),
             },
@@ -54,6 +49,8 @@ impl RenderState {
             gizmos: GizmoSystem::new(),
             shadow: None,
             cache: RenderCache::new(),
+            material_shader_modules: HashMap::new(),
+            custom_screen_param_buffer: None,
             post_uniform_buffer: None,
             compose_uniform_buffer: None,
             ssao_uniform_buffer: None,
@@ -90,15 +87,11 @@ impl RenderState {
         self.camera_uniform_slots.clear();
         self.scene.models.clear();
         self.scene.lights.clear();
-        self.scene.materials_standard.clear();
-        self.scene.materials_standard.insert(
+        self.scene.materials.clear();
+        self.scene.materials.insert(
             MATERIAL_FALLBACK_ID,
-            MaterialStandardRecord::new(
-                Some("Fallback Material".into()),
-                MaterialStandardParams::default(),
-            ),
+            ShaderMaterialRecord::new_standard(Some("Fallback Material".into())),
         );
-        self.scene.materials_pbr.clear();
         self.scene.textures.clear();
         self.scene.forward_atlas_entries.clear();
         self.target_texture_binds.clear();
@@ -110,6 +103,8 @@ impl RenderState {
         self.light_system = None;
         self.shadow = None;
         self.cache.clear();
+        self.material_shader_modules.clear();
+        self.custom_screen_param_buffer = None;
         self.post_uniform_buffer = None;
         self.compose_uniform_buffer = None;
         self.ssao_uniform_buffer = None;
@@ -177,5 +172,23 @@ impl RenderState {
         self.post_bind_cache_misses = 0;
         self.cache.reset_frame_stats();
         self.cache.gc(frame_index);
+        let active_shader_ids: HashSet<u64> = self
+            .scene
+            .materials
+            .values()
+            .filter_map(|record| {
+                if record.compiled_shader_source.is_some() {
+                    Some(if record.compiled_shader_hash == 0 {
+                        1
+                    } else {
+                        record.compiled_shader_hash
+                    })
+                } else {
+                    None
+                }
+            })
+            .collect();
+        self.material_shader_modules
+            .retain(|shader_id, _| active_shader_ids.contains(shader_id));
     }
 }

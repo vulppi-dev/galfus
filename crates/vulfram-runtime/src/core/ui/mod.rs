@@ -1,21 +1,24 @@
-#[cfg(test)]
-pub mod bench;
-pub mod cmd;
-pub mod events;
-pub mod image_async;
 pub mod input;
-mod input_keymap;
-pub mod paint;
-pub mod render;
-pub mod renderer;
-pub mod state;
-#[cfg(test)]
-mod tests;
-pub mod types;
 
-#[allow(unused_imports)]
-pub use renderer::UiRenderer;
-#[allow(unused_imports)]
-pub use state::{UiRealmState, UiState};
-#[allow(unused_imports)]
-pub use types::{UiDocumentId, UiFontId, UiImageId, UiNodeId, UiThemeId};
+use crate::core::realm::RealmId;
+
+#[derive(Debug, Default)]
+pub struct UiState {
+    pub external_textures: std::collections::HashMap<u32, glam::UVec2>,
+    pub target_size_requests: std::collections::HashMap<u64, glam::UVec2>,
+}
+
+impl UiState {
+    pub fn ensure_realm(&mut self, _realm_id: RealmId) {}
+
+    pub fn remove_realm(&mut self, _realm_id: RealmId) {}
+}
+
+#[derive(Debug, Default)]
+pub struct UiRenderer;
+
+impl UiRenderer {
+    pub fn estimated_gpu_bytes(&self) -> u64 {
+        0
+    }
+}

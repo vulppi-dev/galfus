@@ -1,6 +1,7 @@
 use std::collections::{HashMap, HashSet, VecDeque};
 
-use crate::{ConnectorId, RealmId, SurfaceId};
+use crate::RealmId;
+use vulfram_types::{ConnectorId, SurfaceId};
 
 #[derive(Debug, Clone)]
 pub struct RealmGraphEdge {

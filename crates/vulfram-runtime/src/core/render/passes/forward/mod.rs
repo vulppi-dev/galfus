@@ -86,9 +86,29 @@ pub fn pass_forward(
     encoder: &mut wgpu::CommandEncoder,
     frame_index: u64,
     clear_color: bool,
+    log_events: &mut Vec<vulfram_log::LogEvent>,
 ) {
     const TARGET_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba16Float;
     let camera_ids: Vec<u32> = render_state.camera_order.iter().copied().collect();
+    vulfram_log::vulfram_log_debug!(
+        log_events,
+        "forward.pass",
+        "frame={} cameras={} lights={} models={} materials={} has_shared_group={}",
+        frame_index,
+        camera_ids.len(),
+        render_state.scene.lights.len(),
+        render_state.scene.models.len(),
+        render_state.scene.materials.len(),
+        render_state
+            .bindings
+            .as_ref()
+            .and_then(|b| b.shared_group.as_ref())
+            .is_some()
+    );
+    let camera_slots: Vec<Option<u32>> = camera_ids
+        .iter()
+        .map(|camera_id| render_state.camera_uniform_slot(*camera_id))
+        .collect();
     let mut camera_sample_counts: Vec<u32> = Vec::with_capacity(camera_ids.len());
     let mut camera_clear_colors: Vec<glam::Vec4> = Vec::with_capacity(camera_ids.len());
     let mut camera_skybox_modes: Vec<SkyboxMode> = Vec::with_capacity(camera_ids.len());
@@ -105,7 +125,17 @@ pub fn pass_forward(
     }
 
     // Split borrows
-    let (scene, vertex_sys, bindings, library, light_system, collector, cache, gizmos) = (
+    let (
+        scene,
+        vertex_sys,
+        bindings,
+        library,
+        light_system,
+        collector,
+        cache,
+        gizmos,
+        material_shader_modules,
+    ) = (
         &render_state.scene,
         render_state.vertex.as_mut().unwrap(),
         render_state.bindings.as_mut().unwrap(),
@@ -114,6 +144,7 @@ pub fn pass_forward(
         &mut render_state.collector,
         &mut render_state.cache,
         &mut render_state.gizmos,
+        &mut render_state.material_shader_modules,
     );
 
     // 1. Sort cameras by order
@@ -122,6 +153,34 @@ pub fn pass_forward(
             continue;
         };
         let sample_count = camera_sample_counts.get(camera_index).copied().unwrap_or(1);
+        vulfram_log::vulfram_log_debug!(
+            log_events,
+            "forward.camera",
+            "camera={} slot={:?} sample_count={} layer_mask={} order={} has_rt={} has_depth={} rt={}x{} pos=({:.3},{:.3},{:.3}) dir=({:.3},{:.3},{:.3})",
+            camera_id,
+            camera_slots.get(camera_index).copied().flatten(),
+            sample_count,
+            camera_record.layer_mask,
+            camera_record.order,
+            camera_record.render_target.is_some(),
+            camera_record.forward_depth_target.is_some(),
+            camera_record
+                .render_target
+                .as_ref()
+                .map(|t| t.texture.size().width)
+                .unwrap_or(0),
+            camera_record
+                .render_target
+                .as_ref()
+                .map(|t| t.texture.size().height)
+                .unwrap_or(0),
+            camera_record.data.position.x,
+            camera_record.data.position.y,
+            camera_record.data.position.z,
+            camera_record.data.direction.x,
+            camera_record.data.direction.y,
+            camera_record.data.direction.z
+        );
         light_system.write_draw_params(camera_index as u32, light_system.max_lights_per_camera);
 
         let clear_rgb = camera_clear_colors
@@ -141,7 +200,9 @@ pub fn pass_forward(
             b: clear_rgb.z as f64,
             a: clear_rgb.w as f64,
         };
-        let camera_slot = camera_index as u32;
+        let Some(camera_slot) = camera_slots.get(camera_index).copied().flatten() else {
+            continue;
+        };
 
         // 2. Get render target view
         let target_view = match &camera_record.render_target {
@@ -181,7 +242,7 @@ pub fn pass_forward(
         collector.clear();
 
         // 3. Collection & Sorting
-        collector::collect_objects(scene, collector, camera_record, vertex_sys);
+        collector::collect_objects(scene, collector, camera_record, vertex_sys, log_events);
 
         // 4. Begin render pass
         {
@@ -254,6 +315,8 @@ pub fn pass_forward(
                 device,
                 cache,
                 sample_count,
+                material_shader_modules,
+                log_events,
             );
 
             // 7. Draw Gizmos

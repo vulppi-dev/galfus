@@ -62,7 +62,6 @@ pub fn vulfram_tick(time: u64, delta_time: u32) -> VulframResult {
             process_audio_source_bindings(&mut engine.state);
         }
         crate::core::resources::process_async_texture_results(&mut engine.state);
-        crate::core::ui::cmd::process_async_ui_image_results(&mut engine.state);
         if engine.state.audio_available {
             let audio_events = engine.state.audio.drain_events();
             for event in audio_events {
@@ -88,22 +87,9 @@ pub fn vulfram_tick(time: u64, delta_time: u32) -> VulframResult {
         // MARK: Event Loop Pump
         engine.state.profiling.input.event_loop_pump_ns =
             engine.platform.pump_events(&mut engine.state);
-        crate::core::input::route_pointer_events(&mut engine.state);
-        #[cfg(not(target_arch = "wasm32"))]
-        let ui_input_start = Instant::now();
-        #[cfg(target_arch = "wasm32")]
-        let ui_input_start = (Date::now() * 1_000_000.0) as u64;
-        crate::core::ui::input::process_ui_input(&mut engine.state);
-        crate::core::input::listeners::emit_target_listener_events(&mut engine.state);
-        #[cfg(not(target_arch = "wasm32"))]
-        {
-            engine.state.profiling.ui.input_ns = ui_input_start.elapsed().as_nanos() as u64;
-        }
-        #[cfg(target_arch = "wasm32")]
-        {
-            let now = (Date::now() * 1_000_000.0) as u64;
-            engine.state.profiling.ui.input_ns = now.saturating_sub(ui_input_start);
-        }
+        // vNext input policy: keep only global pointer stream.
+        // Target-routed pointer relay is disabled.
+        engine.state.profiling.ui.input_ns = 0;
 
         let events_after = engine.state.runtime.event_count();
         engine.state.profiling.input.total_events_dispatched = events_after - events_before;

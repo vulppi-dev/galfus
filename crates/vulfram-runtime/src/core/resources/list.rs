@@ -93,14 +93,7 @@ pub fn engine_cmd_material_list(
 
     let mut materials = Vec::new();
 
-    for (&id, rec) in &realm3d.materials_standard {
-        materials.push(ResourceEntry {
-            id,
-            label: rec.label.clone(),
-        });
-    }
-
-    for (&id, rec) in &realm3d.materials_pbr {
+    for (&id, rec) in &realm3d.materials {
         materials.push(ResourceEntry {
             id,
             label: rec.label.clone(),

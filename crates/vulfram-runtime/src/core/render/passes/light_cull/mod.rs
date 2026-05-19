@@ -149,6 +149,14 @@ pub fn pass_light_cull(
             .write_buffer(buffer, 0, bytes_of(&params));
     }
 
+    // Reset per-camera counters every frame before atomic writes.
+    if camera_count > 0 {
+        let clear_counts = vec![0u32; camera_count as usize];
+        light_system
+            .visible_counts
+            .write_slice(0, clear_counts.as_slice());
+    }
+
     if camera_count > 0 {
         let mut planes = Vec::with_capacity((camera_count * PLANES_PER_CAMERA) as usize);
         for camera_id in render_state.camera_order.iter().copied() {

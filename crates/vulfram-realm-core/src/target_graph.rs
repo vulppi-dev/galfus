@@ -9,34 +9,18 @@ impl TargetGraphPlanner {
     pub fn build_plan(
         &self,
         targets: &HashMap<TargetId, (TargetKind, Option<u32>)>,
-        layers: &HashMap<(u32, TargetId), TargetLayerState>,
-        realms: &HashSet<RealmId>,
+        target_dependencies: &[TargetEdge],
+        _layers: &HashMap<(u32, TargetId), TargetLayerState>,
+        _realms: &HashSet<RealmId>,
     ) -> TargetGraphPlan {
-        let window_targets = collect_window_targets(targets);
-        let layers_by_target = collect_layers_by_target(layers);
-        let realm_windows = collect_realm_windows(targets, layers, realms);
-        let mut edges = Vec::with_capacity(targets.len());
-
-        for (target_id, (kind, _window_id)) in targets {
-            match kind {
-                TargetKind::Window | TargetKind::Texture => {}
-                TargetKind::WidgetRealmViewport | TargetKind::RealmPlane => {
-                    if let Some(parent) = infer_parent_from_layers(
-                        &layers_by_target,
-                        &realm_windows,
-                        *target_id,
-                        &window_targets,
-                    ) {
-                        edges.push(TargetEdge {
-                            parent,
-                            child: *target_id,
-                        });
-                    }
-                }
-            }
-        }
+        let mut edges: Vec<TargetEdge> = target_dependencies
+            .iter()
+            .copied()
+            .filter(|edge| targets.contains_key(&edge.parent) && targets.contains_key(&edge.child))
+            .collect();
 
         edges.sort_by_key(|edge| (edge.parent.0, edge.child.0));
+        edges.dedup();
         let all_targets: HashSet<TargetId> = targets.keys().copied().collect();
         let (order, cut_edges) = topo_targets_with_soft_cuts(&all_targets, &edges);
 
@@ -46,111 +30,6 @@ impl TargetGraphPlanner {
             cut_edges,
         }
     }
-}
-
-fn collect_window_targets(
-    targets: &HashMap<TargetId, (TargetKind, Option<u32>)>,
-) -> HashMap<u32, TargetId> {
-    let mut map: HashMap<u32, TargetId> = HashMap::new();
-    for (target_id, (kind, window_id)) in targets {
-        if *kind != TargetKind::Window {
-            continue;
-        }
-        if let Some(window_id) = *window_id {
-            if let Some(existing) = map.get_mut(&window_id) {
-                if target_id.0 < existing.0 {
-                    *existing = *target_id;
-                }
-            } else {
-                map.insert(window_id, *target_id);
-            }
-        }
-    }
-    map
-}
-
-fn collect_layers_by_target(
-    layers: &HashMap<(u32, TargetId), TargetLayerState>,
-) -> HashMap<TargetId, Vec<u32>> {
-    let mut by_target = HashMap::new();
-    for ((realm_id, target_id), _) in layers {
-        by_target
-            .entry(*target_id)
-            .or_insert_with(Vec::new)
-            .push(*realm_id);
-    }
-    by_target
-}
-
-fn collect_realm_windows(
-    targets: &HashMap<TargetId, (TargetKind, Option<u32>)>,
-    layers: &HashMap<(u32, TargetId), TargetLayerState>,
-    realms: &HashSet<RealmId>,
-) -> HashMap<u32, u32> {
-    let mut map = HashMap::new();
-    for ((realm_id, target_id), _) in layers {
-        if !realms.contains(&RealmId(*realm_id)) {
-            continue;
-        }
-        let Some((kind, window_id)) = targets.get(target_id) else {
-            continue;
-        };
-        if *kind != TargetKind::Window {
-            continue;
-        }
-        let Some(window_id) = *window_id else {
-            continue;
-        };
-        match map.get_mut(realm_id) {
-            Some(existing_window_id) => {
-                if window_id < *existing_window_id {
-                    *existing_window_id = window_id;
-                }
-            }
-            None => {
-                map.insert(*realm_id, window_id);
-            }
-        }
-    }
-    map
-}
-
-fn infer_parent_from_layers(
-    layers_by_target: &HashMap<TargetId, Vec<u32>>,
-    realm_windows: &HashMap<u32, u32>,
-    target_id: TargetId,
-    window_targets: &HashMap<u32, TargetId>,
-) -> Option<TargetId> {
-    let mut chosen_window = None;
-    let mut chosen_realm = None;
-
-    let realm_ids = layers_by_target.get(&target_id)?;
-    for layer_realm_id in realm_ids {
-        let Some(realm_window_id) = realm_windows.get(layer_realm_id).copied() else {
-            continue;
-        };
-
-        match chosen_window {
-            None => {
-                chosen_window = Some(realm_window_id);
-                chosen_realm = Some(*layer_realm_id);
-            }
-            Some(current_window) => {
-                if realm_window_id < current_window {
-                    chosen_window = Some(realm_window_id);
-                    chosen_realm = Some(*layer_realm_id);
-                } else if realm_window_id == current_window {
-                    let current_realm = chosen_realm.unwrap_or(u32::MAX);
-                    if *layer_realm_id < current_realm {
-                        chosen_realm = Some(*layer_realm_id);
-                    }
-                }
-            }
-        }
-    }
-
-    let window_id = chosen_window?;
-    window_targets.get(&window_id).copied()
 }
 
 fn topo_targets_with_soft_cuts(

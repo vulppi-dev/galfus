@@ -97,6 +97,8 @@ function defaultLayout(): TargetLayerLayout {
     top: { unit: 'percent', value: 0 },
     width: { unit: 'percent', value: 100 },
     height: { unit: 'percent', value: 100 },
+    enabled: true,
+    opacity: 1,
     zIndex: 0,
     blendMode: 0
   };

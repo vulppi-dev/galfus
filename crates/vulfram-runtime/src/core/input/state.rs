@@ -4,5 +4,4 @@ use crate::core::ui::UiState;
 pub struct InteractionRuntimeState {
     pub ui: UiState,
     pub input_routing: vulfram_input::InputRoutingState,
-    pub target_listeners: crate::core::input::listeners::InputTargetListenerStore,
 }

@@ -180,22 +180,4 @@ export type SystemEvent =
         parentViewportId?: number;
       };
     }
-  | {
-      event: 'input-target-listener-event';
-      data: {
-        listenerId: number;
-        targetId: number;
-        eventType: string;
-        windowId?: number;
-        windowWidth?: number;
-        windowHeight?: number;
-        pointerId?: number;
-        positionGlobal?: vec2;
-        positionTarget?: vec2;
-        targetWidth?: number;
-        targetHeight?: number;
-        keyCode?: number;
-        keyState?: 'pressed' | 'released';
-      };
-    };
-import type { Vec2 as vec2 } from '../../math/index';
+  ;
