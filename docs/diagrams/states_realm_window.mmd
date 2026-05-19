@@ -1,29 +1,27 @@
 flowchart TB
-  TL["target_layers: realm -> target"]
-  TG["targets: window / widget-realm-viewport / realm-plane / texture"]
-  AG["sync_auto_graph"]
-  RS["realms with output_surface"]
-  CS["connectors"]
-  PS["presents"]
+  TL["target_layers: target -> realm layer"]
+  TG["targets: window | texture"]
+  AG["sync_auto_graph (FrameGraph build)"]
+  INV["render invocations"]
+  ORD["deterministic target order"]
 
   TL --> AG
   TG --> AG
-  AG --> RS
-  AG --> CS
-  AG --> PS
+  AG --> INV
+  AG --> ORD
 
-  HW["host realm index derived from window targets"]
   WS["window.states by window_id"]
-  RWS["render.states by window_id"]
+  RS["render.states by window_id"]
+  G3D["Graph3D per invocation"]
 
-  RS --> HW
-  HW --> WS
-  WS --> RWS
+  INV --> RS
+  WS --> RS
+  RS --> G3D
 
-  OWN1["realm_entities are owned by realmId"]
-  OWN2["surfaces/connectors/presents are core-managed"]
-  OWN3["window lifecycle only controls presentation surfaces"]
+  OWN1["realm_entities are realm-owned"]
+  OWN2["targets/layers/ordering are core-managed"]
+  OWN3["window lifecycle controls presentation only"]
 
-  RS --> OWN1
+  INV --> OWN1
   AG --> OWN2
   WS --> OWN3
