@@ -18,10 +18,9 @@ pub struct DrawItem {
 pub struct DrawCollector {
     pub standard_opaque: Vec<DrawItem>,
     pub standard_masked: Vec<DrawItem>,
-    pub standard_transparent: Vec<DrawItem>,
+    pub transparent: Vec<DrawItem>,
     pub pbr_opaque: Vec<DrawItem>,
     pub pbr_masked: Vec<DrawItem>,
-    pub pbr_transparent: Vec<DrawItem>,
     pub instance_data: Vec<ModelComponent>,
     pub shadow_instance_data: Vec<ModelComponent>,
     pub outline_items: Vec<(u32, u32)>,
@@ -32,10 +31,9 @@ impl DrawCollector {
     pub fn clear(&mut self) {
         self.standard_opaque.clear();
         self.standard_masked.clear();
-        self.standard_transparent.clear();
+        self.transparent.clear();
         self.pbr_opaque.clear();
         self.pbr_masked.clear();
-        self.pbr_transparent.clear();
         self.instance_data.clear();
         self.shadow_instance_data.clear();
         self.outline_items.clear();

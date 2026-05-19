@@ -37,6 +37,18 @@ pub(super) fn maybe_emit_response_error_event(
         CommandResponse::LightDispose(result) => failure_case!(result, "light-dispose"),
         CommandResponse::MaterialUpsert(result) => failure_case!(result, "material-upsert"),
         CommandResponse::MaterialDispose(result) => failure_case!(result, "material-dispose"),
+        CommandResponse::MaterialDefinitionUpsert(result) => {
+            failure_case!(result, "material-definition-upsert")
+        }
+        CommandResponse::MaterialDefinitionDispose(result) => {
+            failure_case!(result, "material-definition-dispose")
+        }
+        CommandResponse::MaterialInstanceUpsert(result) => {
+            failure_case!(result, "material-instance-upsert")
+        }
+        CommandResponse::MaterialInstanceDispose(result) => {
+            failure_case!(result, "material-instance-dispose")
+        }
         CommandResponse::TextureCreateFromBuffer(result) => {
             failure_case!(result, "texture-create-from-buffer")
         }

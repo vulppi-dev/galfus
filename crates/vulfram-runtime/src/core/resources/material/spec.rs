@@ -2,25 +2,7 @@ use bytemuck::{Pod, Zeroable};
 use glam::Vec4;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::hash::{DefaultHasher, Hash, Hasher};
-
-fn preset_shader_source(preset: ShaderMaterialPreset) -> String {
-    match preset {
-        ShaderMaterialPreset::Standard => {
-            include_str!("../../render/passes/forward/branches/forward_standard.wgsl").to_string()
-        }
-        ShaderMaterialPreset::Pbr => {
-            include_str!("../../render/passes/forward/branches/forward_pbr.wgsl").to_string()
-        }
-    }
-}
-
-fn preset_shader_hash(source: &str, preset: ShaderMaterialPreset) -> u64 {
-    let mut hasher = DefaultHasher::new();
-    (preset as u32).hash(&mut hasher);
-    source.hash(&mut hasher);
-    hasher.finish()
-}
+use std::hash::Hash;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deserialize, Serialize)]
 #[serde(rename_all = "kebab-case")]
@@ -59,6 +41,10 @@ pub enum RenderSide {
 }
 
 pub const MATERIAL_FALLBACK_ID: u32 = 0;
+pub const MATERIAL_DEFINITION_STANDARD_ID: u32 = 1;
+pub const MATERIAL_DEFINITION_PBR_ID: u32 = 2;
+pub const MATERIAL_DEFINITION_STANDARD_SLUG: &str = "standard";
+pub const MATERIAL_DEFINITION_PBR_SLUG: &str = "pbr";
 pub const SHADER_MATERIAL_INPUTS_PER_MATERIAL: u32 = 8;
 pub const SHADER_MATERIAL_TEXTURE_SLOTS: usize = 8;
 pub const SHADER_MATERIAL_INVALID_SLOT: u32 = u32::MAX;
@@ -77,6 +63,40 @@ pub const TEX_SOURCE_INVALID: u32 = 2;
 pub enum ShaderMaterialPreset {
     Standard,
     Pbr,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deserialize, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum MaterialShaderType {
+    Model,
+    Particle,
+}
+
+impl Default for MaterialShaderType {
+    fn default() -> Self {
+        Self::Model
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct MaterialDefinitionRecord {
+    pub definition_id: u32,
+    pub slug: String,
+    pub label: Option<String>,
+    pub base_preset: ShaderMaterialPreset,
+    pub shader_type: MaterialShaderType,
+    pub shader_source: Option<String>,
+    pub shader_params_schema: HashMap<String, String>,
+    pub compiled_shader_hash: u64,
+    pub compiled_shader_source: Option<String>,
+    pub compile_error: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct MaterialInstanceRecord {
+    pub material_id: u32,
+    pub definition_id: u32,
+    pub label: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, Pod, Zeroable, Deserialize, Serialize)]
@@ -229,6 +249,7 @@ pub struct ShaderMaterialRecord {
     pub label: Option<String>,
     pub preset: ShaderMaterialPreset,
     pub base_preset: ShaderMaterialPreset,
+    pub shader_type: MaterialShaderType,
     pub shader_source: Option<String>,
     pub shader_params_schema: HashMap<String, String>,
     pub compiled_shader_hash: u64,
@@ -247,10 +268,29 @@ pub struct ShaderMaterialRecord {
 }
 
 impl ShaderMaterialRecord {
+    fn builtin_compiled(
+        preset: ShaderMaterialPreset,
+    ) -> (Option<String>, u64, Option<String>, Option<String>) {
+        let render_preset = match preset {
+            ShaderMaterialPreset::Standard => vulfram_render::MaterialShaderBasePreset::Standard,
+            ShaderMaterialPreset::Pbr => vulfram_render::MaterialShaderBasePreset::Pbr,
+        };
+        let shader_source = vulfram_render::builtin_material_source(render_preset).to_string();
+        let spec = vulfram_render::MaterialShaderCompileSpec {
+            base_preset: render_preset,
+            shader_type: vulfram_render::MaterialShaderType::Model,
+            shader_source: shader_source.clone(),
+            shader_params_schema: HashMap::new(),
+        };
+        match vulfram_render::compile_material_shader_spec(&spec) {
+            Ok(compiled) => (Some(shader_source), compiled.hash, Some(compiled.source), None),
+            Err(error) => (Some(shader_source), 0, None, Some(error)),
+        }
+    }
+
     pub fn new_standard(label: Option<String>) -> Self {
-        let compiled_shader_source = preset_shader_source(ShaderMaterialPreset::Standard);
-        let compiled_shader_hash =
-            preset_shader_hash(&compiled_shader_source, ShaderMaterialPreset::Standard);
+        let (shader_source, compiled_shader_hash, compiled_shader_source, compile_error) =
+            Self::builtin_compiled(ShaderMaterialPreset::Standard);
         let mut inputs = vec![Vec4::ZERO; SHADER_MATERIAL_INPUTS_PER_MATERIAL as usize];
         inputs[0] = Vec4::ONE;
         inputs[1] = Vec4::ONE;
@@ -259,11 +299,12 @@ impl ShaderMaterialRecord {
             label,
             preset: ShaderMaterialPreset::Standard,
             base_preset: ShaderMaterialPreset::Standard,
-            shader_source: None,
+            shader_type: MaterialShaderType::Model,
+            shader_source,
             shader_params_schema: HashMap::new(),
             compiled_shader_hash,
-            compiled_shader_source: Some(compiled_shader_source),
-            compile_error: None,
+            compiled_shader_source,
+            compile_error,
             data_standard: MaterialStandardParams::default(),
             data_pbr: MaterialPbrParams::default(),
             inputs,
@@ -278,8 +319,8 @@ impl ShaderMaterialRecord {
     }
 
     pub fn new_pbr(label: Option<String>) -> Self {
-        let compiled_shader_source = preset_shader_source(ShaderMaterialPreset::Pbr);
-        let compiled_shader_hash = preset_shader_hash(&compiled_shader_source, ShaderMaterialPreset::Pbr);
+        let (shader_source, compiled_shader_hash, compiled_shader_source, compile_error) =
+            Self::builtin_compiled(ShaderMaterialPreset::Pbr);
         let mut inputs = vec![Vec4::ZERO; SHADER_MATERIAL_INPUTS_PER_MATERIAL as usize];
         inputs[0] = Vec4::ONE;
         inputs[1] = Vec4::ZERO;
@@ -289,11 +330,12 @@ impl ShaderMaterialRecord {
             label,
             preset: ShaderMaterialPreset::Pbr,
             base_preset: ShaderMaterialPreset::Pbr,
-            shader_source: None,
+            shader_type: MaterialShaderType::Model,
+            shader_source,
             shader_params_schema: HashMap::new(),
             compiled_shader_hash,
-            compiled_shader_source: Some(compiled_shader_source),
-            compile_error: None,
+            compiled_shader_source,
+            compile_error,
             data_standard: MaterialStandardParams::default(),
             data_pbr: MaterialPbrParams::default(),
             inputs,

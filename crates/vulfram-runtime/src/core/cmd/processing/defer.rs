@@ -48,6 +48,10 @@ pub(super) fn command_type_for_cmd(cmd: &EngineCmd) -> &'static str {
         EngineCmd::CmdLightDispose(_) => "light-dispose",
         EngineCmd::CmdMaterialUpsert(_) => "material-upsert",
         EngineCmd::CmdMaterialDispose(_) => "material-dispose",
+        EngineCmd::CmdMaterialDefinitionUpsert(_) => "material-definition-upsert",
+        EngineCmd::CmdMaterialDefinitionDispose(_) => "material-definition-dispose",
+        EngineCmd::CmdMaterialInstanceUpsert(_) => "material-instance-upsert",
+        EngineCmd::CmdMaterialInstanceDispose(_) => "material-instance-dispose",
         EngineCmd::CmdTextureCreateFromBuffer(_) => "texture-create-from-buffer",
         EngineCmd::CmdTextureCreateSolidColor(_) => "texture-create-solid-color",
         EngineCmd::CmdTextureDispose(_) => "texture-dispose",
@@ -233,6 +237,39 @@ fn command_has_pending_dependencies(engine: &EngineState, cmd: &EngineCmd) -> bo
                 !realm3d.materials.contains_key(&update.material_id)
             }
         },
+        EngineCmd::CmdMaterialDefinitionUpsert(args) => match args {
+            CmdMaterialDefinitionUpsertArgs::Create(_) => false,
+            CmdMaterialDefinitionUpsertArgs::Update(update) => !engine
+                .universal_state
+                .scene
+                .material_definitions
+                .contains_key(&update.definition_id),
+        },
+        EngineCmd::CmdMaterialDefinitionDispose(args) => !engine
+            .universal_state
+            .scene
+            .material_definitions
+            .contains_key(&args.definition_id),
+        EngineCmd::CmdMaterialInstanceUpsert(args) => match args {
+            CmdMaterialInstanceUpsertArgs::Create(create) => {
+                !engine
+                    .universal_state
+                    .scene
+                    .material_definitions
+                    .values()
+                    .any(|definition| definition.slug == create.slug)
+            }
+            CmdMaterialInstanceUpsertArgs::Update(update) => !engine
+                .universal_state
+                .scene
+                .material_instances
+                .contains_key(&update.material_id),
+        },
+        EngineCmd::CmdMaterialInstanceDispose(args) => !engine
+            .universal_state
+            .scene
+            .material_instances
+            .contains_key(&args.material_id),
         EngineCmd::CmdGeometryUpsert(args) => match args {
             CmdGeometryUpsertArgs::Create(_) => false,
             CmdGeometryUpsertArgs::Update(update) => !engine

@@ -84,11 +84,8 @@ pub enum MaterialOptions {
 pub struct CmdMaterialCreateArgs {
     pub material_id: u32,
     pub label: Option<String>,
+    pub slug: String,
     pub kind: MaterialKind,
-    pub preset: Option<crate::core::resources::ShaderMaterialPreset>,
-    pub shader_source: Option<String>,
-    #[serde(default)]
-    pub shader_params_schema: Option<HashMap<String, String>>,
     #[serde(default)]
     pub options: Option<MaterialOptions>,
 }
@@ -107,11 +104,8 @@ pub struct CmdResultMaterialCreate {
 pub struct CmdMaterialUpdateArgs {
     pub material_id: u32,
     pub label: Option<String>,
+    pub slug: Option<String>,
     pub kind: Option<MaterialKind>,
-    pub preset: Option<crate::core::resources::ShaderMaterialPreset>,
-    pub shader_source: Option<String>,
-    #[serde(default)]
-    pub shader_params_schema: Option<HashMap<String, String>>,
     #[serde(default)]
     pub options: Option<MaterialOptions>,
 }
@@ -134,6 +128,84 @@ pub struct CmdMaterialDisposeArgs {
 #[derive(Debug, Default, Deserialize, Serialize, Clone)]
 #[serde(default, rename_all = "camelCase")]
 pub struct CmdResultMaterialDispose {
+    pub success: bool,
+    pub message: String,
+}
+
+// MARK: - Material Definition
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct CmdMaterialDefinitionCreateArgs {
+    pub definition_id: u32,
+    pub slug: String,
+    pub label: Option<String>,
+    pub preset: crate::core::resources::ShaderMaterialPreset,
+    #[serde(default)]
+    pub shader_type: Option<crate::core::resources::MaterialShaderType>,
+    pub shader_source: String,
+    #[serde(default)]
+    pub shader_params_schema: Option<HashMap<String, String>>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct CmdMaterialDefinitionUpdateArgs {
+    pub definition_id: u32,
+    pub slug: Option<String>,
+    pub label: Option<String>,
+    pub preset: Option<crate::core::resources::ShaderMaterialPreset>,
+    #[serde(default)]
+    pub shader_type: Option<crate::core::resources::MaterialShaderType>,
+    pub shader_source: String,
+    #[serde(default)]
+    pub shader_params_schema: Option<HashMap<String, String>>,
+}
+
+#[derive(Debug, Default, Deserialize, Serialize, Clone)]
+#[serde(default, rename_all = "camelCase")]
+pub struct CmdMaterialDefinitionDisposeArgs {
+    pub definition_id: u32,
+}
+
+#[derive(Debug, Default, Deserialize, Serialize, Clone)]
+#[serde(default, rename_all = "camelCase")]
+pub struct CmdResultMaterialDefinition {
+    pub success: bool,
+    pub message: String,
+}
+
+// MARK: - Material Instance
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct CmdMaterialInstanceCreateArgs {
+    pub material_id: u32,
+    pub slug: String,
+    pub label: Option<String>,
+    #[serde(default)]
+    pub options: Option<MaterialOptions>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct CmdMaterialInstanceUpdateArgs {
+    pub material_id: u32,
+    pub slug: Option<String>,
+    pub label: Option<String>,
+    #[serde(default)]
+    pub options: Option<MaterialOptions>,
+}
+
+#[derive(Debug, Default, Deserialize, Serialize, Clone)]
+#[serde(default, rename_all = "camelCase")]
+pub struct CmdMaterialInstanceDisposeArgs {
+    pub material_id: u32,
+}
+
+#[derive(Debug, Default, Deserialize, Serialize, Clone)]
+#[serde(default, rename_all = "camelCase")]
+pub struct CmdResultMaterialInstance {
     pub success: bool,
     pub message: String,
 }

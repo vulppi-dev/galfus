@@ -1,4 +1,4 @@
-# Vulfram Internal API (vNext snapshot)
+# Vulfram Internal API
 
 This document describes the active architectural contracts after the vNext replace phases.
 
@@ -55,12 +55,17 @@ Pass contract uses:
 
 ## Material model
 
-Materials are unified under `ShaderMaterial`.
+Materials are unified under `ShaderMaterial` with `MaterialDefinition + MaterialInstance`.
 
-- `kind: shader`
-- `preset: standard | pbr`
+- definition owns: `shaderType`, `shaderSource`, `shaderParamsSchema`, `basePreset`
+- instance owns: `slug` (definition lookup) + per-material options/values
+- closed builtins in this phase: `standard` and `pbr` (bootstrapped definitions)
 
-`standard` and `pbr` are closed presets in this phase.
+Shader assembly is centralized:
+
+- `generated_common_prelude` (shared contract/bindings/helpers)
+- `source` (preset/custom logic)
+- `generated_postlude` (entrypoint bridge)
 
 ## Input model
 

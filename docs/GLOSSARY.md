@@ -1,4 +1,4 @@
-# Vulfram Glossary (vNext)
+# Vulfram Glossary
 
 ## Host
 
@@ -52,7 +52,9 @@ Restricted client-facing shader subset; physical WGSL binding details are genera
 
 ## ShaderMaterial
 
-Unified material model with closed presets `standard` and `pbr` in current phase.
+Unified material model driven by `MaterialDefinition` + `MaterialInstance`, compiled through one composer pipeline.
+
+`standard` and `pbr` are built-in bootstrapped definitions in current phase.
 
 ## Deterministic Ordering
 

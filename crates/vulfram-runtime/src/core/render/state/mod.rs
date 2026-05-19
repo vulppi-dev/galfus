@@ -15,7 +15,8 @@ use crate::core::resources::VertexAllocatorSystem;
 use crate::core::resources::shadow::ShadowManager;
 use crate::core::resources::{
     CameraNode, EnvironmentConfig, ForwardAtlasEntry, GeometryPrimitiveType, LightRecord,
-    ModelRecord, ShaderMaterialRecord, TargetTextureBinding, TextureRecord,
+    MaterialDefinitionRecord, MaterialInstanceRecord, ModelRecord, ShaderMaterialRecord,
+    TargetTextureBinding, TextureRecord,
 };
 use crate::core::ui::UiRenderer;
 
@@ -59,6 +60,10 @@ pub struct RenderResourceState {
 pub struct SceneRuntimeState {
     pub realm3d: Realm3dState,
     pub render_resources: RenderResourceState,
+    pub material_definitions: std::collections::HashMap<u32, MaterialDefinitionRecord>,
+    pub material_instances: std::collections::HashMap<u32, MaterialInstanceRecord>,
+    pub material_program_cache: std::collections::HashMap<u64, vulfram_render::CompiledMaterialShader>,
+    pub material_program_cache_last_used_frame: std::collections::HashMap<u64, u64>,
 }
 
 #[derive(Debug, Default)]
@@ -92,6 +97,7 @@ pub struct RenderState {
     pub shadow: Option<ShadowManager>,
     pub cache: RenderCache,
     pub material_shader_modules: std::collections::HashMap<u64, wgpu::ShaderModule>,
+    pub custom_screen_param_buffer: Option<wgpu::Buffer>,
     pub post_uniform_buffer: Option<wgpu::Buffer>,
     pub compose_uniform_buffer: Option<wgpu::Buffer>,
     pub ssao_uniform_buffer: Option<wgpu::Buffer>,

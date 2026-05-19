@@ -205,6 +205,48 @@ pub(super) fn dispatch_command(
                 response: CommandResponse::MaterialDispose(result),
             });
         }
+        EngineCmd::CmdMaterialDefinitionUpsert(args) => {
+            let result = match args {
+                CmdMaterialDefinitionUpsertArgs::Create(create_args) => {
+                    res::engine_cmd_material_definition_create(engine, &create_args)
+                }
+                CmdMaterialDefinitionUpsertArgs::Update(update_args) => {
+                    res::engine_cmd_material_definition_update(engine, &update_args)
+                }
+            };
+            engine.runtime.push_response(CommandResponseEnvelope {
+                id: pack.id,
+                response: CommandResponse::MaterialDefinitionUpsert(result),
+            });
+        }
+        EngineCmd::CmdMaterialDefinitionDispose(args) => {
+            let result = res::engine_cmd_material_definition_dispose(engine, &args);
+            engine.runtime.push_response(CommandResponseEnvelope {
+                id: pack.id,
+                response: CommandResponse::MaterialDefinitionDispose(result),
+            });
+        }
+        EngineCmd::CmdMaterialInstanceUpsert(args) => {
+            let result = match args {
+                CmdMaterialInstanceUpsertArgs::Create(create_args) => {
+                    res::engine_cmd_material_instance_create(engine, &create_args)
+                }
+                CmdMaterialInstanceUpsertArgs::Update(update_args) => {
+                    res::engine_cmd_material_instance_update(engine, &update_args)
+                }
+            };
+            engine.runtime.push_response(CommandResponseEnvelope {
+                id: pack.id,
+                response: CommandResponse::MaterialInstanceUpsert(result),
+            });
+        }
+        EngineCmd::CmdMaterialInstanceDispose(args) => {
+            let result = res::engine_cmd_material_instance_dispose(engine, &args);
+            engine.runtime.push_response(CommandResponseEnvelope {
+                id: pack.id,
+                response: CommandResponse::MaterialInstanceDispose(result),
+            });
+        }
         EngineCmd::CmdTextureCreateFromBuffer(args) => {
             let result = res::engine_cmd_texture_create_from_buffer(engine, &args);
             engine.runtime.push_response(CommandResponseEnvelope {

@@ -44,6 +44,20 @@ pub enum CmdMaterialUpsertArgs {
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(untagged)]
+pub enum CmdMaterialDefinitionUpsertArgs {
+    Create(res::CmdMaterialDefinitionCreateArgs),
+    Update(res::CmdMaterialDefinitionUpdateArgs),
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(untagged)]
+pub enum CmdMaterialInstanceUpsertArgs {
+    Create(res::CmdMaterialInstanceCreateArgs),
+    Update(res::CmdMaterialInstanceUpdateArgs),
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(untagged)]
 pub enum CmdGeometryUpsertArgs {
     Create(res::CmdGeometryCreateArgs),
     Update(res::CmdGeometryUpdateArgs),
@@ -93,6 +107,10 @@ pub enum EngineCmd {
     CmdLightDispose(res::CmdLightDisposeArgs),
     CmdMaterialUpsert(CmdMaterialUpsertArgs),
     CmdMaterialDispose(res::CmdMaterialDisposeArgs),
+    CmdMaterialDefinitionUpsert(CmdMaterialDefinitionUpsertArgs),
+    CmdMaterialDefinitionDispose(res::CmdMaterialDefinitionDisposeArgs),
+    CmdMaterialInstanceUpsert(CmdMaterialInstanceUpsertArgs),
+    CmdMaterialInstanceDispose(res::CmdMaterialInstanceDisposeArgs),
     CmdTextureCreateFromBuffer(res::CmdTextureCreateFromBufferArgs),
     CmdTextureCreateSolidColor(res::CmdTextureCreateSolidColorArgs),
     CmdTextureDispose(res::CmdTextureDisposeArgs),
@@ -167,6 +185,10 @@ pub enum CommandResponse {
     LightDispose(res::CmdResultLightDispose),
     MaterialUpsert(CmdResultSimple),
     MaterialDispose(res::CmdResultMaterialDispose),
+    MaterialDefinitionUpsert(res::CmdResultMaterialDefinition),
+    MaterialDefinitionDispose(res::CmdResultMaterialDefinition),
+    MaterialInstanceUpsert(res::CmdResultMaterialInstance),
+    MaterialInstanceDispose(res::CmdResultMaterialInstance),
     TextureCreateFromBuffer(res::CmdResultTextureCreateFromBuffer),
     TextureCreateSolidColor(res::CmdResultTextureCreateSolidColor),
     TextureDispose(res::CmdResultTextureDispose),

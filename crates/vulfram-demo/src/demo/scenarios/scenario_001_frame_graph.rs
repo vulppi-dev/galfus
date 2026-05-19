@@ -5,14 +5,15 @@ use vulfram_core::core;
 use vulfram_core::core::VulframResult;
 use vulfram_core::core::cmd::EngineEvent;
 use vulfram_core::core::cmd::{
-    CmdCameraUpsertArgs, CmdEnvironmentUpsertArgs, CmdLightUpsertArgs, CmdMaterialUpsertArgs,
-    CmdModelUpsertArgs, EngineCmd,
+    CmdCameraUpsertArgs, CmdEnvironmentUpsertArgs, CmdLightUpsertArgs,
+    CmdMaterialDefinitionUpsertArgs, CmdMaterialUpsertArgs, CmdModelUpsertArgs, EngineCmd,
 };
 use vulfram_core::core::resources::{
     CameraKind, CmdCameraCreateArgs, CmdEnvironmentCreateArgs, CmdLightCreateArgs,
-    CmdMaterialCreateArgs, CmdModelCreateArgs, CmdModelUpdateArgs, CmdPrimitiveGeometryCreateArgs,
-    EnvironmentConfig, LightKind, MaterialKind, MaterialOptions, PostProcessConfig,
-    PrimitiveShape, RenderSide, ShaderMaterialPreset, StandardOptions,
+    CmdMaterialCreateArgs, CmdMaterialDefinitionCreateArgs, CmdModelCreateArgs, CmdModelUpdateArgs,
+    CmdPrimitiveGeometryCreateArgs, EnvironmentConfig, LightKind, MaterialKind, MaterialOptions,
+    MaterialShaderType, PostProcessConfig, PrimitiveShape, RenderSide, ShaderMaterialPreset,
+    StandardOptions,
 };
 use vulfram_core::core::target::{
     CmdTargetLayerUpsertArgs, CmdTargetUpsertArgs, DimensionValue, TargetKind, TargetLayerLayout,
@@ -32,6 +33,7 @@ const MATERIAL_STANDARD_ID: u32 = 2;
 const MATERIAL_PBR_ID: u32 = 3;
 const MATERIAL_CUSTOM_SIMPLE_ID: u32 = 4;
 const MATERIAL_FLOOR_ID: u32 = 12;
+const MATERIAL_DEF_CUSTOM_SIMPLE_ID: u32 = 100;
 const CAMERA_ID: u32 = 5;
 const LIGHT_ID: u32 = 6;
 const ENVIRONMENT_ID: u32 = 7;
@@ -192,10 +194,8 @@ fn build_realm3d_scene(realm_id: u32) -> Vec<EngineCmd> {
         EngineCmd::CmdMaterialUpsert(CmdMaterialUpsertArgs::Create(CmdMaterialCreateArgs {
             material_id: MATERIAL_STANDARD_ID,
             label: Some("demo-mat-standard".into()),
+            slug: "standard".into(),
             kind: MaterialKind::Shader,
-            preset: Some(ShaderMaterialPreset::Standard),
-            shader_source: None,
-            shader_params_schema: None,
             options: Some(MaterialOptions::Standard(StandardOptions {
                 base_color: Some(Vec4::new(0.92, 0.35, 0.32, 1.0)),
                 render_side: Some(RenderSide::Back),
@@ -205,10 +205,8 @@ fn build_realm3d_scene(realm_id: u32) -> Vec<EngineCmd> {
         EngineCmd::CmdMaterialUpsert(CmdMaterialUpsertArgs::Create(CmdMaterialCreateArgs {
             material_id: MATERIAL_PBR_ID,
             label: Some("demo-mat-pbr".into()),
+            slug: "pbr".into(),
             kind: MaterialKind::Shader,
-            preset: Some(ShaderMaterialPreset::Pbr),
-            shader_source: None,
-            shader_params_schema: None,
             options: Some(MaterialOptions::Pbr(
                 vulfram_core::core::resources::PbrOptions {
                     base_color: Some(Vec4::new(0.25, 0.86, 0.62, 1.0)),
@@ -219,18 +217,40 @@ fn build_realm3d_scene(realm_id: u32) -> Vec<EngineCmd> {
                 },
             )),
         })),
+        EngineCmd::CmdMaterialDefinitionUpsert(CmdMaterialDefinitionUpsertArgs::Create(
+            CmdMaterialDefinitionCreateArgs {
+                definition_id: MATERIAL_DEF_CUSTOM_SIMPLE_ID,
+                slug: "demo-custom-simple".into(),
+                label: Some("demo-def-custom-simple".into()),
+                preset: ShaderMaterialPreset::Standard,
+                shader_type: Some(MaterialShaderType::Model),
+                shader_source: r#"
+fn vertex(input: VertexInput) -> VertexOutput {
+  var out: VertexOutput;
+  out.world_position = vec3<f32>(0.0);
+  out.world_normal = vec3<f32>(0.0);
+  out.uv = vec2<f32>(0.0);
+  out.clip_position = vec4<f32>(0.0);
+  return out;
+}
+
+fn fragment(input: FragmentInput) -> FragmentOutput {
+  var out: FragmentOutput;
+  let fresnel = pow(1.0 - max(dot(normalize(input.world_normal), vec3<f32>(0.0, 0.0, 1.0)), 0.0), 3.0);
+  out.color = vec4<f32>(mix(vec3<f32>(0.2, 0.35, 0.95), vec3<f32>(0.8, 0.9, 1.0), fresnel), 1.0);
+  out.emissive = vec4<f32>(0.0, 0.0, 0.0, 1.0);
+  return out;
+}
+"#
+                .to_string(),
+                shader_params_schema: None,
+            },
+        )),
         EngineCmd::CmdMaterialUpsert(CmdMaterialUpsertArgs::Create(CmdMaterialCreateArgs {
             material_id: MATERIAL_CUSTOM_SIMPLE_ID,
             label: Some("demo-mat-custom-simple".into()),
+            slug: "demo-custom-simple".into(),
             kind: MaterialKind::Shader,
-            preset: Some(ShaderMaterialPreset::Standard),
-            shader_source: Some(
-                include_str!(
-                    "../../../../vulfram-runtime/src/core/render/passes/forward/branches/forward_standard.wgsl"
-                )
-                .to_string(),
-            ),
-            shader_params_schema: None,
             options: Some(MaterialOptions::Standard(StandardOptions {
                 base_color: Some(Vec4::new(0.25, 0.45, 0.98, 1.0)),
                 emissive_color: Some(Vec4::new(0.0, 0.0, 0.0, 0.0)),
@@ -243,10 +263,8 @@ fn build_realm3d_scene(realm_id: u32) -> Vec<EngineCmd> {
         EngineCmd::CmdMaterialUpsert(CmdMaterialUpsertArgs::Create(CmdMaterialCreateArgs {
             material_id: MATERIAL_FLOOR_ID,
             label: Some("demo-mat-floor".into()),
+            slug: "standard".into(),
             kind: MaterialKind::Shader,
-            preset: Some(ShaderMaterialPreset::Standard),
-            shader_source: None,
-            shader_params_schema: None,
             options: Some(MaterialOptions::Standard(StandardOptions {
                 base_color: Some(Vec4::new(0.24, 0.24, 0.26, 1.0)),
                 spec_color: Some(Vec4::new(0.05, 0.05, 0.05, 1.0)),
@@ -293,13 +311,6 @@ fn build_realm3d_scene(realm_id: u32) -> Vec<EngineCmd> {
                         outline_strength: 0.5,
                         outline_threshold: 0.25,
                         outline_width: 1.25,
-                        ssao_enabled: true,
-                        ssao_strength: 0.9,
-                        ssao_radius: 0.7,
-                        ssao_power: 1.25,
-                        bloom_enabled: true,
-                        bloom_threshold: 1.1,
-                        bloom_intensity: 0.45,
                         ..Default::default()
                     },
                     ..Default::default()
@@ -316,8 +327,8 @@ fn build_realm3d_scene(realm_id: u32) -> Vec<EngineCmd> {
             layer_mask: 1,
             cast_shadow: true,
             receive_shadow: true,
-            cast_outline: false,
-            outline_color: Vec4::ZERO,
+            cast_outline: true,
+            outline_color: Vec4::new(1.0, 0.55, 0.0, 1.0),
         })),
         EngineCmd::CmdModelUpsert(CmdModelUpsertArgs::Create(CmdModelCreateArgs {
             realm_id,

@@ -20,6 +20,10 @@ pub(super) fn response_is_success(response: &CommandResponse) -> bool {
         CommandResponse::LightDispose(result) => result.success,
         CommandResponse::MaterialUpsert(result) => result.success,
         CommandResponse::MaterialDispose(result) => result.success,
+        CommandResponse::MaterialDefinitionUpsert(result) => result.success,
+        CommandResponse::MaterialDefinitionDispose(result) => result.success,
+        CommandResponse::MaterialInstanceUpsert(result) => result.success,
+        CommandResponse::MaterialInstanceDispose(result) => result.success,
         CommandResponse::TextureCreateFromBuffer(result) => result.success,
         CommandResponse::TextureCreateSolidColor(result) => result.success,
         CommandResponse::TextureDispose(result) => result.success,
@@ -81,6 +85,10 @@ pub(super) fn response_message(response: &CommandResponse) -> Option<String> {
         CommandResponse::LightDispose(result) => Some(result.message.clone()),
         CommandResponse::MaterialUpsert(result) => Some(result.message.clone()),
         CommandResponse::MaterialDispose(result) => Some(result.message.clone()),
+        CommandResponse::MaterialDefinitionUpsert(result) => Some(result.message.clone()),
+        CommandResponse::MaterialDefinitionDispose(result) => Some(result.message.clone()),
+        CommandResponse::MaterialInstanceUpsert(result) => Some(result.message.clone()),
+        CommandResponse::MaterialInstanceDispose(result) => Some(result.message.clone()),
         CommandResponse::TextureCreateFromBuffer(result) => Some(result.message.clone()),
         CommandResponse::TextureCreateSolidColor(result) => Some(result.message.clone()),
         CommandResponse::TextureDispose(result) => Some(result.message.clone()),
@@ -187,6 +195,22 @@ pub(super) fn response_with_message(response: CommandResponse, message: String) 
         CommandResponse::MaterialDispose(mut result) => {
             result.message = message;
             CommandResponse::MaterialDispose(result)
+        }
+        CommandResponse::MaterialDefinitionUpsert(mut result) => {
+            result.message = message;
+            CommandResponse::MaterialDefinitionUpsert(result)
+        }
+        CommandResponse::MaterialDefinitionDispose(mut result) => {
+            result.message = message;
+            CommandResponse::MaterialDefinitionDispose(result)
+        }
+        CommandResponse::MaterialInstanceUpsert(mut result) => {
+            result.message = message;
+            CommandResponse::MaterialInstanceUpsert(result)
+        }
+        CommandResponse::MaterialInstanceDispose(mut result) => {
+            result.message = message;
+            CommandResponse::MaterialInstanceDispose(result)
         }
         CommandResponse::TextureCreateFromBuffer(mut result) => {
             result.message = message;

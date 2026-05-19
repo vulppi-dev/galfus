@@ -1,6 +1,4 @@
 pub struct ShaderModules {
-    pub forward_standard: wgpu::ShaderModule,
-    pub forward_pbr: wgpu::ShaderModule,
     pub post: wgpu::ShaderModule,
     pub compose: wgpu::ShaderModule,
     pub outline: wgpu::ShaderModule,
@@ -17,12 +15,6 @@ pub struct ShaderModules {
 
 pub fn create_shader_modules(device: &wgpu::Device) -> ShaderModules {
     ShaderModules {
-        forward_standard: device.create_shader_module(wgpu::include_wgsl!(
-            "../../vulfram-runtime/src/core/render/passes/forward/branches/forward_standard.wgsl"
-        )),
-        forward_pbr: device.create_shader_module(wgpu::include_wgsl!(
-            "../../vulfram-runtime/src/core/render/passes/forward/branches/forward_pbr.wgsl"
-        )),
         post: device.create_shader_module(wgpu::include_wgsl!(
             "../../vulfram-runtime/src/core/render/passes/post/post.wgsl"
         )),

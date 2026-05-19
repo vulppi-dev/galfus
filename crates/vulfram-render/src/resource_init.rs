@@ -32,8 +32,6 @@ pub fn build_resource_library(
         ssao_blur_msaa_pipeline_layout: pipeline_layouts.ssao_blur_msaa,
         bloom_pipeline_layout: pipeline_layouts.bloom,
         skybox_pipeline_layout: pipeline_layouts.skybox,
-        forward_standard_shader: shaders.forward_standard,
-        forward_pbr_shader: shaders.forward_pbr,
         post_shader: shaders.post,
         compose_shader: shaders.compose,
         outline_shader: shaders.outline,

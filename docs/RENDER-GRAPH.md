@@ -1,4 +1,4 @@
-# Render Graph (vNext)
+# Render Graph
 
 In vNext, render graph behavior is split into two scopes.
 

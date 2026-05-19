@@ -20,6 +20,7 @@ pub(crate) fn collect_objects(
     let mut skipped_frustum = 0u32;
     let mut used_fallback_material = 0u32;
     let mut used_missing_material_fallback = 0u32;
+    let mut used_invalid_material_fallback = 0u32;
     let mut pbr_models = 0u32;
     let mut standard_models = 0u32;
 
@@ -103,6 +104,27 @@ pub(crate) fn collect_objects(
             }
         };
 
+        let fallback_needed = materials
+            .get(&material_id)
+            .map(|record| record.compiled_shader_source.is_none() || record.compile_error.is_some())
+            .unwrap_or(true);
+        let material_id = if fallback_needed {
+            if model_record.material_id.is_some() {
+                vulfram_log::vulfram_log_warn!(
+                    log_events,
+                    "material.draw.fallback.standard",
+                    "model={} material={} replaced_by_fallback={}",
+                    model_id,
+                    model_record.material_id.unwrap_or(MATERIAL_FALLBACK_ID),
+                    MATERIAL_FALLBACK_ID
+                );
+            }
+            used_invalid_material_fallback += 1;
+            MATERIAL_FALLBACK_ID
+        } else {
+            material_id
+        };
+
         if let Some(record) = materials.get(&material_id)
             && matches!(
                 record.base_preset,
@@ -124,7 +146,7 @@ pub(crate) fn collect_objects(
             match record.surface_type {
                 SurfaceType::Opaque => collector.pbr_opaque.push(item),
                 SurfaceType::Masked => collector.pbr_masked.push(item),
-                SurfaceType::Transparent => collector.pbr_transparent.push(item),
+                SurfaceType::Transparent => collector.transparent.push(item),
             }
             continue;
         }
@@ -173,7 +195,7 @@ pub(crate) fn collect_objects(
         match surface_type {
             SurfaceType::Opaque => collector.standard_opaque.push(item),
             SurfaceType::Masked => collector.standard_masked.push(item),
-            SurfaceType::Transparent => collector.standard_transparent.push(item),
+            SurfaceType::Transparent => collector.transparent.push(item),
         }
     }
 
@@ -183,12 +205,11 @@ pub(crate) fn collect_objects(
         + collector.standard_opaque.len()
         + collector.pbr_masked.len()
         + collector.standard_masked.len()
-        + collector.pbr_transparent.len()
-        + collector.standard_transparent.len();
+        + collector.transparent.len();
     vulfram_log::vulfram_log_debug!(
         log_events,
         "forward.collector",
-        "models_total={} kept={} pbr={} standard={} skip_layer={} skip_geom={} skip_frustum={} fallback_none={} fallback_missing={} pbr_o={} std_o={} pbr_t={} std_t={}",
+        "models_total={} kept={} pbr={} standard={} skip_layer={} skip_geom={} skip_frustum={} fallback_none={} fallback_missing={} fallback_invalid={} pbr_o={} std_o={} pbr_t={} std_t={}",
         scene.models.len(),
         kept_count,
         pbr_models,
@@ -198,10 +219,39 @@ pub(crate) fn collect_objects(
         skipped_frustum,
         used_fallback_material,
         used_missing_material_fallback,
+        used_invalid_material_fallback,
         collector.pbr_opaque.len(),
         collector.standard_opaque.len(),
-        collector.pbr_transparent.len(),
-        collector.standard_transparent.len()
+        collector
+            .transparent
+            .iter()
+            .filter(|item| {
+                materials
+                    .get(&item.material_id)
+                    .map(|record| {
+                        matches!(
+                            record.base_preset,
+                            crate::core::resources::ShaderMaterialPreset::Pbr
+                        )
+                    })
+                    .unwrap_or(false)
+            })
+            .count(),
+        collector
+            .transparent
+            .iter()
+            .filter(|item| {
+                materials
+                    .get(&item.material_id)
+                    .map(|record| {
+                        matches!(
+                            record.base_preset,
+                            crate::core::resources::ShaderMaterialPreset::Standard
+                        )
+                    })
+                    .unwrap_or(true)
+            })
+            .count()
     );
 
     let groups = [
@@ -209,8 +259,7 @@ pub(crate) fn collect_objects(
         &mut collector.standard_opaque,
         &mut collector.pbr_masked,
         &mut collector.standard_masked,
-        &mut collector.pbr_transparent,
-        &mut collector.standard_transparent,
+        &mut collector.transparent,
     ];
 
     for group in groups {
@@ -287,12 +336,7 @@ fn sort_collector(collector: &mut crate::core::render::state::DrawCollector) {
 
     // Sort Far-to-Near (Painter's Algorithm)
     // With Reverse Z: Far is 0.0, Near is 1.0. So we sort Ascending.
-    collector.standard_transparent.sort_by(|a, b| {
-        a.depth
-            .partial_cmp(&b.depth)
-            .unwrap_or(std::cmp::Ordering::Equal)
-    });
-    collector.pbr_transparent.sort_by(|a, b| {
+    collector.transparent.sort_by(|a, b| {
         a.depth
             .partial_cmp(&b.depth)
             .unwrap_or(std::cmp::Ordering::Equal)

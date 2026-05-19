@@ -20,7 +20,6 @@ pub(crate) fn draw_batches(
         render_pass,
         &collector.pbr_opaque,
         SurfaceType::Opaque,
-        true, // is_pbr
         scene,
         bindings,
         vertex_sys,
@@ -38,7 +37,6 @@ pub(crate) fn draw_batches(
         render_pass,
         &collector.pbr_masked,
         SurfaceType::Masked,
-        true,
         scene,
         bindings,
         vertex_sys,
@@ -56,7 +54,6 @@ pub(crate) fn draw_batches(
         render_pass,
         &collector.standard_opaque,
         SurfaceType::Opaque,
-        false, // is_pbr
         scene,
         bindings,
         vertex_sys,
@@ -74,7 +71,6 @@ pub(crate) fn draw_batches(
         render_pass,
         &collector.standard_masked,
         SurfaceType::Masked,
-        false,
         scene,
         bindings,
         vertex_sys,
@@ -87,30 +83,11 @@ pub(crate) fn draw_batches(
         log_events,
     );
 
-    // 5. PBR Transparent
+    // 5. Transparent (global order across presets)
     draw_group(
         render_pass,
-        &collector.pbr_transparent,
+        &collector.transparent,
         SurfaceType::Transparent,
-        true,
-        scene,
-        bindings,
-        vertex_sys,
-        frame_index,
-        device,
-        cache,
-        library,
-        sample_count,
-        material_shader_modules,
-        log_events,
-    );
-
-    // 6. Standard Transparent
-    draw_group(
-        render_pass,
-        &collector.standard_transparent,
-        SurfaceType::Transparent,
-        false,
         scene,
         bindings,
         vertex_sys,
@@ -128,7 +105,6 @@ fn draw_group(
     render_pass: &mut wgpu::RenderPass,
     items: &[crate::core::render::state::DrawItem],
     surface_type: SurfaceType,
-    is_pbr: bool,
     scene: &crate::core::render::state::RenderScene,
     bindings: &crate::core::render::state::BindingSystem,
     vertex_sys: &mut crate::core::resources::VertexAllocatorSystem,
@@ -159,6 +135,10 @@ fn draw_group(
             i += 1;
             continue;
         };
+        let is_pbr = matches!(
+            material_record.base_preset,
+            crate::core::resources::ShaderMaterialPreset::Pbr
+        );
         let Some(shader_source) = material_record.compiled_shader_source.as_ref() else {
             i += 1;
             continue;

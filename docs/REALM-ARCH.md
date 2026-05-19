@@ -1,4 +1,4 @@
-# Realm Architecture (vNext)
+# Realm Architecture
 
 This document defines the active composition architecture used by Vulfram vNext.
 

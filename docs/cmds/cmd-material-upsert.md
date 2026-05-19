@@ -1,16 +1,16 @@
 # CmdMaterialUpsert
 
-Upserts a unified `ShaderMaterial` (`create` or `update`).
+Upserts a unified `ShaderMaterial` instance (`create` or `update`).
 
 ## Material model
 
-Current contract is replace-only vNext:
+Current contract in this phase:
 
 - `kind`: `shader`
-- `preset`: `standard` or `pbr`
-- `options`: preset-specific payload (`standard` or `pbr`)
+- `slug`: material definition reference (`standard`, `pbr`, or custom definition slug)
+- `options`: definition-specific payload
 
-Legacy `kind=standard|pbr` payloads are invalid.
+Definitions are managed through material definition commands and compiled by the unified composer.
 
 ## Create payload (`CmdMaterialCreateArgs`)
 
@@ -22,7 +22,7 @@ Required:
 Optional:
 
 - `label`
-- `preset` (defaults to `standard`)
+- `slug` (defaults to `standard`)
 - `options`
 
 ## Update payload (`CmdMaterialUpdateArgs`)
@@ -35,7 +35,7 @@ Optional:
 
 - `label`
 - `kind` (`shader`)
-- `preset`
+- `slug`
 - `options`
 
 ## Response

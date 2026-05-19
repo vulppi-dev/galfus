@@ -127,7 +127,7 @@ impl EngineState {
         let mut universal_state = UniversalState::default();
         ensure_runtime_render_defaults(&mut universal_state);
 
-        Self {
+        let mut state = Self {
             window: WindowManager::new(),
             render: RenderManager::default(),
             #[cfg(any(not(target_arch = "wasm32"), target_arch = "wasm32"))]
@@ -160,7 +160,66 @@ impl EngineState {
             gpu_profiler: None,
             #[cfg(not(target_arch = "wasm32"))]
             debug_capture: DebugCaptureState::from_env(),
-        }
+        };
+
+        let _ = crate::core::resources::engine_cmd_material_definition_create(
+            &mut state,
+            &crate::core::resources::CmdMaterialDefinitionCreateArgs {
+                definition_id: crate::core::resources::MATERIAL_DEFINITION_STANDARD_ID,
+                slug: crate::core::resources::MATERIAL_DEFINITION_STANDARD_SLUG.to_string(),
+                label: Some("builtin-standard".to_string()),
+                preset: crate::core::resources::ShaderMaterialPreset::Standard,
+                shader_type: Some(crate::core::resources::MaterialShaderType::Model),
+                shader_source: r#"
+fn vertex(input: VertexInput) -> VertexOutput {
+    var out: VertexOutput;
+    out.world_position = input.position;
+    out.world_normal = input.normal;
+    out.uv = input.uv;
+    out.clip_position = vec4<f32>(0.0);
+    return out;
+}
+fn fragment(input: FragmentInput) -> FragmentOutput {
+    var out: FragmentOutput;
+    out.color = vec4<f32>(1.0, 0.7, 0.6, 1.0);
+    out.emissive = vec4<f32>(0.0);
+    return out;
+}
+"#
+                .to_string(),
+                shader_params_schema: None,
+            },
+        );
+        let _ = crate::core::resources::engine_cmd_material_definition_create(
+            &mut state,
+            &crate::core::resources::CmdMaterialDefinitionCreateArgs {
+                definition_id: crate::core::resources::MATERIAL_DEFINITION_PBR_ID,
+                slug: crate::core::resources::MATERIAL_DEFINITION_PBR_SLUG.to_string(),
+                label: Some("builtin-pbr".to_string()),
+                preset: crate::core::resources::ShaderMaterialPreset::Pbr,
+                shader_type: Some(crate::core::resources::MaterialShaderType::Model),
+                shader_source: r#"
+fn vertex(input: VertexInput) -> VertexOutput {
+    var out: VertexOutput;
+    out.world_position = input.position;
+    out.world_normal = input.normal;
+    out.uv = input.uv;
+    out.clip_position = vec4<f32>(0.0);
+    return out;
+}
+fn fragment(input: FragmentInput) -> FragmentOutput {
+    var out: FragmentOutput;
+    out.color = vec4<f32>(0.6, 0.9, 0.65, 1.0);
+    out.emissive = vec4<f32>(0.0);
+    return out;
+}
+"#
+                .to_string(),
+                shader_params_schema: None,
+            },
+        );
+
+        state
     }
 
     pub fn cleanup_window(&mut self, window_id: u32) -> bool {
@@ -194,5 +253,39 @@ impl EngineState {
             target::prune_target_graph_cache(&mut self.universal_state);
         }
         cleaned
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::resources::{
+        MATERIAL_DEFINITION_PBR_ID, MATERIAL_DEFINITION_STANDARD_ID, MaterialShaderType,
+    };
+
+    #[test]
+    fn builtin_material_definitions_compile_without_parse_errors() {
+        let state = EngineState::new();
+        let defs = &state.universal_state.scene.material_definitions;
+
+        let standard = defs
+            .get(&MATERIAL_DEFINITION_STANDARD_ID)
+            .expect("standard definition must exist");
+        let pbr = defs
+            .get(&MATERIAL_DEFINITION_PBR_ID)
+            .expect("pbr definition must exist");
+
+        for definition in [standard, pbr] {
+            assert_eq!(definition.shader_type, MaterialShaderType::Model);
+            assert!(definition.compile_error.is_none());
+            let source = definition
+                .compiled_shader_source
+                .as_ref()
+                .expect("compiled shader source must exist");
+            assert!(source.contains("@vertex"));
+            assert!(source.contains("@fragment"));
+            assert!(source.contains("fn vs_main"));
+            assert!(source.contains("fn fs_main"));
+        }
     }
 }

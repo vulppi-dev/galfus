@@ -5,7 +5,7 @@ use std::hash::{DefaultHasher, Hash, Hasher};
 use vulfram_realm_core::{
     RENDER_PASS_BLOOM, RENDER_PASS_COMPOSE, RENDER_PASS_FORWARD, RENDER_PASS_LIGHT_CULL,
     RENDER_PASS_OUTLINE, RENDER_PASS_POST, RENDER_PASS_SHADOW, RENDER_PASS_SKYBOX,
-    RENDER_PASS_SSAO, RENDER_PASS_SSAO_BLUR, RENDER_PASS_UI,
+    RENDER_PASS_SSAO, RENDER_PASS_SSAO_BLUR,
 };
 
 use super::RenderState;
@@ -65,6 +65,7 @@ fn execute_custom_screen_pass(
     node: &crate::core::render::graph::RenderGraphNode,
     render_state: &mut RenderState,
     device: &wgpu::Device,
+    queue: &wgpu::Queue,
     encoder: &mut wgpu::CommandEncoder,
     target_view: &wgpu::TextureView,
     target_format: wgpu::TextureFormat,
@@ -175,27 +176,38 @@ fn execute_custom_screen_pass(
         })
     });
 
-    let (param_buffer, param_bind_group) = if let Some(bytes) = param_bytes.as_ref() {
-        use wgpu::util::DeviceExt;
-        let buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("Custom Screen Params Buffer"),
-            contents: bytes,
-            usage: wgpu::BufferUsages::UNIFORM,
-        });
+    let param_bind_group = if let Some(bytes) = param_bytes.as_ref() {
+        let needs_realloc = render_state
+            .custom_screen_param_buffer
+            .as_ref()
+            .map(|buffer| buffer.size() < bytes.len() as u64)
+            .unwrap_or(true);
+        if needs_realloc {
+            render_state.custom_screen_param_buffer = Some(device.create_buffer(
+                &wgpu::BufferDescriptor {
+                    label: Some("Custom Screen Params Buffer"),
+                    size: bytes.len() as u64,
+                    usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+                    mapped_at_creation: false,
+                },
+            ));
+        }
+        let Some(buffer) = render_state.custom_screen_param_buffer.as_ref() else {
+            return false;
+        };
+        queue.write_buffer(buffer, 0, bytes);
         let bgl = pipeline.get_bind_group_layout(0);
-        let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+        Some(device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("Custom Screen Params BG"),
             layout: &bgl,
             entries: &[wgpu::BindGroupEntry {
                 binding: 0,
                 resource: buffer.as_entire_binding(),
             }],
-        });
-        (Some(buffer), Some(bind_group))
+        }))
     } else {
-        (None, None)
+        None
     };
-    let _param_buffer = param_buffer;
 
     let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
         label: Some("Custom Screen Pass"),
@@ -361,12 +373,12 @@ pub(super) fn execute_graph_to_view(
                     write_gpu_timestamp(encoder, gpu_profiler, base + 5, &mut gpu_written);
                 }
             }
-            RENDER_PASS_UI => {}
             _ => {
                 if execute_custom_screen_pass(
                     node,
                     render_state,
                     device,
+                    queue,
                     encoder,
                     target_view,
                     target_format,

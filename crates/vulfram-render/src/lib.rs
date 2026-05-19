@@ -35,7 +35,9 @@ pub use layouts::{
 };
 pub use library::ResourceLibrary;
 pub use material_shader::{
+    builtin_material_source,
     CompiledMaterialShader, MaterialShaderBasePreset, MaterialShaderCompileSpec,
+    MaterialShaderType,
     compile_material_shader_spec,
 };
 pub use profiler::{GpuProfiler, GpuTimingReport};

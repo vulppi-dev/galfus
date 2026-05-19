@@ -10,6 +10,7 @@ use crate::core::render::state::collector::DrawCollector;
 use crate::core::resources::{MATERIAL_FALLBACK_ID, ShaderMaterialRecord};
 #[cfg(any(not(target_arch = "wasm32"), target_arch = "wasm32"))]
 use std::collections::HashMap;
+use std::collections::HashSet;
 
 impl RenderState {
     const VERTEX_COMPACT_FRAME_INTERVAL: u64 = 120;
@@ -49,6 +50,7 @@ impl RenderState {
             shadow: None,
             cache: RenderCache::new(),
             material_shader_modules: HashMap::new(),
+            custom_screen_param_buffer: None,
             post_uniform_buffer: None,
             compose_uniform_buffer: None,
             ssao_uniform_buffer: None,
@@ -102,6 +104,7 @@ impl RenderState {
         self.shadow = None;
         self.cache.clear();
         self.material_shader_modules.clear();
+        self.custom_screen_param_buffer = None;
         self.post_uniform_buffer = None;
         self.compose_uniform_buffer = None;
         self.ssao_uniform_buffer = None;
@@ -169,5 +172,23 @@ impl RenderState {
         self.post_bind_cache_misses = 0;
         self.cache.reset_frame_stats();
         self.cache.gc(frame_index);
+        let active_shader_ids: HashSet<u64> = self
+            .scene
+            .materials
+            .values()
+            .filter_map(|record| {
+                if record.compiled_shader_source.is_some() {
+                    Some(if record.compiled_shader_hash == 0 {
+                        1
+                    } else {
+                        record.compiled_shader_hash
+                    })
+                } else {
+                    None
+                }
+            })
+            .collect();
+        self.material_shader_modules
+            .retain(|shader_id, _| active_shader_ids.contains(shader_id));
     }
 }

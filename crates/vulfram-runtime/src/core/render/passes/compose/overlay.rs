@@ -1,5 +1,8 @@
+#![allow(dead_code)]
+
 use crate::core::render::RenderState;
 use crate::core::render::cache::{PipelineKey, ShaderId};
+use crate::core::render::state::SampledTargetBindKey;
 
 use super::build_compose_bind_group;
 
@@ -52,6 +55,9 @@ pub fn pass_compose_overlays(
         occlusion_query_set: None,
         multiview_mask: None,
     });
+    let mut used_bind_keys = std::collections::HashSet::new();
+    let mut compose_bind_cache_hits = 0u32;
+    let mut compose_bind_cache_misses = 0u32;
 
     for overlay in overlays {
         let (viewport, scissor) = match resolve_overlay_geometry(overlay, target_size) {
@@ -108,15 +114,33 @@ pub fn pass_compose_overlays(
             })
         });
 
-        let bind_group = build_compose_bind_group(
-            device,
-            library,
-            overlay.source_view,
-            &library.fallback_view,
-            &library.fallback_view,
-            &library.fallback_view,
-            uniform_buffer,
-        );
+        let bind_key = SampledTargetBindKey {
+            target_view_ptr: overlay.source_view as *const wgpu::TextureView as usize,
+            outline_view_ptr: &library.fallback_view as *const wgpu::TextureView as usize,
+            ssao_view_ptr: &library.fallback_view as *const wgpu::TextureView as usize,
+            bloom_view_ptr: &library.fallback_view as *const wgpu::TextureView as usize,
+            uniform_buffer_ptr: uniform_buffer as *const wgpu::Buffer as usize,
+        };
+        used_bind_keys.insert(bind_key);
+        if render_state.compose_bind_cache.contains_key(&bind_key) {
+            compose_bind_cache_hits = compose_bind_cache_hits.saturating_add(1);
+        } else {
+            compose_bind_cache_misses = compose_bind_cache_misses.saturating_add(1);
+        }
+        let bind_group = render_state
+            .compose_bind_cache
+            .entry(bind_key)
+            .or_insert_with(|| {
+                build_compose_bind_group(
+                    device,
+                    library,
+                    overlay.source_view,
+                    &library.fallback_view,
+                    &library.fallback_view,
+                    &library.fallback_view,
+                    uniform_buffer,
+                )
+            });
         let opacity_uniform = [overlay.opacity.clamp(0.0, 1.0), 0.0, 0.0, 0.0];
         queue.write_buffer(uniform_buffer, 0, bytemuck::bytes_of(&opacity_uniform));
 
@@ -130,9 +154,19 @@ pub fn pass_compose_overlays(
             1.0,
         );
         render_pass.set_scissor_rect(scissor.x, scissor.y, scissor.width, scissor.height);
-        render_pass.set_bind_group(0, &bind_group, &[]);
+        render_pass.set_bind_group(0, &*bind_group, &[]);
         render_pass.draw(0..3, 0..1);
     }
+    drop(render_pass);
+    render_state
+        .compose_bind_cache
+        .retain(|key, _| used_bind_keys.contains(key));
+    render_state.compose_bind_cache_hits = render_state
+        .compose_bind_cache_hits
+        .saturating_add(compose_bind_cache_hits);
+    render_state.compose_bind_cache_misses = render_state
+        .compose_bind_cache_misses
+        .saturating_add(compose_bind_cache_misses);
 }
 
 pub fn pass_compose_surface(
@@ -222,15 +256,34 @@ pub fn pass_compose_surface(
     let cover = [scale_x, scale_y, offset_x, offset_y];
     queue.write_buffer(uniform_buffer, 0, bytemuck::bytes_of(&cover));
 
-    let bind_group = build_compose_bind_group(
-        device,
-        library,
-        source_view,
-        &library.fallback_view,
-        &library.fallback_view,
-        &library.fallback_view,
-        uniform_buffer,
-    );
+    let bind_key = SampledTargetBindKey {
+        target_view_ptr: source_view as *const wgpu::TextureView as usize,
+        outline_view_ptr: &library.fallback_view as *const wgpu::TextureView as usize,
+        ssao_view_ptr: &library.fallback_view as *const wgpu::TextureView as usize,
+        bloom_view_ptr: &library.fallback_view as *const wgpu::TextureView as usize,
+        uniform_buffer_ptr: uniform_buffer as *const wgpu::Buffer as usize,
+    };
+    if render_state.compose_bind_cache.contains_key(&bind_key) {
+        render_state.compose_bind_cache_hits = render_state.compose_bind_cache_hits.saturating_add(1);
+    } else {
+        render_state.compose_bind_cache_misses = render_state
+            .compose_bind_cache_misses
+            .saturating_add(1);
+    }
+    let bind_group = render_state
+        .compose_bind_cache
+        .entry(bind_key)
+        .or_insert_with(|| {
+            build_compose_bind_group(
+                device,
+                library,
+                source_view,
+                &library.fallback_view,
+                &library.fallback_view,
+                &library.fallback_view,
+                uniform_buffer,
+            )
+        });
 
     let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
         label: Some("Compose Surface Pass"),
@@ -258,8 +311,12 @@ pub fn pass_compose_surface(
         0.0,
         1.0,
     );
-    render_pass.set_bind_group(0, &bind_group, &[]);
+    render_pass.set_bind_group(0, &*bind_group, &[]);
     render_pass.draw(0..3, 0..1);
+    drop(render_pass);
+    render_state
+        .compose_bind_cache
+        .retain(|key, _| *key == bind_key);
 }
 
 #[derive(Debug, Clone, Copy)]

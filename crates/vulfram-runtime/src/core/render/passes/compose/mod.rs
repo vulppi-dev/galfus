@@ -2,7 +2,7 @@ use crate::core::render::RenderState;
 use crate::core::render::state::ResourceLibrary;
 
 mod overlay;
-pub use overlay::{ComposeOverlay, pass_compose_overlays, pass_compose_surface};
+pub use overlay::pass_compose_surface;
 
 pub(super) fn build_compose_bind_group(
     device: &wgpu::Device,

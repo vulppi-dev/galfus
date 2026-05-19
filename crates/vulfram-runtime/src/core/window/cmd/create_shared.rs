@@ -251,10 +251,8 @@ mod tests {
             &CmdMaterialCreateArgs {
                 material_id: 2001,
                 label: Some("mat-standard".into()),
+                slug: "standard".into(),
                 kind: MaterialKind::Shader,
-                preset: Some(ShaderMaterialPreset::Standard),
-                shader_source: None,
-                shader_params_schema: None,
                 options: None,
             },
         );

@@ -31,7 +31,7 @@ Current baseline rules:
 - host composition uses `Realm`, `Target`, `TargetLayer`
 - targets are only `window` and `texture`
 - pointer flow is global (no target-routed relay)
-- materials are unified as `ShaderMaterial` (`preset: standard|pbr`)
+- materials are unified as `ShaderMaterial` with composer-generated WGSL
 
 ## For Core Contributors
 
