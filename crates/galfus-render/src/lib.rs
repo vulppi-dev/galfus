@@ -35,8 +35,9 @@ pub use layouts::{
 };
 pub use library::ResourceLibrary;
 pub use material_shader::{
-    CompiledMaterialShader, MaterialShaderBasePreset, MaterialShaderCompileSpec,
-    MaterialShaderType, builtin_material_source, compile_material_shader_spec,
+    CompiledMaterialShader, MaterialShaderBasePreset, MaterialShaderCapabilities,
+    MaterialShaderCompileSpec, MaterialShaderType, builtin_material_source,
+    compile_material_shader_spec,
 };
 pub use profiler::{GpuProfiler, GpuTimingReport};
 pub use realm_planner::{
@@ -66,7 +67,10 @@ pub use render_bootstrap::{
 };
 pub use resource_init::build_resource_library;
 pub use samplers::{SamplerSet, create_standard_samplers};
-pub use shader_dsl::{RenderGraphShaderSpec, RenderGraphShaderType, validate_shader_spec};
+pub use shader_dsl::{
+    RenderGraphShaderCapabilities, RenderGraphShaderSpec, RenderGraphShaderType,
+    validate_shader_spec,
+};
 pub use shaders::{ShaderModules, create_shader_modules};
 pub use target::{
     RenderTarget, ensure_render_target, ensure_surface_target, estimate_texture_bytes,

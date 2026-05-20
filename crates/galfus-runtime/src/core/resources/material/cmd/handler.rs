@@ -43,6 +43,7 @@ fn compile_material_program(
         shader_type: to_render_shader_type(shader_type),
         shader_source,
         shader_params_schema,
+        capabilities: Default::default(),
     };
 
     let cache_key = {

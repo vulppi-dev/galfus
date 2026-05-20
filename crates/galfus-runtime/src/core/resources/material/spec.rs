@@ -281,6 +281,7 @@ impl ShaderMaterialRecord {
             shader_type: galfus_render::MaterialShaderType::Model,
             shader_source: shader_source.clone(),
             shader_params_schema: HashMap::new(),
+            capabilities: Default::default(),
         };
         match galfus_render::compile_material_shader_spec(&spec) {
             Ok(compiled) => (

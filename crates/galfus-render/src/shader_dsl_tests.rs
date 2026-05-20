@@ -9,6 +9,7 @@ fn shader_spec(source: &str) -> RenderGraphShaderSpec {
         shader_type: RenderGraphShaderType::Screen,
         source: source.into(),
         params: HashMap::from([("threshold".into(), "f32".into())]),
+        capabilities: Default::default(),
     }
 }
 

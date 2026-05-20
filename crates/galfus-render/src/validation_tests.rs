@@ -157,6 +157,7 @@ fn rejects_node_shader_with_forbidden_tokens() {
         shader_type: RenderGraphShaderType::Screen,
         source: "@group(0) @binding(0) var<uniform> x: vec4<f32>; fn fragment(input: FragmentInput) -> FragmentOutput { var out: FragmentOutput; out.color = sample_color(input.uv); return out; }".into(),
         params: HashMap::new(),
+        capabilities: Default::default(),
     });
     let desc = RenderGraphDesc {
         graph_id: id("g"),

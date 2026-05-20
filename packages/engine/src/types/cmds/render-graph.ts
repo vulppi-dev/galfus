@@ -8,6 +8,18 @@ export type RenderGraphEdgeReason = 'read-after-write' | 'write-after-read';
 
 export type RenderGraphValue = boolean | number | string;
 export type RenderGraphParams = Record<string, RenderGraphValue>;
+export type RenderGraphShaderType = 'screen' | 'draw' | 'compute';
+
+export interface RenderGraphShaderCapabilities {
+  semantics?: string[];
+}
+
+export interface RenderGraphShaderSpec {
+  type: RenderGraphShaderType;
+  source: string;
+  params?: Record<string, string>;
+  capabilities?: RenderGraphShaderCapabilities;
+}
 
 export interface RenderGraphResource {
   resId: LogicalId;
@@ -21,7 +33,11 @@ export interface RenderGraphNode<TParams extends RenderGraphParams = RenderGraph
   passId: string;
   inputs?: LogicalId[];
   outputs?: LogicalId[];
+  require?: LogicalId[];
+  priority?: number;
+  enabled?: boolean;
   params?: TParams;
+  shader?: RenderGraphShaderSpec;
 }
 
 export interface RenderGraphEdge {

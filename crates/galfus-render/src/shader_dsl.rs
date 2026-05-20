@@ -18,6 +18,15 @@ pub struct RenderGraphShaderSpec {
     pub source: String,
     #[serde(default)]
     pub params: HashMap<String, String>,
+    #[serde(default)]
+    pub capabilities: RenderGraphShaderCapabilities,
+}
+
+#[derive(Debug, Clone, Default, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RenderGraphShaderCapabilities {
+    #[serde(default)]
+    pub semantics: Vec<String>,
 }
 
 const FORBIDDEN_SHADER_TOKENS: [&str; 14] = [

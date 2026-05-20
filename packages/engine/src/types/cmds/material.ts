@@ -124,6 +124,7 @@ export interface CmdMaterialDefinitionCreateArgs {
   shaderType?: string;
   shaderSource: string;
   shaderParamsSchema?: Record<string, string>;
+  capabilities?: MaterialShaderCapabilities;
 }
 
 export interface CmdMaterialDefinitionUpdateArgs {
@@ -134,6 +135,11 @@ export interface CmdMaterialDefinitionUpdateArgs {
   shaderType?: string;
   shaderSource: string;
   shaderParamsSchema?: Record<string, string>;
+  capabilities?: MaterialShaderCapabilities;
+}
+
+export interface MaterialShaderCapabilities {
+  semantics?: string[];
 }
 
 export type CmdMaterialDefinitionUpsertArgs =

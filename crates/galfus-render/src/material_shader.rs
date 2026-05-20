@@ -24,10 +24,19 @@ pub struct MaterialShaderCompileSpec {
     pub shader_source: String,
     #[serde(default)]
     pub shader_params_schema: HashMap<String, String>,
+    #[serde(default)]
+    pub capabilities: MaterialShaderCapabilities,
 }
 
 fn default_material_shader_type() -> MaterialShaderType {
     MaterialShaderType::Model
+}
+
+#[derive(Debug, Clone, Default, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MaterialShaderCapabilities {
+    #[serde(default)]
+    pub semantics: Vec<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -42,6 +51,7 @@ fn shade_standard(
   normal: vec3<f32>,
   light_dir: vec3<f32>,
   view_dir: vec3<f32>,
+  shadow_visibility: f32,
   roughness: f32,
   metallic: f32,
 ) -> vec3<f32> {
@@ -54,7 +64,7 @@ fn shade_standard(
   let specular = pow(max(dot(n, h), 0.0), spec_power) * (1.0 - metallic);
   let ambient = base_color * 0.08;
   let light_color = get_primary_light_color();
-  return ambient + (base_color * ndotl + vec3<f32>(specular)) * light_color;
+  return ambient + (base_color * ndotl + vec3<f32>(specular)) * light_color * shadow_visibility;
 }
 
 fn vertex(input: VertexInput) -> VertexOutput {
@@ -73,7 +83,8 @@ fn fragment(input: FragmentInput) -> FragmentOutput {
   let normal = normalize(input.world_normal);
   let view_dir = normalize(camera.position.xyz - input.world_position);
   let light_dir = get_primary_light_direction(input.world_position);
-  let lit = shade_standard(tint, normal, light_dir, view_dir, 0.05, 0.0);
+  let shadow_visibility = sample_shadow_primary_light(input.world_position, normal);
+  let lit = shade_standard(tint, normal, light_dir, view_dir, shadow_visibility, 0.05, 0.0);
   out.color = vec4<f32>(lit, 1.0);
   out.emissive = vec4<f32>(0.0);
   return out;
@@ -117,6 +128,7 @@ fn shade_pbr(
   normal: vec3<f32>,
   light_dir: vec3<f32>,
   view_dir: vec3<f32>,
+  shadow_visibility: f32,
   metallic: f32,
   roughness: f32,
 ) -> vec3<f32> {
@@ -135,7 +147,7 @@ fn shade_pbr(
   let specular = numerator / denominator;
   let kd = (vec3<f32>(1.0) - f) * (1.0 - metallic);
   let diffuse = kd * base_color / PI;
-  let radiance = get_primary_light_color() * ndotl;
+  let radiance = get_primary_light_color() * ndotl * shadow_visibility;
   let ambient = base_color * 0.03;
   return ambient + (diffuse + specular) * radiance;
 }
@@ -159,7 +171,8 @@ fn fragment(input: FragmentInput) -> FragmentOutput {
   let normal = normalize(input.world_normal);
   let view_dir = normalize(camera.position.xyz - input.world_position);
   let light_dir = get_primary_light_direction(input.world_position);
-  let lit = shade_pbr(tint, normal, light_dir, view_dir, metallic, roughness);
+  let shadow_visibility = sample_shadow_primary_light(input.world_position, normal);
+  let lit = shade_pbr(tint, normal, light_dir, view_dir, shadow_visibility, metallic, roughness);
   out.color = vec4<f32>(lit, 1.0);
   out.emissive = vec4<f32>(0.0);
   return out;
@@ -401,6 +414,52 @@ const SAMPLER_LINEAR_REPEAT: u32 = 3u;
 const TEX_SOURCE_STANDALONE: u32 = 0u;
 const TEX_SOURCE_ATLAS: u32 = 1u;
 const TEX_SOURCE_INVALID: u32 = 2u;
+fn sample_shadow_compare_atlas(uv: vec2<f32>, layer: u32, depth_ref: f32) -> f32 {
+    return textureSampleCompare(shadow_atlas, shadow_sampler, uv, i32(layer), depth_ref);
+}
+fn resolve_point_light_face(dir: vec3<f32>) -> u32 {
+    let ad = abs(dir);
+    if (ad.x >= ad.y && ad.x >= ad.z) {
+        return select(1u, 0u, dir.x >= 0.0);
+    }
+    if (ad.y >= ad.x && ad.y >= ad.z) {
+        return select(3u, 2u, dir.y >= 0.0);
+    }
+    return select(5u, 4u, dir.z >= 0.0);
+}
+fn sample_shadow_primary_light(world_position: vec3<f32>, world_normal: vec3<f32>) -> f32 {
+    if (arrayLength(&lights) == 0u) { return 1.0; }
+    let light = lights[0u];
+    if ((light.kind_flags.y & 1u) == 0u || light.shadow_index == 0xFFFFFFFFu) { return 1.0; }
+
+    let n = normalize(world_normal);
+    let l = normalize(light.position.xyz - world_position);
+    let to_frag = world_position - light.position.xyz;
+    let face = resolve_point_light_face(to_frag);
+    let vp = point_light_vp[light.shadow_index * 6u + face];
+    let clip = vp * vec4<f32>(world_position, 1.0);
+    if (abs(clip.w) < 1e-6) { return 1.0; }
+
+    let ndc = clip.xyz / clip.w;
+    if (ndc.x < -1.0 || ndc.x > 1.0 || ndc.y < -1.0 || ndc.y > 1.0) { return 1.0; }
+
+    let grid_size = max(u32(shadow_params.virtual_grid_size), 1u);
+    let uv01 = vec2<f32>(ndc.x * 0.5 + 0.5, -ndc.y * 0.5 + 0.5);
+    let page_x = min(u32(floor(uv01.x * f32(grid_size))), grid_size - 1u);
+    let page_y = min(u32(floor(uv01.y * f32(grid_size))), grid_size - 1u);
+    let page_uv = fract(uv01 * f32(grid_size));
+
+    let table_index = ((light.shadow_index * 6u + face) * grid_size * grid_size + page_y * grid_size + page_x) % shadow_params.table_capacity;
+    let page = shadow_page_table[table_index];
+    if (page.layer_index == 0xFFFFFFFFu) { return 1.0; }
+
+    let atlas_uv = page.scale_offset.xy * page_uv + page.scale_offset.zw;
+    let depth_ref = clamp(ndc.z, 0.0, 1.0);
+    let slope = 1.0 - max(dot(n, l), 0.0);
+    let bias = (shadow_params.point_bias_min + shadow_params.point_bias_slope * slope) * 0.05;
+    let compare_ref = clamp(depth_ref + bias, 0.0, 1.0);
+    return sample_shadow_compare_atlas(atlas_uv, page.layer_index, compare_ref);
+}
 fn get_slot(slots: array<vec4<u32>, 2>, index: u32) -> u32 {
     let vec_index = index / 4u;
     let lane = index % 4u;
@@ -625,6 +684,7 @@ mod tests {
             shader_type: MaterialShaderType::Model,
             shader_source: builtin_material_source(MaterialShaderBasePreset::Standard).to_string(),
             shader_params_schema: HashMap::new(),
+            capabilities: Default::default(),
         };
         let compiled = compile_material_shader_spec(&spec).expect("standard should compile");
         assert!(!compiled.source.is_empty());
@@ -640,6 +700,7 @@ mod tests {
             shader_type: MaterialShaderType::Model,
             shader_source: builtin_material_source(MaterialShaderBasePreset::Pbr).to_string(),
             shader_params_schema: HashMap::new(),
+            capabilities: Default::default(),
         };
         let compiled = compile_material_shader_spec(&spec).expect("pbr should compile");
         assert!(!compiled.source.is_empty());
@@ -671,6 +732,7 @@ fn fragment(input: FragmentInput) -> FragmentOutput {
 "#
             .to_string(),
             shader_params_schema: HashMap::new(),
+            capabilities: Default::default(),
         };
         let compiled = compile_material_shader_spec(&spec).expect("custom should compile");
         assert_ne!(compiled.hash, 0);
@@ -684,6 +746,7 @@ fn fragment(input: FragmentInput) -> FragmentOutput {
             shader_type: MaterialShaderType::Model,
             shader_source: "fn fragment() -> i32 { return 0; }".to_string(),
             shader_params_schema: HashMap::new(),
+            capabilities: Default::default(),
         };
         let err = compile_material_shader_spec(&spec).expect_err("invalid model contract");
         assert!(err.contains("Model shader must define both"));
@@ -712,6 +775,7 @@ fn fragment(input: FragmentInput) -> FragmentOutput {
 "#
             .to_string(),
             shader_params_schema: HashMap::from([(String::from("a"), String::from("f32"))]),
+            capabilities: Default::default(),
         };
         let a = compile_material_shader_spec(&spec).expect("first compile");
         let b = compile_material_shader_spec(&spec).expect("second compile");

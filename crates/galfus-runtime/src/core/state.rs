@@ -190,9 +190,10 @@ fn fragment(input: FragmentInput) -> FragmentOutput {
     out.emissive = vec4<f32>(0.0);
     return out;
 }
-"#
+                "#
                 .to_string(),
                 shader_params_schema: None,
+                capabilities: None,
             },
         );
         let _ = crate::core::resources::engine_cmd_material_definition_create(
@@ -218,9 +219,10 @@ fn fragment(input: FragmentInput) -> FragmentOutput {
     out.emissive = vec4<f32>(0.0);
     return out;
 }
-"#
+                "#
                 .to_string(),
                 shader_params_schema: None,
+                capabilities: None,
             },
         );
 

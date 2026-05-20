@@ -146,6 +146,8 @@ pub struct CmdMaterialDefinitionCreateArgs {
     pub shader_source: String,
     #[serde(default)]
     pub shader_params_schema: Option<HashMap<String, String>>,
+    #[serde(default)]
+    pub capabilities: Option<MaterialShaderCapabilities>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -160,6 +162,14 @@ pub struct CmdMaterialDefinitionUpdateArgs {
     pub shader_source: String,
     #[serde(default)]
     pub shader_params_schema: Option<HashMap<String, String>>,
+    #[serde(default)]
+    pub capabilities: Option<MaterialShaderCapabilities>,
+}
+
+#[derive(Debug, Default, Deserialize, Serialize, Clone)]
+#[serde(default, rename_all = "camelCase")]
+pub struct MaterialShaderCapabilities {
+    pub semantics: Vec<String>,
 }
 
 #[derive(Debug, Default, Deserialize, Serialize, Clone)]
