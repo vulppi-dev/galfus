@@ -253,6 +253,17 @@ export function enqueueCommand<T extends EngineCmd['type']>(
     typedContent.realmId = world.coreRealmId ?? world.worldId;
   }
 
+  if (type === 'cmd-target-layer-upsert') {
+    const cameraId = typedContent.cameraId;
+    const enabledCameraIds = typedContent.enabledCameraIds;
+    if (
+      typeof cameraId === 'number' &&
+      (!Array.isArray(enabledCameraIds) || enabledCameraIds.length === 0)
+    ) {
+      typedContent.enabledCameraIds = [cameraId];
+    }
+  }
+
   world.pendingCommands.push({
     id,
     type,
@@ -458,7 +469,7 @@ export function routeEvents(events: EngineEvent[]): void {
       continue;
     }
 
-    // Broadcast non-scoped events (system/audio/ui-async notifications).
+    // Broadcast non-scoped events (system/audio notifications).
     for (const world of engineState.worlds.values()) {
       world.inboundEvents.push(event);
     }

@@ -61,6 +61,7 @@ export interface CmdRenderGraphListArgs {}
 
 export interface RenderGraphEntry {
   renderGraphId: number;
+  graphKind: string;
   descHash: number;
   passCount: number;
   passIds: string[];

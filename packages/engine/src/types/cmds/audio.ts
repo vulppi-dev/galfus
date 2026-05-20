@@ -184,3 +184,51 @@ export interface CmdResultAudioStateGet {
   sources: AudioSourceStateEntry[];
   streams: AudioStreamStateEntry[];
 }
+
+export interface CmdAudioListenerGetArgs {}
+
+export interface CmdResultAudioListenerGet {
+  success: boolean;
+  message: string;
+  listener?: AudioListenerBindingState;
+}
+
+export interface CmdAudioSourceGetArgs {
+  sourceId: number;
+}
+
+export interface CmdResultAudioSourceGet {
+  success: boolean;
+  message: string;
+  source?: AudioSourceStateEntry;
+}
+
+export interface CmdAudioResourceGetArgs {
+  resourceId: number;
+}
+
+export interface CmdResultAudioResourceGet {
+  success: boolean;
+  message: string;
+  stream?: AudioStreamStateEntry;
+}
+
+export interface CmdAudioSourceListArgs {
+  sourceIds?: number[];
+}
+
+export interface CmdResultAudioSourceList {
+  success: boolean;
+  message: string;
+  sources: AudioSourceStateEntry[];
+}
+
+export interface CmdAudioResourceListArgs {
+  resourceIds?: number[];
+}
+
+export interface CmdResultAudioResourceList {
+  success: boolean;
+  message: string;
+  streams: AudioStreamStateEntry[];
+}

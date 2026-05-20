@@ -2,7 +2,6 @@ import type { KeyboardEvent } from '../../types/events/keyboard';
 import type { PointerEvent } from '../../types/events/pointer';
 import type { GamepadEvent } from '../../types/events/gamepad';
 import type { SystemEvent } from '../../types/events/system';
-import type { UiEvent } from '../../types/events/ui';
 import type { WindowEvent } from '../../types/events/window';
 import type { System } from '../ecs';
 import { applyGamepadEvent } from '../input/core/gamepad';
@@ -14,7 +13,7 @@ import { ensureInputMirrorState, resetInputMirrorFrame } from '../input/core/sta
  * Mirrors inbound core events into world-level ECS state components.
  *
  * This system owns runtime input snapshots for keyboard, pointer, window,
- * gamepad, system, and UI event streams.
+ * gamepad and system event streams.
  */
 export const InputMirrorSystem: System = (world) => {
   const state = ensureInputMirrorState(world);
@@ -83,10 +82,6 @@ export const InputMirrorSystem: System = (world) => {
           commandType: sysEvent.data.commandType
         };
       }
-    }
-    // UI events
-    else if (event.type === 'ui') {
-      state.uiEventState.eventsThisFrame.push(event.content as UiEvent);
     }
   }
   world.inboundEvents.length = 0;

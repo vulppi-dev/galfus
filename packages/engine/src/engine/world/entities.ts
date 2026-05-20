@@ -3,5 +3,4 @@ export * from './entities/world-state';
 export * from './entities/targets';
 export * from './entities/audio';
 export * from './entities/resources';
-export * from './entities/ui';
 export * from './entities/scene';

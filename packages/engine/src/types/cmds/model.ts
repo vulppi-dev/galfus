@@ -1,5 +1,5 @@
 import type { Mat4 as mat4, Vec4 as vec4 } from '../../math/index';
-import type { ResourceEntry } from './resources';
+import type { CmdResourceGetArgs, CmdResultResourceGet, ResourceEntry } from './resources';
 
 /** Command payload for creating a model. */
 export interface CmdModelCreateArgs {
@@ -82,3 +82,6 @@ export interface CmdResultModelList {
   message: string;
   models: ResourceEntry[];
 }
+
+export type CmdModelGetArgs = CmdResourceGetArgs;
+export type CmdResultModelGet = CmdResultResourceGet;

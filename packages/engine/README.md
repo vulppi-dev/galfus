@@ -84,7 +84,6 @@ requestAnimationFrame(frame);
 - `@galfus/engine/core`: init, tick, dispose, system/component registration
 - `@galfus/engine/window`: window APIs
 - `@galfus/engine/world3d`: 3D world APIs
-- `@galfus/engine/world-ui`: UI world APIs
 - `@galfus/engine/mount`: world binding to targets/windows
 - `@galfus/engine/ecs`: ECS types
 - `@galfus/engine/math`: bundled vector/quaternion/matrix helpers
@@ -99,7 +98,8 @@ Defaults and sparse command payloads:
 - Core-backed create commands for camera/light/model/texture/audio accept more omitted fields, reducing serialized payload size.
 - Primitive geometry creation now omits `options` entirely when the resolved shape config matches the core default, and material creation omits empty option payloads.
 - Notifications no longer force host-generated ids or timeout defaults; the core owns those defaults.
-- Public TS command types for UI, audio, render graph, bytes, and fixed-size matrix payloads now mirror the core serialization contract more closely, reducing cases where invalid nested payloads were type-accepted on the host.
+- The principal `@galfus/engine` binding no longer exposes UI commands/events.
+- Resource state authority remains in core (`get/list` for reads), while host-local ECS state is intentionally kept for runtime systems (interpolation, transforms, animation and scene sync) to avoid unnecessary command roundtrips.
 - Internal vector and matrix defaults in the engine now come directly from the bundled `@galfus/engine/math` module, with the vendored math runtime living inside the engine package so math-shaped defaults stay consistent across systems.
 - Before each batch is serialized, mergeable scene and target-layer upserts are compacted so repeated same-frame updates send only the latest effective patch.
 

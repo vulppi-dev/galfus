@@ -186,7 +186,7 @@ export const ResourceUploadSystem: System = (world, context) => {
         if (intent.props.atlasOptions !== undefined) {
           cmd.atlasOptions = intent.props.atlasOptions;
         }
-        enqueueCommand(context.worldId, 'cmd-texture-create-solid-color', cmd);
+        enqueueCommand(context.worldId, 'cmd-texture-upsert', cmd);
       } else {
         const cmd: {
           textureId: number;
@@ -207,7 +207,7 @@ export const ResourceUploadSystem: System = (world, context) => {
         if (intent.props.atlasOptions !== undefined) {
           cmd.atlasOptions = intent.props.atlasOptions;
         }
-        enqueueCommand(context.worldId, 'cmd-texture-create-from-buffer', cmd);
+        enqueueCommand(context.worldId, 'cmd-texture-upsert', cmd);
       }
     } else if (intent.type === 'dispose-texture') {
       enqueueCommand(context.worldId, 'cmd-texture-dispose', {

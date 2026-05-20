@@ -15,6 +15,7 @@ function flushPendingTargetLayerBinds(world: Parameters<System>[0], worldId: num
       targetId: binding.targetId,
       layout: binding.layout,
       cameraId: binding.cameraId,
+      enabledCameraIds: binding.cameraId !== undefined ? [binding.cameraId] : [],
       environmentId: binding.environmentId
     });
   }

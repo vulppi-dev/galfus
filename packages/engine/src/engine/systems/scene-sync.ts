@@ -126,6 +126,7 @@ export const SceneSyncSystem: System = (world, context) => {
           targetId: binding.targetId,
           layout: binding.layout,
           cameraId,
+          enabledCameraIds: [cameraId],
           environmentId: binding.environmentId
         });
         binding.cameraId = cameraId;

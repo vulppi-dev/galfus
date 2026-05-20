@@ -1,4 +1,4 @@
-import type { NotificationLevel } from '../kinds';
+import type { LogLevel, NotificationLevel } from '../kinds';
 
 export type ProfilingDetailLevel = 'basic' | 'full';
 export type SystemPointerTraceLevel = 'off' | 'errors' | 'basic' | 'full';
@@ -31,6 +31,28 @@ export interface CmdSystemDiagnosticsSetArgs {
 export interface CmdResultSystemDiagnosticsSet {
   success: boolean;
   message: string;
+}
+
+/** Command payload for updating core log filter level. */
+export interface CmdSystemLogLevelSetArgs {
+  level: LogLevel;
+}
+
+/** Result payload for log level update. */
+export interface CmdResultSystemLogLevelSet {
+  success: boolean;
+  message: string;
+  currentLevel: LogLevel;
+}
+
+/** Command payload for retrieving core log filter level. */
+export interface CmdSystemLogLevelGetArgs {}
+
+/** Result payload for log level query. */
+export interface CmdResultSystemLogLevelGet {
+  success: boolean;
+  message: string;
+  currentLevel: LogLevel;
 }
 
 /** Command payload for retrieving core build version. */

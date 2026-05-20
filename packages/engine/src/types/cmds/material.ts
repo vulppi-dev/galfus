@@ -7,7 +7,13 @@ import type {
   PolygonMode,
   RenderSide
 } from '../kinds';
-import type { ResourceEntry } from './resources';
+import type {
+  CmdResourceGetArgs,
+  CmdResourceListArgs,
+  CmdResultResourceGet,
+  CmdResultResourceList,
+  ResourceEntry
+} from './resources';
 
 /** Standard material options. */
 export interface StandardOptions {
@@ -114,3 +120,72 @@ export interface CmdResultMaterialList {
   message: string;
   materials: ResourceEntry[];
 }
+
+export interface CmdMaterialDefinitionCreateArgs {
+  definitionId: number;
+  slug: string;
+  label?: string;
+  preset: string;
+  shaderType?: string;
+  shaderSource: string;
+  shaderParamsSchema?: Record<string, string>;
+}
+
+export interface CmdMaterialDefinitionUpdateArgs {
+  definitionId: number;
+  slug?: string;
+  label?: string;
+  preset?: string;
+  shaderType?: string;
+  shaderSource: string;
+  shaderParamsSchema?: Record<string, string>;
+}
+
+export type CmdMaterialDefinitionUpsertArgs =
+  | CmdMaterialDefinitionCreateArgs
+  | CmdMaterialDefinitionUpdateArgs;
+
+export interface CmdMaterialDefinitionDisposeArgs {
+  definitionId: number;
+}
+
+export interface CmdResultMaterialDefinition {
+  success: boolean;
+  message: string;
+}
+
+export interface CmdMaterialInstanceCreateArgs {
+  materialId: number;
+  slug: string;
+  label?: string;
+  options?: MaterialOptions;
+}
+
+export interface CmdMaterialInstanceUpdateArgs {
+  materialId: number;
+  slug?: string;
+  label?: string;
+  options?: MaterialOptions;
+}
+
+export type CmdMaterialInstanceUpsertArgs = CmdMaterialInstanceCreateArgs | CmdMaterialInstanceUpdateArgs;
+
+export interface CmdMaterialInstanceDisposeArgs {
+  materialId: number;
+}
+
+export interface CmdResultMaterialInstance {
+  success: boolean;
+  message: string;
+}
+
+export type CmdMaterialGetArgs = CmdResourceGetArgs;
+export type CmdResultMaterialGet = CmdResultResourceGet;
+export type CmdMaterialDefinitionGetArgs = CmdResourceGetArgs;
+export type CmdResultMaterialDefinitionGet = CmdResultResourceGet;
+export type CmdMaterialDefinitionListArgs = CmdResourceListArgs;
+export type CmdResultMaterialDefinitionList = CmdResultResourceList;
+export type CmdMaterialInstanceGetArgs = CmdResourceGetArgs;
+export type CmdResultMaterialInstanceGet = CmdResultResourceGet;
+export type CmdMaterialInstanceListArgs = CmdResourceListArgs;
+export type CmdResultMaterialInstanceList = CmdResultResourceList;

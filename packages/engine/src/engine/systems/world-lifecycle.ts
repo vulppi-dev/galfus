@@ -432,6 +432,7 @@ export const WorldLifecycleSystem: System = (world, context) => {
           targetId: binding.targetId,
           layout: binding.layout,
           cameraId: binding.cameraId,
+          enabledCameraIds: binding.cameraId !== undefined ? [binding.cameraId] : [],
           environmentId: context.worldId
         });
       }

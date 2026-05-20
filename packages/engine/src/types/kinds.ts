@@ -53,6 +53,9 @@ export type MaterialKind = 'standard' | 'pbr';
 /** Notification severity level. */
 export type NotificationLevel = 'info' | 'warning' | 'error' | 'success';
 
+/** Runtime log severity level. */
+export type LogLevel = 'trace' | 'debug' | 'info' | 'warn' | 'error';
+
 /** Built-in primitive geometry shapes. */
 export type PrimitiveShape =
   | 'cube'

@@ -38,11 +38,6 @@
       "import": "./src/world3d.ts",
       "types": "./src/world3d.ts"
     },
-    "./world-ui": {
-      "default": "./src/world-ui.ts",
-      "import": "./src/world-ui.ts",
-      "types": "./src/world-ui.ts"
-    },
     "./ecs": {
       "default": "./src/ecs.ts",
       "import": "./src/ecs.ts",

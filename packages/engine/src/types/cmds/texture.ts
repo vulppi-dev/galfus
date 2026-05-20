@@ -1,6 +1,6 @@
 import type { Vec4 as vec4 } from '../../math/index';
 import type { TextureCreateMode } from '../kinds';
-import type { ResourceEntry } from './resources';
+import type { CmdResourceGetArgs, CmdResultResourceGet, ResourceEntry } from './resources';
 
 /** Options for forward atlas texture packing. */
 export interface ForwardAtlasOptions {
@@ -41,6 +41,18 @@ export interface CmdResultTextureCreateSolidColor {
   message: string;
 }
 
+/** Upsert payload accepted by core. */
+export type CmdTextureUpsertArgs = CmdTextureCreateFromBufferArgs | CmdTextureCreateSolidColorArgs;
+
+/** Result payload for texture upsert. */
+export interface CmdResultTextureUpsert {
+  success: boolean;
+  message: string;
+}
+
+/** Legacy aliases kept for one cycle. */
+export type CmdTextureCreateArgs = CmdTextureUpsertArgs;
+
 /** Command payload for disposing a texture. */
 export interface CmdTextureDisposeArgs {
   textureId: number;
@@ -76,3 +88,6 @@ export interface CmdResultTextureList {
   message: string;
   textures: ResourceEntry[];
 }
+
+export type CmdTextureGetArgs = CmdResourceGetArgs;
+export type CmdResultTextureGet = CmdResultResourceGet;

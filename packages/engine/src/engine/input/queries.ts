@@ -11,7 +11,6 @@ export {
   getPointerWindowSize,
   getScrollDelta,
   getSystemEvents,
-  getUiEvents,
   getWindowLifecycleState,
   getWindowPosition,
   getWindowPointerCaptureState,

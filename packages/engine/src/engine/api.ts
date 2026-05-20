@@ -18,6 +18,8 @@ import type { RealmKind } from '../types/cmds/realm';
 import type {
   CmdSystemBuildVersionGetArgs,
   CmdSystemDiagnosticsSetArgs,
+  CmdSystemLogLevelGetArgs,
+  CmdSystemLogLevelSetArgs,
   CmdUploadBufferDiscardAllArgs
 } from '../types/cmds/system';
 import { asWorldId, type WorldId } from './world/types';
@@ -45,7 +47,7 @@ function recalculateWorldWindowBindings(world: WorldState): void {
 }
 
 /**
- * Shared realm creation options used by `createWorld3D` and `createWorldUI`.
+ * Shared realm creation options used by `createWorld3D`.
  */
 export type CreateWorldOptions = {
   /** Core scheduling hint for realm priority. */
@@ -120,7 +122,6 @@ export function initEngine(config: {
   // Register Core Systems
   registerSystem('input', CoreSystems.InputMirrorSystem);
   registerSystem('update', CoreSystems.CommandIntentSystem);
-  registerSystem('update', CoreSystems.UiBridgeSystem);
   registerSystem('update', CoreSystems.WorldLifecycleSystem);
   registerSystem('update', CoreSystems.ResourceUploadSystem);
   registerSystem('preRender', CoreSystems.ConstraintSolveSystem);
@@ -265,6 +266,18 @@ export function setSystemDiagnostics(args: CmdSystemDiagnosticsSetArgs): number 
   return enqueueGlobalCommand('cmd-system-diagnostics-set', args);
 }
 
+/** Updates the global core log filter level. */
+export function setSystemLogLevel(args: CmdSystemLogLevelSetArgs): number {
+  requireInitialized();
+  return enqueueGlobalCommand('cmd-system-log-level-set', args);
+}
+
+/** Returns the current global core log filter level. */
+export function getSystemLogLevel(args: CmdSystemLogLevelGetArgs = {}): number {
+  requireInitialized();
+  return enqueueGlobalCommand('cmd-system-log-level-get', args);
+}
+
 /**
  * Requests the core to return build/runtime version information.
  *
@@ -365,27 +378,6 @@ function createRealmWorld(kind: RealmKind, config: CreateWorldOptions = {}): Wor
  */
 export function createWorld3D(config?: CreateWorldOptions): WorldId {
   return createRealmWorld('three-d', config);
-}
-
-/**
- * Creates a `two-d` realm world for UI-centric pipelines and queues `cmd-realm-create`.
- *
- * This world type is intended for the dedicated WorldUI functional APIs.
- * The core realm is resolved asynchronously after at least one `tick`.
- *
- * Preconditions:
- * - `initEngine` must have been called.
- *
- * Side effects:
- * - Allocates a new world ID.
- * - Registers the world in engine state.
- * - Enqueues `cmd-realm-create` for the new world.
- *
- * @param config Optional create options.
- * @returns Numeric world ID associated with a core `two-d` realm.
- */
-export function createWorldUI(config?: CreateWorldOptions): WorldId {
-  return createRealmWorld('two-d', config);
 }
 
 /**

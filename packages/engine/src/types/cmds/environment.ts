@@ -1,5 +1,11 @@
 import type { Vec3 as vec3, Vec4 as vec4 } from '../../math/index';
 import type { SkyboxMode } from '../kinds';
+import type {
+  CmdResourceGetArgs,
+  CmdResourceListArgs,
+  CmdResultResourceGet,
+  CmdResultResourceList
+} from './resources';
 
 /** MSAA configuration for the renderer. */
 export interface MsaaConfig {
@@ -94,3 +100,8 @@ export interface CmdResultEnvironment {
   success: boolean;
   message: string;
 }
+
+export type CmdEnvironmentGetArgs = CmdResourceGetArgs;
+export type CmdResultEnvironmentGet = CmdResultResourceGet;
+export type CmdEnvironmentListArgs = CmdResourceListArgs;
+export type CmdResultEnvironmentList = CmdResultResourceList;

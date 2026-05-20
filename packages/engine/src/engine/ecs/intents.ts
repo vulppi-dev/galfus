@@ -1,24 +1,4 @@
 import type { Vec3 as vec3, Vec4 as vec4 } from '../../math/index';
-import type {
-  CmdUiAccessKitActionRequestArgs,
-  CmdUiApplyOpsArgs,
-  CmdUiClipboardPasteArgs,
-  CmdUiDebugSetArgs,
-  CmdUiDocumentCreateArgs,
-  CmdUiDocumentDisposeArgs,
-  CmdUiDocumentGetLayoutRectsArgs,
-  CmdUiDocumentGetTreeArgs,
-  CmdUiDocumentSetRectArgs,
-  CmdUiDocumentSetThemeArgs,
-  CmdUiEventTraceSetArgs,
-  CmdUiFocusGetArgs,
-  CmdUiFocusSetArgs,
-  CmdUiImageCreateFromBufferArgs,
-  CmdUiImageDisposeArgs,
-  CmdUiScreenshotReplyArgs,
-  CmdUiThemeDefineArgs,
-  CmdUiThemeDisposeArgs
-} from '../../types/cmds/ui';
 import type { EnvironmentConfig } from '../../types/cmds/environment';
 import type { ShadowConfig } from '../../types/cmds/shadow';
 import type { NotificationLevel } from '../../types/kinds';
@@ -32,8 +12,7 @@ import type {
   ModelProps,
   TagProps,
   TextureProps,
-  TransformProps,
-  UiFocusCycleMode
+  TransformProps
 } from './components';
 
 export type Intent =
@@ -104,71 +83,6 @@ export type Intent =
       color: vec4;
       closed?: boolean;
       thickness?: number;
-    }
-  | { type: 'ui-theme-define'; args: CmdUiThemeDefineArgs }
-  | { type: 'ui-theme-dispose'; args: CmdUiThemeDisposeArgs }
-  | { type: 'ui-document-create'; args: CmdUiDocumentCreateArgs }
-  | { type: 'ui-document-dispose'; args: CmdUiDocumentDisposeArgs }
-  | { type: 'ui-document-set-rect'; args: CmdUiDocumentSetRectArgs }
-  | { type: 'ui-document-set-theme'; args: CmdUiDocumentSetThemeArgs }
-  | { type: 'ui-document-get-tree'; args: CmdUiDocumentGetTreeArgs }
-  | {
-      type: 'ui-document-get-layout-rects';
-      args: CmdUiDocumentGetLayoutRectsArgs;
-    }
-  | { type: 'ui-apply-ops'; args: CmdUiApplyOpsArgs }
-  | { type: 'ui-debug-set'; args: CmdUiDebugSetArgs }
-  | { type: 'ui-focus-set'; args: CmdUiFocusSetArgs }
-  | { type: 'ui-focus-get'; args: CmdUiFocusGetArgs }
-  | { type: 'ui-event-trace-set'; args: CmdUiEventTraceSetArgs }
-  | { type: 'ui-image-create-from-buffer'; args: CmdUiImageCreateFromBufferArgs }
-  | { type: 'ui-image-dispose'; args: CmdUiImageDisposeArgs }
-  | { type: 'ui-clipboard-paste'; args: CmdUiClipboardPasteArgs }
-  | { type: 'ui-screenshot-reply'; args: CmdUiScreenshotReplyArgs }
-  | {
-      type: 'ui-access-kit-action-request';
-      args: CmdUiAccessKitActionRequestArgs;
-    }
-  | {
-      type: 'ui-form-upsert';
-      form: {
-        formId: string;
-        windowId: number;
-        realmId: number;
-        documentId: number;
-        disabled?: boolean;
-        cycleMode?: UiFocusCycleMode;
-        activeFieldsetId?: string;
-      };
-    }
-  | { type: 'ui-form-dispose'; formId: string }
-  | {
-      type: 'ui-fieldset-upsert';
-      fieldset: {
-        formId: string;
-        fieldsetId: string;
-        disabled?: boolean;
-        legendNodeId?: number;
-      };
-    }
-  | { type: 'ui-fieldset-dispose'; formId: string; fieldsetId: string }
-  | {
-      type: 'ui-focusable-upsert';
-      focusable: {
-        formId: string;
-        nodeId: number;
-        tabIndex?: number;
-        fieldsetId?: string;
-        disabled?: boolean;
-        orderHint?: number;
-      };
-    }
-  | { type: 'ui-focusable-dispose'; nodeId: number }
-  | {
-      type: 'ui-focus-next';
-      windowId: number;
-      backwards?: boolean;
-      formId?: string;
     }
   | {
       type: 'custom';
