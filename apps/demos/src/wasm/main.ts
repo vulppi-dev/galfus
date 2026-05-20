@@ -3,6 +3,15 @@ import { quat } from '@galfus/engine/math';
 import { initWasmTransport, transportWasm } from '@galfus/transport-browser';
 
 const FRAME_MS = 16;
+const SHADOW_CONFIG = {
+  tileResolution: 1024,
+  atlasTilesW: 16,
+  atlasTilesH: 16,
+  atlasLayers: 2,
+  virtualGridSize: 1,
+  smoothing: 2,
+  normalBias: 0.05
+} as const;
 
 type DemoUpdate = (dtSeconds: number) => void;
 
@@ -29,50 +38,15 @@ function setupCommonWindow(): { worldId: number } {
 
 function setupDemo001(worldId: number): DemoUpdate {
   World3D.configure3DEnvironment(worldId, {
-    msaa: { enabled: true, sampleCount: 1 },
-    skybox: {
-      mode: 'none',
-      intensity: 0,
-      rotation: 0,
-      groundColor: [0.02, 0.03, 0.04],
-      horizonColor: [0.12, 0.16, 0.22],
-      skyColor: [0.2, 0.35, 0.6],
-      cubemapTextureId: null
-    },
-    clearColor: [0.03, 0.03, 0.04, 1],
+    clearColor: [0, 0, 0, 1],
     post: {
-      filterEnabled: false,
-      filterExposure: 1,
-      filterGamma: 2,
-      filterSaturation: 1,
-      filterContrast: 1,
-      filterVignette: 0,
-      filterGrain: 0,
-      filterChromaticAberration: 0,
-      filterBlur: 0,
-      filterSharpen: 0,
-      filterTonemapMode: 1,
-      outlineEnabled: false,
-      outlineStrength: 0,
-      outlineThreshold: 0.2,
-      outlineWidth: 1,
-      outlineQuality: 1,
-      filterPosterizeSteps: 0,
-      cellShading: false,
-      ssaoEnabled: false,
-      ssaoStrength: 1,
-      ssaoRadius: 0.75,
-      ssaoBias: 0.025,
-      ssaoPower: 1.5,
-      ssaoBlurRadius: 2,
-      ssaoBlurDepthThreshold: 0.02,
-      bloomEnabled: false,
-      bloomThreshold: 1,
-      bloomKnee: 0.5,
-      bloomIntensity: 0.8,
-      bloomScatter: 0.7
+      outlineEnabled: true,
+      outlineStrength: 0.5,
+      outlineThreshold: 0.25,
+      outlineWidth: 1.25
     }
   });
+  World3D.configure3DShadows(worldId, SHADOW_CONFIG);
 
   const cubeGeometryId = World3D.create3DGeometry(worldId, {
     type: 'primitive',
@@ -92,6 +66,7 @@ function setupDemo001(worldId: number): DemoUpdate {
       type: 'standard',
       content: {
         baseColor: [0.92, 0.35, 0.32, 1],
+        renderSide: 'back',
         surfaceType: 'opaque',
         flags: 0
       }
@@ -109,6 +84,7 @@ function setupDemo001(worldId: number): DemoUpdate {
         roughness: 0.35,
         ao: 1,
         normalScale: 1,
+        renderSide: 'back',
         flags: 0,
         surfaceType: 'opaque'
       }
@@ -125,6 +101,7 @@ function setupDemo001(worldId: number): DemoUpdate {
         emissiveColor: [0, 0, 0, 0],
         specColor: [1, 1, 1, 1],
         specPower: 64,
+        renderSide: 'back',
         surfaceType: 'opaque',
         flags: 0
       }
@@ -137,7 +114,10 @@ function setupDemo001(worldId: number): DemoUpdate {
     options: {
       type: 'standard',
       content: {
-        baseColor: [0.18, 0.2, 0.24, 1],
+        baseColor: [0.24, 0.24, 0.26, 1],
+        specColor: [0.05, 0.05, 0.05, 1],
+        specPower: 8,
+        renderSide: 'double-side',
         surfaceType: 'opaque',
         flags: 0
       }
@@ -146,13 +126,13 @@ function setupDemo001(worldId: number): DemoUpdate {
 
   const cameraEntity = World3D.create3DEntity(worldId);
   World3D.update3DTransform(worldId, cameraEntity, {
-    position: [0, 2.5, 8],
+    position: [0, 2, 7],
     rotation: [-0.1305262, 0, 0, 0.9914449]
   });
   World3D.create3DCamera(worldId, cameraEntity, {
     kind: 'perspective',
     near: 0.1,
-    far: 100,
+    far: 120,
     order: 0
   });
 
@@ -164,9 +144,9 @@ function setupDemo001(worldId: number): DemoUpdate {
   World3D.create3DLight(worldId, lightEntity, {
     kind: 'point',
     color: [1, 1, 1],
-    intensity: 10,
-    range: 30,
-    castShadow: false
+    intensity: 4,
+    range: 24,
+    castShadow: true
   });
 
   const cubeA = World3D.create3DEntity(worldId);
@@ -178,8 +158,8 @@ function setupDemo001(worldId: number): DemoUpdate {
   World3D.create3DModel(worldId, cubeA, {
     geometryId: cubeGeometryId,
     materialId: standardMaterialId,
-    castShadow: false,
-    receiveShadow: false
+    castShadow: true,
+    receiveShadow: true
   });
 
   const cubeB = World3D.create3DEntity(worldId);
@@ -191,8 +171,8 @@ function setupDemo001(worldId: number): DemoUpdate {
   World3D.create3DModel(worldId, cubeB, {
     geometryId: cubeGeometryId,
     materialId: pbrMaterialId,
-    castShadow: false,
-    receiveShadow: false
+    castShadow: true,
+    receiveShadow: true
   });
 
   const cubeC = World3D.create3DEntity(worldId);
@@ -204,34 +184,43 @@ function setupDemo001(worldId: number): DemoUpdate {
   World3D.create3DModel(worldId, cubeC, {
     geometryId: cubeGeometryId,
     materialId: customSimpleMaterialId,
-    castShadow: false,
-    receiveShadow: false
+    castShadow: true,
+    receiveShadow: true
   });
 
   const floor = World3D.create3DEntity(worldId);
   World3D.update3DTransform(worldId, floor, {
-    position: [0, -1.1, 0],
+    position: [0, -1, 0],
     rotation: [-0.7071068, 0, 0, 0.7071068],
-    scale: [8, 8, 1]
+    scale: [20, 20, 1]
   });
   World3D.create3DModel(worldId, floor, {
     geometryId: floorGeometryId,
     materialId: floorMaterialId,
-    castShadow: false,
-    receiveShadow: false
+    castShadow: true,
+    receiveShadow: true
   });
 
   let elapsedSeconds = 0;
+  let nextShadowRefreshSeconds = 0;
   return (dtSeconds) => {
     elapsedSeconds += dtSeconds;
 
-    const qa = quat.fromEuler(quat.create(), 0, elapsedSeconds * 1.8 * 57.2958, 0);
-    const qb = quat.fromEuler(quat.create(), 0, (elapsedSeconds * 2.5 + 0.6) * 57.2958, 0);
-    const qc = quat.fromEuler(quat.create(), 0, (elapsedSeconds * 1.4 + 1.2) * 57.2958, 0);
+    const angleA = elapsedSeconds * 1.8;
+    const angleB = elapsedSeconds * 2.5 + 0.6;
+    const angleC = elapsedSeconds * 1.4 + 1.2;
+    const qa = quat.fromEuler(quat.create(), 0, (angleA * 180) / Math.PI, 0);
+    const qb = quat.fromEuler(quat.create(), 0, (angleB * 180) / Math.PI, 0);
+    const qc = quat.fromEuler(quat.create(), 0, (angleC * 180) / Math.PI, 0);
 
     World3D.update3DTransform(worldId, cubeA, { rotation: [qa[0], qa[1], qa[2], qa[3]] });
     World3D.update3DTransform(worldId, cubeB, { rotation: [qb[0], qb[1], qb[2], qb[3]] });
     World3D.update3DTransform(worldId, cubeC, { rotation: [qc[0], qc[1], qc[2], qc[3]] });
+
+    if (elapsedSeconds <= 1.5 && elapsedSeconds >= nextShadowRefreshSeconds) {
+      World3D.configure3DShadows(worldId, SHADOW_CONFIG);
+      nextShadowRefreshSeconds += 0.25;
+    }
   };
 }
 

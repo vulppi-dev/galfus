@@ -137,7 +137,8 @@ export const ResourceUploadSystem: System = (world, context) => {
       enqueueCommand(context.worldId, 'cmd-material-upsert', {
         materialId: intent.resourceId,
         label: intent.props.label,
-        kind: intent.props.kind,
+        slug: intent.props.kind,
+        kind: 'shader',
         options
       });
     } else if (intent.type === 'dispose-material') {

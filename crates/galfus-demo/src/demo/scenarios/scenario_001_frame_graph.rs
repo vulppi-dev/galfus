@@ -292,7 +292,7 @@ fn fragment(input: FragmentInput) -> FragmentOutput {
             direction: None,
             color: Some(Vec4::new(1.0, 1.0, 1.0, 1.0)),
             ground_color: None,
-            intensity: Some(10.0),
+            intensity: Some(4.0),
             range: Some(30.0),
             spot_inner_outer: None,
             layer_mask: 1,
