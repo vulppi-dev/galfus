@@ -15,12 +15,9 @@
       "name": "demos",
       "version": "0.0.0",
       "devDependencies": {
-        "@galfus/camera-control": "workspace:*",
         "@galfus/engine": "workspace:*",
-        "@galfus/gltf-loader": "workspace:*",
         "@galfus/transport-browser": "workspace:*",
         "@galfus/transport-bun": "workspace:*",
-        "@galfus/transport-napi": "workspace:*",
         "@types/bun": "^1.3.11",
         "typescript": "^6.0.2",
         "vite": "^8.0.2",
