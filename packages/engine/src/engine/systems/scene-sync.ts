@@ -2,11 +2,21 @@ import { mat4, vec2, vec3, vec4 } from '../../math/index';
 import type { Mat4, Vec2, Vec4 } from '../../math/index';
 import type { CameraKind, LightKind } from '../../types/kinds';
 import { enqueueCommand } from '../bridge/dispatch';
-import type { CameraComponent, Component, LightComponent, ModelComponent, System } from '../ecs';
+import type {
+  CameraComponent,
+  Component,
+  LightComponent,
+  ModelComponent,
+  Shape2DComponent,
+  Sprite2DComponent,
+  System
+} from '../ecs';
 import { getResolvedEntityTransformMatrix, toVec2, toVec3, toVec4 } from './utils';
 
 const SCENE_SYNC_INTENT_TYPES = [
   'attach-model',
+  'attach-sprite2d',
+  'attach-shape2d',
   'attach-camera',
   'attach-light',
   'detach-component',
@@ -58,7 +68,7 @@ export const SceneSyncSystem: System = (world, context) => {
       const castOutline = intent.props.castOutline ?? false;
       const outlineColor = intent.props.outlineColor ?? vec4.create();
 
-      enqueueCommand(context.worldId, 'cmd-model-upsert', {
+      enqueueCommand(context.worldId, 'cmd-model3d-upsert', {
         realmId,
         modelId,
         geometryId: intent.props.geometryId,
@@ -89,17 +99,30 @@ export const SceneSyncSystem: System = (world, context) => {
     } else if (intent.type === 'attach-camera') {
       const cameraId = world.nextCoreId++;
       const transform = getResolvedEntityTransformMatrix(world, intent.entityId);
+      const is2D = world.realmKind === 'two-d';
+      const cameraKind = intent.props.kind ?? (is2D ? 'orthographic' : 'perspective');
 
-      enqueueCommand(context.worldId, 'cmd-camera-upsert', {
-        realmId,
-        cameraId,
-        kind: intent.props.kind ?? ('perspective' as CameraKind),
-        nearFar: vec2.fromValues(intent.props.near ?? 0.1, intent.props.far ?? 1000),
-        order: intent.props.order,
-        transform: copyMatrixToScratch(world, intent.entityId, transform),
-        orthoScale: intent.props.orthoScale,
-        viewPosition: intent.props.viewPosition
-      });
+      if (is2D) {
+        enqueueCommand(context.worldId, 'cmd-camera2d-upsert', {
+          realmId,
+          cameraId,
+          nearFar: vec2.fromValues(intent.props.near ?? 0.1, intent.props.far ?? 1000),
+          order: intent.props.order,
+          transform: copyMatrixToScratch(world, intent.entityId, transform),
+          orthoScale: intent.props.orthoScale ?? 1.0
+        });
+      } else {
+        enqueueCommand(context.worldId, 'cmd-camera3d-upsert', {
+          realmId,
+          cameraId,
+          kind: cameraKind as CameraKind,
+          nearFar: vec2.fromValues(intent.props.near ?? 0.1, intent.props.far ?? 1000),
+          order: intent.props.order,
+          transform: copyMatrixToScratch(world, intent.entityId, transform),
+          orthoScale: intent.props.orthoScale,
+          viewPosition: intent.props.viewPosition
+        });
+      }
 
       let store = world.components.get(intent.entityId);
       if (!store) {
@@ -109,11 +132,11 @@ export const SceneSyncSystem: System = (world, context) => {
       store.set('Camera', {
         type: 'Camera',
         id: cameraId,
-        kind: intent.props.kind ?? ('perspective' as CameraKind),
+        kind: cameraKind as CameraKind,
         near: intent.props.near ?? 0.1,
         far: intent.props.far ?? 1000,
         order: intent.props.order ?? 0,
-        orthoScale: intent.props.orthoScale ?? 10.0,
+        orthoScale: intent.props.orthoScale ?? (is2D ? 1.0 : 10.0),
         skipUpdate: true
       });
 
@@ -184,7 +207,7 @@ export const SceneSyncSystem: System = (world, context) => {
       if (intent.props.spotInnerOuter) {
         lightCmd.spotInnerOuter = toVec2(intent.props.spotInnerOuter);
       }
-      enqueueCommand(context.worldId, 'cmd-light-upsert', lightCmd);
+      enqueueCommand(context.worldId, 'cmd-light3d-upsert', lightCmd);
 
       let store = world.components.get(intent.entityId);
       if (!store) {
@@ -207,6 +230,56 @@ export const SceneSyncSystem: System = (world, context) => {
           : vec2.fromValues(0.5, 0.8),
         skipUpdate: true
       });
+    } else if (intent.type === 'attach-sprite2d' || intent.type === 'attach-shape2d') {
+      const objectId = world.nextCoreId++;
+      const transform = getResolvedEntityTransformMatrix(world, intent.entityId);
+      const layer = intent.props.layer ?? 0;
+      const transformArray = copyMatrixToScratch(world, intent.entityId, transform);
+
+      if (intent.type === 'attach-sprite2d') {
+        enqueueCommand(context.worldId, 'cmd-sprite2d-upsert', {
+          realmId,
+          spriteId: objectId,
+          geometryId: intent.props.geometryId,
+          materialId: intent.props.materialId,
+          transform: transformArray,
+          layer
+        });
+      } else {
+        enqueueCommand(context.worldId, 'cmd-shape2d-upsert', {
+          realmId,
+          shapeId: objectId,
+          geometryId: intent.props.geometryId,
+          materialId: intent.props.materialId,
+          transform: transformArray,
+          layer
+        });
+      }
+
+      let store = world.components.get(intent.entityId);
+      if (!store) {
+        store = new Map();
+        world.components.set(intent.entityId, store);
+      }
+      if (intent.type === 'attach-sprite2d') {
+        store.set('Sprite2D', {
+          type: 'Sprite2D',
+          id: objectId,
+          geometryId: intent.props.geometryId,
+          materialId: intent.props.materialId,
+          layer,
+          skipUpdate: true
+        });
+      } else {
+        store.set('Shape2D', {
+          type: 'Shape2D',
+          id: objectId,
+          geometryId: intent.props.geometryId,
+          materialId: intent.props.materialId,
+          layer,
+          skipUpdate: true
+        });
+      }
     } else if (intent.type === 'detach-component') {
       const store = world.components.get(intent.entityId);
       if (store) {
@@ -214,21 +287,33 @@ export const SceneSyncSystem: System = (world, context) => {
         if (comp && 'id' in comp) {
           if (intent.componentType === 'Model') {
             const modelComp = comp as ModelComponent;
-            enqueueCommand(context.worldId, 'cmd-model-dispose', {
+            enqueueCommand(context.worldId, 'cmd-model3d-dispose', {
               realmId,
               modelId: modelComp.id
             });
           } else if (intent.componentType === 'Camera') {
             const cameraComp = comp as CameraComponent;
-            enqueueCommand(context.worldId, 'cmd-camera-dispose', {
+            enqueueCommand(context.worldId, 'cmd-camera3d-dispose', {
               realmId,
               cameraId: cameraComp.id
             });
           } else if (intent.componentType === 'Light') {
             const lightComp = comp as LightComponent;
-            enqueueCommand(context.worldId, 'cmd-light-dispose', {
+            enqueueCommand(context.worldId, 'cmd-light3d-dispose', {
               realmId,
               lightId: lightComp.id
+            });
+          } else if (intent.componentType === 'Sprite2D') {
+            const spriteComp = comp as Sprite2DComponent;
+            enqueueCommand(context.worldId, 'cmd-sprite2d-dispose', {
+              realmId,
+              spriteId: spriteComp.id
+            });
+          } else if (intent.componentType === 'Shape2D') {
+            const shapeComp = comp as Shape2DComponent;
+            enqueueCommand(context.worldId, 'cmd-shape2d-dispose', {
+              realmId,
+              shapeId: shapeComp.id
             });
           }
         }
@@ -271,7 +356,7 @@ export const SceneSyncSystem: System = (world, context) => {
         model.skipUpdate = false;
       } else {
         matrixArray = matrixArray ?? copyMatrixToScratch(world, entityId, matrix);
-        enqueueCommand(context.worldId, 'cmd-model-upsert', {
+        enqueueCommand(context.worldId, 'cmd-model3d-upsert', {
           realmId,
           modelId: model.id,
           transform: matrixArray
@@ -285,11 +370,19 @@ export const SceneSyncSystem: System = (world, context) => {
         camera.skipUpdate = false;
       } else {
         matrixArray = matrixArray ?? copyMatrixToScratch(world, entityId, matrix);
-        enqueueCommand(context.worldId, 'cmd-camera-upsert', {
-          realmId,
-          cameraId: camera.id,
-          transform: matrixArray
-        });
+        if (world.realmKind === 'two-d') {
+          enqueueCommand(context.worldId, 'cmd-camera2d-upsert', {
+            realmId,
+            cameraId: camera.id,
+            transform: matrixArray
+          });
+        } else {
+          enqueueCommand(context.worldId, 'cmd-camera3d-upsert', {
+            realmId,
+            cameraId: camera.id,
+            transform: matrixArray
+          });
+        }
       }
     }
 
@@ -300,10 +393,38 @@ export const SceneSyncSystem: System = (world, context) => {
       } else {
         const pos = vec3.create();
         mat4.getTranslation(pos, matrix);
-        enqueueCommand(context.worldId, 'cmd-light-upsert', {
+        enqueueCommand(context.worldId, 'cmd-light3d-upsert', {
           realmId,
           lightId: light.id,
           position: vec4.fromValues(pos[0], pos[1], pos[2], 1)
+        });
+      }
+    }
+
+    const sprite2d = store.get('Sprite2D') as Sprite2DComponent | undefined;
+    if (sprite2d) {
+      if (sprite2d.skipUpdate) {
+        sprite2d.skipUpdate = false;
+      } else {
+        matrixArray = matrixArray ?? copyMatrixToScratch(world, entityId, matrix);
+        enqueueCommand(context.worldId, 'cmd-sprite2d-upsert', {
+          realmId,
+          spriteId: sprite2d.id,
+          transform: matrixArray
+        });
+      }
+    }
+
+    const shape2d = store.get('Shape2D') as Shape2DComponent | undefined;
+    if (shape2d) {
+      if (shape2d.skipUpdate) {
+        shape2d.skipUpdate = false;
+      } else {
+        matrixArray = matrixArray ?? copyMatrixToScratch(world, entityId, matrix);
+        enqueueCommand(context.worldId, 'cmd-shape2d-upsert', {
+          realmId,
+          shapeId: shape2d.id,
+          transform: matrixArray
         });
       }
     }

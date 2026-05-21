@@ -41,13 +41,19 @@ pub(super) fn command_type_for_cmd(cmd: &EngineCmd) -> &'static str {
         EngineCmd::CmdWindowCursor(_) => "window-cursor",
         EngineCmd::CmdWindowState(_) => "window-state",
         EngineCmd::CmdUploadBufferDiscardAll(_) => "upload-buffer-discard-all",
-        EngineCmd::CmdCameraUpsert(_) => "camera-upsert",
-        EngineCmd::CmdCameraDispose(_) => "camera-dispose",
-        EngineCmd::CmdModelUpsert(_) => "model-upsert",
+        EngineCmd::CmdCamera3dUpsert(_) => "camera3d-upsert",
+        EngineCmd::CmdCamera2dUpsert(_) => "camera2d-upsert",
+        EngineCmd::CmdCamera3dDispose(_) => "camera3d-dispose",
+        EngineCmd::CmdCamera2dDispose(_) => "camera2d-dispose",
+        EngineCmd::CmdModel3dUpsert(_) => "model3d-upsert",
+        EngineCmd::CmdSprite2dUpsert(_) => "sprite2d-upsert",
+        EngineCmd::CmdShape2dUpsert(_) => "shape2d-upsert",
         EngineCmd::CmdPoseUpdate(_) => "pose-update",
-        EngineCmd::CmdModelDispose(_) => "model-dispose",
-        EngineCmd::CmdLightUpsert(_) => "light-upsert",
-        EngineCmd::CmdLightDispose(_) => "light-dispose",
+        EngineCmd::CmdModel3dDispose(_) => "model3d-dispose",
+        EngineCmd::CmdSprite2dDispose(_) => "sprite2d-dispose",
+        EngineCmd::CmdShape2dDispose(_) => "shape2d-dispose",
+        EngineCmd::CmdLight3dUpsert(_) => "light3d-upsert",
+        EngineCmd::CmdLight3dDispose(_) => "light3d-dispose",
         EngineCmd::CmdMaterialUpsert(_) => "material-upsert",
         EngineCmd::CmdMaterialDispose(_) => "material-dispose",
         EngineCmd::CmdMaterialDefinitionUpsert(_) => "material-definition-upsert",
@@ -191,9 +197,9 @@ fn command_has_pending_dependencies(engine: &EngineState, cmd: &EngineCmd) -> bo
             };
             !has_realm || !has_model || !has_buffer || !has_render
         }
-        EngineCmd::CmdCameraUpsert(args) => match args {
-            CmdCameraUpsertArgs::Create(_) => false,
-            CmdCameraUpsertArgs::Update(update) => {
+        EngineCmd::CmdCamera3dUpsert(args) => match args {
+            CmdCamera3dUpsertArgs::Create(_) => false,
+            CmdCamera3dUpsertArgs::Update(update) => {
                 let realm_id = crate::core::realm::RealmId(update.realm_id);
                 engine
                     .universal_state
@@ -205,9 +211,23 @@ fn command_has_pending_dependencies(engine: &EngineState, cmd: &EngineCmd) -> bo
                     .is_none()
             }
         },
-        EngineCmd::CmdModelUpsert(args) => match args {
-            CmdModelUpsertArgs::Create(_) => false,
-            CmdModelUpsertArgs::Update(update) => {
+        EngineCmd::CmdCamera2dUpsert(args) => match args {
+            CmdCamera2dUpsertArgs::Create(_) => false,
+            CmdCamera2dUpsertArgs::Update(update) => {
+                let realm_id = crate::core::realm::RealmId(update.realm_id);
+                engine
+                    .universal_state
+                    .scene
+                    .realm2d
+                    .entities
+                    .get(&realm_id)
+                    .and_then(|entities| entities.cameras.get(&update.camera_id))
+                    .is_none()
+            }
+        },
+        EngineCmd::CmdModel3dUpsert(args) => match args {
+            CmdModel3dUpsertArgs::Create(_) => false,
+            CmdModel3dUpsertArgs::Update(update) => {
                 let realm_id = crate::core::realm::RealmId(update.realm_id);
                 engine
                     .universal_state
@@ -219,9 +239,37 @@ fn command_has_pending_dependencies(engine: &EngineState, cmd: &EngineCmd) -> bo
                     .is_none()
             }
         },
-        EngineCmd::CmdLightUpsert(args) => match args {
-            CmdLightUpsertArgs::Create(_) => false,
-            CmdLightUpsertArgs::Update(update) => {
+        EngineCmd::CmdSprite2dUpsert(args) => match args {
+            CmdSprite2dUpsertArgs::Create(_) => false,
+            CmdSprite2dUpsertArgs::Update(update) => {
+                let realm_id = crate::core::realm::RealmId(update.realm_id);
+                engine
+                    .universal_state
+                    .scene
+                    .realm2d
+                    .entities
+                    .get(&realm_id)
+                    .and_then(|entities| entities.sprites.get(&update.sprite_id))
+                    .is_none()
+            }
+        },
+        EngineCmd::CmdShape2dUpsert(args) => match args {
+            CmdShape2dUpsertArgs::Create(_) => false,
+            CmdShape2dUpsertArgs::Update(update) => {
+                let realm_id = crate::core::realm::RealmId(update.realm_id);
+                engine
+                    .universal_state
+                    .scene
+                    .realm2d
+                    .entities
+                    .get(&realm_id)
+                    .and_then(|entities| entities.shapes.get(&update.shape_id))
+                    .is_none()
+            }
+        },
+        EngineCmd::CmdLight3dUpsert(args) => match args {
+            CmdLight3dUpsertArgs::Create(_) => false,
+            CmdLight3dUpsertArgs::Update(update) => {
                 let realm_id = crate::core::realm::RealmId(update.realm_id);
                 engine
                     .universal_state

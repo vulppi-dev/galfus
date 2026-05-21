@@ -8,6 +8,7 @@ mod target_graph;
 pub use galfus_types::{ConnectorId, PresentId, RealmId, RealmKind, SurfaceId};
 pub use realm_graph::{RealmGraphEdge, RealmGraphPlan, RealmGraphPlanner};
 pub use render_passes::{
+    RENDER_PASS_2D_BATCH, RENDER_PASS_2D_COMPOSE, RENDER_PASS_2D_DRAW, RENDER_PASS_2D_PREPARE,
     RENDER_PASS_BLOOM, RENDER_PASS_COMPOSE, RENDER_PASS_FORWARD, RENDER_PASS_LIGHT_CULL,
     RENDER_PASS_OUTLINE, RENDER_PASS_POST, RENDER_PASS_SHADOW, RENDER_PASS_SKYBOX,
     RENDER_PASS_SSAO, RENDER_PASS_SSAO_BLUR, RENDER_PASS_UI,

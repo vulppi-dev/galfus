@@ -15,6 +15,7 @@ pub fn detach_realm_runtime(
         universal_state.interaction.ui.remove_realm(realm_id);
     }
     universal_state.scene.realm3d.entities.remove(&realm_id);
+    universal_state.scene.realm2d.entities.remove(&realm_id);
     universal_state
         .targets
         .host_realm_index
@@ -156,11 +157,18 @@ pub fn init_realm_runtime(
 ) {
     if kind == RealmKind::TwoD {
         universal_state.interaction.ui.ensure_realm(realm_id);
+        universal_state
+            .scene
+            .realm2d
+            .entities
+            .entry(realm_id)
+            .or_default();
+    } else {
+        universal_state
+            .scene
+            .realm3d
+            .entities
+            .entry(realm_id)
+            .or_default();
     }
-    universal_state
-        .scene
-        .realm3d
-        .entities
-        .entry(realm_id)
-        .or_default();
 }

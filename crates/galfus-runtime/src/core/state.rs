@@ -173,25 +173,9 @@ impl EngineState {
                 definition_id: crate::core::resources::MATERIAL_DEFINITION_STANDARD_ID,
                 slug: crate::core::resources::MATERIAL_DEFINITION_STANDARD_SLUG.to_string(),
                 label: Some("builtin-standard".to_string()),
-                preset: crate::core::resources::ShaderMaterialPreset::Standard,
-                shader_type: Some(crate::core::resources::MaterialShaderType::Model),
-                shader_source: r#"
-fn vertex(input: VertexInput) -> VertexOutput {
-    var out: VertexOutput;
-    out.world_position = input.position;
-    out.world_normal = input.normal;
-    out.uv = input.uv;
-    out.clip_position = vec4<f32>(0.0);
-    return out;
-}
-fn fragment(input: FragmentInput) -> FragmentOutput {
-    var out: FragmentOutput;
-    out.color = vec4<f32>(1.0, 0.7, 0.6, 1.0);
-    out.emissive = vec4<f32>(0.0);
-    return out;
-}
-                "#
-                .to_string(),
+                preset: Some(crate::core::resources::ShaderMaterialPreset::Standard),
+                shader_type: None,
+                shader_source: None,
                 shader_params_schema: None,
                 capabilities: None,
             },
@@ -202,25 +186,9 @@ fn fragment(input: FragmentInput) -> FragmentOutput {
                 definition_id: crate::core::resources::MATERIAL_DEFINITION_PBR_ID,
                 slug: crate::core::resources::MATERIAL_DEFINITION_PBR_SLUG.to_string(),
                 label: Some("builtin-pbr".to_string()),
-                preset: crate::core::resources::ShaderMaterialPreset::Pbr,
-                shader_type: Some(crate::core::resources::MaterialShaderType::Model),
-                shader_source: r#"
-fn vertex(input: VertexInput) -> VertexOutput {
-    var out: VertexOutput;
-    out.world_position = input.position;
-    out.world_normal = input.normal;
-    out.uv = input.uv;
-    out.clip_position = vec4<f32>(0.0);
-    return out;
-}
-fn fragment(input: FragmentInput) -> FragmentOutput {
-    var out: FragmentOutput;
-    out.color = vec4<f32>(0.6, 0.9, 0.65, 1.0);
-    out.emissive = vec4<f32>(0.0);
-    return out;
-}
-                "#
-                .to_string(),
+                preset: Some(crate::core::resources::ShaderMaterialPreset::Pbr),
+                shader_type: None,
+                shader_source: None,
                 shader_params_schema: None,
                 capabilities: None,
             },

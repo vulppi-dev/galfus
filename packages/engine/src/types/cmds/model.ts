@@ -38,7 +38,7 @@ export interface CmdResultModelUpsert {
 }
 
 /** Upsert payload accepted by the core (`create` or `update`). */
-export type CmdModelUpsertArgs = CmdModelCreateArgs | CmdModelUpdateArgs;
+export type CmdModel3dUpsertArgs = CmdModelCreateArgs | CmdModelUpdateArgs;
 
 /** Backward-compatible aliases. */
 export type CmdResultModelCreate = CmdResultModelUpsert;
@@ -60,7 +60,7 @@ export interface CmdResultPoseUpdate {
 }
 
 /** Command payload for disposing a model. */
-export interface CmdModelDisposeArgs {
+export interface CmdModel3dDisposeArgs {
   realmId: number;
   modelId: number;
 }

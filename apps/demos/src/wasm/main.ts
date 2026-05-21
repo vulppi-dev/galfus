@@ -1,4 +1,5 @@
 import { Mount, World3D, createWindow, initEngine, tick } from '@galfus/engine';
+import type { World3DId } from '@galfus/engine';
 import { quat } from '@galfus/engine/math';
 import { initWasmTransport, transportWasm } from '@galfus/transport-browser';
 
@@ -21,7 +22,7 @@ function getDemoId(): string {
   return '001';
 }
 
-function setupCommonWindow(): { worldId: number } {
+function setupCommonWindow(): { worldId: World3DId } {
   const { windowId } = createWindow({
     title: 'Galfus Demo 001 - FrameGraph',
     size: [1280, 720],
@@ -36,7 +37,7 @@ function setupCommonWindow(): { worldId: number } {
   return { worldId };
 }
 
-function setupDemo001(worldId: number): DemoUpdate {
+function setupDemo001(worldId: World3DId): DemoUpdate {
   World3D.configure3DEnvironment(worldId, {
     clearColor: [0, 0, 0, 1],
     post: {

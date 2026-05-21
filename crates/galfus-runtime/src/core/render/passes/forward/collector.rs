@@ -4,6 +4,14 @@ use crate::core::resources::{
     CameraRecord, MATERIAL_FALLBACK_ID, PolygonMode, PrimitiveTopology, RenderSide, SurfaceType,
 };
 
+fn material_allows_3d(record: &crate::core::resources::ShaderMaterialRecord) -> bool {
+    matches!(
+        record.realm_kind,
+        crate::core::resources::MaterialRealmKind::ThreeD
+            | crate::core::resources::MaterialRealmKind::Both
+    )
+}
+
 pub(crate) fn collect_objects(
     scene: &crate::core::render::state::RenderScene,
     collector: &mut crate::core::render::state::DrawCollector,
@@ -110,19 +118,46 @@ pub(crate) fn collect_objects(
             }
         };
 
-        let fallback_needed = materials
-            .get(&material_id)
-            .map(|record| record.compiled_shader_source.is_none() || record.compile_error.is_some())
+        let material_debug = materials.get(&material_id).map(|record| {
+            (
+                material_allows_3d(record),
+                record.compiled_shader_source.is_some(),
+                record.compile_error.clone(),
+                record.realm_kind,
+                record.base_preset,
+            )
+        });
+        let fallback_needed = material_debug
+            .as_ref()
+            .map(|(allows_3d, has_compiled, compile_error, _, _)| {
+                !*allows_3d || !*has_compiled || compile_error.is_some()
+            })
             .unwrap_or(true);
         let material_id = if fallback_needed {
             if model_record.material_id.is_some() {
+                let reason = if let Some((
+                    allows_3d,
+                    has_compiled,
+                    compile_error,
+                    realm_kind,
+                    base_preset,
+                )) = material_debug.as_ref()
+                {
+                    format!(
+                        "allows_3d={} has_compiled={} compile_error={:?} realm_kind={:?} base_preset={:?}",
+                        allows_3d, has_compiled, compile_error, realm_kind, base_preset
+                    )
+                } else {
+                    "material_missing".to_string()
+                };
                 galfus_log::galfus_log_warn!(
                     log_events,
                     "material.draw.fallback.standard",
-                    "model={} material={} replaced_by_fallback={}",
+                    "model={} material={} replaced_by_fallback={} reason={}",
                     model_id,
                     model_record.material_id.unwrap_or(MATERIAL_FALLBACK_ID),
-                    MATERIAL_FALLBACK_ID
+                    MATERIAL_FALLBACK_ID,
+                    reason
                 );
             }
             used_invalid_material_fallback += 1;
@@ -346,5 +381,12 @@ fn sort_collector(collector: &mut crate::core::render::state::DrawCollector) {
         a.depth
             .partial_cmp(&b.depth)
             .unwrap_or(std::cmp::Ordering::Equal)
+            .then_with(|| (a.topology as u32).cmp(&(b.topology as u32)))
+            .then_with(|| (a.polygon_mode as u32).cmp(&(b.polygon_mode as u32)))
+            .then_with(|| (a.render_side as u32).cmp(&(b.render_side as u32)))
+            .then_with(|| a.compiled_shader_hash.cmp(&b.compiled_shader_hash))
+            .then_with(|| a.material_id.cmp(&b.material_id))
+            .then_with(|| a.geometry_id.cmp(&b.geometry_id))
+            .then_with(|| a.model_id.cmp(&b.model_id))
     });
 }

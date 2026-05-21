@@ -51,14 +51,14 @@ export interface CmdResultCameraUpsert {
 }
 
 /** Upsert payload accepted by the core (`create` or `update`). */
-export type CmdCameraUpsertArgs = CmdCameraCreateArgs | CmdCameraUpdateArgs;
+export type CmdCamera3dUpsertArgs = CmdCameraCreateArgs | CmdCameraUpdateArgs;
 
 /** Backward-compatible aliases. */
 export type CmdResultCameraCreate = CmdResultCameraUpsert;
 export type CmdResultCameraUpdate = CmdResultCameraUpsert;
 
 /** Command payload for disposing a camera. */
-export interface CmdCameraDisposeArgs {
+export interface CmdCamera3dDisposeArgs {
   realmId: number;
   cameraId: number;
 }

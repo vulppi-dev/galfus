@@ -16,21 +16,21 @@ pub use crate::core::window as win;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(untagged)]
-pub enum CmdCameraUpsertArgs {
+pub enum CmdCamera3dUpsertArgs {
     Create(res::CmdCameraCreateArgs),
     Update(res::CmdCameraUpdateArgs),
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(untagged)]
-pub enum CmdModelUpsertArgs {
+pub enum CmdModel3dUpsertArgs {
     Create(res::CmdModelCreateArgs),
     Update(res::CmdModelUpdateArgs),
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(untagged)]
-pub enum CmdLightUpsertArgs {
+pub enum CmdLight3dUpsertArgs {
     Create(res::CmdLightCreateArgs),
     Update(res::CmdLightUpdateArgs),
 }
@@ -91,6 +91,27 @@ pub enum CmdTextureUpsertArgs {
     SolidColor(res::CmdTextureCreateSolidColorArgs),
 }
 
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(untagged)]
+pub enum CmdCamera2dUpsertArgs {
+    Create(res::CmdCamera2dCreateArgs),
+    Update(res::CmdCamera2dUpdateArgs),
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(untagged)]
+pub enum CmdSprite2dUpsertArgs {
+    Create(res::CmdSprite2dCreateArgs),
+    Update(res::CmdSprite2dUpdateArgs),
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(untagged)]
+pub enum CmdShape2dUpsertArgs {
+    Create(res::CmdShape2dCreateArgs),
+    Update(res::CmdShape2dUpdateArgs),
+}
+
 pub type CmdResultSimple = galfus_protocol::CmdResultSimple;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -107,13 +128,19 @@ pub enum EngineCmd {
     CmdWindowCursor(win::CmdWindowCursorArgs),
     CmdWindowState(win::CmdWindowStateArgs),
     CmdUploadBufferDiscardAll(buf::CmdUploadBufferDiscardAllArgs),
-    CmdCameraUpsert(CmdCameraUpsertArgs),
-    CmdCameraDispose(res::CmdCameraDisposeArgs),
-    CmdModelUpsert(CmdModelUpsertArgs),
+    CmdCamera3dUpsert(CmdCamera3dUpsertArgs),
+    CmdCamera2dUpsert(CmdCamera2dUpsertArgs),
+    CmdCamera3dDispose(res::CmdCamera3dDisposeArgs),
+    CmdCamera2dDispose(res::CmdCamera2dDisposeArgs),
+    CmdModel3dUpsert(CmdModel3dUpsertArgs),
+    CmdSprite2dUpsert(CmdSprite2dUpsertArgs),
+    CmdShape2dUpsert(CmdShape2dUpsertArgs),
     CmdPoseUpdate(res::CmdPoseUpdateArgs),
-    CmdModelDispose(res::CmdModelDisposeArgs),
-    CmdLightUpsert(CmdLightUpsertArgs),
-    CmdLightDispose(res::CmdLightDisposeArgs),
+    CmdModel3dDispose(res::CmdModel3dDisposeArgs),
+    CmdSprite2dDispose(res::CmdSprite2dDisposeArgs),
+    CmdShape2dDispose(res::CmdShape2dDisposeArgs),
+    CmdLight3dUpsert(CmdLight3dUpsertArgs),
+    CmdLight3dDispose(res::CmdLight3dDisposeArgs),
     CmdMaterialUpsert(CmdMaterialUpsertArgs),
     CmdMaterialDispose(res::CmdMaterialDisposeArgs),
     CmdMaterialDefinitionUpsert(CmdMaterialDefinitionUpsertArgs),
@@ -122,8 +149,8 @@ pub enum EngineCmd {
     CmdMaterialInstanceDispose(res::CmdMaterialInstanceDisposeArgs),
     CmdMaterialDefinitionGet(res::CmdResourceGetArgs),
     CmdMaterialDefinitionList(res::CmdResourceListArgs),
-    CmdMaterialInstanceGet(res::CmdResourceGetArgs),
-    CmdMaterialInstanceList(res::CmdResourceListArgs),
+    CmdMaterialInstanceGet(res::CmdMaterialInstanceGetArgs),
+    CmdMaterialInstanceList(res::CmdMaterialInstanceListArgs),
     CmdTextureCreateFromBuffer(res::CmdTextureCreateFromBufferArgs),
     CmdTextureCreateSolidColor(res::CmdTextureCreateSolidColorArgs),
     CmdTextureUpsert(CmdTextureUpsertArgs),
@@ -171,7 +198,7 @@ pub enum EngineCmd {
     CmdTargetLayerList(target::CmdTargetLayerListArgs),
     CmdModelGet(res::CmdResourceGetArgs),
     CmdModelList(res::CmdModelListArgs),
-    CmdMaterialGet(res::CmdResourceGetArgs),
+    CmdMaterialGet(res::CmdMaterialGetArgs),
     CmdMaterialList(res::CmdMaterialListArgs),
     CmdTextureList(res::CmdTextureListArgs),
     CmdGeometryList(res::CmdGeometryListArgs),
@@ -211,13 +238,19 @@ pub enum CommandResponse {
     WindowCursor(win::CmdResultWindowCursor),
     WindowState(win::CmdResultWindowState),
     UploadBufferDiscardAll(buf::CmdResultUploadBufferDiscardAll),
-    CameraUpsert(CmdResultSimple),
-    CameraDispose(res::CmdResultCameraDispose),
-    ModelUpsert(CmdResultSimple),
+    Camera3dUpsert(CmdResultSimple),
+    Camera2dUpsert(res::CmdResultTwoDUpsert),
+    Camera3dDispose(res::CmdResultCameraDispose),
+    Camera2dDispose(res::CmdResultTwoDDispose),
+    Model3dUpsert(CmdResultSimple),
+    Sprite2dUpsert(res::CmdResultTwoDUpsert),
+    Shape2dUpsert(res::CmdResultTwoDUpsert),
     PoseUpdate(res::CmdResultPoseUpdate),
-    ModelDispose(res::CmdResultModelDispose),
-    LightUpsert(CmdResultSimple),
-    LightDispose(res::CmdResultLightDispose),
+    Model3dDispose(res::CmdResultModelDispose),
+    Sprite2dDispose(res::CmdResultTwoDDispose),
+    Shape2dDispose(res::CmdResultTwoDDispose),
+    Light3dUpsert(CmdResultSimple),
+    Light3dDispose(res::CmdResultLightDispose),
     MaterialUpsert(CmdResultSimple),
     MaterialDispose(res::CmdResultMaterialDispose),
     MaterialDefinitionUpsert(res::CmdResultMaterialDefinition),

@@ -117,28 +117,28 @@ pub(super) fn dispatch_command(
                 response: CommandResponse::UploadBufferDiscardAll(result),
             });
         }
-        EngineCmd::CmdCameraUpsert(args) => {
+        EngineCmd::CmdCamera3dUpsert(args) => {
             let (_id, _realm_id, _action) = match &args {
-                CmdCameraUpsertArgs::Create(create_args) => (
+                CmdCamera3dUpsertArgs::Create(create_args) => (
                     create_args.camera_id as u64,
                     Some(create_args.realm_id),
                     "created",
                 ),
-                CmdCameraUpsertArgs::Update(update_args) => (
+                CmdCamera3dUpsertArgs::Update(update_args) => (
                     update_args.camera_id as u64,
                     Some(update_args.realm_id),
                     "updated",
                 ),
             };
             let result = match args {
-                CmdCameraUpsertArgs::Create(create_args) => {
+                CmdCamera3dUpsertArgs::Create(create_args) => {
                     let create_result = res::engine_cmd_camera_create(engine, &create_args);
                     CmdResultSimple {
                         success: create_result.success,
                         message: create_result.message,
                     }
                 }
-                CmdCameraUpsertArgs::Update(update_args) => {
+                CmdCamera3dUpsertArgs::Update(update_args) => {
                     let update_result = res::engine_cmd_camera_update(engine, &update_args);
                     CmdResultSimple {
                         success: update_result.success,
@@ -149,29 +149,52 @@ pub(super) fn dispatch_command(
             let success = result.success;
             engine.runtime.push_response(CommandResponseEnvelope {
                 id: pack.id,
-                response: CommandResponse::CameraUpsert(result),
+                response: CommandResponse::Camera3dUpsert(result),
             });
             if success {
                 emit_resource_mutation(engine, "camera", _id, _action, _realm_id, None);
             }
         }
-        EngineCmd::CmdCameraDispose(args) => {
+        EngineCmd::CmdCamera2dUpsert(args) => {
+            let result = match args {
+                CmdCamera2dUpsertArgs::Create(create_args) => res::engine_cmd_camera2d_upsert(
+                    engine,
+                    res::CmdCamera2dUpsertArgs::Create(create_args),
+                ),
+                CmdCamera2dUpsertArgs::Update(update_args) => res::engine_cmd_camera2d_upsert(
+                    engine,
+                    res::CmdCamera2dUpsertArgs::Update(update_args),
+                ),
+            };
+            engine.runtime.push_response(CommandResponseEnvelope {
+                id: pack.id,
+                response: CommandResponse::Camera2dUpsert(result),
+            });
+        }
+        EngineCmd::CmdCamera3dDispose(args) => {
             let result = res::engine_cmd_camera_dispose(engine, &args);
             engine.runtime.push_response(CommandResponseEnvelope {
                 id: pack.id,
-                response: CommandResponse::CameraDispose(result),
+                response: CommandResponse::Camera3dDispose(result),
             });
         }
-        EngineCmd::CmdModelUpsert(args) => {
+        EngineCmd::CmdCamera2dDispose(args) => {
+            let result = res::engine_cmd_camera2d_dispose(engine, &args);
+            engine.runtime.push_response(CommandResponseEnvelope {
+                id: pack.id,
+                response: CommandResponse::Camera2dDispose(result),
+            });
+        }
+        EngineCmd::CmdModel3dUpsert(args) => {
             let result = match args {
-                CmdModelUpsertArgs::Create(create_args) => {
+                CmdModel3dUpsertArgs::Create(create_args) => {
                     let create_result = res::engine_cmd_model_create(engine, &create_args);
                     CmdResultSimple {
                         success: create_result.success,
                         message: create_result.message,
                     }
                 }
-                CmdModelUpsertArgs::Update(update_args) => {
+                CmdModel3dUpsertArgs::Update(update_args) => {
                     let update_result = res::engine_cmd_model_update(engine, &update_args);
                     CmdResultSimple {
                         success: update_result.success,
@@ -181,7 +204,39 @@ pub(super) fn dispatch_command(
             };
             engine.runtime.push_response(CommandResponseEnvelope {
                 id: pack.id,
-                response: CommandResponse::ModelUpsert(result),
+                response: CommandResponse::Model3dUpsert(result),
+            });
+        }
+        EngineCmd::CmdSprite2dUpsert(args) => {
+            let result = match args {
+                CmdSprite2dUpsertArgs::Create(create_args) => res::engine_cmd_sprite2d_upsert(
+                    engine,
+                    res::CmdSprite2dUpsertArgs::Create(create_args),
+                ),
+                CmdSprite2dUpsertArgs::Update(update_args) => res::engine_cmd_sprite2d_upsert(
+                    engine,
+                    res::CmdSprite2dUpsertArgs::Update(update_args),
+                ),
+            };
+            engine.runtime.push_response(CommandResponseEnvelope {
+                id: pack.id,
+                response: CommandResponse::Sprite2dUpsert(result),
+            });
+        }
+        EngineCmd::CmdShape2dUpsert(args) => {
+            let result = match args {
+                CmdShape2dUpsertArgs::Create(create_args) => res::engine_cmd_shape2d_upsert(
+                    engine,
+                    res::CmdShape2dUpsertArgs::Create(create_args),
+                ),
+                CmdShape2dUpsertArgs::Update(update_args) => res::engine_cmd_shape2d_upsert(
+                    engine,
+                    res::CmdShape2dUpsertArgs::Update(update_args),
+                ),
+            };
+            engine.runtime.push_response(CommandResponseEnvelope {
+                id: pack.id,
+                response: CommandResponse::Shape2dUpsert(result),
             });
         }
         EngineCmd::CmdPoseUpdate(args) => {
@@ -191,23 +246,37 @@ pub(super) fn dispatch_command(
                 response: CommandResponse::PoseUpdate(result),
             });
         }
-        EngineCmd::CmdModelDispose(args) => {
+        EngineCmd::CmdModel3dDispose(args) => {
             let result = res::engine_cmd_model_dispose(engine, &args);
             engine.runtime.push_response(CommandResponseEnvelope {
                 id: pack.id,
-                response: CommandResponse::ModelDispose(result),
+                response: CommandResponse::Model3dDispose(result),
             });
         }
-        EngineCmd::CmdLightUpsert(args) => {
+        EngineCmd::CmdSprite2dDispose(args) => {
+            let result = res::engine_cmd_sprite2d_dispose(engine, &args);
+            engine.runtime.push_response(CommandResponseEnvelope {
+                id: pack.id,
+                response: CommandResponse::Sprite2dDispose(result),
+            });
+        }
+        EngineCmd::CmdShape2dDispose(args) => {
+            let result = res::engine_cmd_shape2d_dispose(engine, &args);
+            engine.runtime.push_response(CommandResponseEnvelope {
+                id: pack.id,
+                response: CommandResponse::Shape2dDispose(result),
+            });
+        }
+        EngineCmd::CmdLight3dUpsert(args) => {
             let result = match args {
-                CmdLightUpsertArgs::Create(create_args) => {
+                CmdLight3dUpsertArgs::Create(create_args) => {
                     let create_result = res::engine_cmd_light_create(engine, &create_args);
                     CmdResultSimple {
                         success: create_result.success,
                         message: create_result.message,
                     }
                 }
-                CmdLightUpsertArgs::Update(update_args) => {
+                CmdLight3dUpsertArgs::Update(update_args) => {
                     let update_result = res::engine_cmd_light_update(engine, &update_args);
                     CmdResultSimple {
                         success: update_result.success,
@@ -217,14 +286,14 @@ pub(super) fn dispatch_command(
             };
             engine.runtime.push_response(CommandResponseEnvelope {
                 id: pack.id,
-                response: CommandResponse::LightUpsert(result),
+                response: CommandResponse::Light3dUpsert(result),
             });
         }
-        EngineCmd::CmdLightDispose(args) => {
+        EngineCmd::CmdLight3dDispose(args) => {
             let result = res::engine_cmd_light_dispose(engine, &args);
             engine.runtime.push_response(CommandResponseEnvelope {
                 id: pack.id,
-                response: CommandResponse::LightDispose(result),
+                response: CommandResponse::Light3dDispose(result),
             });
         }
         EngineCmd::CmdMaterialUpsert(args) => {

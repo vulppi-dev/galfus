@@ -2,6 +2,12 @@ import type { ShadowConfig } from '../../../types/cmds/shadow';
 import type { EnvironmentConfig, CmdEnvironmentDisposeArgs } from '../../../types/cmds/environment';
 import type { CmdResourceGetArgs, CmdResourceListArgs } from '../../../types/cmds/resources';
 import type {
+  MaterialRealmKind,
+  CmdMaterialGetArgs,
+  CmdMaterialInstanceGetArgs,
+  CmdMaterialInstanceListArgs
+} from '../../../types/cmds/material';
+import type {
   CmdRealmRenderGraphBindArgs,
   CmdRenderGraphDisposeArgs,
   CmdRenderGraphListArgs,
@@ -48,9 +54,10 @@ export function listModels(worldId: number): number {
 }
 
 /** Requests material list for a world window context. */
-export function listMaterials(worldId: number): number {
+export function listMaterials(worldId: number, realmKind?: MaterialRealmKind): number {
   return enqueueCommand(worldId, 'cmd-material-list', {
-    windowId: resolveWorldWindowId(worldId)
+    windowId: resolveWorldWindowId(worldId),
+    realmKind
   });
 }
 
@@ -86,7 +93,7 @@ export function getModel(worldId: number, args: CmdResourceGetArgs): number {
   return enqueueCommand(worldId, 'cmd-model-get', args);
 }
 
-export function getMaterial(worldId: number, args: CmdResourceGetArgs): number {
+export function getMaterial(worldId: number, args: CmdMaterialGetArgs): number {
   return enqueueCommand(worldId, 'cmd-material-get', args);
 }
 
@@ -122,11 +129,11 @@ export function listMaterialDefinitions(worldId: number, args: CmdResourceListAr
   return enqueueCommand(worldId, 'cmd-material-definition-list', args);
 }
 
-export function getMaterialInstance(worldId: number, args: CmdResourceGetArgs): number {
+export function getMaterialInstance(worldId: number, args: CmdMaterialInstanceGetArgs): number {
   return enqueueCommand(worldId, 'cmd-material-instance-get', args);
 }
 
-export function listMaterialInstances(worldId: number, args: CmdResourceListArgs = {}): number {
+export function listMaterialInstances(worldId: number, args: CmdMaterialInstanceListArgs = {}): number {
   return enqueueCommand(worldId, 'cmd-material-instance-list', args);
 }
 

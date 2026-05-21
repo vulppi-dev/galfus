@@ -63,11 +63,14 @@ export type MaterialOptions =
   | { type: 'pbr'; content: PbrOptions };
 
 /** Command payload for creating a material. */
+export type MaterialRealmKind = 'two-d' | 'three-d' | 'both';
+
 export interface CmdMaterialCreateArgs {
   materialId: number;
   label?: string;
   slug: string;
   kind: 'shader';
+  realmKind?: MaterialRealmKind;
   options?: MaterialOptions;
 }
 
@@ -77,6 +80,7 @@ export interface CmdMaterialUpdateArgs {
   label?: string;
   slug?: string;
   kind?: 'shader';
+  realmKind?: MaterialRealmKind;
   options?: MaterialOptions;
 }
 
@@ -107,6 +111,7 @@ export interface CmdResultMaterialDispose {
 /** Command payload for listing materials. */
 export interface CmdMaterialListArgs {
   windowId: number;
+  realmKind?: MaterialRealmKind;
 }
 
 /** Result payload for material list. */
@@ -180,13 +185,19 @@ export interface CmdResultMaterialInstance {
   message: string;
 }
 
-export type CmdMaterialGetArgs = CmdResourceGetArgs;
+export interface CmdMaterialGetArgs extends CmdResourceGetArgs {
+  realmKind?: MaterialRealmKind;
+}
 export type CmdResultMaterialGet = CmdResultResourceGet;
 export type CmdMaterialDefinitionGetArgs = CmdResourceGetArgs;
 export type CmdResultMaterialDefinitionGet = CmdResultResourceGet;
 export type CmdMaterialDefinitionListArgs = CmdResourceListArgs;
 export type CmdResultMaterialDefinitionList = CmdResultResourceList;
-export type CmdMaterialInstanceGetArgs = CmdResourceGetArgs;
+export interface CmdMaterialInstanceGetArgs extends CmdResourceGetArgs {
+  realmKind?: MaterialRealmKind;
+}
 export type CmdResultMaterialInstanceGet = CmdResultResourceGet;
-export type CmdMaterialInstanceListArgs = CmdResourceListArgs;
+export interface CmdMaterialInstanceListArgs extends CmdResourceListArgs {
+  realmKind?: MaterialRealmKind;
+}
 export type CmdResultMaterialInstanceList = CmdResultResourceList;

@@ -3,7 +3,8 @@ use super::utils::{pack_pbr_material, pack_standard_material};
 use crate::core::resources::{
     MATERIAL_DEFINITION_PBR_ID, MATERIAL_DEFINITION_PBR_SLUG, MATERIAL_DEFINITION_STANDARD_ID,
     MATERIAL_DEFINITION_STANDARD_SLUG, MATERIAL_FALLBACK_ID, MaterialDefinitionRecord,
-    MaterialInstanceRecord, MaterialShaderType, ShaderMaterialPreset, ShaderMaterialRecord,
+    MaterialInstanceRecord, MaterialRealmKind, MaterialShaderType, ShaderMaterialPreset,
+    ShaderMaterialRecord,
 };
 use crate::core::state::EngineState;
 use std::collections::HashMap;
@@ -352,22 +353,48 @@ pub fn engine_cmd_material_definition_create(
         };
     }
 
-    let shader_type = args.shader_type.unwrap_or(MaterialShaderType::Model);
+    let create_mode = match (&args.preset, &args.shader_type, &args.shader_source) {
+        (Some(preset), None, None) => Ok((*preset, MaterialShaderType::Model, builtin_shader_source(*preset).to_string())),
+        (None, Some(shader_type), Some(shader_source)) => {
+            if shader_source.trim().is_empty() {
+                Err("shaderSource must not be empty when creating with shaderType".to_string())
+            } else {
+                Ok((
+                    ShaderMaterialPreset::Standard,
+                    *shader_type,
+                    shader_source.clone(),
+                ))
+            }
+        }
+        _ => Err(
+            "Material definition create requires either preset, or shaderType + shaderSource"
+                .to_string(),
+        ),
+    };
+    let (preset, shader_type, shader_source) = match create_mode {
+        Ok(values) => values,
+        Err(message) => {
+            return CmdResultMaterialDefinition {
+                success: false,
+                message,
+            };
+        }
+    };
     galfus_log::galfus_log_debug!(
         engine,
         "material.definition.compile.start",
         "definition={} slug={} preset={:?} shader_type={:?}",
         args.definition_id,
         args.slug,
-        args.preset,
+        preset,
         shader_type
     );
 
     let compile_result = compile_material_program(
         engine,
-        args.preset,
+        preset,
         shader_type,
-        args.shader_source.clone(),
+        shader_source.clone(),
         args.shader_params_schema.clone().unwrap_or_default(),
     );
 
@@ -406,9 +433,9 @@ pub fn engine_cmd_material_definition_create(
             definition_id: args.definition_id,
             slug: args.slug.clone(),
             label: args.label.clone(),
-            base_preset: args.preset,
+            base_preset: preset,
             shader_type,
-            shader_source: Some(args.shader_source.clone()),
+            shader_source: Some(shader_source),
             shader_params_schema: args.shader_params_schema.clone().unwrap_or_default(),
             shader_capabilities: args
                 .capabilities
@@ -457,9 +484,72 @@ pub fn engine_cmd_material_definition_update(
         }
     }
 
-    let preset = args.preset.unwrap_or(current.base_preset);
-    let shader_type = args.shader_type.unwrap_or(current.shader_type);
-    let shader_source = args.shader_source.clone();
+    let compile_requested = args.preset.is_some()
+        || args.shader_type.is_some()
+        || args.shader_source.is_some()
+        || args.shader_params_schema.is_some();
+
+    let shader_capabilities = args
+        .capabilities
+        .as_ref()
+        .map(|value| value.semantics.clone())
+        .unwrap_or_else(|| current.shader_capabilities.clone());
+
+    if !compile_requested {
+        if let Some(record) = engine
+            .universal_state
+            .scene
+            .material_definitions
+            .get_mut(&args.definition_id)
+        {
+            if let Some(label) = &args.label {
+                record.label = Some(label.clone());
+            }
+            record.slug = slug;
+            record.shader_capabilities = shader_capabilities;
+        }
+        ensure_fallback_material_instance(engine);
+        return CmdResultMaterialDefinition {
+            success: true,
+            message: "Material definition updated successfully".to_string(),
+        };
+    }
+
+    let update_mode = match (&args.preset, &args.shader_type, &args.shader_source) {
+        (Some(preset), None, None) => Ok((*preset, MaterialShaderType::Model, builtin_shader_source(*preset).to_string())),
+        (None, Some(shader_type), Some(shader_source)) => {
+            if shader_source.trim().is_empty() {
+                Err("shaderSource must not be empty when updating with shaderType".to_string())
+            } else {
+                Ok((current.base_preset, *shader_type, shader_source.clone()))
+            }
+        }
+        (None, None, Some(shader_source)) => {
+            if shader_source.trim().is_empty() {
+                Err("shaderSource must not be empty when updating shader".to_string())
+            } else {
+                Ok((current.base_preset, current.shader_type, shader_source.clone()))
+            }
+        }
+        (None, Some(shader_type), None) => Ok((
+            current.base_preset,
+            *shader_type,
+            current.shader_source.clone().unwrap_or_default(),
+        )),
+        _ => Err(
+            "Material definition update requires either preset, or shaderType + shaderSource"
+                .to_string(),
+        ),
+    };
+    let (preset, shader_type, shader_source) = match update_mode {
+        Ok(values) => values,
+        Err(message) => {
+            return CmdResultMaterialDefinition {
+                success: false,
+                message,
+            };
+        }
+    };
     let shader_params_schema = args
         .shader_params_schema
         .clone()
@@ -523,11 +613,7 @@ pub fn engine_cmd_material_definition_update(
         record.shader_type = shader_type;
         record.shader_source = Some(shader_source);
         record.shader_params_schema = shader_params_schema;
-        record.shader_capabilities = args
-            .capabilities
-            .as_ref()
-            .map(|value| value.semantics.clone())
-            .unwrap_or_else(|| current.shader_capabilities.clone());
+        record.shader_capabilities = shader_capabilities;
         record.compiled_shader_hash = compiled_hash;
         record.compiled_shader_source = compiled_source;
         record.compile_error = compile_error;
@@ -633,6 +719,7 @@ pub fn engine_cmd_material_instance_create(
         label: args.label.clone(),
         slug: args.slug.clone(),
         kind: MaterialKind::Shader,
+        realm_kind: MaterialRealmKind::Both,
         options: args.options.clone(),
     };
 
@@ -685,6 +772,7 @@ pub fn engine_cmd_material_instance_update(
         label: args.label.clone(),
         slug: args.slug.clone(),
         kind: Some(MaterialKind::Shader),
+        realm_kind: None,
         options: args.options.clone(),
     };
     let result = engine_cmd_material_update(engine, &update_args);
@@ -763,9 +851,16 @@ pub fn engine_cmd_material_create(
     }
 
     let mut record = match definition.base_preset {
-        ShaderMaterialPreset::Standard => ShaderMaterialRecord::new_standard(args.label.clone()),
+        ShaderMaterialPreset::Standard => {
+            if args.realm_kind == MaterialRealmKind::TwoD {
+                ShaderMaterialRecord::new_standard_2d(args.label.clone())
+            } else {
+                ShaderMaterialRecord::new_standard(args.label.clone())
+            }
+        }
         ShaderMaterialPreset::Pbr => ShaderMaterialRecord::new_pbr(args.label.clone()),
     };
+    record.realm_kind = args.realm_kind;
     sync_material_from_definition(&mut record, &definition);
 
     match definition.base_preset {
@@ -878,6 +973,9 @@ pub fn engine_cmd_material_update(
     sync_material_from_definition(record, &definition);
     if let Some(label) = &args.label {
         record.label = Some(label.clone());
+    }
+    if let Some(realm_kind) = args.realm_kind {
+        record.realm_kind = realm_kind;
     }
 
     if let Some(opts) = &args.options {

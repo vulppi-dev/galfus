@@ -13,13 +13,13 @@ pub(super) fn response_is_success(response: &CommandResponse) -> bool {
         CommandResponse::WindowCursor(result) => result.success,
         CommandResponse::WindowState(result) => result.success,
         CommandResponse::UploadBufferDiscardAll(result) => result.success,
-        CommandResponse::CameraUpsert(result) => result.success,
-        CommandResponse::CameraDispose(result) => result.success,
-        CommandResponse::ModelUpsert(result) => result.success,
+        CommandResponse::Camera3dUpsert(result) => result.success,
+        CommandResponse::Camera3dDispose(result) => result.success,
+        CommandResponse::Model3dUpsert(result) => result.success,
         CommandResponse::PoseUpdate(result) => result.success,
-        CommandResponse::ModelDispose(result) => result.success,
-        CommandResponse::LightUpsert(result) => result.success,
-        CommandResponse::LightDispose(result) => result.success,
+        CommandResponse::Model3dDispose(result) => result.success,
+        CommandResponse::Light3dUpsert(result) => result.success,
+        CommandResponse::Light3dDispose(result) => result.success,
         CommandResponse::MaterialUpsert(result) => result.success,
         CommandResponse::MaterialDispose(result) => result.success,
         CommandResponse::MaterialDefinitionUpsert(result) => result.success,
@@ -81,13 +81,13 @@ pub(super) fn response_message(response: &CommandResponse) -> Option<String> {
         CommandResponse::WindowCursor(result) => Some(result.message.clone()),
         CommandResponse::WindowState(result) => Some(result.message.clone()),
         CommandResponse::UploadBufferDiscardAll(result) => Some(result.message.clone()),
-        CommandResponse::CameraUpsert(result) => Some(result.message.clone()),
-        CommandResponse::CameraDispose(result) => Some(result.message.clone()),
-        CommandResponse::ModelUpsert(result) => Some(result.message.clone()),
+        CommandResponse::Camera3dUpsert(result) => Some(result.message.clone()),
+        CommandResponse::Camera3dDispose(result) => Some(result.message.clone()),
+        CommandResponse::Model3dUpsert(result) => Some(result.message.clone()),
         CommandResponse::PoseUpdate(result) => Some(result.message.clone()),
-        CommandResponse::ModelDispose(result) => Some(result.message.clone()),
-        CommandResponse::LightUpsert(result) => Some(result.message.clone()),
-        CommandResponse::LightDispose(result) => Some(result.message.clone()),
+        CommandResponse::Model3dDispose(result) => Some(result.message.clone()),
+        CommandResponse::Light3dUpsert(result) => Some(result.message.clone()),
+        CommandResponse::Light3dDispose(result) => Some(result.message.clone()),
         CommandResponse::MaterialUpsert(result) => Some(result.message.clone()),
         CommandResponse::MaterialDispose(result) => Some(result.message.clone()),
         CommandResponse::MaterialDefinitionUpsert(result) => Some(result.message.clone()),
@@ -174,33 +174,33 @@ pub(super) fn response_with_message(response: CommandResponse, message: String) 
             result.message = message;
             CommandResponse::UploadBufferDiscardAll(result)
         }
-        CommandResponse::CameraUpsert(mut result) => {
+        CommandResponse::Camera3dUpsert(mut result) => {
             result.message = message;
-            CommandResponse::CameraUpsert(result)
+            CommandResponse::Camera3dUpsert(result)
         }
-        CommandResponse::CameraDispose(mut result) => {
+        CommandResponse::Camera3dDispose(mut result) => {
             result.message = message;
-            CommandResponse::CameraDispose(result)
+            CommandResponse::Camera3dDispose(result)
         }
-        CommandResponse::ModelUpsert(mut result) => {
+        CommandResponse::Model3dUpsert(mut result) => {
             result.message = message;
-            CommandResponse::ModelUpsert(result)
+            CommandResponse::Model3dUpsert(result)
         }
         CommandResponse::PoseUpdate(mut result) => {
             result.message = message;
             CommandResponse::PoseUpdate(result)
         }
-        CommandResponse::ModelDispose(mut result) => {
+        CommandResponse::Model3dDispose(mut result) => {
             result.message = message;
-            CommandResponse::ModelDispose(result)
+            CommandResponse::Model3dDispose(result)
         }
-        CommandResponse::LightUpsert(mut result) => {
+        CommandResponse::Light3dUpsert(mut result) => {
             result.message = message;
-            CommandResponse::LightUpsert(result)
+            CommandResponse::Light3dUpsert(result)
         }
-        CommandResponse::LightDispose(mut result) => {
+        CommandResponse::Light3dDispose(mut result) => {
             result.message = message;
-            CommandResponse::LightDispose(result)
+            CommandResponse::Light3dDispose(result)
         }
         CommandResponse::MaterialUpsert(mut result) => {
             result.message = message;

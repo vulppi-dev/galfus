@@ -8,6 +8,7 @@ use std::env;
 pub enum DemoKind {
     FrameGraph001,
     FrameGraph002Persistence,
+    Realm2D003,
 }
 
 impl DemoKind {
@@ -19,6 +20,7 @@ impl DemoKind {
             "2" | "002" | "demo002" | "demo_002" | "framegraph002" | "persistence" => {
                 Some(Self::FrameGraph002Persistence)
             }
+            "3" | "003" | "demo003" | "demo_003" | "realm2d" | "2d" => Some(Self::Realm2D003),
             _ => None,
         }
     }
@@ -26,9 +28,8 @@ impl DemoKind {
     pub fn title(self) -> String {
         match self {
             Self::FrameGraph001 => "Galfus Demo 001 - FrameGraph".to_string(),
-            Self::FrameGraph002Persistence => {
-                "Galfus Demo 002 - Optical Persistence".to_string()
-            }
+            Self::FrameGraph002Persistence => "Galfus Demo 002 - Optical Persistence".to_string(),
+            Self::Realm2D003 => "Galfus Demo 003 - Realm2D".to_string(),
         }
     }
 }

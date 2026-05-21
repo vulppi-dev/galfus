@@ -87,6 +87,8 @@ pub struct CmdMaterialCreateArgs {
     pub slug: String,
     pub kind: MaterialKind,
     #[serde(default)]
+    pub realm_kind: crate::core::resources::MaterialRealmKind,
+    #[serde(default)]
     pub options: Option<MaterialOptions>,
 }
 
@@ -106,6 +108,8 @@ pub struct CmdMaterialUpdateArgs {
     pub label: Option<String>,
     pub slug: Option<String>,
     pub kind: Option<MaterialKind>,
+    #[serde(default)]
+    pub realm_kind: Option<crate::core::resources::MaterialRealmKind>,
     #[serde(default)]
     pub options: Option<MaterialOptions>,
 }
@@ -140,10 +144,12 @@ pub struct CmdMaterialDefinitionCreateArgs {
     pub definition_id: u32,
     pub slug: String,
     pub label: Option<String>,
-    pub preset: crate::core::resources::ShaderMaterialPreset,
+    #[serde(default)]
+    pub preset: Option<crate::core::resources::ShaderMaterialPreset>,
     #[serde(default)]
     pub shader_type: Option<crate::core::resources::MaterialShaderType>,
-    pub shader_source: String,
+    #[serde(default)]
+    pub shader_source: Option<String>,
     #[serde(default)]
     pub shader_params_schema: Option<HashMap<String, String>>,
     #[serde(default)]
@@ -156,10 +162,12 @@ pub struct CmdMaterialDefinitionUpdateArgs {
     pub definition_id: u32,
     pub slug: Option<String>,
     pub label: Option<String>,
+    #[serde(default)]
     pub preset: Option<crate::core::resources::ShaderMaterialPreset>,
     #[serde(default)]
     pub shader_type: Option<crate::core::resources::MaterialShaderType>,
-    pub shader_source: String,
+    #[serde(default)]
+    pub shader_source: Option<String>,
     #[serde(default)]
     pub shader_params_schema: Option<HashMap<String, String>>,
     #[serde(default)]

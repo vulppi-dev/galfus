@@ -10,6 +10,8 @@ import type {
   LightProps,
   MaterialProps,
   ModelProps,
+  Shape2DProps,
+  Sprite2DProps,
   TagProps,
   TextureProps,
   TransformProps
@@ -37,6 +39,16 @@ export type Intent =
       type: 'attach-model';
       entityId: number;
       props: ModelProps;
+    }
+  | {
+      type: 'attach-sprite2d';
+      entityId: number;
+      props: Sprite2DProps;
+    }
+  | {
+      type: 'attach-shape2d';
+      entityId: number;
+      props: Shape2DProps;
     }
   | {
       type: 'attach-light';

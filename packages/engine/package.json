@@ -38,6 +38,11 @@
       "import": "./src/world3d.ts",
       "types": "./src/world3d.ts"
     },
+    "./world2d": {
+      "default": "./src/world2d.ts",
+      "import": "./src/world2d.ts",
+      "types": "./src/world2d.ts"
+    },
     "./ecs": {
       "default": "./src/ecs.ts",
       "import": "./src/ecs.ts",

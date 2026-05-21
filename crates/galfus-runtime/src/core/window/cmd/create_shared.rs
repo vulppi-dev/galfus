@@ -259,6 +259,7 @@ mod tests {
                     label: Some("mat-standard".into()),
                     slug: "standard".into(),
                     kind: MaterialKind::Shader,
+                    realm_kind: crate::core::resources::MaterialRealmKind::ThreeD,
                     options: None,
                 },
             );

@@ -41,6 +41,7 @@ pub enum RenderSide {
 }
 
 pub const MATERIAL_FALLBACK_ID: u32 = 0;
+pub const MATERIAL_STANDARD_2D_ID: u32 = 3;
 pub const MATERIAL_DEFINITION_STANDARD_ID: u32 = 1;
 pub const MATERIAL_DEFINITION_PBR_ID: u32 = 2;
 pub const MATERIAL_DEFINITION_STANDARD_SLUG: &str = "standard";
@@ -75,6 +76,20 @@ pub enum MaterialShaderType {
 impl Default for MaterialShaderType {
     fn default() -> Self {
         Self::Model
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deserialize, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum MaterialRealmKind {
+    TwoD,
+    ThreeD,
+    Both,
+}
+
+impl Default for MaterialRealmKind {
+    fn default() -> Self {
+        Self::Both
     }
 }
 
@@ -251,6 +266,7 @@ pub struct ShaderMaterialRecord {
     pub preset: ShaderMaterialPreset,
     pub base_preset: ShaderMaterialPreset,
     pub shader_type: MaterialShaderType,
+    pub realm_kind: MaterialRealmKind,
     pub shader_source: Option<String>,
     pub shader_params_schema: HashMap<String, String>,
     pub shader_capabilities: Vec<String>,
@@ -308,6 +324,7 @@ impl ShaderMaterialRecord {
             preset: ShaderMaterialPreset::Standard,
             base_preset: ShaderMaterialPreset::Standard,
             shader_type: MaterialShaderType::Model,
+            realm_kind: MaterialRealmKind::ThreeD,
             shader_source,
             shader_params_schema: HashMap::new(),
             shader_capabilities: Vec::new(),
@@ -327,6 +344,15 @@ impl ShaderMaterialRecord {
         }
     }
 
+    pub fn new_standard_2d(label: Option<String>) -> Self {
+        let mut record = Self::new_standard(label);
+        // 2D bootstrap defaults: alpha blending friendly and double-sided by default.
+        record.surface_type = SurfaceType::Transparent;
+        record.render_side = RenderSide::DoubleSide;
+        record.realm_kind = MaterialRealmKind::TwoD;
+        record
+    }
+
     pub fn new_pbr(label: Option<String>) -> Self {
         let (shader_source, compiled_shader_hash, compiled_shader_source, compile_error) =
             Self::builtin_compiled(ShaderMaterialPreset::Pbr);
@@ -340,6 +366,7 @@ impl ShaderMaterialRecord {
             preset: ShaderMaterialPreset::Pbr,
             base_preset: ShaderMaterialPreset::Pbr,
             shader_type: MaterialShaderType::Model,
+            realm_kind: MaterialRealmKind::ThreeD,
             shader_source,
             shader_params_schema: HashMap::new(),
             shader_capabilities: Vec::new(),
@@ -370,5 +397,17 @@ impl ShaderMaterialRecord {
     pub fn mark_structural_dirty(&mut self) {
         self.is_dirty = true;
         self.bind_group = None;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{RenderSide, ShaderMaterialRecord, SurfaceType};
+
+    #[test]
+    fn standard_2d_bootstrap_defaults() {
+        let record = ShaderMaterialRecord::new_standard_2d(Some("Standard 2D Material".into()));
+        assert_eq!(record.surface_type, SurfaceType::Transparent);
+        assert_eq!(record.render_side, RenderSide::DoubleSide);
     }
 }

@@ -3,6 +3,7 @@ export * from './engine/ecs';
 export * as Mount from './engine/world/mount';
 export * as Math from './math';
 export * as World3D from './engine/world/world3d';
+export * as World2D from './engine/world/world2d';
 export {
   discardAllUploadBuffers,
   disposeEngine,
@@ -29,6 +30,7 @@ export type {
   TargetId,
   TextureId,
   WindowId,
+  World2DId,
   World3DId,
   WorldId
 } from './engine/world/types';

@@ -47,12 +47,20 @@ pub fn create_pipeline_layouts(device: &wgpu::Device, layouts: &Layouts) -> Pipe
         }),
         forward_standard: device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("Forward Standard Pipeline Layout"),
-            bind_group_layouts: &[&layouts.shared, &layouts.object_standard, &layouts.frame_semantics],
+            bind_group_layouts: &[
+                &layouts.shared,
+                &layouts.object_standard,
+                &layouts.frame_semantics,
+            ],
             immediate_size: 0,
         }),
         forward_pbr: device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("Forward PBR Pipeline Layout"),
-            bind_group_layouts: &[&layouts.shared, &layouts.object_pbr, &layouts.frame_semantics],
+            bind_group_layouts: &[
+                &layouts.shared,
+                &layouts.object_pbr,
+                &layouts.frame_semantics,
+            ],
             immediate_size: 0,
         }),
         shadow: device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {

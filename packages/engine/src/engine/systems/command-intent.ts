@@ -190,19 +190,19 @@ export const CommandIntentSystem: System = (world, context) => {
           if ('id' in comp) {
             if (type === 'Model') {
               const modelComp = comp as ModelComponent;
-              enqueueCommand(context.worldId, 'cmd-model-dispose', {
+              enqueueCommand(context.worldId, 'cmd-model3d-dispose', {
                 realmId,
                 modelId: modelComp.id
               });
             } else if (type === 'Camera') {
               const cameraComp = comp as CameraComponent;
-              enqueueCommand(context.worldId, 'cmd-camera-dispose', {
+              enqueueCommand(context.worldId, 'cmd-camera3d-dispose', {
                 realmId,
                 cameraId: cameraComp.id
               });
             } else if (type === 'Light') {
               const lightComp = comp as LightComponent;
-              enqueueCommand(context.worldId, 'cmd-light-dispose', {
+              enqueueCommand(context.worldId, 'cmd-light3d-dispose', {
                 realmId,
                 lightId: lightComp.id
               });

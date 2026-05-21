@@ -92,6 +92,36 @@ export interface ModelComponent extends Required<Omit<ModelProps, 'materialId'>>
   skipUpdate?: boolean;
 }
 
+/** 2D sprite component configuration. */
+export interface Sprite2DProps {
+  geometryId: number;
+  materialId?: number;
+  layer?: number;
+}
+
+/** 2D sprite component stored in the ECS. */
+export interface Sprite2DComponent extends Required<Omit<Sprite2DProps, 'materialId'>> {
+  type: 'Sprite2D';
+  id: number;
+  materialId?: number;
+  skipUpdate?: boolean;
+}
+
+/** 2D shape component configuration. */
+export interface Shape2DProps {
+  geometryId: number;
+  materialId?: number;
+  layer?: number;
+}
+
+/** 2D shape component stored in the ECS. */
+export interface Shape2DComponent extends Required<Omit<Shape2DProps, 'materialId'>> {
+  type: 'Shape2D';
+  id: number;
+  materialId?: number;
+  skipUpdate?: boolean;
+}
+
 /** Tag component configuration. */
 export interface TagProps {
   name?: string;
@@ -266,6 +296,8 @@ export type Component =
   | CameraComponent
   | LightComponent
   | ModelComponent
+  | Sprite2DComponent
+  | Shape2DComponent
   | TagComponent
   | InputStateComponent
   | WindowStateComponent
