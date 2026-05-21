@@ -65,10 +65,8 @@ impl RenderState {
         check_pool("instance", bindings.instance_pool.version());
         check_pool("outline_instance", bindings.outline_instance_pool.version());
         check_pool("shadow_instance", bindings.shadow_instance_pool.version());
-        check_pool("mat_std", bindings.material_standard_pool.version());
-        check_pool("mat_std_in", bindings.material_standard_inputs.version());
-        check_pool("mat_pbr", bindings.material_pbr_pool.version());
-        check_pool("mat_pbr_in", bindings.material_pbr_inputs.version());
+        check_pool("mat_3d", bindings.material_3d_pool.version());
+        check_pool("mat_3d_in", bindings.material_3d_inputs.version());
         check_pool("bones", bindings.bones_pool.version());
 
         if let Some(light_system) = self.light_system.as_ref() {

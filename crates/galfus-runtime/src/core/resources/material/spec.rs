@@ -158,6 +158,8 @@ pub struct MaterialPbrParams {
     pub atlas_scale_bias: [glam::Vec4; PBR_TEXTURE_SLOTS],
 }
 
+pub type Material3dParams = MaterialStandardParams;
+
 impl Default for MaterialPbrParams {
     fn default() -> Self {
         Self {

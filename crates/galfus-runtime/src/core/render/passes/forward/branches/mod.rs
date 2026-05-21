@@ -1,2 +1,1 @@
-pub mod pbr;
-pub mod standard;
+pub mod material;

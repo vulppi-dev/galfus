@@ -173,10 +173,8 @@ impl RenderState {
             bindings.instance_pool.begin_frame(frame_index);
             bindings.outline_instance_pool.begin_frame(frame_index);
             bindings.shadow_instance_pool.begin_frame(frame_index);
-            bindings.material_standard_pool.begin_frame(frame_index);
-            bindings.material_standard_inputs.begin_frame(frame_index);
-            bindings.material_pbr_pool.begin_frame(frame_index);
-            bindings.material_pbr_inputs.begin_frame(frame_index);
+            bindings.material_3d_pool.begin_frame(frame_index);
+            bindings.material_3d_inputs.begin_frame(frame_index);
             bindings.bones_pool.begin_frame(frame_index);
         }
         if let Some(light_system) = self.light_system.as_mut() {

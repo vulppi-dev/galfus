@@ -29,8 +29,7 @@ pub(crate) fn collect_objects(
     let mut used_fallback_material = 0u32;
     let mut used_missing_material_fallback = 0u32;
     let mut used_invalid_material_fallback = 0u32;
-    let mut pbr_models = 0u32;
-    let mut standard_models = 0u32;
+    let mut shaded_models = 0u32;
 
     for (model_id, model_record) in &scene.models {
         if (model_record.layer_mask & camera_record.layer_mask) == 0 {
@@ -133,7 +132,7 @@ pub(crate) fn collect_objects(
                 !*allows_3d || !*has_compiled || compile_error.is_some()
             })
             .unwrap_or(true);
-        let material_id = if fallback_needed {
+        let resolved_material_id = if fallback_needed {
             if model_record.material_id.is_some() {
                 let reason = if let Some((
                     allows_3d,
@@ -166,36 +165,11 @@ pub(crate) fn collect_objects(
             material_id
         };
 
-        if let Some(record) = materials.get(&material_id)
-            && matches!(
-                record.base_preset,
-                crate::core::resources::ShaderMaterialPreset::Pbr
-            )
-        {
-            pbr_models += 1;
-            let item = DrawItem {
-                model_id: *model_id,
-                geometry_id: model_record.geometry_id,
-                material_id,
-                compiled_shader_hash: record.compiled_shader_hash,
-                topology: record.topology,
-                polygon_mode: record.polygon_mode,
-                render_side: record.render_side,
-                depth: model_depth,
-                instance_idx: 0,
-            };
-            match record.surface_type {
-                SurfaceType::Opaque => collector.pbr_opaque.push(item),
-                SurfaceType::Masked => collector.pbr_masked.push(item),
-                SurfaceType::Transparent => collector.transparent.push(item),
-            }
-            continue;
-        }
-
         let material_id = model_record
             .material_id
+            .map(|_| resolved_material_id)
             .filter(|id| materials.contains_key(id))
-            .unwrap_or(MATERIAL_FALLBACK_ID);
+            .unwrap_or(resolved_material_id);
         if model_record.material_id.is_some() && material_id == MATERIAL_FALLBACK_ID {
             used_missing_material_fallback += 1;
         }
@@ -216,7 +190,7 @@ pub(crate) fn collect_objects(
                 PolygonMode::Fill,
                 RenderSide::Front,
             ));
-        standard_models += 1;
+        shaded_models += 1;
 
         let item = DrawItem {
             model_id: *model_id,
@@ -234,72 +208,38 @@ pub(crate) fn collect_objects(
         };
 
         match surface_type {
-            SurfaceType::Opaque => collector.standard_opaque.push(item),
-            SurfaceType::Masked => collector.standard_masked.push(item),
+            SurfaceType::Opaque => collector.opaque.push(item),
+            SurfaceType::Masked => collector.masked.push(item),
             SurfaceType::Transparent => collector.transparent.push(item),
         }
     }
 
     // Sort and prepare instance data
     sort_collector(collector);
-    let kept_count = collector.pbr_opaque.len()
-        + collector.standard_opaque.len()
-        + collector.pbr_masked.len()
-        + collector.standard_masked.len()
+    let kept_count = collector.opaque.len()
+        + collector.masked.len()
         + collector.transparent.len();
     galfus_log::galfus_log_debug!(
         log_events,
         "forward.collector",
-        "models_total={} kept={} pbr={} standard={} skip_layer={} skip_geom={} skip_frustum={} fallback_none={} fallback_missing={} fallback_invalid={} pbr_o={} std_o={} pbr_t={} std_t={}",
+        "models_total={} kept={} shaded={} skip_layer={} skip_geom={} skip_frustum={} fallback_none={} fallback_missing={} fallback_invalid={} opaque={} masked={} transparent={}",
         scene.models.len(),
         kept_count,
-        pbr_models,
-        standard_models,
+        shaded_models,
         skipped_layer_mask,
         skipped_missing_geometry,
         skipped_frustum,
         used_fallback_material,
         used_missing_material_fallback,
         used_invalid_material_fallback,
-        collector.pbr_opaque.len(),
-        collector.standard_opaque.len(),
-        collector
-            .transparent
-            .iter()
-            .filter(|item| {
-                materials
-                    .get(&item.material_id)
-                    .map(|record| {
-                        matches!(
-                            record.base_preset,
-                            crate::core::resources::ShaderMaterialPreset::Pbr
-                        )
-                    })
-                    .unwrap_or(false)
-            })
-            .count(),
-        collector
-            .transparent
-            .iter()
-            .filter(|item| {
-                materials
-                    .get(&item.material_id)
-                    .map(|record| {
-                        matches!(
-                            record.base_preset,
-                            crate::core::resources::ShaderMaterialPreset::Standard
-                        )
-                    })
-                    .unwrap_or(true)
-            })
-            .count()
+        collector.opaque.len(),
+        collector.masked.len(),
+        collector.transparent.len()
     );
 
     let groups = [
-        &mut collector.pbr_opaque,
-        &mut collector.standard_opaque,
-        &mut collector.pbr_masked,
-        &mut collector.standard_masked,
+        &mut collector.opaque,
+        &mut collector.masked,
         &mut collector.transparent,
     ];
 
@@ -334,7 +274,7 @@ pub(crate) fn collect_objects(
 }
 
 fn sort_collector(collector: &mut crate::core::render::state::DrawCollector) {
-    collector.pbr_opaque.sort_by_key(|a| {
+    collector.opaque.sort_by_key(|a| {
         (
             a.topology as u32,
             a.polygon_mode as u32,
@@ -344,27 +284,7 @@ fn sort_collector(collector: &mut crate::core::render::state::DrawCollector) {
             a.geometry_id,
         )
     });
-    collector.standard_opaque.sort_by_key(|a| {
-        (
-            a.topology as u32,
-            a.polygon_mode as u32,
-            a.render_side as u32,
-            a.compiled_shader_hash,
-            a.material_id,
-            a.geometry_id,
-        )
-    });
-    collector.pbr_masked.sort_by_key(|a| {
-        (
-            a.topology as u32,
-            a.polygon_mode as u32,
-            a.render_side as u32,
-            a.compiled_shader_hash,
-            a.material_id,
-            a.geometry_id,
-        )
-    });
-    collector.standard_masked.sort_by_key(|a| {
+    collector.masked.sort_by_key(|a| {
         (
             a.topology as u32,
             a.polygon_mode as u32,
@@ -389,4 +309,69 @@ fn sort_collector(collector: &mut crate::core::render::state::DrawCollector) {
             .then_with(|| a.geometry_id.cmp(&b.geometry_id))
             .then_with(|| a.model_id.cmp(&b.model_id))
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::sort_collector;
+    use crate::core::render::state::{DrawCollector, DrawItem};
+    use crate::core::resources::{PolygonMode, PrimitiveTopology, RenderSide};
+
+    fn item(
+        model_id: u32,
+        material_id: u32,
+        geometry_id: u32,
+        shader_hash: u64,
+        depth: f32,
+    ) -> DrawItem {
+        DrawItem {
+            model_id,
+            geometry_id,
+            material_id,
+            compiled_shader_hash: shader_hash,
+            topology: PrimitiveTopology::TriangleList,
+            polygon_mode: PolygonMode::Fill,
+            render_side: RenderSide::Front,
+            depth,
+            instance_idx: 0,
+        }
+    }
+
+    #[test]
+    fn sort_collector_orders_opaque_and_masked_by_pipeline_key() {
+        let mut collector = DrawCollector::default();
+        collector.opaque.push(item(10, 7, 2, 9, 0.3));
+        collector.opaque.push(item(11, 3, 1, 5, 0.4));
+        collector.masked.push(item(12, 5, 8, 1, 0.5));
+        collector.masked.push(item(13, 4, 9, 1, 0.2));
+
+        sort_collector(&mut collector);
+
+        let opaque_order: Vec<(u64, u32, u32)> = collector
+            .opaque
+            .iter()
+            .map(|it| (it.compiled_shader_hash, it.material_id, it.geometry_id))
+            .collect();
+        assert_eq!(opaque_order, vec![(5, 3, 1), (9, 7, 2)]);
+
+        let masked_order: Vec<(u64, u32, u32)> = collector
+            .masked
+            .iter()
+            .map(|it| (it.compiled_shader_hash, it.material_id, it.geometry_id))
+            .collect();
+        assert_eq!(masked_order, vec![(1, 4, 9), (1, 5, 8)]);
+    }
+
+    #[test]
+    fn transparent_sort_is_deterministic_on_depth_ties() {
+        let mut collector = DrawCollector::default();
+        collector.transparent.push(item(300, 20, 5, 99, 0.5));
+        collector.transparent.push(item(100, 10, 3, 11, 0.5));
+        collector.transparent.push(item(200, 10, 4, 11, 0.5));
+
+        sort_collector(&mut collector);
+
+        let model_order: Vec<u32> = collector.transparent.iter().map(|it| it.model_id).collect();
+        assert_eq!(model_order, vec![100, 200, 300]);
+    }
 }

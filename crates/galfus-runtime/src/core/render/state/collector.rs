@@ -16,11 +16,9 @@ pub struct DrawItem {
 /// Collection of vectors to be reused across frames for draw call preparation
 #[derive(Default)]
 pub struct DrawCollector {
-    pub standard_opaque: Vec<DrawItem>,
-    pub standard_masked: Vec<DrawItem>,
+    pub opaque: Vec<DrawItem>,
+    pub masked: Vec<DrawItem>,
     pub transparent: Vec<DrawItem>,
-    pub pbr_opaque: Vec<DrawItem>,
-    pub pbr_masked: Vec<DrawItem>,
     pub instance_data: Vec<ModelComponent>,
     pub shadow_instance_data: Vec<ModelComponent>,
     pub outline_items: Vec<(u32, u32)>,
@@ -29,11 +27,9 @@ pub struct DrawCollector {
 
 impl DrawCollector {
     pub fn clear(&mut self) {
-        self.standard_opaque.clear();
-        self.standard_masked.clear();
+        self.opaque.clear();
+        self.masked.clear();
         self.transparent.clear();
-        self.pbr_opaque.clear();
-        self.pbr_masked.clear();
         self.instance_data.clear();
         self.shadow_instance_data.clear();
         self.outline_items.clear();

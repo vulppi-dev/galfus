@@ -380,10 +380,8 @@ impl RenderState {
             .saturating_add(bindings.instance_pool.allocated_bytes())
             .saturating_add(bindings.outline_instance_pool.allocated_bytes())
             .saturating_add(bindings.shadow_instance_pool.allocated_bytes())
-            .saturating_add(bindings.material_standard_pool.allocated_bytes())
-            .saturating_add(bindings.material_standard_inputs.allocated_bytes())
-            .saturating_add(bindings.material_pbr_pool.allocated_bytes())
-            .saturating_add(bindings.material_pbr_inputs.allocated_bytes())
+            .saturating_add(bindings.material_3d_pool.allocated_bytes())
+            .saturating_add(bindings.material_3d_inputs.allocated_bytes())
             .saturating_add(bindings.bones_pool.allocated_bytes())
     }
 

@@ -12,7 +12,7 @@ use galfus_core::core::resources::{
     CmdMaterialCreateArgs, CmdMaterialDefinitionCreateArgs, CmdModelCreateArgs, CmdModelUpdateArgs,
     CmdPrimitiveGeometryCreateArgs, EnvironmentConfig, LightKind, MaterialKind, MaterialOptions, MaterialRealmKind,
     MaterialShaderCapabilities, MaterialShaderType, PostProcessConfig, PrimitiveShape, RenderSide,
-    ShaderMaterialPreset, StandardOptions,
+    StandardOptions,
 };
 use galfus_core::core::target::{
     CmdTargetLayerUpsertArgs, CmdTargetUpsertArgs, DimensionValue, TargetKind, TargetLayerLayout,
@@ -137,7 +137,7 @@ fn build_scene(realm_id: u32) -> Vec<EngineCmd> {
                 definition_id: MATERIAL_DEF_GHOST_ID,
                 slug: "demo2-ghost".into(),
                 label: Some("demo2-ghost-definition".into()),
-                preset: Some(ShaderMaterialPreset::Standard),
+                preset: None,
                 shader_type: Some(MaterialShaderType::Model),
                 shader_source: Some(r#"
 fn project_world_to_screen_uv(world_position: vec3<f32>) -> vec2<f32> {
@@ -186,7 +186,7 @@ fn fragment(input: FragmentInput) -> FragmentOutput {
                 definition_id: MATERIAL_DEF_FRESNEL_ID,
                 slug: "demo2-fresnel".into(),
                 label: Some("demo2-fresnel-definition".into()),
-                preset: Some(ShaderMaterialPreset::Standard),
+                preset: None,
                 shader_type: Some(MaterialShaderType::Model),
                 shader_source: Some(r#"
 fn vertex(input: VertexInput) -> VertexOutput {

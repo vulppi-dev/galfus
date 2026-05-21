@@ -1,6 +1,6 @@
 use crate::core::resources::{
-    CameraComponent, FrameComponent, MaterialPbrParams, MaterialStandardParams, ModelComponent,
-    StorageBufferPool, UniformBufferPool,
+    CameraComponent, FrameComponent, Material3dParams, ModelComponent, StorageBufferPool,
+    UniformBufferPool,
 };
 use std::collections::HashMap;
 
@@ -13,10 +13,8 @@ pub struct BindingSystem {
     pub instance_pool: StorageBufferPool<ModelComponent>,
     pub outline_instance_pool: StorageBufferPool<ModelComponent>,
     pub shadow_instance_pool: StorageBufferPool<ModelComponent>,
-    pub material_standard_pool: UniformBufferPool<MaterialStandardParams>,
-    pub material_standard_inputs: StorageBufferPool<glam::Vec4>,
-    pub material_pbr_pool: UniformBufferPool<MaterialPbrParams>,
-    pub material_pbr_inputs: StorageBufferPool<glam::Vec4>,
+    pub material_3d_pool: UniformBufferPool<Material3dParams>,
+    pub material_3d_inputs: StorageBufferPool<glam::Vec4>,
     pub bones_pool: StorageBufferPool<glam::Mat4>,
     pub shared_group: Option<wgpu::BindGroup>,
     pub shadow_shared_group: Option<wgpu::BindGroup>,

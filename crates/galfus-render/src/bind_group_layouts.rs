@@ -3,8 +3,7 @@ pub struct RenderLayoutSizes {
     pub camera_uniform_min_size: u64,
     pub light_draw_uniform_min_size: u64,
     pub model_storage_min_size: u64,
-    pub material_standard_uniform_min_size: u64,
-    pub material_pbr_uniform_min_size: u64,
+    pub material_3d_uniform_min_size: u64,
     pub matrix_storage_min_size: u64,
 }
 
@@ -12,8 +11,7 @@ pub fn create_render_layouts(device: &wgpu::Device, sizes: &RenderLayoutSizes) -
     crate::Layouts {
         shared: create_layout_shared(device, sizes),
         object: create_layout_object(device, sizes),
-        object_standard: create_layout_object_standard(device, sizes),
-        object_pbr: create_layout_object_pbr(device, sizes),
+        object_3d_material: create_layout_object_3d_material(device, sizes),
         frame_semantics: create_layout_frame_semantics(device),
         target: create_layout_target(device),
         light_cull: create_layout_light_cull(device),
@@ -206,12 +204,12 @@ fn create_layout_object(device: &wgpu::Device, sizes: &RenderLayoutSizes) -> wgp
     })
 }
 
-fn create_layout_object_standard(
+fn create_layout_object_3d_material(
     device: &wgpu::Device,
     sizes: &RenderLayoutSizes,
 ) -> wgpu::BindGroupLayout {
     device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-        label: Some("BindGroupLayout Object Standard"),
+        label: Some("BindGroupLayout Object 3D Material"),
         entries: &[
             wgpu::BindGroupLayoutEntry {
                 binding: 0,
@@ -229,66 +227,7 @@ fn create_layout_object_standard(
                 ty: wgpu::BindingType::Buffer {
                     ty: wgpu::BufferBindingType::Uniform,
                     has_dynamic_offset: true,
-                    min_binding_size: Some(nz(sizes.material_standard_uniform_min_size)),
-                },
-                count: None,
-            },
-            wgpu::BindGroupLayoutEntry {
-                binding: 2,
-                visibility: wgpu::ShaderStages::FRAGMENT,
-                ty: wgpu::BindingType::Buffer {
-                    ty: wgpu::BufferBindingType::Storage { read_only: true },
-                    has_dynamic_offset: false,
-                    min_binding_size: None,
-                },
-                count: None,
-            },
-            textured_array_2d_entry(3),
-            textured_array_2d_entry(4),
-            textured_array_2d_entry(5),
-            textured_array_2d_entry(6),
-            textured_array_2d_entry(7),
-            textured_array_2d_entry(8),
-            textured_array_2d_entry(9),
-            textured_array_2d_entry(10),
-            wgpu::BindGroupLayoutEntry {
-                binding: 11,
-                visibility: wgpu::ShaderStages::VERTEX,
-                ty: wgpu::BindingType::Buffer {
-                    ty: wgpu::BufferBindingType::Storage { read_only: true },
-                    has_dynamic_offset: false,
-                    min_binding_size: Some(nz(sizes.matrix_storage_min_size)),
-                },
-                count: None,
-            },
-        ],
-    })
-}
-
-fn create_layout_object_pbr(
-    device: &wgpu::Device,
-    sizes: &RenderLayoutSizes,
-) -> wgpu::BindGroupLayout {
-    device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-        label: Some("BindGroupLayout Object PBR"),
-        entries: &[
-            wgpu::BindGroupLayoutEntry {
-                binding: 0,
-                visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
-                ty: wgpu::BindingType::Buffer {
-                    ty: wgpu::BufferBindingType::Storage { read_only: true },
-                    has_dynamic_offset: false,
-                    min_binding_size: Some(nz(sizes.model_storage_min_size)),
-                },
-                count: None,
-            },
-            wgpu::BindGroupLayoutEntry {
-                binding: 1,
-                visibility: wgpu::ShaderStages::FRAGMENT,
-                ty: wgpu::BindingType::Buffer {
-                    ty: wgpu::BufferBindingType::Uniform,
-                    has_dynamic_offset: true,
-                    min_binding_size: Some(nz(sizes.material_pbr_uniform_min_size)),
+                    min_binding_size: Some(nz(sizes.material_3d_uniform_min_size)),
                 },
                 count: None,
             },

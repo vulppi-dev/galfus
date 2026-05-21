@@ -1,8 +1,7 @@
 pub struct Layouts {
     pub shared: wgpu::BindGroupLayout,
     pub object: wgpu::BindGroupLayout,
-    pub object_standard: wgpu::BindGroupLayout,
-    pub object_pbr: wgpu::BindGroupLayout,
+    pub object_3d_material: wgpu::BindGroupLayout,
     pub frame_semantics: wgpu::BindGroupLayout,
     pub target: wgpu::BindGroupLayout,
     pub light_cull: wgpu::BindGroupLayout,
@@ -16,8 +15,7 @@ pub struct Layouts {
 
 pub struct PipelineLayouts {
     pub gizmo: wgpu::PipelineLayout,
-    pub forward_standard: wgpu::PipelineLayout,
-    pub forward_pbr: wgpu::PipelineLayout,
+    pub forward_3d_material: wgpu::PipelineLayout,
     pub shadow: wgpu::PipelineLayout,
     pub outline: wgpu::PipelineLayout,
     pub light_cull: wgpu::PipelineLayout,
@@ -45,20 +43,11 @@ pub fn create_pipeline_layouts(device: &wgpu::Device, layouts: &Layouts) -> Pipe
             bind_group_layouts: &[&layouts.shared],
             immediate_size: 0,
         }),
-        forward_standard: device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-            label: Some("Forward Standard Pipeline Layout"),
+        forward_3d_material: device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+            label: Some("Forward 3D Material Pipeline Layout"),
             bind_group_layouts: &[
                 &layouts.shared,
-                &layouts.object_standard,
-                &layouts.frame_semantics,
-            ],
-            immediate_size: 0,
-        }),
-        forward_pbr: device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-            label: Some("Forward PBR Pipeline Layout"),
-            bind_group_layouts: &[
-                &layouts.shared,
-                &layouts.object_pbr,
+                &layouts.object_3d_material,
                 &layouts.frame_semantics,
             ],
             immediate_size: 0,
