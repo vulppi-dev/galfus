@@ -235,6 +235,10 @@ pub struct CameraRecord {
     pub forward_depth_target: Option<RenderTarget>,
     pub forward_msaa_target: Option<RenderTarget>,
     pub forward_emissive_msaa_target: Option<RenderTarget>,
+    pub history0_target: Option<RenderTarget>,
+    pub history1_target: Option<RenderTarget>,
+    pub history_valid: bool,
+    pub history_idle_frames: u32,
     pub view_position: Option<ViewPosition>,
     pub last_projection_size: UVec2,
 }
@@ -266,6 +270,10 @@ impl CameraRecord {
             forward_depth_target: None,
             forward_msaa_target: None,
             forward_emissive_msaa_target: None,
+            history0_target: None,
+            history1_target: None,
+            history_valid: false,
+            history_idle_frames: 0,
             view_position,
             last_projection_size: UVec2::ZERO,
         }

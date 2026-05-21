@@ -275,6 +275,7 @@ fn bootstrap_builtin_material_definitions(engine: &mut EngineState) {
                 shader_type: MaterialShaderType::Model,
                 shader_source: Some(builtin_shader_source(preset).to_string()),
                 shader_params_schema: HashMap::new(),
+                shader_capabilities: Vec::new(),
                 compiled_shader_hash: compiled_hash,
                 compiled_shader_source: compiled_source,
                 compile_error,
@@ -317,6 +318,7 @@ fn sync_material_from_definition(
     record.shader_type = definition.shader_type;
     record.shader_source = definition.shader_source.clone();
     record.shader_params_schema = definition.shader_params_schema.clone();
+    record.shader_capabilities = definition.shader_capabilities.clone();
     record.compiled_shader_hash = definition.compiled_shader_hash;
     record.compiled_shader_source = definition.compiled_shader_source.clone();
     record.compile_error = definition.compile_error.clone();
@@ -408,6 +410,11 @@ pub fn engine_cmd_material_definition_create(
             shader_type,
             shader_source: Some(args.shader_source.clone()),
             shader_params_schema: args.shader_params_schema.clone().unwrap_or_default(),
+            shader_capabilities: args
+                .capabilities
+                .as_ref()
+                .map(|value| value.semantics.clone())
+                .unwrap_or_default(),
             compiled_shader_hash: compiled_hash,
             compiled_shader_source: compiled_source,
             compile_error,
@@ -516,6 +523,11 @@ pub fn engine_cmd_material_definition_update(
         record.shader_type = shader_type;
         record.shader_source = Some(shader_source);
         record.shader_params_schema = shader_params_schema;
+        record.shader_capabilities = args
+            .capabilities
+            .as_ref()
+            .map(|value| value.semantics.clone())
+            .unwrap_or_else(|| current.shader_capabilities.clone());
         record.compiled_shader_hash = compiled_hash;
         record.compiled_shader_source = compiled_source;
         record.compile_error = compile_error;

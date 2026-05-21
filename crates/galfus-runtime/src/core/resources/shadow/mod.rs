@@ -87,7 +87,7 @@ impl Default for ShadowPageEntry {
     fn default() -> Self {
         Self {
             scale_offset: [0.0; 4],
-            layer_index: 0,
+            layer_index: u32::MAX,
             _padding: [0; 3],
         }
     }

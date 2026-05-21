@@ -5,6 +5,7 @@ pub struct ResourceLibrary {
     pub layout_object: wgpu::BindGroupLayout,
     pub layout_object_standard: wgpu::BindGroupLayout,
     pub layout_object_pbr: wgpu::BindGroupLayout,
+    pub layout_frame_semantics: wgpu::BindGroupLayout,
     pub layout_target: wgpu::BindGroupLayout,
     pub layout_light_cull: wgpu::BindGroupLayout,
     pub layout_ssao: wgpu::BindGroupLayout,

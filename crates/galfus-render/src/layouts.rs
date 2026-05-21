@@ -3,6 +3,7 @@ pub struct Layouts {
     pub object: wgpu::BindGroupLayout,
     pub object_standard: wgpu::BindGroupLayout,
     pub object_pbr: wgpu::BindGroupLayout,
+    pub frame_semantics: wgpu::BindGroupLayout,
     pub target: wgpu::BindGroupLayout,
     pub light_cull: wgpu::BindGroupLayout,
     pub ssao: wgpu::BindGroupLayout,
@@ -46,12 +47,12 @@ pub fn create_pipeline_layouts(device: &wgpu::Device, layouts: &Layouts) -> Pipe
         }),
         forward_standard: device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("Forward Standard Pipeline Layout"),
-            bind_group_layouts: &[&layouts.shared, &layouts.object_standard],
+            bind_group_layouts: &[&layouts.shared, &layouts.object_standard, &layouts.frame_semantics],
             immediate_size: 0,
         }),
         forward_pbr: device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("Forward PBR Pipeline Layout"),
-            bind_group_layouts: &[&layouts.shared, &layouts.object_pbr],
+            bind_group_layouts: &[&layouts.shared, &layouts.object_pbr, &layouts.frame_semantics],
             immediate_size: 0,
         }),
         shadow: device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {

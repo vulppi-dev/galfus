@@ -5,6 +5,21 @@ mod draw;
 use crate::core::render::RenderState;
 use crate::core::render::cache::{PipelineKey, ShaderId};
 use crate::core::resources::SkyboxMode;
+use bytemuck::{Pod, Zeroable};
+
+#[repr(C)]
+#[derive(Clone, Copy, Pod, Zeroable)]
+struct ForwardFrameSemanticMeta {
+    resolution: [f32; 2],
+    inv_resolution: [f32; 2],
+    frame_index: u32,
+    flags: u32,
+}
+
+const FWD_SEM_SCENE_COLOR: u32 = 1 << 0;
+const FWD_SEM_SCENE_DEPTH: u32 = 1 << 1;
+const FWD_SEM_HISTORY0: u32 = 1 << 2;
+const FWD_SEM_HISTORY1: u32 = 1 << 3;
 
 fn ensure_camera_forward_targets(
     camera_record: &mut crate::core::resources::CameraRecord,
@@ -146,6 +161,19 @@ pub fn pass_forward(
         &mut render_state.gizmos,
         &mut render_state.material_shader_modules,
     );
+    let fallback_depth_view = library
+        ._fallback_shadow_texture
+        .create_view(&wgpu::TextureViewDescriptor {
+            label: Some("Forward Fallback Depth View"),
+            format: Some(wgpu::TextureFormat::Depth32Float),
+            dimension: Some(wgpu::TextureViewDimension::D2),
+            aspect: wgpu::TextureAspect::DepthOnly,
+            base_mip_level: 0,
+            mip_level_count: Some(1),
+            base_array_layer: 0,
+            array_layer_count: Some(1),
+            usage: None,
+        });
 
     // 1. Sort cameras by order
     for (camera_index, camera_id) in camera_ids.iter().copied().enumerate() {
@@ -217,6 +245,106 @@ pub fn pass_forward(
             Some(target) => target,
             None => continue,
         };
+        let scene_color_view = camera_record
+            .post_target
+            .as_ref()
+            .or(camera_record.render_target.as_ref())
+            .map(|target| &target.view)
+            .unwrap_or(&library.fallback_view);
+        let scene_depth_view = if depth_target.sample_count == 1 {
+            &depth_target.view
+        } else {
+            &fallback_depth_view
+        };
+        let history0_view = camera_record
+            .history0_target
+            .as_ref()
+            .map(|target| &target.view)
+            .unwrap_or(&library.fallback_view);
+        let history1_view = camera_record
+            .history1_target
+            .as_ref()
+            .map(|target| &target.view)
+            .unwrap_or(&library.fallback_view);
+        let mut semantics_flags = FWD_SEM_SCENE_COLOR;
+        if depth_target.sample_count == 1 {
+            semantics_flags |= FWD_SEM_SCENE_DEPTH;
+        }
+        if camera_record.history0_target.is_some() && camera_record.history_valid {
+            semantics_flags |= FWD_SEM_HISTORY0;
+        }
+        if camera_record.history1_target.is_some() && camera_record.history_valid {
+            semantics_flags |= FWD_SEM_HISTORY1;
+        }
+        let target_size = camera_record
+            .render_target
+            .as_ref()
+            .map(|target| target.texture.size())
+            .unwrap_or(wgpu::Extent3d {
+                width: 1,
+                height: 1,
+                depth_or_array_layers: 1,
+            });
+        let w = target_size.width.max(1) as f32;
+        let h = target_size.height.max(1) as f32;
+        let meta = ForwardFrameSemanticMeta {
+            resolution: [w, h],
+            inv_resolution: [1.0 / w, 1.0 / h],
+            frame_index: frame_index as u32,
+            flags: semantics_flags,
+        };
+        let meta_bytes = bytemuck::bytes_of(&meta);
+        let needs_realloc = render_state
+            .forward_semantics_buffer
+            .as_ref()
+            .map(|buffer| buffer.size() < meta_bytes.len() as u64)
+            .unwrap_or(true);
+        if needs_realloc {
+            render_state.forward_semantics_buffer = Some(device.create_buffer(&wgpu::BufferDescriptor {
+                label: Some("Forward Semantics Buffer"),
+                size: meta_bytes.len() as u64,
+                usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+                mapped_at_creation: false,
+            }));
+        }
+        let Some(forward_semantics_buffer) = render_state.forward_semantics_buffer.as_ref() else {
+            continue;
+        };
+        queue.write_buffer(forward_semantics_buffer, 0, meta_bytes);
+        let forward_semantics_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("Forward Frame Semantics BG"),
+            layout: &library.layout_frame_semantics,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: wgpu::BindingResource::TextureView(scene_color_view),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: wgpu::BindingResource::TextureView(scene_depth_view),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 2,
+                    resource: wgpu::BindingResource::TextureView(history0_view),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 3,
+                    resource: wgpu::BindingResource::TextureView(history1_view),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 4,
+                    resource: wgpu::BindingResource::Sampler(&library.samplers.linear_clamp),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 5,
+                    resource: wgpu::BindingResource::Sampler(&library.samplers.point_clamp),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 6,
+                    resource: forward_semantics_buffer.as_entire_binding(),
+                },
+            ],
+        });
         let msaa_target = if sample_count > 1 {
             camera_record.forward_msaa_target.as_ref()
         } else {
@@ -316,6 +444,7 @@ pub fn pass_forward(
                 cache,
                 sample_count,
                 material_shader_modules,
+                &forward_semantics_bind_group,
                 log_events,
             );
 

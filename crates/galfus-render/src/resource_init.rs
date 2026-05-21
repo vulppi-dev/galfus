@@ -14,6 +14,7 @@ pub fn build_resource_library(
         layout_object: layouts.object,
         layout_object_standard: layouts.object_standard,
         layout_object_pbr: layouts.object_pbr,
+        layout_frame_semantics: layouts.frame_semantics,
         layout_target: layouts.target,
         layout_light_cull: layouts.light_cull,
         layout_ssao: layouts.ssao,

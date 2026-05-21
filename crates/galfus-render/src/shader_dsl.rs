@@ -169,6 +169,36 @@ fn generate_physical_wgsl(
         wgsl.push_str("};\n");
         wgsl.push_str("@group(0) @binding(0) var<uniform> params: PassParams;\n");
     }
+    wgsl.push_str(
+        r#"
+struct FrameSemanticMeta {
+  resolution: vec2<f32>,
+  inv_resolution: vec2<f32>,
+  frame_index: u32,
+  flags: u32,
+};
+@group(1) @binding(0) var t_scene_color: texture_2d<f32>;
+@group(1) @binding(1) var t_scene_depth: texture_depth_2d;
+@group(1) @binding(2) var t_history0: texture_2d<f32>;
+@group(1) @binding(3) var t_history1: texture_2d<f32>;
+@group(1) @binding(4) var s_linear: sampler;
+@group(1) @binding(5) var s_point: sampler;
+@group(1) @binding(6) var<uniform> frame_semantics: FrameSemanticMeta;
+
+fn sample_scene_color(uv: vec2<f32>) -> vec4<f32> { return textureSample(t_scene_color, s_linear, uv); }
+fn sample_history0(uv: vec2<f32>) -> vec4<f32> { return textureSample(t_history0, s_linear, uv); }
+fn sample_history1(uv: vec2<f32>) -> vec4<f32> { return textureSample(t_history1, s_linear, uv); }
+fn load_scene_depth(pixel: vec2<u32>) -> f32 {
+  let dim = textureDimensions(t_scene_depth);
+  let x = min(pixel.x, max(dim.x, 1u) - 1u);
+  let y = min(pixel.y, max(dim.y, 1u) - 1u);
+  return textureLoad(t_scene_depth, vec2<i32>(i32(x), i32(y)), 0);
+}
+fn scene_resolution() -> vec2<f32> { return frame_semantics.resolution; }
+fn scene_inv_resolution() -> vec2<f32> { return frame_semantics.inv_resolution; }
+fn current_frame_index() -> u32 { return frame_semantics.frame_index; }
+"#,
+    );
 
     wgsl.push_str(
         r#"

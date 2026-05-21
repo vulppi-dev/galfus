@@ -13,6 +13,7 @@ pub(crate) fn draw_batches(
     cache: &mut crate::core::render::cache::RenderCache,
     sample_count: u32,
     material_shader_modules: &mut std::collections::HashMap<u64, wgpu::ShaderModule>,
+    frame_semantics_bind_group: &wgpu::BindGroup,
     log_events: &mut Vec<galfus_log::LogEvent>,
 ) {
     // 1. PBR Opaque
@@ -29,6 +30,7 @@ pub(crate) fn draw_batches(
         library,
         sample_count,
         material_shader_modules,
+        frame_semantics_bind_group,
         log_events,
     );
 
@@ -46,6 +48,7 @@ pub(crate) fn draw_batches(
         library,
         sample_count,
         material_shader_modules,
+        frame_semantics_bind_group,
         log_events,
     );
 
@@ -63,6 +66,7 @@ pub(crate) fn draw_batches(
         library,
         sample_count,
         material_shader_modules,
+        frame_semantics_bind_group,
         log_events,
     );
 
@@ -80,6 +84,7 @@ pub(crate) fn draw_batches(
         library,
         sample_count,
         material_shader_modules,
+        frame_semantics_bind_group,
         log_events,
     );
 
@@ -97,6 +102,7 @@ pub(crate) fn draw_batches(
         library,
         sample_count,
         material_shader_modules,
+        frame_semantics_bind_group,
         log_events,
     );
 }
@@ -114,6 +120,7 @@ fn draw_group(
     library: &crate::core::render::state::ResourceLibrary,
     sample_count: u32,
     material_shader_modules: &mut std::collections::HashMap<u64, wgpu::ShaderModule>,
+    frame_semantics_bind_group: &wgpu::BindGroup,
     log_events: &mut Vec<galfus_log::LogEvent>,
 ) {
     if items.is_empty() {
@@ -186,6 +193,7 @@ fn draw_group(
                 )
             };
             render_pass.set_pipeline(pipeline);
+            render_pass.set_bind_group(2, frame_semantics_bind_group, &[]);
             current_state = Some((shader_id, topology, polygon_mode, render_side));
         }
 

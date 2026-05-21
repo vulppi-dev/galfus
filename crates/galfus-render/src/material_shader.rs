@@ -362,6 +362,20 @@ struct MaterialParams {
 @group(1) @binding(10) var material_tex7: texture_2d<f32>;
 @group(1) @binding(11) var<storage, read> bones: array<mat4x4<f32>>;
 
+struct FrameSemanticMeta {
+    resolution: vec2<f32>,
+    inv_resolution: vec2<f32>,
+    frame_index: u32,
+    flags: u32,
+}
+@group(2) @binding(0) var frame_scene_color: texture_2d<f32>;
+@group(2) @binding(1) var frame_scene_depth: texture_depth_2d;
+@group(2) @binding(2) var frame_history0: texture_2d<f32>;
+@group(2) @binding(3) var frame_history1: texture_2d<f32>;
+@group(2) @binding(4) var frame_linear_sampler: sampler;
+@group(2) @binding(5) var frame_point_sampler: sampler;
+@group(2) @binding(6) var<uniform> frame_semantics: FrameSemanticMeta;
+
 struct VertexInput {
     position: vec3<f32>,
     normal: vec3<f32>,
@@ -460,6 +474,24 @@ fn sample_shadow_primary_light(world_position: vec3<f32>, world_normal: vec3<f32
     let compare_ref = clamp(depth_ref + bias, 0.0, 1.0);
     return sample_shadow_compare_atlas(atlas_uv, page.layer_index, compare_ref);
 }
+fn sample_scene_color(uv: vec2<f32>) -> vec4<f32> {
+    return textureSample(frame_scene_color, frame_linear_sampler, uv);
+}
+fn sample_history0(uv: vec2<f32>) -> vec4<f32> {
+    return textureSample(frame_history0, frame_linear_sampler, uv);
+}
+fn sample_history1(uv: vec2<f32>) -> vec4<f32> {
+    return textureSample(frame_history1, frame_linear_sampler, uv);
+}
+fn load_scene_depth(pixel: vec2<u32>) -> f32 {
+    let dim = textureDimensions(frame_scene_depth);
+    let x = min(pixel.x, max(dim.x, 1u) - 1u);
+    let y = min(pixel.y, max(dim.y, 1u) - 1u);
+    return textureLoad(frame_scene_depth, vec2<i32>(i32(x), i32(y)), 0);
+}
+fn scene_resolution() -> vec2<f32> { return frame_semantics.resolution; }
+fn scene_inv_resolution() -> vec2<f32> { return frame_semantics.inv_resolution; }
+fn current_frame_index() -> u32 { return frame_semantics.frame_index; }
 fn get_slot(slots: array<vec4<u32>, 2>, index: u32) -> u32 {
     let vec_index = index / 4u;
     let lane = index % 4u;

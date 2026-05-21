@@ -51,6 +51,8 @@ impl RenderState {
             cache: RenderCache::new(),
             material_shader_modules: HashMap::new(),
             custom_screen_param_buffer: None,
+            custom_screen_semantics_buffer: None,
+            forward_semantics_buffer: None,
             post_uniform_buffer: None,
             compose_uniform_buffer: None,
             ssao_uniform_buffer: None,
@@ -105,6 +107,8 @@ impl RenderState {
         self.cache.clear();
         self.material_shader_modules.clear();
         self.custom_screen_param_buffer = None;
+        self.custom_screen_semantics_buffer = None;
+        self.forward_semantics_buffer = None;
         self.post_uniform_buffer = None;
         self.compose_uniform_buffer = None;
         self.ssao_uniform_buffer = None;

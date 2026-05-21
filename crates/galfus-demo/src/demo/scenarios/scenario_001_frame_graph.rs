@@ -241,6 +241,7 @@ fn fragment(input: FragmentInput) -> FragmentOutput {
 "#
                 .to_string(),
                 shader_params_schema: None,
+                capabilities: None,
             },
         )),
         EngineCmd::CmdMaterialUpsert(CmdMaterialUpsertArgs::Create(CmdMaterialCreateArgs {

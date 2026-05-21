@@ -7,6 +7,7 @@ use std::env;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DemoKind {
     FrameGraph001,
+    FrameGraph002Persistence,
 }
 
 impl DemoKind {
@@ -15,6 +16,9 @@ impl DemoKind {
             "1" | "001" | "demo001" | "demo_001" | "framegraph" | "framegraph001" => {
                 Some(Self::FrameGraph001)
             }
+            "2" | "002" | "demo002" | "demo_002" | "framegraph002" | "persistence" => {
+                Some(Self::FrameGraph002Persistence)
+            }
             _ => None,
         }
     }
@@ -22,6 +26,9 @@ impl DemoKind {
     pub fn title(self) -> String {
         match self {
             Self::FrameGraph001 => "Galfus Demo 001 - FrameGraph".to_string(),
+            Self::FrameGraph002Persistence => {
+                "Galfus Demo 002 - Optical Persistence".to_string()
+            }
         }
     }
 }

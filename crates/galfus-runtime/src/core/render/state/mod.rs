@@ -99,6 +99,8 @@ pub struct RenderState {
     pub cache: RenderCache,
     pub material_shader_modules: std::collections::HashMap<u64, wgpu::ShaderModule>,
     pub custom_screen_param_buffer: Option<wgpu::Buffer>,
+    pub custom_screen_semantics_buffer: Option<wgpu::Buffer>,
+    pub forward_semantics_buffer: Option<wgpu::Buffer>,
     pub post_uniform_buffer: Option<wgpu::Buffer>,
     pub compose_uniform_buffer: Option<wgpu::Buffer>,
     pub ssao_uniform_buffer: Option<wgpu::Buffer>,
@@ -276,6 +278,8 @@ impl RenderState {
             record.forward_depth_target.as_ref(),
             record.forward_msaa_target.as_ref(),
             record.forward_emissive_msaa_target.as_ref(),
+            record.history0_target.as_ref(),
+            record.history1_target.as_ref(),
         ]
         .into_iter()
         .flatten()
@@ -435,6 +439,10 @@ impl RenderState {
             record.forward_depth_target = None;
             record.forward_msaa_target = None;
             record.forward_emissive_msaa_target = None;
+            record.history0_target = None;
+            record.history1_target = None;
+            record.history_valid = false;
+            record.history_idle_frames = 0;
         }
     }
 }

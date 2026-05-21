@@ -133,6 +133,7 @@ fn material_definition_and_instance_get_and_list_work() {
             shader_type: None,
             shader_source: "fn vertex(input: VertexInput) -> VertexOutput { var out: VertexOutput; out.world_position = input.position; out.world_normal = input.normal; out.uv = input.uv; out.clip_position = vec4<f32>(0.0); return out; } fn fragment(input: FragmentInput) -> FragmentOutput { var out: FragmentOutput; out.color = vec4<f32>(1.0); out.emissive = vec4<f32>(0.0); return out; }".into(),
             shader_params_schema: None,
+            capabilities: None,
         },
     );
     assert!(definition_result.success, "{}", definition_result.message);
