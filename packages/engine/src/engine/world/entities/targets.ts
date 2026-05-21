@@ -1,5 +1,9 @@
 import type {
+  CmdTargetGetArgs,
+  CmdTargetLayerGetArgs,
+  CmdTargetLayerListArgs,
   CmdTargetMeasurementArgs,
+  CmdTargetListArgs,
   CmdTargetDisposeArgs,
   CmdTargetLayerDisposeArgs,
   CmdTargetLayerUpsertArgs,
@@ -36,6 +40,14 @@ export function upsertTarget(worldId: number, args: CmdTargetUpsertArgs): number
  */
 export function measureTarget(worldId: number, args: CmdTargetMeasurementArgs): number {
   return enqueueCommand(worldId, 'cmd-target-measurement', args);
+}
+
+export function getTarget(worldId: number, args: CmdTargetGetArgs): number {
+  return enqueueCommand(worldId, 'cmd-target-get', args);
+}
+
+export function listTargets(worldId: number, args: CmdTargetListArgs = {}): number {
+  return enqueueCommand(worldId, 'cmd-target-list', args);
 }
 
 /**
@@ -97,7 +109,8 @@ export function bindWorldToTarget(
   return enqueueCommand(worldId, 'cmd-target-layer-upsert', {
     realmId,
     ...args,
-    cameraId: resolvedCameraId
+    cameraId: resolvedCameraId,
+    enabledCameraIds: resolvedCameraId !== undefined ? [resolvedCameraId] : []
   });
 }
 
@@ -125,6 +138,14 @@ export function unbindWorldFromTarget(
     realmId,
     ...args
   });
+}
+
+export function getTargetLayer(worldId: number, args: CmdTargetLayerGetArgs): number {
+  return enqueueCommand(worldId, 'cmd-target-layer-get', args);
+}
+
+export function listTargetLayers(worldId: number, args: CmdTargetLayerListArgs = {}): number {
+  return enqueueCommand(worldId, 'cmd-target-layer-list', args);
 }
 
 /**

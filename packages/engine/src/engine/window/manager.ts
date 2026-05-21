@@ -48,10 +48,10 @@ function allocateWindowId(): WindowId {
  *
  * @example
  * ```ts
- * import { createWindow } from '@vulfram/engine/window';
+ * import { createWindow } from '@galfus/engine/window';
  *
  * const { windowId } = createWindow({
- *   title: 'Vulfram Beta',
+ *   title: 'Galfus Beta',
  *   size: [1280, 720]
  * });
  * ```
@@ -86,7 +86,7 @@ export function createWindow(
  *
  * @example
  * ```ts
- * import { closeWindow } from '@vulfram/engine/window';
+ * import { closeWindow } from '@galfus/engine/window';
  *
  * closeWindow(windowId);
  * ```
@@ -107,7 +107,7 @@ export function closeWindow(windowId: WindowId): CommandId {
  *
  * @example
  * ```ts
- * import { updateWindow } from '@vulfram/engine/window';
+ * import { updateWindow } from '@galfus/engine/window';
  *
  * updateWindow(windowId, {
  *   title: 'Scene View',
@@ -177,7 +177,7 @@ export function updateWindow(windowId: WindowId, props: WindowProps): CommandId[
  *
  * @example
  * ```ts
- * import { requestAttention } from '@vulfram/engine/window';
+ * import { requestAttention } from '@galfus/engine/window';
  *
  * requestAttention(windowId, 'critical');
  * ```
@@ -198,7 +198,7 @@ export function requestAttention(windowId: WindowId, attentionType?: UserAttenti
  *
  * @example
  * ```ts
- * import { focusWindow } from '@vulfram/engine/window';
+ * import { focusWindow } from '@galfus/engine/window';
  *
  * focusWindow(windowId);
  * ```

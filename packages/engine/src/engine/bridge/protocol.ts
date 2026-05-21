@@ -1,31 +1,31 @@
 import { Packr, Unpackr } from 'msgpackr';
-import type { TransportBuffer } from '@vulfram/transport-types';
+import type { TransportBuffer } from '@galfus/transport-types';
 import type { CommandResponseEnvelope, EngineCmdEnvelope } from '../../types/cmds';
 import type { EngineEvent } from '../../types/events';
 
 /**
- * Vulfram Core/ABI Invariants:
+ * Galfus Core/ABI Invariants:
  *
  * 1. Threading:
  *    - The Core expects to be ticked and communicated with from a single host thread (Main Thread).
  *    - FFI/N-API calls are synchronous but the logic they trigger in the core (GPU work) is asynchronous.
  *
  * 2. Temporal Stability (Tick):
- *    - `vulframTick` must be called once per frame.
+ *    - `galfusTick` must be called once per frame.
  *    - Incorrect or skipped ticks can lead to uneven animations, input lag, or resource starvation.
  *
  * 3. Command Batching:
  *    - All High-Level Logic commands are batched into a single MessagePack-encoded buffer.
- *    - The batch is sent once per frame via `vulframSendQueue`.
+ *    - The batch is sent once per frame via `galfusSendQueue`.
  *    - Maximum batch size is defined by the Core (currently 64KB for safety, but adjustable).
  *
  * 4. Events & Responses:
- *    - Responses: Every command sent in a batch will eventually produce a response in `vulframReceiveQueue`.
+ *    - Responses: Every command sent in a batch will eventually produce a response in `galfusReceiveQueue`.
  *      Responses are matched back to commands using the `id` field in the envelope.
- *    - Events: System-level events (Keyboard, Mouse, Window resize) are polled via `vulframReceiveEvents`.
+ *    - Events: System-level events (Keyboard, Mouse, Window resize) are polled via `galfusReceiveEvents`.
  *
  * 5. Resource Uploads:
- *    - Larger data (Textures, Geometry data) are sent via `vulframUploadBuffer` to avoid bloating the command batch.
+ *    - Larger data (Textures, Geometry data) are sent via `galfusUploadBuffer` to avoid bloating the command batch.
  *    - These are out-of-band and acknowledged via specific events or response IDs.
  *
  * 6. ID Management:
@@ -130,7 +130,7 @@ export interface BaseCommandArgs {
 }
 
 /**
- * Serializes a batch of commands into a byte buffer ready for vulframSendQueue.
+ * Serializes a batch of commands into a byte buffer ready for galfusSendQueue.
  */
 export function serializeBatch(batch: CoreCommandBatch): TransportBuffer {
   const normalizedBatch = normalizeForMsgpack(batch) as CoreCommandBatch;
@@ -138,7 +138,7 @@ export function serializeBatch(batch: CoreCommandBatch): TransportBuffer {
 }
 
 /**
- * Deserializes responses from vulframReceiveQueue.
+ * Deserializes responses from galfusReceiveQueue.
  */
 export function deserializeResponses(buffer: TransportBuffer): CommandResponseEnvelope[] {
   if (buffer.length === 0) return [];
@@ -146,7 +146,7 @@ export function deserializeResponses(buffer: TransportBuffer): CommandResponseEn
 }
 
 /**
- * Deserializes events from vulframReceiveEvents.
+ * Deserializes events from galfusReceiveEvents.
  */
 export function deserializeEvents(buffer: TransportBuffer): EngineEvent[] {
   if (buffer.length === 0) return [];

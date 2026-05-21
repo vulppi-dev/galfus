@@ -4,7 +4,7 @@ import { Command } from 'commander';
 import {
   getArtifactFileName,
   resolveNativePlatform,
-  type VulframPlatform
+  type GalfusPlatform
 } from '../packages/transport-types/src/index';
 
 type BuildMode = 'debug' | 'release';
@@ -27,11 +27,11 @@ async function ensureDir(path: string): Promise<void> {
   await mkdir(path, { recursive: true });
 }
 
-function getNativePlatform(): Exclude<VulframPlatform, 'browser'> {
+function getNativePlatform(): Exclude<GalfusPlatform, 'browser'> {
   return resolveNativePlatform();
 }
 
-function getNativeLibraryExtension(platform: Exclude<VulframPlatform, 'browser'>): string {
+function getNativeLibraryExtension(platform: Exclude<GalfusPlatform, 'browser'>): string {
   if (platform.startsWith('windows')) return 'dll';
   if (platform.startsWith('macos')) return 'dylib';
   return 'so';
@@ -93,12 +93,12 @@ async function copyArtifact(source: string, destination: string): Promise<void> 
 }
 
 async function buildBunFfi(
-  platform: Exclude<VulframPlatform, 'browser'>,
+  platform: Exclude<GalfusPlatform, 'browser'>,
   mode: BuildMode
 ): Promise<void> {
   const profileDir = getCargoProfileDir(mode);
   const extension = getNativeLibraryExtension(platform);
-  const source = join(cargoTargetDir, profileDir, `libvulfram_bindings_ffi.${extension}`);
+  const source = join(cargoTargetDir, profileDir, `libgalfus_bindings_ffi.${extension}`);
   const destination = join(
     rootDir,
     'packages',
@@ -108,7 +108,7 @@ async function buildBunFfi(
     getArtifactFileName('ffi', platform)
   );
 
-  const cargoArgs = ['cargo', 'build', '-p', 'vulfram-bindings-ffi'];
+  const cargoArgs = ['cargo', 'build', '-p', 'galfus-bindings-ffi'];
   if (mode === 'release') {
     cargoArgs.push('--release');
   }
@@ -118,13 +118,13 @@ async function buildBunFfi(
 }
 
 async function buildNapi(
-  platform: Exclude<VulframPlatform, 'browser'>,
+  platform: Exclude<GalfusPlatform, 'browser'>,
   mode: BuildMode
 ): Promise<void> {
   const profileDir = getCargoProfileDir(mode);
   const extension = getNativeLibraryExtension(platform);
   const libPrefix = platform.startsWith('windows') ? '' : 'lib';
-  const source = join(cargoTargetDir, profileDir, `${libPrefix}vulfram_bindings_napi.${extension}`);
+  const source = join(cargoTargetDir, profileDir, `${libPrefix}galfus_bindings_napi.${extension}`);
   const destination = join(
     rootDir,
     'packages',
@@ -134,7 +134,7 @@ async function buildNapi(
     getArtifactFileName('napi', platform)
   );
 
-  const cargoArgs = ['cargo', 'build', '-p', 'vulfram-bindings-napi'];
+  const cargoArgs = ['cargo', 'build', '-p', 'galfus-bindings-napi'];
   if (mode === 'release') {
     cargoArgs.push('--release');
   }
@@ -149,7 +149,7 @@ async function buildWasm(mode: BuildMode): Promise<void> {
     cargoTargetDir,
     'wasm32-unknown-unknown',
     profileDir,
-    'vulfram_bindings_wasm.wasm'
+    'galfus_bindings_wasm.wasm'
   );
   const destinationDir = join(rootDir, 'packages', 'transport-browser', 'dist');
 
@@ -157,7 +157,7 @@ async function buildWasm(mode: BuildMode): Promise<void> {
     'cargo',
     'build',
     '-p',
-    'vulfram-bindings-wasm',
+    'galfus-bindings-wasm',
     '--target',
     'wasm32-unknown-unknown'
   ];
@@ -175,7 +175,7 @@ async function buildWasm(mode: BuildMode): Promise<void> {
     '--out-dir',
     destinationDir,
     '--out-name',
-    'vulfram_core',
+    'galfus_core',
     crateOutput
   ]);
 }

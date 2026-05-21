@@ -1,0 +1,11 @@
+mod scenario_001_frame_graph;
+mod scenario_002_optical_persistence;
+
+use crate::demo::{DemoContext, DemoKind};
+
+pub fn run(demo: DemoKind, ctx: DemoContext) -> bool {
+    match demo {
+        DemoKind::FrameGraph001 => scenario_001_frame_graph::run(ctx),
+        DemoKind::FrameGraph002Persistence => scenario_002_optical_persistence::run(ctx),
+    }
+}

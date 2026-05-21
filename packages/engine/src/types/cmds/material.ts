@@ -1,13 +1,12 @@
 import type { Vec4 as vec4 } from '../../math/index';
+import type { TransparencyMode, SamplerMode, PrimitiveTopology, PolygonMode, RenderSide } from '../kinds';
 import type {
-  MaterialKind,
-  TransparencyMode,
-  SamplerMode,
-  PrimitiveTopology,
-  PolygonMode,
-  RenderSide
-} from '../kinds';
-import type { ResourceEntry } from './resources';
+  CmdResourceGetArgs,
+  CmdResourceListArgs,
+  CmdResultResourceGet,
+  CmdResultResourceList,
+  ResourceEntry
+} from './resources';
 
 /** Standard material options. */
 export interface StandardOptions {
@@ -67,7 +66,8 @@ export type MaterialOptions =
 export interface CmdMaterialCreateArgs {
   materialId: number;
   label?: string;
-  kind: MaterialKind;
+  slug: string;
+  kind: 'shader';
   options?: MaterialOptions;
 }
 
@@ -75,7 +75,8 @@ export interface CmdMaterialCreateArgs {
 export interface CmdMaterialUpdateArgs {
   materialId: number;
   label?: string;
-  kind?: MaterialKind;
+  slug?: string;
+  kind?: 'shader';
   options?: MaterialOptions;
 }
 
@@ -114,3 +115,78 @@ export interface CmdResultMaterialList {
   message: string;
   materials: ResourceEntry[];
 }
+
+export interface CmdMaterialDefinitionCreateArgs {
+  definitionId: number;
+  slug: string;
+  label?: string;
+  preset: string;
+  shaderType?: string;
+  shaderSource: string;
+  shaderParamsSchema?: Record<string, string>;
+  capabilities?: MaterialShaderCapabilities;
+}
+
+export interface CmdMaterialDefinitionUpdateArgs {
+  definitionId: number;
+  slug?: string;
+  label?: string;
+  preset?: string;
+  shaderType?: string;
+  shaderSource: string;
+  shaderParamsSchema?: Record<string, string>;
+  capabilities?: MaterialShaderCapabilities;
+}
+
+export interface MaterialShaderCapabilities {
+  semantics?: string[];
+}
+
+export type CmdMaterialDefinitionUpsertArgs =
+  | CmdMaterialDefinitionCreateArgs
+  | CmdMaterialDefinitionUpdateArgs;
+
+export interface CmdMaterialDefinitionDisposeArgs {
+  definitionId: number;
+}
+
+export interface CmdResultMaterialDefinition {
+  success: boolean;
+  message: string;
+}
+
+export interface CmdMaterialInstanceCreateArgs {
+  materialId: number;
+  slug: string;
+  label?: string;
+  options?: MaterialOptions;
+}
+
+export interface CmdMaterialInstanceUpdateArgs {
+  materialId: number;
+  slug?: string;
+  label?: string;
+  options?: MaterialOptions;
+}
+
+export type CmdMaterialInstanceUpsertArgs = CmdMaterialInstanceCreateArgs | CmdMaterialInstanceUpdateArgs;
+
+export interface CmdMaterialInstanceDisposeArgs {
+  materialId: number;
+}
+
+export interface CmdResultMaterialInstance {
+  success: boolean;
+  message: string;
+}
+
+export type CmdMaterialGetArgs = CmdResourceGetArgs;
+export type CmdResultMaterialGet = CmdResultResourceGet;
+export type CmdMaterialDefinitionGetArgs = CmdResourceGetArgs;
+export type CmdResultMaterialDefinitionGet = CmdResultResourceGet;
+export type CmdMaterialDefinitionListArgs = CmdResourceListArgs;
+export type CmdResultMaterialDefinitionList = CmdResultResourceList;
+export type CmdMaterialInstanceGetArgs = CmdResourceGetArgs;
+export type CmdResultMaterialInstanceGet = CmdResultResourceGet;
+export type CmdMaterialInstanceListArgs = CmdResourceListArgs;
+export type CmdResultMaterialInstanceList = CmdResultResourceList;

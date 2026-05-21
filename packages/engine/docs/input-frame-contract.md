@@ -8,15 +8,15 @@ to be the baseline for the incremental input refactor.
 
 Per `tick(timeMs, deltaMs)`, the order is:
 
-1. Receive events from core (`vulframReceiveEvents`) and route to worlds.
-2. Receive command responses from core (`vulframReceiveQueue`) and route.
+1. Receive events from core (`galfusReceiveEvents`) and route to worlds.
+2. Receive command responses from core (`galfusReceiveQueue`) and route.
 3. Execute systems for each world in order:
    - `input`
    - `update`
    - `preRender`
    - `postRender`
-4. Collect/send commands (`vulframSendQueue`).
-5. Execute core tick (`vulframTick`).
+4. Collect/send commands (`galfusSendQueue`).
+5. Execute core tick (`galfusTick`).
 
 ## Reset Semantics (Start of `InputMirrorSystem`)
 

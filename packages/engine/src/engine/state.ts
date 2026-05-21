@@ -1,4 +1,4 @@
-import type { EngineTransport } from '@vulfram/transport-types';
+import type { EngineTransport } from '@galfus/transport-types';
 import type { CommandResponseEnvelope, EngineCmdEnvelope } from '../types/cmds';
 import type { EngineEvent } from '../types/events';
 import type { CmdRealmCreateArgs, RealmKind } from '../types/cmds/realm';
@@ -36,7 +36,7 @@ export type WorldState = {
   worldId: number;
   /**
    * Realm kind for this world.
-   * `three-d` realms are used by World3D APIs and `two-d` realms by WorldUI APIs.
+   * `three-d` realms are used by World3D APIs.
    */
   realmKind: RealmKind;
   primaryWindowId?: number;
@@ -205,7 +205,6 @@ export type EngineState = {
 export const REQUIRED_SYSTEMS = [
   'InputMirrorSystem',
   'CommandIntentSystem',
-  'UiBridgeSystem',
   'ResourceUploadSystem',
   'ConstraintSolveSystem',
   'SceneSyncSystem',

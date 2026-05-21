@@ -2,8 +2,8 @@ import {
   get3DPointerDelta,
   is3DPointerButtonPressed,
   type World3DId
-} from '@vulfram/engine/world3d';
-import { vec3 } from '@vulfram/engine/math';
+} from '@galfus/engine/world3d';
+import { vec3 } from '@galfus/engine/math';
 import type { CameraPointerState } from './types';
 
 const POINTER_DELTA_DEADZONE = 0.01;

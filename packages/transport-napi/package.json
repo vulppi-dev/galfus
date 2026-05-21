@@ -1,10 +1,10 @@
 {
-  "name": "@vulfram/transport-napi",
+  "name": "@galfus/transport-napi",
   "version": "0.0.0",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/vulppi-dev/vulfram.git",
+    "url": "git+https://github.com/vulppi-dev/galfus.git",
     "directory": "packages/transport-napi"
   },
   "type": "module",
@@ -20,7 +20,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@vulfram/transport-types": "^0.3.0"
+    "@galfus/transport-types": "^0.3.0"
   },
   "devDependencies": {
     "@types/bun": "^1.3.11"

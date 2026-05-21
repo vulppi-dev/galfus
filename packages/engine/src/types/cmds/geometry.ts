@@ -1,6 +1,6 @@
 import type { Vec3 as vec3 } from '../../math/index';
 import type { PrimitiveShape } from '../kinds';
-import type { ResourceEntry } from './resources';
+import type { CmdResourceGetArgs, CmdResultResourceGet, ResourceEntry } from './resources';
 
 /** Primitive attribute semantic identifiers. */
 export type GeometryPrimitiveType =
@@ -152,3 +152,6 @@ export interface CmdResultGeometryList {
   message: string;
   geometries: ResourceEntry[];
 }
+
+export type CmdGeometryGetArgs = CmdResourceGetArgs;
+export type CmdResultGeometryGet = CmdResultResourceGet;

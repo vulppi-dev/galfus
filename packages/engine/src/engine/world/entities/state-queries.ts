@@ -1,5 +1,5 @@
 import { vec2, type Vec2 } from '../../../math/index';
-import type { GamepadEvent, SystemEvent, UiEvent } from '../../../types/events';
+import type { GamepadEvent, SystemEvent } from '../../../types/events';
 import type { InputStateComponent, WindowStateComponent } from '../../ecs';
 import { getWorldOrThrow, requireInitialized } from '../../bridge/guards';
 import { WORLD_ENTITY_ID } from './common';
@@ -234,13 +234,6 @@ function getSystemEventState(worldId: number):
     | undefined;
 }
 
-function getUiEventState(worldId: number): { eventsThisFrame: UiEvent[] } | undefined {
-  requireInitialized();
-  const world = getWorldOrThrow(worldId);
-  const worldStore = world.components.get(WORLD_ENTITY_ID);
-  return worldStore?.get('UiEventState') as { eventsThisFrame: UiEvent[] } | undefined;
-}
-
 export function getGamepadEvents(worldId: number): GamepadEvent[] {
   return getGamepadState(worldId)?.eventsThisFrame ?? [];
 }
@@ -284,9 +277,4 @@ export function getLastSystemError(worldId: number): {
   commandType?: string;
 } | null {
   return getSystemEventState(worldId)?.lastError ?? null;
-}
-
-/** Returns UI events mirrored in the current frame. */
-export function getUiEvents(worldId: number): UiEvent[] {
-  return getUiEventState(worldId)?.eventsThisFrame ?? [];
 }

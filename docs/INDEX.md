@@ -1,4 +1,4 @@
-# Vulfram Documentation Index
+# Galfus Documentation Index
 
 ## Start Here
 
@@ -6,12 +6,11 @@
 - public ABI contract: [ABI.md](ABI.md)
 - current runtime architecture: [ARCH.md](ARCH.md)
 - internal API snapshot: [API.md](API.md)
-- realm architecture (vNext): [REALM-ARCH.md](REALM-ARCH.md)
-- render graph model (vNext): [RENDER-GRAPH.md](RENDER-GRAPH.md)
-- canonical examples (vNext): [EXAMPLES-VNEXT.md](EXAMPLES-VNEXT.md)
-- vNext breaking changes: [VNEXT-BREAKING-CHANGES.md](VNEXT-BREAKING-CHANGES.md)
-- vNext migration guide: [VNEXT-MIGRATION.md](VNEXT-MIGRATION.md)
-- vNext release draft: [RELEASE-VNEXT.md](RELEASE-VNEXT.md)
+- realm architecture: [REALM-ARCH.md](REALM-ARCH.md)
+- render graph model: [RENDER-GRAPH.md](RENDER-GRAPH.md)
+- custom material shaders: [SHADERS-MATERIALS.md](SHADERS-MATERIALS.md)
+- custom pass shaders: [SHADERS-PASSES.md](SHADERS-PASSES.md)
+- shader helpers glossary: [SHADERS-GLOSSARY.md](SHADERS-GLOSSARY.md)
 - terminology: [GLOSSARY.md](GLOSSARY.md)
 - command reference: [cmds/](cmds/)
 
@@ -23,8 +22,7 @@ Read in this order:
 2. [ABI.md](ABI.md)
 3. [REALM-ARCH.md](REALM-ARCH.md)
 4. [RENDER-GRAPH.md](RENDER-GRAPH.md)
-5. [EXAMPLES-VNEXT.md](EXAMPLES-VNEXT.md)
-6. [cmds/](cmds/)
+5. [cmds/](cmds/)
 
 Current baseline rules:
 
@@ -42,10 +40,8 @@ Read in this order:
 3. [REALM-ARCH.md](REALM-ARCH.md)
 4. [RENDER-GRAPH.md](RENDER-GRAPH.md)
 5. [GLOSSARY.md](GLOSSARY.md)
-6. [EXAMPLES-VNEXT.md](EXAMPLES-VNEXT.md)
 
 ## Release / Validation Supporting Docs
 
-- [VALIDATION.md](VALIDATION.md)
 - [CI-RELEASE-PUBLISH.md](CI-RELEASE-PUBLISH.md)
 - [OIDC-PUBLISH-SETUP.md](OIDC-PUBLISH-SETUP.md)

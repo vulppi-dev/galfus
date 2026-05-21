@@ -1,12 +1,12 @@
-# Vulfram Glossary
+# Galfus Glossary
 
 ## Host
 
-External application that drives Vulfram commands and frame lifecycle.
+External application that drives Galfus commands and frame lifecycle.
 
 ## Core
 
-Rust engine side (`vulfram-runtime` + dependent crates).
+Rust engine side (`galfus-runtime` + dependent crates).
 
 ## Realm
 

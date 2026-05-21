@@ -1,5 +1,5 @@
-# @vulfram/transport-napi
+# @galfus/transport-napi
 
-Transport implementation based on Node-API (N-API) in the Vulfram ecosystem.
+Transport implementation based on Node-API (N-API) in the Galfus ecosystem.
 
-Transport documentation: https://www.vulppi.dev/vulfram/docs/bind/setup#pick-a-transport
+Transport documentation: https://www.vulppi.dev/galfus/docs/bind/setup#pick-a-transport

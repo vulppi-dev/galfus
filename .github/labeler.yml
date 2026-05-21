@@ -1,45 +1,45 @@
 area:core:
   - changed-files:
       - any-glob-to-any-file:
-          - 'crates/vulfram-runtime/**'
-          - 'crates/vulfram-protocol/**'
-          - 'crates/vulfram-types/**'
-          - 'crates/vulfram-input/**'
-          - 'crates/vulfram-platform/**'
-          - 'crates/vulfram-log/**'
+          - 'crates/galfus-runtime/**'
+          - 'crates/galfus-protocol/**'
+          - 'crates/galfus-types/**'
+          - 'crates/galfus-input/**'
+          - 'crates/galfus-platform/**'
+          - 'crates/galfus-log/**'
           - 'packages/transport-types/**'
           - 'packages/engine/**'
 
 area:render:
   - changed-files:
       - any-glob-to-any-file:
-          - 'crates/vulfram-render/**'
-          - 'crates/vulfram-realm-core/**'
+          - 'crates/galfus-render/**'
+          - 'crates/galfus-realm-core/**'
 
 area:bindings:
   - changed-files:
       - any-glob-to-any-file:
-          - 'crates/vulfram-bindings-*/**'
+          - 'crates/galfus-bindings-*/**'
 
 area:2d:
   - changed-files:
       - any-glob-to-any-file:
-          - 'crates/vulfram-realm-2d/**'
+          - 'crates/galfus-realm-2d/**'
 
 area:3d:
   - changed-files:
       - any-glob-to-any-file:
-          - 'crates/vulfram-realm-3d/**'
+          - 'crates/galfus-realm-3d/**'
 
 area:audio:
   - changed-files:
       - any-glob-to-any-file:
-          - 'crates/vulfram-audio/**'
+          - 'crates/galfus-audio/**'
 
 area:demo:
   - changed-files:
       - any-glob-to-any-file:
-          - 'crates/vulfram-demo/**'
+          - 'crates/galfus-demo/**'
           - 'apps/demos/**'
 
 area:tooling:
@@ -47,7 +47,7 @@ area:tooling:
       - any-glob-to-any-file:
           - '.github/**'
           - 'scripts/**'
-          - 'crates/vulfram-devtools/**'
+          - 'crates/galfus-devtools/**'
           - 'package.json'
           - 'bun.lock'
           - 'Cargo.toml'

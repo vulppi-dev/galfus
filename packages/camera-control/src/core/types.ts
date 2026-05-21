@@ -1,5 +1,5 @@
-import type { EntityId, World3DId } from '@vulfram/engine/world3d';
-import type { Quat as quat, ReadonlyVec3, Vec3 as vec3 } from '@vulfram/engine/math';
+import type { EntityId, World3DId } from '@galfus/engine/world3d';
+import type { Quat as quat, ReadonlyVec3, Vec3 as vec3 } from '@galfus/engine/math';
 
 export type CameraControllerKind =
   | 'orbit'

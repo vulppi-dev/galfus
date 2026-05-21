@@ -1,5 +1,6 @@
 import type { ShadowConfig } from '../../../types/cmds/shadow';
 import type { EnvironmentConfig, CmdEnvironmentDisposeArgs } from '../../../types/cmds/environment';
+import type { CmdResourceGetArgs, CmdResourceListArgs } from '../../../types/cmds/resources';
 import type {
   CmdRealmRenderGraphBindArgs,
   CmdRenderGraphDisposeArgs,
@@ -81,6 +82,54 @@ export function listCameras(worldId: number): number {
   });
 }
 
+export function getModel(worldId: number, args: CmdResourceGetArgs): number {
+  return enqueueCommand(worldId, 'cmd-model-get', args);
+}
+
+export function getMaterial(worldId: number, args: CmdResourceGetArgs): number {
+  return enqueueCommand(worldId, 'cmd-material-get', args);
+}
+
+export function getTexture(worldId: number, args: CmdResourceGetArgs): number {
+  return enqueueCommand(worldId, 'cmd-texture-get', args);
+}
+
+export function getGeometry(worldId: number, args: CmdResourceGetArgs): number {
+  return enqueueCommand(worldId, 'cmd-geometry-get', args);
+}
+
+export function getLight(worldId: number, args: CmdResourceGetArgs): number {
+  return enqueueCommand(worldId, 'cmd-light-get', args);
+}
+
+export function getCamera(worldId: number, args: CmdResourceGetArgs): number {
+  return enqueueCommand(worldId, 'cmd-camera-get', args);
+}
+
+export function getEnvironment(worldId: number, args: CmdResourceGetArgs): number {
+  return enqueueCommand(worldId, 'cmd-environment-get', args);
+}
+
+export function listEnvironments(worldId: number, args: CmdResourceListArgs = {}): number {
+  return enqueueCommand(worldId, 'cmd-environment-list', args);
+}
+
+export function getMaterialDefinition(worldId: number, args: CmdResourceGetArgs): number {
+  return enqueueCommand(worldId, 'cmd-material-definition-get', args);
+}
+
+export function listMaterialDefinitions(worldId: number, args: CmdResourceListArgs = {}): number {
+  return enqueueCommand(worldId, 'cmd-material-definition-list', args);
+}
+
+export function getMaterialInstance(worldId: number, args: CmdResourceGetArgs): number {
+  return enqueueCommand(worldId, 'cmd-material-instance-get', args);
+}
+
+export function listMaterialInstances(worldId: number, args: CmdResourceListArgs = {}): number {
+  return enqueueCommand(worldId, 'cmd-material-instance-list', args);
+}
+
 /** Creates or updates a render graph in the core catalog. */
 export function upsertRenderGraph(worldId: number, args: CmdRenderGraphUpsertArgs): number {
   return enqueueCommand(worldId, 'cmd-render-graph-upsert', args);
@@ -94,6 +143,17 @@ export function disposeRenderGraph(worldId: number, args: CmdRenderGraphDisposeA
 /** Requests the current render graph catalog. */
 export function listRenderGraphs(worldId: number, args: CmdRenderGraphListArgs = {}): number {
   return enqueueCommand(worldId, 'cmd-render-graph-list', args);
+}
+
+export function getRealm(worldId: number, realmId: number): number {
+  return enqueueCommand(worldId, 'cmd-realm-get', { realmId });
+}
+
+export function listRealms(
+  worldId: number,
+  args: { kind?: 'three-d' | 'two-d'; ids?: number[] } = {}
+): number {
+  return enqueueCommand(worldId, 'cmd-realm-list', args);
 }
 
 /** Binds a realm to a render graph id. */

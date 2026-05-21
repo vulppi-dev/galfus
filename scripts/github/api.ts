@@ -36,7 +36,7 @@ export async function githubRequest<T>(config: {
     headers: {
       Accept: 'application/vnd.github+json',
       Authorization: `Bearer ${token}`,
-      'User-Agent': 'vulfram-bun-workflow',
+      'User-Agent': 'galfus-bun-workflow',
       ...(config.body ? { 'Content-Type': 'application/json' } : {}),
       ...config.headers
     },

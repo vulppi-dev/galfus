@@ -6,9 +6,9 @@ import {
   type GeometryId,
   type MaterialId,
   type TextureId
-} from '@vulfram/engine/world3d';
-import { vec4 } from '@vulfram/engine/math';
-import type { GeometryPrimitiveEntry } from '@vulfram/engine/types';
+} from '@galfus/engine/world3d';
+import { vec4 } from '@galfus/engine/math';
+import type { GeometryPrimitiveEntry } from '@galfus/engine/types';
 import { uploadBytes } from './context';
 import {
   accessorToIndexBytes,

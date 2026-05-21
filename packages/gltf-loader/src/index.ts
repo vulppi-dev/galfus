@@ -1,4 +1,4 @@
-import { dispose3DGeometry, dispose3DMaterial, dispose3DTexture } from '@vulfram/engine/world3d';
+import { dispose3DGeometry, dispose3DMaterial, dispose3DTexture } from '@galfus/engine/world3d';
 import { createContext } from './context';
 import { GltfLoaderError } from './errors';
 import { readDocument } from './parse';
@@ -35,7 +35,7 @@ export { GltfLoaderError } from './errors';
  *
  * @example
  * ```ts
- * import { loadGltfAsset } from '@vulfram/gltf-loader';
+ * import { loadGltfAsset } from '@galfus/gltf-loader';
  *
  * const asset = await loadGltfAsset({
  *   worldId,
@@ -129,7 +129,7 @@ export async function loadGltfAsset(input: GltfLoadInput): Promise<LoadedGltfAss
  *
  * @example
  * ```ts
- * import { loadGltfScene } from '@vulfram/gltf-loader';
+ * import { loadGltfScene } from '@galfus/gltf-loader';
  *
  * const result = await loadGltfScene({
  *   worldId,

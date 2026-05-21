@@ -13,12 +13,9 @@
     "preview": "vite preview"
   },
   "devDependencies": {
-    "@vulfram/camera-control": "workspace:*",
-    "@vulfram/engine": "workspace:*",
-    "@vulfram/gltf-loader": "workspace:*",
-    "@vulfram/transport-browser": "workspace:*",
-    "@vulfram/transport-bun": "workspace:*",
-    "@vulfram/transport-napi": "workspace:*",
+    "@galfus/engine": "workspace:*",
+    "@galfus/transport-browser": "workspace:*",
+    "@galfus/transport-bun": "workspace:*",
     "@types/bun": "^1.3.11",
     "typescript": "^6.0.2",
     "vite": "^8.0.2"

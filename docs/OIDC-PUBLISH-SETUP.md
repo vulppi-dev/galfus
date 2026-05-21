@@ -7,20 +7,20 @@ for the JSR packages that are currently published by the workflow.
 
 npm publish flow currently targets:
 
-- `@vulfram/transport-browser`
-- `@vulfram/transport-bun`
-- `@vulfram/transport-napi`
-- `@vulfram/engine`
-- `@vulfram/gltf-loader`
-- `@vulfram/camera-control`
+- `@galfus/transport-browser`
+- `@galfus/transport-bun`
+- `@galfus/transport-napi`
+- `@galfus/engine`
+- `@galfus/gltf-loader`
+- `@galfus/camera-control`
 
 JSR publish flow currently targets:
 
-- `@vulfram/transport-types`
-- `@vulfram/transport-browser`
-- `@vulfram/engine`
-- `@vulfram/gltf-loader`
-- `@vulfram/camera-control`
+- `@galfus/transport-types`
+- `@galfus/transport-browser`
+- `@galfus/engine`
+- `@galfus/gltf-loader`
+- `@galfus/camera-control`
 
 Manual JSR publish only:
 
@@ -28,8 +28,8 @@ Manual JSR publish only:
 
 Excluded from JSR workflow:
 
-- `@vulfram/transport-bun`
-- `@vulfram/transport-napi`
+- `@galfus/transport-bun`
+- `@galfus/transport-napi`
 
 The excluded packages remain out of JSR because their native multi-platform
 artifacts make the publish payload too large for the registry.
@@ -59,7 +59,7 @@ For every package:
 3. Choose `GitHub Actions`.
 4. Fill the form with:
    - Organization or user: `vulppi-dev`
-   - Repository: `vulfram`
+   - Repository: `galfus`
    - Workflow filename: `build-bindings.yml`
    - Environment name: leave empty unless you later protect publishing with a GitHub Environment
 5. Save the trusted publisher configuration.
@@ -67,7 +67,7 @@ For every package:
 Important notes:
 
 - npm matches these values exactly and case-sensitively.
-- The package `repository.url` must point to `git+https://github.com/vulppi-dev/vulfram.git`.
+- The package `repository.url` must point to `git+https://github.com/vulppi-dev/galfus.git`.
 - Trusted publishing replaces the old long-lived publish token flow for `npm publish`.
 - With trusted publishing, npm generates provenance automatically. The workflow still uses `--provenance` explicitly for clarity.
 
@@ -76,7 +76,7 @@ Important notes:
 Configure JSR package linking once for each JSR package published by the
 workflow.
 
-`@vulfram/transport-bun` and `@vulfram/transport-napi` are intentionally
+`@galfus/transport-bun` and `@galfus/transport-napi` are intentionally
 excluded from the JSR workflow because their native multi-platform artifacts
 make the publish payload too large for JSR.
 
@@ -86,7 +86,7 @@ For every package:
 2. Go to the package `Settings`.
 3. In the GitHub repository/link section, link the package to:
    - owner: `vulppi-dev`
-   - repository: `vulfram`
+   - repository: `galfus`
 4. Save the link.
 
 After the package is linked, `npx jsr publish` in GitHub Actions can

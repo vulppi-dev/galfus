@@ -3,12 +3,12 @@ import { mkdir, readFile, readdir, rm, writeFile } from 'fs/promises';
 import { dirname, join } from 'path';
 import { Command } from 'commander';
 import {
-  VULFRAM_R2_DEFAULT_BASE_URL,
+  GALFUS_R2_DEFAULT_BASE_URL,
   buildArtifactUrl,
   getArtifactFileName,
   parsePackageArtifactTarget,
-  type VulframBinding,
-  type VulframPlatform
+  type GalfusBinding,
+  type GalfusPlatform
 } from '../packages/transport-types/src/index';
 
 type PackageJson = {
@@ -17,7 +17,7 @@ type PackageJson = {
 };
 
 const rootDir = join(import.meta.dir, '..');
-const ALL_NATIVE_PLATFORMS: Exclude<VulframPlatform, 'browser'>[] = [
+const ALL_NATIVE_PLATFORMS: Exclude<GalfusPlatform, 'browser'>[] = [
   'linux-x64',
   'linux-arm64',
   'macos-x64',
@@ -60,7 +60,7 @@ async function cleanTransportNapiDist(path: string): Promise<void> {
           entry !== '.gitkeep' &&
           entry !== 'index.js' &&
           entry !== 'index.d.ts' &&
-          !/^vulfram_core-.*\.node$/.test(entry)
+          !/^galfus_core-.*\.node$/.test(entry)
       )
       .map((entry) => rm(join(path, entry), { recursive: true, force: true }))
   );
@@ -105,8 +105,8 @@ async function downloadFile(url: string, destination: string): Promise<void> {
 }
 
 async function ensureArtifact(config: {
-  binding: VulframBinding;
-  platform: VulframPlatform;
+  binding: GalfusBinding;
+  platform: GalfusPlatform;
   artifact: string;
   destination: string;
   baseUrl: string;
@@ -134,7 +134,7 @@ async function parseOptions(): Promise<ArtifactsOptions> {
     .option(
       '--base-url <url>',
       'Base URL used to resolve transport artifacts.',
-      VULFRAM_R2_DEFAULT_BASE_URL
+      GALFUS_R2_DEFAULT_BASE_URL
     )
     .option(
       '--offline',
@@ -174,10 +174,10 @@ async function main(): Promise<void> {
   const browserVersion = await readPackageVersion('transport-browser');
 
   const browserArtifacts = [
-    'vulfram_core.js',
-    'vulfram_core.d.ts',
-    'vulfram_core_bg.wasm',
-    'vulfram_core_bg.wasm.d.ts'
+    'galfus_core.js',
+    'galfus_core.d.ts',
+    'galfus_core_bg.wasm',
+    'galfus_core_bg.wasm.d.ts'
   ] as const;
 
   await Promise.all([

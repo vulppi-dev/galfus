@@ -70,7 +70,9 @@ export interface CmdTargetLayerUpsertArgs {
   realmId: number;
   targetId: number;
   layout: TargetLayerLayout;
+  /** @deprecated Prefer enabledCameraIds. */
   cameraId?: number;
+  enabledCameraIds?: number[];
   environmentId?: number;
 }
 
@@ -87,4 +89,67 @@ export interface CmdTargetLayerDisposeArgs {
 export interface CmdResultTargetLayerDispose {
   success: boolean;
   message: string;
+}
+
+export interface CmdTargetGetArgs {
+  targetId: number;
+}
+
+export interface CmdResultTargetGet {
+  success: boolean;
+  message: string;
+  targetId: number;
+  kind?: TargetKind;
+  windowId?: number;
+  size?: vec2;
+}
+
+export interface CmdTargetListArgs {
+  windowId?: number;
+  ids?: number[];
+}
+
+export interface TargetListItem {
+  targetId: number;
+  kind: TargetKind;
+  windowId?: number;
+  size?: vec2;
+}
+
+export interface CmdResultTargetList {
+  success: boolean;
+  message: string;
+  items: TargetListItem[];
+}
+
+export interface CmdTargetLayerGetArgs {
+  realmId: number;
+  targetId: number;
+}
+
+export interface CmdResultTargetLayerGet {
+  success: boolean;
+  message: string;
+  realmId: number;
+  targetId: number;
+  enabledCameraIds: number[];
+  environmentId?: number;
+}
+
+export interface CmdTargetLayerListArgs {
+  realmId?: number;
+  targetId?: number;
+}
+
+export interface TargetLayerListItem {
+  realmId: number;
+  targetId: number;
+  enabledCameraIds: number[];
+  environmentId?: number;
+}
+
+export interface CmdResultTargetLayerList {
+  success: boolean;
+  message: string;
+  items: TargetLayerListItem[];
 }

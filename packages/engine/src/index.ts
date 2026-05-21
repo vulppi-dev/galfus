@@ -3,7 +3,6 @@ export * from './engine/ecs';
 export * as Mount from './engine/world/mount';
 export * as Math from './math';
 export * as World3D from './engine/world/world3d';
-export * as WorldUI from './engine/world/world-ui';
 export {
   discardAllUploadBuffers,
   disposeEngine,
@@ -31,12 +30,11 @@ export type {
   TextureId,
   WindowId,
   World3DId,
-  WorldId,
-  WorldUIId
+  WorldId
 } from './engine/world/types';
 export * as Types from './types';
 export type {
   BufferResult,
   EngineTransport,
   EngineTransportFactory
-} from '@vulfram/transport-types';
+} from '@galfus/transport-types';

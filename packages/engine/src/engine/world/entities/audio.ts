@@ -1,10 +1,15 @@
 import type {
   CmdAudioListenerCreateArgs,
   CmdAudioListenerDisposeArgs,
+  CmdAudioListenerGetArgs,
   CmdAudioListenerUpsertArgs,
   CmdAudioListenerUpdateArgs,
+  CmdAudioResourceGetArgs,
+  CmdAudioResourceListArgs,
   CmdAudioResourceUpsertArgs,
   CmdAudioResourceDisposeArgs,
+  CmdAudioSourceGetArgs,
+  CmdAudioSourceListArgs,
   CmdAudioSourceTransportArgs,
   CmdAudioSourceCreateArgs,
   CmdAudioSourceDisposeArgs,
@@ -51,6 +56,10 @@ export function audioListenerDispose(worldId: number, args: CmdAudioListenerDisp
   return enqueueCommand(worldId, 'cmd-audio-listener-dispose', args);
 }
 
+export function audioListenerGet(worldId: number, args: CmdAudioListenerGetArgs = {}): number {
+  return enqueueCommand(worldId, 'cmd-audio-listener-get', args);
+}
+
 /**
  * Creates an audio resource from an uploaded buffer.
  */
@@ -63,6 +72,14 @@ export function audioResourceCreate(worldId: number, args: CmdAudioResourceUpser
  */
 export function audioResourcePush(worldId: number, args: CmdAudioResourceUpsertArgs): number {
   return enqueueCommand(worldId, 'cmd-audio-resource-upsert', args);
+}
+
+export function audioResourceGet(worldId: number, args: CmdAudioResourceGetArgs): number {
+  return enqueueCommand(worldId, 'cmd-audio-resource-get', args);
+}
+
+export function audioResourceList(worldId: number, args: CmdAudioResourceListArgs = {}): number {
+  return enqueueCommand(worldId, 'cmd-audio-resource-list', args);
 }
 
 /**
@@ -91,6 +108,14 @@ export function audioSourceUpdate(worldId: number, args: CmdAudioSourceUpdateArg
  */
 export function audioSourceUpsert(worldId: number, args: CmdAudioSourceUpsertArgs): number {
   return enqueueCommand(worldId, 'cmd-audio-source-upsert', args);
+}
+
+export function audioSourceGet(worldId: number, args: CmdAudioSourceGetArgs): number {
+  return enqueueCommand(worldId, 'cmd-audio-source-get', args);
+}
+
+export function audioSourceList(worldId: number, args: CmdAudioSourceListArgs = {}): number {
+  return enqueueCommand(worldId, 'cmd-audio-source-list', args);
 }
 
 /**

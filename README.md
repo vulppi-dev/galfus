@@ -1,7 +1,7 @@
 <div align="center">
-  <img src="https://www.vulppi.dev/images/vulfram/brand.png" alt="Vulfram" width="400" />
+  <img src="/assets/brand-effect.png" alt="Galfus" width="400" />
   
-  # Vulfram
+  # Galfus
   
   **High-Performance Rendering & Systems Core powered by WebGPU**
   
@@ -13,7 +13,7 @@
 
 ## 📋 Table of Contents
 
-- [About Vulfram](#-about-vulfram)
+- [About Galfus](#-about-galfus)
 - [Design Philosophy](#-design-philosophy)
 - [Architecture](#️-architecture)
 - [Key Concepts](#-key-concepts)
@@ -28,11 +28,11 @@
 
 ---
 
-## 🦊 About Vulfram
+## 🦊 About Galfus
 
-**Vulfram** is a **rendering and systems core** written in Rust and exposed as a dynamic library. The name combines "Vulppi" (derived from _Vulpes_, the scientific name for fox) and "Frame", representing our mission to create perfect frames for incredible interactive experiences.
+**Galfus** is a **rendering and systems core** written in Rust and exposed as a dynamic library. The name combines "Vulppi" (derived from _Vulpes_, the scientific name for fox) and "Frame", representing our mission to create perfect frames for incredible interactive experiences.
 
-Vulfram is designed to be **host-agnostic** and driven by external runtimes via FFI or WASM:
+Galfus is designed to be **host-agnostic** and driven by external runtimes via FFI or WASM:
 
 - 🟢 **Node.js** (N-API)
 - 🌙 **Lua** (via `mlua`)
@@ -56,11 +56,11 @@ Vulfram is designed to be **host-agnostic** and driven by external runtimes via 
 
 ## 💡 Design Philosophy
 
-Vulfram follows a **black box** approach where:
+Galfus follows a **black box** approach where:
 
 > The host controls the engine **only** through:
 >
-> - A small set of C functions (`vulfram_*`)
+> - A small set of C functions (`galfus_*`)
 > - Binary buffers serialized with **MessagePack**
 
 **Design Goals:**
@@ -75,7 +75,7 @@ Vulfram follows a **black box** approach where:
 
 ## 🏗️ Architecture
 
-Vulfram uses a queue-based architecture that enables efficient communication between the host and the Rust core:
+Galfus uses a queue-based architecture that enables efficient communication between the host and the Rust core:
 
 ```
 
@@ -115,15 +115,15 @@ The monorepo is split by ecosystem:
          │ (MsgPack)  │ (MsgPack)
          ▼            ▲
     ┌────────────────────────────┐
-    │  vulfram_send_queue()      │
-    │  vulfram_receive_queue()   │
-    │  vulfram_receive_events()  │
-    │  vulfram_upload_buffer()   │
-    │  vulfram_tick()            │
+    │  galfus_send_queue()      │
+    │  galfus_receive_queue()   │
+    │  galfus_receive_events()  │
+    │  galfus_upload_buffer()   │
+    │  galfus_tick()            │
     └──────────┬─────────────────┘
                │
 ┌──────────────▼───────────────────────┐
-│        Vulfram Core (Rust)           │
+│        Galfus Core (Rust)           │
 │  • Resource Management               │
 │  • Component Instances               │
 │  • Platform Proxy (Desktop/Browser)  │
@@ -144,10 +144,10 @@ The monorepo is split by ecosystem:
 - Manage game logic and world state
 - Generate logical IDs (entities, resources, buffers)
 - Build MessagePack command batches
-- Drive the main loop with `vulfram_tick()`
+- Drive the main loop with `galfus_tick()`
 - Process events and responses
 
-**Vulfram Core:**
+**Galfus Core:**
 
 - Abstract window, input, and rendering systems via platform proxies
 - Manage GPU resources and pipelines using WGPU
@@ -161,7 +161,7 @@ The monorepo is split by ecosystem:
 
 ### Components vs Resources
 
-Vulfram distinguishes between two fundamental types:
+Galfus distinguishes between two fundamental types:
 
 **Components** - High-level structures describing scene participation:
 
@@ -208,12 +208,12 @@ instead of managing these internal tables directly.
 
 ### Asynchronous Resource Linking (Fallback-Driven)
 
-Vulfram allows resources to be created out of order:
+Galfus allows resources to be created out of order:
 
 - Models can reference geometry or material IDs that do not exist yet.
 - Materials can reference texture IDs that do not exist yet.
 
-In these cases, Vulfram renders using fallback resources until the real
+In these cases, Galfus renders using fallback resources until the real
 resources are created later with the same IDs. When a referenced resource
 appears, it is picked up automatically on the next frame without recreating
 the model or material.
@@ -222,7 +222,7 @@ This enables async streaming and decouples creation order.
 
 ### Layer Masking
 
-Vulfram uses `u32` bitmasks for visibility control:
+Galfus uses `u32` bitmasks for visibility control:
 
 - `layerMaskCamera` - Specifies which layers a camera can see
 - `layerMaskComponent` - Specifies which layers a model belongs to
@@ -264,7 +264,7 @@ Draw calls are batched by runs of `(material_id, geometry_id)` after sorting.
 
 Heavy data uses one-shot uploads:
 
-1. Host calls `vulframUploadBuffer(bufferId, type, data)`
+1. Host calls `galfusUploadBuffer(bufferId, type, data)`
 2. Core stores blob in internal upload table
 3. `Create*` commands reference `bufferId` to consume data
 4. Entry is marked as used and can be removed
@@ -286,14 +286,14 @@ components first and upload data later.
 
 ```bash
 # Clone the repository
-git clone https://github.com/vulppi-dev/vulfram.git
-cd vulfram
+git clone https://github.com/vulppi-dev/galfus.git
+cd galfus
 
 # Build and run the first demo
-cargo run -p vulfram-demo -- 1
+cargo run -p galfus-demo -- 1
 ```
 
-The demo harness lives in `crates/vulfram-demo` and exercises:
+The demo harness lives in `crates/galfus-demo` and exercises:
 
 - window creation
 - primitive geometry creation
@@ -371,40 +371,39 @@ cargo fmt
 
 ```text
 1. Update host-side logic (game state, entities)
-2. Upload heavy data (optional) via `vulfram_upload_buffer()`
-3. Send command batch via `vulfram_send_queue()`
-4. Advance the core via `vulfram_tick(time, delta_time)`
-5. Receive responses via `vulfram_receive_queue()`
-6. Receive events via `vulfram_receive_events()`
-7. Read profiling data (optional) via `vulfram_get_profiling()`
+2. Upload heavy data (optional) via `galfus_upload_buffer()`
+3. Send command batch via `galfus_send_queue()`
+4. Advance the core via `galfus_tick(time, delta_time)`
+5. Receive responses via `galfus_receive_queue()`
+6. Receive events via `galfus_receive_events()`
+7. Read profiling data (optional) via `galfus_get_profiling()`
 ```
 
-`vulfram_receive_queue()` consumes and clears the internal response queue.
+`galfus_receive_queue()` consumes and clears the internal response queue.
 
 ---
 
 ## 📦 Project Structure
 
 ```text
-vulfram/
+galfus/
 ├── crates/
-│   ├── vulfram-runtime/         # Integration root, ABI re-exports and frame orchestration
-│   ├── vulfram-types/           # Shared logical/base types
-│   ├── vulfram-protocol/        # Host/runtime contracts + MsgPack codec
-│   ├── vulfram-realm-core/      # Realm composition semantics and graph/report DTOs
-│   ├── vulfram-input/           # Normalized input semantics
-│   ├── vulfram-realm-ui/        # UI semantic layer
-│   ├── vulfram-render/          # WGPU-facing render policy, graphs and planning helpers
-│   ├── vulfram-audio/           # Audio domain + backends
-│   ├── vulfram-platform/        # Desktop/browser integration
-│   ├── vulfram-realm-3d/        # 3D realm semantics + sync plans
-│   ├── vulfram-realm-2d/        # 2D realm placeholder/contracts
-│   ├── vulfram-bindings-ffi/    # C ABI host binding
-│   ├── vulfram-bindings-wasm/   # wasm-bindgen host binding
-│   ├── vulfram-bindings-napi/   # Node.js binding
-│   ├── vulfram-bindings-python/ # Python binding
-│   ├── vulfram-bindings-lua/    # Lua binding
-│   └── vulfram-demo/            # Visual/manual validation demos
+│   ├── galfus-runtime/         # Integration root, ABI re-exports and frame orchestration
+│   ├── galfus-types/           # Shared logical/base types
+│   ├── galfus-protocol/        # Host/runtime contracts + MsgPack codec
+│   ├── galfus-realm-core/      # Realm composition semantics and graph/report DTOs
+│   ├── galfus-input/           # Normalized input semantics
+│   ├── galfus-render/          # WGPU-facing render policy, graphs and planning helpers
+│   ├── galfus-audio/           # Audio domain + backends
+│   ├── galfus-platform/        # Desktop/browser integration
+│   ├── galfus-realm-3d/        # 3D realm semantics + sync plans
+│   ├── galfus-realm-2d/        # 2D realm placeholder/contracts
+│   ├── galfus-bindings-ffi/    # C ABI host binding
+│   ├── galfus-bindings-wasm/   # wasm-bindgen host binding
+│   ├── galfus-bindings-napi/   # Node.js binding
+│   ├── galfus-bindings-python/ # Python binding
+│   ├── galfus-bindings-lua/    # Lua binding
+│   └── galfus-demo/            # Visual/manual validation demos
 ├── docs/
 ├── assets/
 ├── scripts/
@@ -441,13 +440,10 @@ Comprehensive documentation is available in the `docs/` folder.
 
 **Additional Resources:**
 
-- **[UI.md](docs/UI.md)** - UI runtime technical index
-- **[ui/README.md](docs/ui/README.md)** - RealmUI overview and subsystem docs
 - **[PLATFORM-PROXIES.md](docs/PLATFORM-PROXIES.md)** - Platform proxy architecture
-- **[VALIDATION.md](docs/VALIDATION.md)** - Automated tests and manual demo validation scope
 - **[Copilot Instructions](.github/copilot-instructions.md)** - Development patterns and memory
 
-Automated tests do not fully cover perceptual/platform-dependent flows (window lifecycle details, audio audibility, visual quality). Those are validated manually by running demos as defined in `docs/VALIDATION.md`.
+Automated tests do not fully cover perceptual/platform-dependent flows (window lifecycle details, audio audibility, visual quality). Validate those manually by running demo scenarios.
 
 ---
 
@@ -500,8 +496,8 @@ Contributions are welcome! Please follow these guidelines:
 - **`image`** - Image loading and decoding
 
 Bindings now live in dedicated workspace crates:
-`vulfram-bindings-ffi`, `vulfram-bindings-wasm`, `vulfram-bindings-napi`,
-`vulfram-bindings-lua`, and `vulfram-bindings-python`.
+`galfus-bindings-ffi`, `galfus-bindings-wasm`, `galfus-bindings-napi`,
+`galfus-bindings-lua`, and `galfus-bindings-python`.
 
 ---
 

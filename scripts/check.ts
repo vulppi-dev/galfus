@@ -5,20 +5,20 @@ type Command = {
 
 const COMMANDS: Command[] = [
   {
-    label: 'cargo check -p vulfram-bindings-ffi --lib',
-    args: ['cargo', 'check', '-p', 'vulfram-bindings-ffi', '--lib']
+    label: 'cargo check -p galfus-bindings-ffi --lib',
+    args: ['cargo', 'check', '-p', 'galfus-bindings-ffi', '--lib']
   },
   {
-    label: 'cargo check -p vulfram-runtime --lib',
-    args: ['cargo', 'check', '-p', 'vulfram-runtime', '--lib']
+    label: 'cargo check -p galfus-runtime --lib',
+    args: ['cargo', 'check', '-p', 'galfus-runtime', '--lib']
   },
   {
     label: 'cargo run --bin wgsl_check',
-    args: ['cargo', 'run', '-p', 'vulfram-devtools', '--bin', 'wgsl_check']
+    args: ['cargo', 'run', '-p', 'galfus-devtools', '--bin', 'wgsl_check']
   },
   {
-    label: 'cargo test -p vulfram-runtime --lib',
-    args: ['cargo', 'test', '-p', 'vulfram-runtime', '--lib']
+    label: 'cargo test -p galfus-runtime --lib',
+    args: ['cargo', 'test', '-p', 'galfus-runtime', '--lib']
   },
   {
     label: 'cargo fmt --all',

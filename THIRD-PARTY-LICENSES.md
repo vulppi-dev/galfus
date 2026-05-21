@@ -1,6 +1,6 @@
 # Third-Party Licenses
 
-This file contains a list of third-party libraries used in **Vulfram**, along with their respective licenses.
+This file contains a list of third-party libraries used in **Galfus**, along with their respective licenses.
 
 ## Summary
 

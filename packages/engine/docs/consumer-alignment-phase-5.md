@@ -5,7 +5,7 @@ focusing on demo usage and validation paths.
 
 ## Scope
 
-- Validate that `@vulfram/camera-control` remains compatible with the new
+- Validate that `@galfus/camera-control` remains compatible with the new
   `World3D` input adapter structure.
 - Update demo usage to exercise newly exposed `World3D` query APIs.
 
@@ -31,7 +31,7 @@ Demo updates:
 Camera-control package:
 
 - No code changes required in this phase.
-- Compatibility verified by typecheck against workspace `@vulfram/engine`.
+- Compatibility verified by typecheck against workspace `@galfus/engine`.
 
 ## Validation
 

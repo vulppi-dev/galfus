@@ -1,10 +1,10 @@
 {
-  "name": "@vulfram/transport-types",
+  "name": "@galfus/transport-types",
   "version": "0.3.0",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/vulppi-dev/vulfram.git",
+    "url": "git+https://github.com/vulppi-dev/galfus.git",
     "directory": "packages/transport-types"
   },
   "module": "src/index.ts",

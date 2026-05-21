@@ -1,15 +1,15 @@
-# 🦊 Vulfram — Platform Proxies
+# 🦊 Galfus — Platform Proxies
 
-This document describes how Vulfram separates platform-specific integration
+This document describes how Galfus separates platform-specific integration
 (Desktop vs Browser) without changing the public API. The engine remains a black
-box: the host always talks to the same `vulfram_*` functions and MessagePack
+box: the host always talks to the same `galfus_*` functions and MessagePack
 payloads.
 
 ---
 
 ## 1. Why Proxies Exist
 
-Vulfram runs in different environments (native desktop, browser/WASM), but the
+Galfus runs in different environments (native desktop, browser/WASM), but the
 external contract must stay identical. Platform proxies isolate:
 
 - Window creation and lifecycle
@@ -34,14 +34,14 @@ At a high level, the proxy:
 - Triggers rendering or redraw requests.
 
 In code this is expressed as a Rust trait (`PlatformProxy`) in
-`crates/vulfram-runtime/src/core/platforms/mod.rs`, with platform-specific helpers
-and policies extracted into the `vulfram-platform` crate.
+`crates/galfus-runtime/src/core/platforms/mod.rs`, with platform-specific helpers
+and policies extracted into the `galfus-platform` crate.
 
 ---
 
 ## 3. DesktopProxy (Native)
 
-**Location:** `crates/vulfram-runtime/src/core/platforms/desktop/`
+**Location:** `crates/galfus-runtime/src/core/platforms/desktop/`
 
 Responsibilities:
 
@@ -50,7 +50,7 @@ Responsibilities:
 - Processes keyboard/mouse/touch/gesture events from `winit`.
 - Uses `DeviceEvent::MouseMotion` fallback for locked pointer motion.
 - Uses `gilrs` for gamepad events.
-- Requests redraws for each window during `vulfram_tick`.
+- Requests redraws for each window during `galfus_tick`.
 
 This proxy is used by default when **not** compiling with the `wasm` feature.
 
@@ -58,7 +58,7 @@ This proxy is used by default when **not** compiling with the `wasm` feature.
 
 ## 4. BrowserProxy (WASM)
 
-**Location:** `crates/vulfram-runtime/src/core/platforms/browser/`
+**Location:** `crates/galfus-runtime/src/core/platforms/browser/`
 
 Responsibilities:
 
@@ -75,7 +75,7 @@ Responsibilities:
 - Tracks canvas resize from CSS bounds × DPR to keep render surface/projection in sync.
 - Polls the Web Gamepad API each tick, while still reporting connect/disconnect
   even when the canvas is inactive.
-- Renders frames directly during `vulfram_tick` (no native event loop).
+- Renders frames directly during `galfus_tick` (no native event loop).
 
 This proxy is selected when compiling with the `wasm` feature.
 
@@ -93,7 +93,7 @@ Selection is compile-time, but the external ABI stays the same.
 ## 6. Extending to New Platforms
 
 To add a new environment, implement a new proxy and wire it into
-`crates/vulfram-runtime/src/core/platforms/mod.rs` (or a build-time selector).
+`crates/galfus-runtime/src/core/platforms/mod.rs` (or a build-time selector).
 The public API does not change, and the host logic remains untouched.
 
 Potential future proxies:
@@ -108,10 +108,10 @@ Potential future proxies:
 
 No matter which proxy is active:
 
-- The host sends commands via `vulfram_send_queue`.
-- The host reads responses via `vulfram_receive_queue`.
-- The host reads events via `vulfram_receive_events`.
-- The host drives the frame via `vulfram_tick`.
+- The host sends commands via `galfus_send_queue`.
+- The host reads responses via `galfus_receive_queue`.
+- The host reads events via `galfus_receive_events`.
+- The host drives the frame via `galfus_tick`.
 
 The internal platform split is invisible to the host.
 

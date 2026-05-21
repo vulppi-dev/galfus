@@ -87,13 +87,13 @@ async function main(): Promise<void> {
   const commandId = 1;
 
   try {
-    const initResult = core.vulframInit();
+    const initResult = core.galfusInit();
     if (initResult !== RESULT_SUCCESS && initResult !== RESULT_ALREADY_INITIALIZED) {
-      throw new Error(`vulframInit failed with result=${initResult}`);
+      throw new Error(`galfusInit failed with result=${initResult}`);
     }
 
     // Clear stale responses before issuing the version command.
-    core.vulframReceiveQueue();
+    core.galfusReceiveQueue();
 
     const payload: CmdEnvelope[] = [
       {
@@ -103,20 +103,20 @@ async function main(): Promise<void> {
       }
     ];
 
-    const sendResult = core.vulframSendQueue(encode(payload));
+    const sendResult = core.galfusSendQueue(encode(payload));
     if (sendResult !== RESULT_SUCCESS) {
-      throw new Error(`vulframSendQueue failed with result=${sendResult}`);
+      throw new Error(`galfusSendQueue failed with result=${sendResult}`);
     }
 
     for (let attempt = 0; attempt < options.attempts; attempt += 1) {
-      const tickResult = core.vulframTick(Date.now(), 16);
+      const tickResult = core.galfusTick(Date.now(), 16);
       if (tickResult !== RESULT_SUCCESS) {
-        throw new Error(`vulframTick failed with result=${tickResult}`);
+        throw new Error(`galfusTick failed with result=${tickResult}`);
       }
 
-      const received = core.vulframReceiveQueue();
+      const received = core.galfusReceiveQueue();
       if (received.result !== RESULT_SUCCESS) {
-        throw new Error(`vulframReceiveQueue failed with result=${received.result}`);
+        throw new Error(`galfusReceiveQueue failed with result=${received.result}`);
       }
       if (received.buffer.byteLength === 0) {
         continue;
@@ -150,7 +150,7 @@ async function main(): Promise<void> {
       `No response for system-build-version-get after ${options.attempts} tick attempts.`
     );
   } finally {
-    core.vulframDispose();
+    core.galfusDispose();
   }
 }
 

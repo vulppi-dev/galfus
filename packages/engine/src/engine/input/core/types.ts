@@ -2,7 +2,6 @@ import type {
   GamepadStateComponent,
   InputStateComponent,
   SystemEventStateComponent,
-  UiEventStateComponent,
   WindowStateComponent
 } from '../../ecs/components';
 
@@ -10,7 +9,6 @@ export type CanonicalInputState = InputStateComponent;
 export type CanonicalWindowState = WindowStateComponent;
 export type CanonicalGamepadState = GamepadStateComponent;
 export type CanonicalSystemEventState = SystemEventStateComponent;
-export type CanonicalUiEventState = UiEventStateComponent;
 
 export type InputFrameResetPolicy = {
   clearKeyEdgesAtFrameStart: true;

@@ -145,7 +145,7 @@ function attachCollisionEntityBase(
  *
  * @example
  * ```ts
- * import { attachCollisionAabb } from '@vulfram/engine/helpers';
+ * import { attachCollisionAabb } from '@galfus/engine/helpers';
  *
  * const collision = attachCollisionAabb({
  *   worldId,
@@ -177,7 +177,7 @@ export function attachCollisionAabb(args: AttachCollisionAabbArgs): CollisionAab
  *
  * @example
  * ```ts
- * import { drawCollisionAabbGizmo } from '@vulfram/engine/helpers';
+ * import { drawCollisionAabbGizmo } from '@galfus/engine/helpers';
  *
  * drawCollisionAabbGizmo(collision);
  * ```
@@ -216,7 +216,7 @@ export function drawCollisionAabbGizmo(collision: CollisionAabbEntity): void {
  *
  * @example
  * ```ts
- * import { getCollisionAabbWorldBounds } from '@vulfram/engine/helpers';
+ * import { getCollisionAabbWorldBounds } from '@galfus/engine/helpers';
  *
  * const bounds = getCollisionAabbWorldBounds(collision);
  * ```
@@ -256,7 +256,7 @@ export function getCollisionAabbWorldBounds(
  *
  * @example
  * ```ts
- * import { getCollisionWorldTransformMatrix } from '@vulfram/engine/helpers';
+ * import { getCollisionWorldTransformMatrix } from '@galfus/engine/helpers';
  *
  * const matrix = getCollisionWorldTransformMatrix(collision);
  * ```
@@ -272,7 +272,7 @@ export function getCollisionWorldTransformMatrix(collision: CollisionEntity): Ma
  *
  * @example
  * ```ts
- * import { getCollisionAabbWorldCorners } from '@vulfram/engine/helpers';
+ * import { getCollisionAabbWorldCorners } from '@galfus/engine/helpers';
  *
  * const corners = getCollisionAabbWorldCorners(collision);
  * ```
@@ -314,7 +314,7 @@ export function getCollisionAabbWorldCorners(
  *
  * @example
  * ```ts
- * import { raycastCollisionAabb } from '@vulfram/engine/helpers';
+ * import { raycastCollisionAabb } from '@galfus/engine/helpers';
  *
  * const hit = raycastCollisionAabb(ray, collision);
  * ```
@@ -445,7 +445,7 @@ function computeLocalEdgePadding(input: PointerCollisionAabbInput, ray: Ray3): n
  *
  * @example
  * ```ts
- * import { raycastPointerCollisionAabb } from '@vulfram/engine/helpers';
+ * import { raycastPointerCollisionAabb } from '@galfus/engine/helpers';
  *
  * const hit = raycastPointerCollisionAabb({
  *   pointerEvent,
@@ -467,7 +467,7 @@ export function raycastPointerCollisionAabb(input: PointerCollisionAabbInput): R
  *
  * @example
  * ```ts
- * import { isPointerCollidingAabb } from '@vulfram/engine/helpers';
+ * import { isPointerCollidingAabb } from '@galfus/engine/helpers';
  *
  * const hovering = isPointerCollidingAabb({
  *   pointerEvent,
@@ -486,7 +486,7 @@ export function isPointerCollidingAabb(input: PointerCollisionAabbInput): boolea
  *
  * @example
  * ```ts
- * import { attachCollisionSphere } from '@vulfram/engine/helpers';
+ * import { attachCollisionSphere } from '@galfus/engine/helpers';
  *
  * const collision = attachCollisionSphere({
  *   worldId,
@@ -512,7 +512,7 @@ export function attachCollisionSphere(args: AttachCollisionSphereArgs): Collisio
  *
  * @example
  * ```ts
- * import { attachCollisionPlane } from '@vulfram/engine/helpers';
+ * import { attachCollisionPlane } from '@galfus/engine/helpers';
  *
  * const collision = attachCollisionPlane({
  *   worldId,
@@ -537,7 +537,7 @@ export function attachCollisionPlane(args: AttachCollisionPlaneArgs): CollisionP
  *
  * @example
  * ```ts
- * import { updateCollisionRelativeTransform } from '@vulfram/engine/helpers';
+ * import { updateCollisionRelativeTransform } from '@galfus/engine/helpers';
  *
  * updateCollisionRelativeTransform(collision, {
  *   position: [0, 1, 0]
@@ -563,7 +563,7 @@ export function updateCollisionRelativeTransform(
  *
  * @example
  * ```ts
- * import { disposeCollisionEntity } from '@vulfram/engine/helpers';
+ * import { disposeCollisionEntity } from '@galfus/engine/helpers';
  *
  * disposeCollisionEntity(collision);
  * ```

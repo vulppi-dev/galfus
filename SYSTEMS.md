@@ -1,4 +1,4 @@
-# SYSTEMS.md — Mapa de Sistemas da Vulfram Engine
+# SYSTEMS.md — Mapa de Sistemas da Galfus Engine
 
 Este documento lista os sistemas atuais do core (`src/core`) agrupados por domínio semântico, com responsabilidades e módulos principais.
 
@@ -6,7 +6,7 @@ Este documento lista os sistemas atuais do core (`src/core`) agrupados por domí
 
 | Sistema | Responsabilidade | Módulos principais |
 |---|---|---|
-| ABI pública `vulfram_*` | Ponto de entrada/saída do host para inicialização, envio de comandos, leitura de eventos/respostas, upload e tick | `src/core/mod.rs`, `src/core/lifecycle.rs`, `src/core/queue.rs`, `src/core/tick.rs`, `src/core/profiling/cmd.rs` |
+| ABI pública `galfus_*` | Ponto de entrada/saída do host para inicialização, envio de comandos, leitura de eventos/respostas, upload e tick | `src/core/mod.rs`, `src/core/lifecycle.rs`, `src/core/queue.rs`, `src/core/tick.rs`, `src/core/profiling/cmd.rs` |
 | Singleton do engine | Guardar instância global do `EngineState` e garantir acesso coordenado | `src/core/singleton.rs` |
 | Estado global (`EngineState`) | Estado central de janelas, device/queue, recursos, grafos, filas, profiling e caches | `src/core/state.rs` |
 | Ciclo de frame | Processar comandos, input, auto-graphs, render, eventos e profiling por frame | `src/core/tick.rs` |

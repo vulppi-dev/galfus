@@ -1,14 +1,14 @@
-# @vulfram/gltf-loader
+# @galfus/gltf-loader
 
-Loads `.gltf` and `.glb` content into `@vulfram/engine` 3D worlds.
+Loads `.gltf` and `.glb` content into `@galfus/engine` 3D worlds.
 
 The loader follows the engine host-side math convention and exposes transforms as
-`@vulfram/engine/math` `vec3` / `quat`.
+`@galfus/engine/math` `vec3` / `quat`.
 
 ## Example
 
 ```ts
-import { loadGltfAsset } from '@vulfram/gltf-loader';
+import { loadGltfAsset } from '@galfus/gltf-loader';
 
 const asset = await loadGltfAsset({
   worldId,

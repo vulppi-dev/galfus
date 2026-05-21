@@ -1,6 +1,6 @@
-# Vulfram Overview
+# Galfus Overview
 
-Vulfram is a rendering and systems core written in Rust and exposed to hosts
+Galfus is a rendering and systems core written in Rust and exposed to hosts
 through ABI-oriented bindings.
 
 Supported host shapes include:
@@ -11,9 +11,9 @@ Supported host shapes include:
 - browser runtimes through WASM
 - any environment capable of calling the exported ABI surface
 
-The host drives Vulfram through:
+The host drives Galfus through:
 
-- a small set of exported `vulfram_*` functions
+- a small set of exported `galfus_*` functions
 - MessagePack command/response/event buffers
 
 The core remains a black box for GPU, window, platform and render execution.
@@ -35,14 +35,14 @@ The host is responsible for:
 - world/game/application logic
 - logical ID generation and validity
 - command batch creation
-- driving `vulfram_tick`
+- driving `galfus_tick`
 - reading responses, events and profiling data
 
 The host does not:
 
 - create `wgpu` objects
 - create internal composition runtime tables directly
-- talk directly to platform window APIs through Vulfram internals
+- talk directly to platform window APIs through Galfus internals
 
 ### Core
 
@@ -162,16 +162,16 @@ Per-camera ordering:
 
 After the recent refactor, the workspace direction is:
 
-- `vulfram-runtime`
+- `galfus-runtime`
   - integration root and command lifecycle
-- `vulfram-render`
+- `galfus-render`
   - rendering policy, render graph policy and increasing ownership of
     auto-graph planning
-- `vulfram-realm-core`
+- `galfus-realm-core`
   - realm composition semantics and DTOs
 
 The main unresolved design area is state ownership:
 
 - `UniversalState` is still broader than realm composition alone
 - the long-term goal is to split it into smaller sub-states by ownership rather
-  than moving the current aggregate wholesale into `vulfram-realm-core`
+  than moving the current aggregate wholesale into `galfus-realm-core`

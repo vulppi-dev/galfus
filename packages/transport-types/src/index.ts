@@ -6,21 +6,21 @@ export type BufferResult = {
 };
 
 export type EngineTransport = {
-  vulframInit: () => number;
-  vulframDispose: () => number;
-  vulframSendQueue: (buffer: TransportBuffer) => number;
-  vulframReceiveQueue: () => BufferResult;
-  vulframReceiveEvents: () => BufferResult;
-  vulframUploadBuffer: (id: number, uploadType: number, buffer: TransportBuffer) => number;
-  vulframTick: (timeMs: number, deltaMs: number) => number;
-  vulframGetProfiling: () => BufferResult;
+  galfusInit: () => number;
+  galfusDispose: () => number;
+  galfusSendQueue: (buffer: TransportBuffer) => number;
+  galfusReceiveQueue: () => BufferResult;
+  galfusReceiveEvents: () => BufferResult;
+  galfusUploadBuffer: (id: number, uploadType: number, buffer: TransportBuffer) => number;
+  galfusTick: (timeMs: number, deltaMs: number) => number;
+  galfusGetProfiling: () => BufferResult;
 };
 
 export type EngineTransportFactory = () => EngineTransport;
 
-export type VulframChannel = 'alpha' | 'beta' | 'next' | 'latest';
-export type VulframBinding = 'ffi' | 'napi' | 'wasm';
-export type VulframPlatform =
+export type GalfusChannel = 'alpha' | 'beta' | 'next' | 'latest';
+export type GalfusBinding = 'ffi' | 'napi' | 'wasm';
+export type GalfusPlatform =
   | 'linux-x64'
   | 'linux-arm64'
   | 'macos-x64'
@@ -38,10 +38,10 @@ export type RuntimeInfo = {
   arch: string | null;
 };
 
-export const VULFRAM_R2_DEFAULT_BASE_URL = 'https://pub-95922dbd81b344a893425215a2695b88.r2.dev';
-export const VULFRAM_ARTIFACT_PREFIX = 'v1';
-export const VULFRAM_DEFAULT_CHANNEL: VulframChannel = 'alpha';
-export const VULFRAM_DEFAULT_BINDINGS: readonly VulframBinding[] = ['ffi', 'napi', 'wasm'];
+export const GALFUS_R2_DEFAULT_BASE_URL = 'https://pub-95922dbd81b344a893425215a2695b88.r2.dev';
+export const GALFUS_ARTIFACT_PREFIX = 'v1';
+export const GALFUS_DEFAULT_CHANNEL: GalfusChannel = 'alpha';
+export const GALFUS_DEFAULT_BINDINGS: readonly GalfusBinding[] = ['ffi', 'napi', 'wasm'];
 
 export type PlatformLoaderMap<T> = Record<string, Record<string, () => Promise<T>>>;
 
@@ -122,7 +122,7 @@ export function selectPlatformLoader<T>(
 
 export function resolveNativePlatform(
   runtime: RuntimeInfo = detectRuntime()
-): Exclude<VulframPlatform, 'browser'> {
+): Exclude<GalfusPlatform, 'browser'> {
   const platform = runtime.platform;
   const arch = runtime.arch;
 
@@ -133,30 +133,30 @@ export function resolveNativePlatform(
   if (platform === 'win32' && arch === 'x64') return 'windows-x64';
   if (platform === 'win32' && arch === 'arm64') return 'windows-arm64';
 
-  throw new Error(`Unsupported native platform for Vulfram transports: ${JSON.stringify(runtime)}`);
+  throw new Error(`Unsupported native platform for Galfus transports: ${JSON.stringify(runtime)}`);
 }
 
-export function getArtifactFileName(binding: VulframBinding, platform: VulframPlatform): string {
-  if (binding === 'napi') return 'vulfram_core.node';
-  if (binding === 'wasm') return 'vulfram_core_bg.wasm';
-  if (binding === 'ffi' && platform.startsWith('windows')) return 'vulfram_core.dll';
-  if (binding === 'ffi' && platform.startsWith('macos')) return 'vulfram_core.dylib';
-  if (binding === 'ffi') return 'vulfram_core.so';
-  if (platform.startsWith('windows')) return 'vulfram_core.dll';
-  if (platform.startsWith('macos')) return 'vulfram_core.dylib';
-  return 'vulfram_core.so';
+export function getArtifactFileName(binding: GalfusBinding, platform: GalfusPlatform): string {
+  if (binding === 'napi') return 'galfus_core.node';
+  if (binding === 'wasm') return 'galfus_core_bg.wasm';
+  if (binding === 'ffi' && platform.startsWith('windows')) return 'galfus_core.dll';
+  if (binding === 'ffi' && platform.startsWith('macos')) return 'galfus_core.dylib';
+  if (binding === 'ffi') return 'galfus_core.so';
+  if (platform.startsWith('windows')) return 'galfus_core.dll';
+  if (platform.startsWith('macos')) return 'galfus_core.dylib';
+  return 'galfus_core.so';
 }
 
 export function buildArtifactPath(config: {
-  channel?: VulframChannel;
+  channel?: GalfusChannel;
   artifactVersion: string;
-  binding: VulframBinding;
-  platform: VulframPlatform;
+  binding: GalfusBinding;
+  platform: GalfusPlatform;
   artifact?: string;
   prefix?: string;
 }): string {
-  const channel = config.channel ?? VULFRAM_DEFAULT_CHANNEL;
-  const prefix = config.prefix ?? VULFRAM_ARTIFACT_PREFIX;
+  const channel = config.channel ?? GALFUS_DEFAULT_CHANNEL;
+  const prefix = config.prefix ?? GALFUS_ARTIFACT_PREFIX;
   const artifact = config.artifact ?? getArtifactFileName(config.binding, config.platform);
   return [prefix, channel, config.artifactVersion, config.binding, config.platform, artifact].join(
     '/'
@@ -165,19 +165,19 @@ export function buildArtifactPath(config: {
 
 export function buildArtifactUrl(config: {
   baseUrl?: string;
-  channel?: VulframChannel;
+  channel?: GalfusChannel;
   artifactVersion: string;
-  binding: VulframBinding;
-  platform: VulframPlatform;
+  binding: GalfusBinding;
+  platform: GalfusPlatform;
   artifact?: string;
   prefix?: string;
 }): string {
-  const base = (config.baseUrl ?? VULFRAM_R2_DEFAULT_BASE_URL).replace(/\/+$/, '');
+  const base = (config.baseUrl ?? GALFUS_R2_DEFAULT_BASE_URL).replace(/\/+$/, '');
   return `${base}/${buildArtifactPath(config)}`;
 }
 
 export function parsePackageArtifactTarget(packageVersion: string): {
-  channel: VulframChannel;
+  channel: GalfusChannel;
   artifactVersion: string;
 } {
   const normalized = packageVersion.trim();
@@ -196,7 +196,7 @@ export function parsePackageArtifactTarget(packageVersion: string): {
   const patch = match[3]!;
   const pre = (match[4] ?? '').toLowerCase();
 
-  let channel: VulframChannel = 'latest';
+  let channel: GalfusChannel = 'latest';
   if (pre.includes('alpha')) channel = 'alpha';
   else if (pre.includes('beta')) channel = 'beta';
   else if (pre.includes('next')) channel = 'next';

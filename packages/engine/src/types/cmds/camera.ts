@@ -1,6 +1,6 @@
 import type { Mat4 as mat4, Vec2 as vec2 } from '../../math/index';
 import type { CameraKind } from '../kinds';
-import type { ResourceEntry } from './resources';
+import type { CmdResourceGetArgs, CmdResultResourceGet, ResourceEntry } from './resources';
 
 /** Viewport value expressed as relative (0..1) or absolute pixels. */
 export interface ViewValue {
@@ -80,3 +80,6 @@ export interface CmdResultCameraList {
   message: string;
   cameras: ResourceEntry[];
 }
+
+export type CmdCameraGetArgs = CmdResourceGetArgs;
+export type CmdResultCameraGet = CmdResultResourceGet;

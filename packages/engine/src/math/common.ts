@@ -28,7 +28,7 @@ export function round(a: number): number {
 
 /**
  * Kept for compatibility with gl-matrix-style APIs.
- * Vulfram math always uses standard JS arrays on the host side.
+ * Galfus math always uses standard JS arrays on the host side.
  *
  * @returns {ArrayConstructor} Array
  */

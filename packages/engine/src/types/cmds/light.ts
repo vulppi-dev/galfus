@@ -1,6 +1,6 @@
 import type { Vec2 as vec2, Vec4 as vec4 } from '../../math/index';
 import type { LightKind } from '../kinds';
-import type { ResourceEntry } from './resources';
+import type { CmdResourceGetArgs, CmdResultResourceGet, ResourceEntry } from './resources';
 
 /** Command payload for creating a light. */
 export interface CmdLightCreateArgs {
@@ -72,3 +72,6 @@ export interface CmdResultLightList {
   message: string;
   lights: ResourceEntry[];
 }
+
+export type CmdLightGetArgs = CmdResourceGetArgs;
+export type CmdResultLightGet = CmdResultResourceGet;

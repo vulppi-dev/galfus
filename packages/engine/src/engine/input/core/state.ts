@@ -3,7 +3,6 @@ import type {
   GamepadStateComponent,
   InputStateComponent,
   SystemEventStateComponent,
-  UiEventStateComponent,
   WindowStateComponent
 } from '../../ecs/components';
 import type { WorldState } from '../../state';
@@ -60,19 +59,11 @@ function createSystemEventState(): SystemEventStateComponent {
   };
 }
 
-function createUiEventState(): UiEventStateComponent {
-  return {
-    type: 'UiEventState',
-    eventsThisFrame: []
-  };
-}
-
 export type InputMirrorStateStore = {
   inputState: InputStateComponent;
   windowState: WindowStateComponent;
   gamepadState: GamepadStateComponent;
   systemEventState: SystemEventStateComponent;
-  uiEventState: UiEventStateComponent;
 };
 
 export function ensureInputMirrorState(world: WorldState): InputMirrorStateStore {
@@ -109,18 +100,11 @@ export function ensureInputMirrorState(world: WorldState): InputMirrorStateStore
     worldStore.set('SystemEventState', systemEventState);
   }
 
-  let uiEventState = worldStore.get('UiEventState') as UiEventStateComponent | undefined;
-  if (!uiEventState) {
-    uiEventState = createUiEventState();
-    worldStore.set('UiEventState', uiEventState);
-  }
-
   return {
     inputState,
     windowState,
     gamepadState,
-    systemEventState,
-    uiEventState
+    systemEventState
   };
 }
 
@@ -140,5 +124,4 @@ export function resetInputMirrorFrame(state: InputMirrorStateStore): void {
 
   state.gamepadState.eventsThisFrame.length = 0;
   state.systemEventState.eventsThisFrame.length = 0;
-  state.uiEventState.eventsThisFrame.length = 0;
 }

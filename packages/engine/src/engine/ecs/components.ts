@@ -3,7 +3,7 @@ import type { ViewPosition } from '../../types/cmds/camera';
 import type { GeometryPrimitiveEntry } from '../../types/cmds/geometry';
 import type { MaterialOptions } from '../../types/cmds/material';
 import type { ForwardAtlasOptions } from '../../types/cmds/texture';
-import type { GamepadEvent, SystemEvent, UiEvent } from '../../types/events';
+import type { GamepadEvent, SystemEvent } from '../../types/events';
 import type {
   CameraKind,
   CursorGrabMode,
@@ -165,53 +165,6 @@ export interface SystemEventStateComponent {
   };
 }
 
-/** UI events mirrored from core UI event channel. */
-export interface UiEventStateComponent {
-  type: 'UiEventState';
-  eventsThisFrame: UiEvent[];
-}
-
-/** Focus traversal behavior when reaching first/last input. */
-export type UiFocusCycleMode = 'wrap' | 'clamp';
-
-/** Form scope state used to control focus traversal. */
-export interface UiFormScope {
-  formId: string;
-  windowId: number;
-  realmId: number;
-  documentId: number;
-  disabled: boolean;
-  cycleMode: UiFocusCycleMode;
-  activeFieldsetId?: string;
-  activeNodeId?: number;
-}
-
-/** Fieldset scope metadata. */
-export interface UiFieldsetScope {
-  formId: string;
-  fieldsetId: string;
-  disabled: boolean;
-  legendNodeId?: number;
-}
-
-/** Focusable node metadata for tab ordering. */
-export interface UiFocusableNode {
-  formId: string;
-  nodeId: number;
-  tabIndex: number;
-  fieldsetId?: string;
-  disabled: boolean;
-  orderHint: number;
-}
-
-/** UI runtime state mirrored in the ECS world. */
-export interface UiStateComponent {
-  type: 'UiState';
-  forms: Map<string, UiFormScope>;
-  fieldsets: Map<string, UiFieldsetScope>;
-  nodes: Map<number, UiFocusableNode>;
-  focusByWindow: Map<number, { formId: string; nodeId: number }>;
-}
 
 /** Base properties shared by resources. */
 export interface BaseResourceProps {
@@ -318,8 +271,6 @@ export type Component =
   | WindowStateComponent
   | GamepadStateComponent
   | SystemEventStateComponent
-  | UiEventStateComponent
-  | UiStateComponent
   | CustomComponent;
 
 /** String literal type for component identifiers. */

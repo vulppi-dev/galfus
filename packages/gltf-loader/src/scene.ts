@@ -1,5 +1,5 @@
 import type { Node, Scene } from '@gltf-transform/core';
-import type { Quat, Vec3 } from '@vulfram/engine/math';
+import type { Quat, Vec3 } from '@galfus/engine/math';
 import {
   create3DEntity,
   create3DModel,
@@ -8,7 +8,7 @@ import {
   update3DTransform,
   type EntityId,
   type World3DId
-} from '@vulfram/engine/world3d';
+} from '@galfus/engine/world3d';
 import { toQuat, toVec3 } from './convert';
 import { ensureMaterial, ensurePrimitiveGeometry } from './resources';
 import type { GltfInstance, GltfInstantiateOptions, LoaderContext, SceneTemplate } from './types';

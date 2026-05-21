@@ -116,7 +116,7 @@ async function updatePackageVersion(
     throw new Error(`Missing package name in ${packagePath}`);
   }
 
-  if (pkg.name === '@vulfram/transport-types') {
+  if (pkg.name === '@galfus/transport-types') {
     throw new Error('transport-types must not be updated by this script.');
   }
 
@@ -140,7 +140,7 @@ async function updateJsrPackageVersion(
     throw new Error(`Missing package name in ${manifestPath}`);
   }
 
-  if (manifest.name === '@vulfram/transport-types') {
+  if (manifest.name === '@galfus/transport-types') {
     throw new Error('transport-types JSR manifest must not be updated by this script.');
   }
 

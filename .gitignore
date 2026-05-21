@@ -34,7 +34,7 @@ dist/
 
 
 # Rust ts-rs generated bindings
-**/vulfram-core/bindings/
+**/galfus-core/bindings/
 
 # temporary
 *.swp

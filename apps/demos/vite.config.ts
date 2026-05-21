@@ -4,7 +4,7 @@ export default defineConfig({
   root: '.',
   assetsInclude: ['**/*.wasm'],
   optimizeDeps: {
-    exclude: ['@vulfram/transport-browser']
+    exclude: ['@galfus/transport-browser']
   },
   server: {
     fs: {

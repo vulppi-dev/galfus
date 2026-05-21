@@ -1,4 +1,4 @@
-# Vulfram Architecture and Lifecycle
+# Galfus Architecture and Lifecycle
 
 This document explains the current runtime architecture, the main ownership
 boundaries, and the expected host/core lifecycle.
@@ -8,22 +8,22 @@ boundaries, and the expected host/core lifecycle.
 Conceptual flow:
 
 ```text
-Host -> commands/uploads -> vulfram-runtime -> platform/render/audio/UI subsystems -> GPU/OS
+Host -> commands/uploads -> galfus-runtime -> platform/render/audio/UI subsystems -> GPU/OS
 ```
 
 Current crate roles:
 
-- `vulfram-runtime`
+- `galfus-runtime`
   - integration root
   - command processing
   - frame loop and deferred lifecycle
-- `vulfram-render`
+- `galfus-render`
   - rendering policy and WGPU-facing helpers
   - render graph validation/cache
   - realm/target planning helpers
-- `vulfram-realm-core`
+- `galfus-realm-core`
   - realm composition semantics and reports
-- `vulfram-platform`
+- `galfus-platform`
   - platform-specific bootstrap/policies
 
 ## 2. Ownership Boundaries
@@ -62,11 +62,11 @@ The current auto-graph model is:
 
 Design direction:
 
-- auto-graph policy belongs conceptually to `vulfram-render`
-- application of commands and emission of diagnostics stay in `vulfram-runtime`
-- realm composition DTOs/state belong in `vulfram-realm-core`
+- auto-graph policy belongs conceptually to `galfus-render`
+- application of commands and emission of diagnostics stay in `galfus-runtime`
+- realm composition DTOs/state belong in `galfus-realm-core`
 - per-layer sync decisions such as create/update/keep/rebuild are planned in
-  `vulfram-render` and only applied in `vulfram-runtime`
+  `galfus-render` and only applied in `galfus-runtime`
 
 Reasoning:
 
@@ -99,7 +99,7 @@ Broadly, it contains:
 
 That makes it useful operationally, but not a clean domain boundary.
 
-After the current refactor phase, ownership inside `vulfram-runtime` is split
+After the current refactor phase, ownership inside `galfus-runtime` is split
 more explicitly even though `UniversalState` still aggregates the sub-states:
 
 - `core/realm/state.rs`
@@ -115,8 +115,8 @@ more explicitly even though `UniversalState` still aggregates the sub-states:
 
 Additionally:
 
-- semantic 3D world state types now live in `vulfram-realm-3d`
-- `vulfram-runtime` instantiates and orchestrates those types instead of
+- semantic 3D world state types now live in `galfus-realm-3d`
+- `galfus-runtime` instantiates and orchestrates those types instead of
   defining them locally
 
 ## 5. Recommended State Shape
@@ -141,11 +141,11 @@ WorldState
 Key guideline:
 
 - move by ownership, not by convenience
-- do not move the current `UniversalState` wholesale into `vulfram-realm-core`
+- do not move the current `UniversalState` wholesale into `galfus-realm-core`
 
 ## 6. Realm-Core Scope
 
-`vulfram-realm-core` should be the home of:
+`galfus-realm-core` should be the home of:
 
 - realm composition state/types
 - graph/report DTOs
@@ -174,7 +174,7 @@ tables:
 ### Startup
 
 1. Host loads the binding/library.
-2. Host calls `vulfram_init()`.
+2. Host calls `galfus_init()`.
 3. Runtime initializes core state and platform integration roots.
 4. GPU device/queue are created lazily when the first compatible window/surface
    is ready.
@@ -182,8 +182,8 @@ tables:
 ### Frame
 
 1. Host prepares logical state and uploads if needed.
-2. Host sends command batch through `vulfram_send_queue()`.
-3. Host calls `vulfram_tick(time, delta_time)`.
+2. Host sends command batch through `galfus_send_queue()`.
+3. Host calls `galfus_tick(time, delta_time)`.
 4. Runtime:
    - processes ready commands
    - retries deferred commands when applicable
@@ -194,7 +194,7 @@ tables:
 
 ### Shutdown
 
-1. Host calls `vulfram_dispose()`.
+1. Host calls `galfus_dispose()`.
 2. Runtime tears down windows, render state, audio and runtime tables.
 
 ## 8. Documentation Truths
@@ -204,10 +204,10 @@ The rest of the documentation should assume:
 - internal composition links are runtime-only tables
 - `Target` and `TargetLayer` are the host-facing composition API
 - render graphs are global resources bound per realm
-- `vulfram-runtime` is the current integration root
-- `vulfram-render` should increasingly own auto-graph planning policy
-- semantic 3D state definitions belong in `vulfram-realm-3d`, while runtime
-  state instantiation/orchestration stays in `vulfram-runtime`
+- `galfus-runtime` is the current integration root
+- `galfus-render` should increasingly own auto-graph planning policy
+- semantic 3D state definitions belong in `galfus-realm-3d`, while runtime
+  state instantiation/orchestration stays in `galfus-runtime`
 
 ## 9. Test File Layout
 

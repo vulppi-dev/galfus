@@ -21,3 +21,32 @@ export interface CmdResultRealmDispose {
   success: boolean;
   message: string;
 }
+
+export interface CmdRealmGetArgs {
+  realmId: number;
+}
+
+export interface CmdResultRealmGet {
+  success: boolean;
+  message: string;
+  realmId: number;
+  kind?: RealmKind;
+  renderGraphId?: number;
+}
+
+export interface CmdRealmListArgs {
+  kind?: RealmKind;
+  ids?: number[];
+}
+
+export interface RealmListItem {
+  realmId: number;
+  kind: RealmKind;
+  renderGraphId?: number;
+}
+
+export interface CmdResultRealmList {
+  success: boolean;
+  message: string;
+  items: RealmListItem[];
+}
