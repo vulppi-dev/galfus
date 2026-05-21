@@ -28,14 +28,17 @@ const RUN_DURATION: Duration = Duration::from_secs(8);
 const WINDOW_TARGET_ID: u64 = 1;
 const GEOMETRY_CUBE_ID: u32 = 201;
 const GEOMETRY_FLOOR_ID: u32 = 202;
-const MATERIAL_DEF_PERSISTENCE_ID: u32 = 210;
-const MATERIAL_PERSISTENCE_ID: u32 = 211;
-const MATERIAL_FLOOR_ID: u32 = 212;
+const MATERIAL_DEF_GHOST_ID: u32 = 210;
+const MATERIAL_DEF_FRESNEL_ID: u32 = 211;
+const MATERIAL_GHOST_ID: u32 = 212;
+const MATERIAL_FRESNEL_ID: u32 = 213;
+const MATERIAL_FLOOR_ID: u32 = 214;
 const CAMERA_ID: u32 = 220;
 const LIGHT_ID: u32 = 221;
 const ENVIRONMENT_ID: u32 = 222;
-const MODEL_CUBE_ID: u32 = 230;
-const MODEL_FLOOR_ID: u32 = 231;
+const MODEL_GHOST_CUBE_ID: u32 = 230;
+const MODEL_FRESNEL_CUBE_ID: u32 = 231;
+const MODEL_FLOOR_ID: u32 = 232;
 
 pub fn run(ctx: DemoContext) -> bool {
     let realm_3d = ctx.realm_id;
@@ -62,25 +65,48 @@ pub fn run(ctx: DemoContext) -> bool {
     let start = Instant::now();
     while start.elapsed() < RUN_DURATION {
         let t = total_ms as f32 / 1000.0;
-        let updates = vec![EngineCmd::CmdModelUpsert(CmdModelUpsertArgs::Update(
-            CmdModelUpdateArgs {
+        let updates = vec![
+            EngineCmd::CmdModelUpsert(CmdModelUpsertArgs::Update(CmdModelUpdateArgs {
                 realm_id: realm_3d,
-                model_id: MODEL_CUBE_ID,
+                model_id: MODEL_GHOST_CUBE_ID,
                 label: None,
                 geometry_id: None,
                 material_id: None,
                 transform: Some(
-                    Mat4::from_translation(Vec3::new(t.sin() * 2.5, 0.8 + (t * 1.7).sin() * 0.2, 0.0))
-                        * Mat4::from_rotation_y(t * 2.1)
-                        * Mat4::from_rotation_x(t * 1.1),
+                    Mat4::from_translation(Vec3::new(
+                        -2.0 + (t * 2.4).sin() * 1.8,
+                        0.8 + (t * 3.0).sin() * 0.28,
+                        0.0,
+                    )) * Mat4::from_rotation_y(t * 2.8)
+                        * Mat4::from_rotation_x(t * 1.7),
                 ),
                 layer_mask: None,
                 cast_shadow: None,
                 receive_shadow: None,
                 cast_outline: None,
                 outline_color: None,
-            },
-        ))];
+            })),
+            EngineCmd::CmdModelUpsert(CmdModelUpsertArgs::Update(CmdModelUpdateArgs {
+                realm_id: realm_3d,
+                model_id: MODEL_FRESNEL_CUBE_ID,
+                label: None,
+                geometry_id: None,
+                material_id: None,
+                transform: Some(
+                    Mat4::from_translation(Vec3::new(
+                        2.0 + (t * 2.0).sin() * 1.2,
+                        0.8 + (t * 2.6).sin() * 0.2,
+                        0.0,
+                    )) * Mat4::from_rotation_y(-(t * 2.2))
+                        * Mat4::from_rotation_x(t * 1.3),
+                ),
+                layer_mask: None,
+                cast_shadow: None,
+                receive_shadow: None,
+                cast_outline: None,
+                outline_color: None,
+            })),
+        ];
         let _ = send_commands(updates);
         assert_eq!(core::galfus_tick(total_ms, FRAME_MS), GalfusResult::Success);
         total_ms = total_ms.saturating_add(FRAME_MS as u64);
@@ -108,9 +134,58 @@ fn build_scene(realm_id: u32) -> Vec<EngineCmd> {
         }),
         EngineCmd::CmdMaterialDefinitionUpsert(CmdMaterialDefinitionUpsertArgs::Create(
             CmdMaterialDefinitionCreateArgs {
-                definition_id: MATERIAL_DEF_PERSISTENCE_ID,
-                slug: "demo2-persistence".into(),
-                label: Some("demo2-persistence-definition".into()),
+                definition_id: MATERIAL_DEF_GHOST_ID,
+                slug: "demo2-ghost".into(),
+                label: Some("demo2-ghost-definition".into()),
+                preset: ShaderMaterialPreset::Standard,
+                shader_type: Some(MaterialShaderType::Model),
+                shader_source: r#"
+fn project_world_to_screen_uv(world_position: vec3<f32>) -> vec2<f32> {
+  let clip = camera.view_projection * vec4<f32>(world_position, 1.0);
+  let inv_w = select(0.0, 1.0 / clip.w, abs(clip.w) > 1e-6);
+  let ndc = clip.xy * inv_w;
+  return vec2<f32>(ndc.x * 0.5 + 0.5, -ndc.y * 0.5 + 0.5);
+}
+
+fn vertex(input: VertexInput) -> VertexOutput {
+  var out: VertexOutput;
+  out.world_position = input.position;
+  out.world_normal = input.normal;
+  out.uv = input.uv;
+  out.clip_position = vec4<f32>(0.0);
+  return out;
+}
+
+fn fragment(input: FragmentInput) -> FragmentOutput {
+  var out: FragmentOutput;
+  let base = vec3<f32>(0.08, 0.48, 0.88);
+  let screen_uv = project_world_to_screen_uv(input.world_position);
+  let ghost_uv = screen_uv + vec2<f32>(0.012, 0.0);
+  let history = sample_history0(ghost_uv).rgb;
+  let trail_decay = 0.965;
+  let history_weight = 0.62;
+  let persisted = history * trail_decay;
+  let ghost_tint = vec3<f32>(0.18, 0.9, 1.0);
+  let ghost = persisted * ghost_tint * history_weight;
+  let composed = max(base, base + ghost);
+
+  out.color = vec4<f32>(composed, 1.0);
+  out.emissive = vec4<f32>(ghost_tint * 0.08, 1.0);
+  return out;
+}
+"#
+                .to_string(),
+                shader_params_schema: None,
+                capabilities: Some(MaterialShaderCapabilities {
+                    semantics: vec!["history0".to_string()],
+                }),
+            },
+        )),
+        EngineCmd::CmdMaterialDefinitionUpsert(CmdMaterialDefinitionUpsertArgs::Create(
+            CmdMaterialDefinitionCreateArgs {
+                definition_id: MATERIAL_DEF_FRESNEL_ID,
+                slug: "demo2-fresnel".into(),
+                label: Some("demo2-fresnel-definition".into()),
                 preset: ShaderMaterialPreset::Standard,
                 shader_type: Some(MaterialShaderType::Model),
                 shader_source: r#"
@@ -125,31 +200,41 @@ fn vertex(input: VertexInput) -> VertexOutput {
 
 fn fragment(input: FragmentInput) -> FragmentOutput {
   var out: FragmentOutput;
-  let base = vec3<f32>(0.12, 0.72, 1.0);
-  let uv = input.uv;
-  let history = sample_history0(uv).rgb;
-  let fresnel = pow(1.0 - max(dot(normalize(input.world_normal), normalize(camera.position.xyz - input.world_position)), 0.0), 2.0);
-  let live = mix(base, vec3<f32>(1.0, 1.0, 1.0), fresnel * 0.5);
-  let persisted = history * 0.90;
-  out.color = vec4<f32>(max(live, persisted), 1.0);
-  out.emissive = vec4<f32>(0.0, 0.0, 0.0, 1.0);
+  let t = frame.time;
+  let base = vec3<f32>(0.95, 0.28, 0.18);
+  let view_dir = normalize(camera.position.xyz - input.world_position);
+  let fresnel = pow(1.0 - max(dot(normalize(input.world_normal), view_dir), 0.0), 2.4);
+  let pulse = 0.5 + 0.5 * sin(t * 5.0);
+  let rim = fresnel * (0.35 + 0.45 * pulse);
+  let color = mix(base, vec3<f32>(1.0, 0.92, 0.82), rim);
+  out.color = vec4<f32>(color, 1.0);
+  out.emissive = vec4<f32>(vec3<f32>(1.0, 0.45, 0.28) * (0.08 + 0.55 * rim), 1.0);
   return out;
 }
 "#
                 .to_string(),
                 shader_params_schema: None,
-                capabilities: Some(MaterialShaderCapabilities {
-                    semantics: vec!["history0".to_string()],
-                }),
+                capabilities: None,
             },
         )),
         EngineCmd::CmdMaterialUpsert(CmdMaterialUpsertArgs::Create(CmdMaterialCreateArgs {
-            material_id: MATERIAL_PERSISTENCE_ID,
-            label: Some("demo2-mat-persistence".into()),
-            slug: "demo2-persistence".into(),
+            material_id: MATERIAL_GHOST_ID,
+            label: Some("demo2-mat-ghost".into()),
+            slug: "demo2-ghost".into(),
             kind: MaterialKind::Shader,
             options: Some(MaterialOptions::Standard(StandardOptions {
                 base_color: Some(Vec4::new(0.2, 0.7, 1.0, 1.0)),
+                render_side: Some(RenderSide::Back),
+                ..Default::default()
+            })),
+        })),
+        EngineCmd::CmdMaterialUpsert(CmdMaterialUpsertArgs::Create(CmdMaterialCreateArgs {
+            material_id: MATERIAL_FRESNEL_ID,
+            label: Some("demo2-mat-fresnel".into()),
+            slug: "demo2-fresnel".into(),
+            kind: MaterialKind::Shader,
+            options: Some(MaterialOptions::Standard(StandardOptions {
+                base_color: Some(Vec4::new(1.0, 0.3, 0.2, 1.0)),
                 render_side: Some(RenderSide::Back),
                 ..Default::default()
             })),
@@ -213,11 +298,24 @@ fn fragment(input: FragmentInput) -> FragmentOutput {
         )),
         EngineCmd::CmdModelUpsert(CmdModelUpsertArgs::Create(CmdModelCreateArgs {
             realm_id,
-            model_id: MODEL_CUBE_ID,
-            label: Some("demo2-cube-model".into()),
+            model_id: MODEL_GHOST_CUBE_ID,
+            label: Some("demo2-ghost-cube-model".into()),
             geometry_id: GEOMETRY_CUBE_ID,
-            material_id: Some(MATERIAL_PERSISTENCE_ID),
-            transform: Mat4::from_translation(Vec3::new(0.0, 0.8, 0.0)),
+            material_id: Some(MATERIAL_GHOST_ID),
+            transform: Mat4::from_translation(Vec3::new(-2.0, 0.8, 0.0)),
+            layer_mask: 1,
+            cast_shadow: true,
+            receive_shadow: true,
+            cast_outline: false,
+            outline_color: Vec4::ZERO,
+        })),
+        EngineCmd::CmdModelUpsert(CmdModelUpsertArgs::Create(CmdModelCreateArgs {
+            realm_id,
+            model_id: MODEL_FRESNEL_CUBE_ID,
+            label: Some("demo2-fresnel-cube-model".into()),
+            geometry_id: GEOMETRY_CUBE_ID,
+            material_id: Some(MATERIAL_FRESNEL_ID),
+            transform: Mat4::from_translation(Vec3::new(2.0, 0.8, 0.0)),
             layer_mask: 1,
             cast_shadow: true,
             receive_shadow: true,

@@ -8,6 +8,9 @@
 - internal API snapshot: [API.md](API.md)
 - realm architecture: [REALM-ARCH.md](REALM-ARCH.md)
 - render graph model: [RENDER-GRAPH.md](RENDER-GRAPH.md)
+- custom material shaders: [SHADERS-MATERIALS.md](SHADERS-MATERIALS.md)
+- custom pass shaders: [SHADERS-PASSES.md](SHADERS-PASSES.md)
+- shader helpers glossary: [SHADERS-GLOSSARY.md](SHADERS-GLOSSARY.md)
 - terminology: [GLOSSARY.md](GLOSSARY.md)
 - command reference: [cmds/](cmds/)
 
