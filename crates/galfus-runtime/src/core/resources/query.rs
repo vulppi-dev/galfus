@@ -1,4 +1,5 @@
 use crate::core::realm::RealmId;
+use crate::core::resources::MaterialRealmKind;
 use crate::core::resources::list::ResourceEntry;
 use crate::core::state::EngineState;
 use serde::{Deserialize, Serialize};
@@ -54,6 +55,22 @@ fn id_allowed(scope: &QueryScopeArgs, id: u32) -> bool {
 pub struct CmdResourceGetArgs {
     pub id: u32,
     pub scope: QueryScopeArgs,
+}
+
+#[derive(Debug, Default, Deserialize, Serialize, Clone)]
+#[serde(default, rename_all = "camelCase")]
+pub struct CmdMaterialGetArgs {
+    pub id: u32,
+    pub scope: QueryScopeArgs,
+    pub realm_kind: Option<MaterialRealmKind>,
+}
+
+#[derive(Debug, Default, Deserialize, Serialize, Clone)]
+#[serde(default, rename_all = "camelCase")]
+pub struct CmdMaterialInstanceGetArgs {
+    pub id: u32,
+    pub scope: QueryScopeArgs,
+    pub realm_kind: Option<MaterialRealmKind>,
 }
 
 pub fn engine_cmd_camera_get(
@@ -200,7 +217,7 @@ pub fn engine_cmd_geometry_get(
 
 pub fn engine_cmd_material_get(
     engine: &mut EngineState,
-    args: &CmdResourceGetArgs,
+    args: &CmdMaterialGetArgs,
 ) -> CmdResultResourceGet {
     let Some(rec) = engine.universal_state.scene.realm3d.materials.get(&args.id) else {
         return CmdResultResourceGet {
@@ -210,6 +227,18 @@ pub fn engine_cmd_material_get(
             ..Default::default()
         };
     };
+    if let Some(filter_kind) = args.realm_kind
+        && filter_kind != MaterialRealmKind::Both
+        && rec.realm_kind != MaterialRealmKind::Both
+        && rec.realm_kind != filter_kind
+    {
+        return CmdResultResourceGet {
+            success: false,
+            message: "Material realm kind mismatch".into(),
+            kind: "material".into(),
+            ..Default::default()
+        };
+    }
     CmdResultResourceGet {
         success: true,
         message: "Material found".into(),
@@ -338,7 +367,7 @@ pub fn engine_cmd_material_definition_get(
 
 pub fn engine_cmd_material_instance_get(
     engine: &mut EngineState,
-    args: &CmdResourceGetArgs,
+    args: &CmdMaterialInstanceGetArgs,
 ) -> CmdResultResourceGet {
     let Some(rec) = engine
         .universal_state
@@ -353,6 +382,19 @@ pub fn engine_cmd_material_instance_get(
             ..Default::default()
         };
     };
+    if let Some(filter_kind) = args.realm_kind
+        && let Some(material) = engine.universal_state.scene.realm3d.materials.get(&args.id)
+        && filter_kind != MaterialRealmKind::Both
+        && material.realm_kind != MaterialRealmKind::Both
+        && material.realm_kind != filter_kind
+    {
+        return CmdResultResourceGet {
+            success: false,
+            message: "Material instance realm kind mismatch".into(),
+            kind: "material-instance".into(),
+            ..Default::default()
+        };
+    }
     CmdResultResourceGet {
         success: true,
         message: "Material instance found".into(),
@@ -367,6 +409,13 @@ pub fn engine_cmd_material_instance_get(
 #[serde(default, rename_all = "camelCase")]
 pub struct CmdResourceListArgs {
     pub scope: QueryScopeArgs,
+}
+
+#[derive(Debug, Default, Deserialize, Serialize, Clone)]
+#[serde(default, rename_all = "camelCase")]
+pub struct CmdMaterialInstanceListArgs {
+    pub scope: QueryScopeArgs,
+    pub realm_kind: Option<MaterialRealmKind>,
 }
 
 fn entries_from_iter<'a>(
@@ -423,7 +472,7 @@ pub fn engine_cmd_material_definition_list(
 
 pub fn engine_cmd_material_instance_list(
     engine: &mut EngineState,
-    args: &CmdResourceListArgs,
+    args: &CmdMaterialInstanceListArgs,
 ) -> CmdResultResourceList {
     let items = entries_from_iter(
         engine
@@ -431,6 +480,19 @@ pub fn engine_cmd_material_instance_list(
             .scene
             .material_instances
             .iter()
+            .filter(|(id, _)| {
+                if let Some(filter_kind) = args.realm_kind {
+                    if filter_kind == MaterialRealmKind::Both {
+                        return true;
+                    }
+                    if let Some(material) = engine.universal_state.scene.realm3d.materials.get(id) {
+                        return material.realm_kind == MaterialRealmKind::Both
+                            || material.realm_kind == filter_kind;
+                    }
+                    return false;
+                }
+                true
+            })
             .map(|(&id, rec)| (id, rec.label.clone())),
         &args.scope,
     );

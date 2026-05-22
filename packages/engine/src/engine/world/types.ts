@@ -6,6 +6,7 @@
  */
 export type WorldId = number & { __WORLD_ID__: null };
 export type World3DId = WorldId & { __WORLD_3D_ID__: null };
+export type World2DId = WorldId & { __WORLD_2D_ID__: null };
 export type WindowId = number & { __WINDOW_ID__: null };
 export type TargetId = number & { __TARGET_ID__: null };
 export type EntityId = number & { __ENTITY_ID__: null };
@@ -22,6 +23,11 @@ export function asWorldId(value: number): WorldId {
 /** Casts a numeric value to a branded 3D world id. */
 export function asWorld3DId(value: number): World3DId {
   return value as World3DId;
+}
+
+/** Casts a numeric value to a branded 2D world id. */
+export function asWorld2DId(value: number): World2DId {
+  return value as World2DId;
 }
 
 /** Casts a numeric value to a branded window id. */
@@ -60,6 +66,6 @@ export function asCommandId(value: number): CommandId {
 }
 
 /** Returns raw numeric world id from branded world id variants. */
-export function asWorldNumber(worldId: WorldId | World3DId | number): number {
+export function asWorldNumber(worldId: WorldId | World3DId | World2DId | number): number {
   return worldId as number;
 }

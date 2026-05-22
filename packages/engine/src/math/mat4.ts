@@ -58,7 +58,7 @@ export type ReadonlyMat4 =
  */
 export function create(): mat4 {
   let out = vectorMath.createArray(16) as Mat4;
-  
+
   out[0] = 1;
   out[5] = 1;
   out[10] = 1;
@@ -141,7 +141,24 @@ export function copy(out: mat4, a: ReadonlyMat4): mat4 {
  * @param {Number} m33 Component in column 3, row 3 position (index 15)
  * @returns {mat4} A new mat4
  */
-export function fromValues(m00: number, m01: number, m02: number, m03: number, m10: number, m11: number, m12: number, m13: number, m20: number, m21: number, m22: number, m23: number, m30: number, m31: number, m32: number, m33: number): mat4 {
+export function fromValues(
+  m00: number,
+  m01: number,
+  m02: number,
+  m03: number,
+  m10: number,
+  m11: number,
+  m12: number,
+  m13: number,
+  m20: number,
+  m21: number,
+  m22: number,
+  m23: number,
+  m30: number,
+  m31: number,
+  m32: number,
+  m33: number
+): mat4 {
   let out = vectorMath.createArray(16) as Mat4;
   out[0] = m00;
   out[1] = m01;
@@ -184,7 +201,25 @@ export function fromValues(m00: number, m01: number, m02: number, m03: number, m
  * @param {Number} m33 Component in column 3, row 3 position (index 15)
  * @returns {mat4} out
  */
-export function set(out: mat4, m00: number, m01: number, m02: number, m03: number, m10: number, m11: number, m12: number, m13: number, m20: number, m21: number, m22: number, m23: number, m30: number, m31: number, m32: number, m33: number): mat4 {
+export function set(
+  out: mat4,
+  m00: number,
+  m01: number,
+  m02: number,
+  m03: number,
+  m10: number,
+  m11: number,
+  m12: number,
+  m13: number,
+  m20: number,
+  m21: number,
+  m22: number,
+  m23: number,
+  m30: number,
+  m31: number,
+  m32: number,
+  m33: number
+): mat4 {
   out[0] = m00;
   out[1] = m01;
   out[2] = m02;
@@ -320,8 +355,7 @@ export function invert(out: mat4, a: ReadonlyMat4): mat4 | null {
   let b11 = a22 * a33 - a23 * a32;
 
   // Calculate the determinant
-  let det =
-    b00 * b11 - b01 * b10 + b02 * b09 + b03 * b08 - b04 * b07 + b05 * b06;
+  let det = b00 * b11 - b01 * b10 + b02 * b09 + b03 * b08 - b04 * b07 + b05 * b06;
 
   if (!det) {
     return null;
@@ -1315,7 +1349,12 @@ export function decompose(out_r: quat, out_t: vec3, out_s: vec3, mat: ReadonlyMa
  * @param {ReadonlyVec3} s Scaling vector
  * @returns {mat4} out
  */
-export function fromRotationTranslationScale(out: mat4, q: quat, v: ReadonlyVec3, s: ReadonlyVec3): mat4 {
+export function fromRotationTranslationScale(
+  out: mat4,
+  q: quat,
+  v: ReadonlyVec3,
+  s: ReadonlyVec3
+): mat4 {
   // Quaternion math
   let x = q[0],
     y = q[1],
@@ -1378,7 +1417,13 @@ export function fromRotationTranslationScale(out: mat4, q: quat, v: ReadonlyVec3
  * @param {ReadonlyVec3} o The origin vector around which to scale and rotate
  * @returns {mat4} out
  */
-export function fromRotationTranslationScaleOrigin(out: mat4, q: quat, v: ReadonlyVec3, s: ReadonlyVec3, o: ReadonlyVec3): mat4 {
+export function fromRotationTranslationScaleOrigin(
+  out: mat4,
+  q: quat,
+  v: ReadonlyVec3,
+  s: ReadonlyVec3,
+  o: ReadonlyVec3
+): mat4 {
   // Quaternion math
   let x = q[0],
     y = q[1],
@@ -1498,7 +1543,15 @@ export function fromQuat(out: mat4, q: ReadonlyQuat): mat4 {
  * @param {Number} far Far bound of the frustum
  * @returns {mat4} out
  */
-export function frustum(out: mat4, left: number, right: number, bottom: number, top: number, near: number, far: number): mat4 {
+export function frustum(
+  out: mat4,
+  left: number,
+  right: number,
+  bottom: number,
+  top: number,
+  near: number,
+  far: number
+): mat4 {
   let rl = 1 / (right - left);
   let tb = 1 / (top - bottom);
   let nf = 1 / (near - far);
@@ -1534,7 +1587,13 @@ export function frustum(out: mat4, left: number, right: number, bottom: number, 
  * @param {number} far Far bound of the frustum, can be null or Infinity
  * @returns {mat4} out
  */
-export function perspectiveNO(out: mat4, fovy: number, aspect: number, near: number, far: number): mat4 {
+export function perspectiveNO(
+  out: mat4,
+  fovy: number,
+  aspect: number,
+  near: number,
+  far: number
+): mat4 {
   const f = 1.0 / Math.tan(fovy / 2);
   out[0] = f / aspect;
   out[1] = 0;
@@ -1580,7 +1639,13 @@ export const perspective = perspectiveNO;
  * @param {number} far Far bound of the frustum, can be null or Infinity
  * @returns {mat4} out
  */
-export function perspectiveZO(out: mat4, fovy: number, aspect: number, near: number, far: number): mat4 {
+export function perspectiveZO(
+  out: mat4,
+  fovy: number,
+  aspect: number,
+  near: number,
+  far: number
+): mat4 {
   const f = 1.0 / Math.tan(fovy / 2);
   out[0] = f / aspect;
   out[1] = 0;
@@ -1659,7 +1724,15 @@ export function perspectiveFromFieldOfView(out: mat4, fov: any, near: number, fa
  * @param {number} far Far bound of the frustum
  * @returns {mat4} out
  */
-export function orthoNO(out: mat4, left: number, right: number, bottom: number, top: number, near: number, far: number): mat4 {
+export function orthoNO(
+  out: mat4,
+  left: number,
+  right: number,
+  bottom: number,
+  top: number,
+  near: number,
+  far: number
+): mat4 {
   const lr = 1 / (left - right);
   const bt = 1 / (bottom - top);
   const nf = 1 / (near - far);
@@ -1702,7 +1775,15 @@ export const ortho = orthoNO;
  * @param {number} far Far bound of the frustum
  * @returns {mat4} out
  */
-export function orthoZO(out: mat4, left: number, right: number, bottom: number, top: number, near: number, far: number): mat4 {
+export function orthoZO(
+  out: mat4,
+  left: number,
+  right: number,
+  bottom: number,
+  top: number,
+  near: number,
+  far: number
+): mat4 {
   const lr = 1 / (left - right);
   const bt = 1 / (bottom - top);
   const nf = 1 / (near - far);
@@ -1824,7 +1905,12 @@ export function lookAt(out: mat4, eye: ReadonlyVec3, center: ReadonlyVec3, up: R
  * @param {ReadonlyVec3} up vec3 pointing up
  * @returns {mat4} out
  */
-export function targetTo(out: mat4, eye: ReadonlyVec3, target: ReadonlyVec3, up: ReadonlyVec3): mat4 {
+export function targetTo(
+  out: mat4,
+  eye: ReadonlyVec3,
+  target: ReadonlyVec3,
+  up: ReadonlyVec3
+): mat4 {
   let eyex = eye[0],
     eyey = eye[1],
     eyez = eye[2],
@@ -1883,39 +1969,39 @@ export function targetTo(out: mat4, eye: ReadonlyVec3, target: ReadonlyVec3, up:
  */
 export function str(a: ReadonlyMat4): string {
   return (
-    "mat4(" +
+    'mat4(' +
     a[0] +
-    ", " +
+    ', ' +
     a[1] +
-    ", " +
+    ', ' +
     a[2] +
-    ", " +
+    ', ' +
     a[3] +
-    ", " +
+    ', ' +
     a[4] +
-    ", " +
+    ', ' +
     a[5] +
-    ", " +
+    ', ' +
     a[6] +
-    ", " +
+    ', ' +
     a[7] +
-    ", " +
+    ', ' +
     a[8] +
-    ", " +
+    ', ' +
     a[9] +
-    ", " +
+    ', ' +
     a[10] +
-    ", " +
+    ', ' +
     a[11] +
-    ", " +
+    ', ' +
     a[12] +
-    ", " +
+    ', ' +
     a[13] +
-    ", " +
+    ', ' +
     a[14] +
-    ", " +
+    ', ' +
     a[15] +
-    ")"
+    ')'
   );
 }
 
@@ -1928,21 +2014,21 @@ export function str(a: ReadonlyMat4): string {
 export function frob(a: ReadonlyMat4): number {
   return Math.sqrt(
     a[0] * a[0] +
-    a[1] * a[1] +
-    a[2] * a[2] +
-    a[3] * a[3] +
-    a[4] * a[4] +
-    a[5] * a[5] +
-    a[6] * a[6] +
-    a[7] * a[7] +
-    a[8] * a[8] +
-    a[9] * a[9] +
-    a[10] * a[10] +
-    a[11] * a[11] +
-    a[12] * a[12] +
-    a[13] * a[13] +
-    a[14] * a[14] +
-    a[15] * a[15]
+      a[1] * a[1] +
+      a[2] * a[2] +
+      a[3] * a[3] +
+      a[4] * a[4] +
+      a[5] * a[5] +
+      a[6] * a[6] +
+      a[7] * a[7] +
+      a[8] * a[8] +
+      a[9] * a[9] +
+      a[10] * a[10] +
+      a[11] * a[11] +
+      a[12] * a[12] +
+      a[13] * a[13] +
+      a[14] * a[14] +
+      a[15] * a[15]
   );
 }
 
@@ -2039,7 +2125,12 @@ export function multiplyScalar(out: mat4, a: ReadonlyMat4, b: number): mat4 {
  * @param {Number} scale the amount to scale b's elements by before adding
  * @returns {mat4} out
  */
-export function multiplyScalarAndAdd(out: mat4, a: ReadonlyMat4, b: ReadonlyMat4, scale: number): mat4 {
+export function multiplyScalarAndAdd(
+  out: mat4,
+  a: ReadonlyMat4,
+  b: ReadonlyMat4,
+  scale: number
+): mat4 {
   out[0] = a[0] + b[0] * scale;
   out[1] = a[1] + b[1] * scale;
   out[2] = a[2] + b[2] * scale;
@@ -2130,38 +2221,22 @@ export function equals(a: ReadonlyMat4, b: ReadonlyMat4): boolean {
     b15 = b[15];
 
   return (
-    Math.abs(a0 - b0) <=
-      vectorMath.EPSILON * Math.max(1.0, Math.abs(a0), Math.abs(b0)) &&
-    Math.abs(a1 - b1) <=
-      vectorMath.EPSILON * Math.max(1.0, Math.abs(a1), Math.abs(b1)) &&
-    Math.abs(a2 - b2) <=
-      vectorMath.EPSILON * Math.max(1.0, Math.abs(a2), Math.abs(b2)) &&
-    Math.abs(a3 - b3) <=
-      vectorMath.EPSILON * Math.max(1.0, Math.abs(a3), Math.abs(b3)) &&
-    Math.abs(a4 - b4) <=
-      vectorMath.EPSILON * Math.max(1.0, Math.abs(a4), Math.abs(b4)) &&
-    Math.abs(a5 - b5) <=
-      vectorMath.EPSILON * Math.max(1.0, Math.abs(a5), Math.abs(b5)) &&
-    Math.abs(a6 - b6) <=
-      vectorMath.EPSILON * Math.max(1.0, Math.abs(a6), Math.abs(b6)) &&
-    Math.abs(a7 - b7) <=
-      vectorMath.EPSILON * Math.max(1.0, Math.abs(a7), Math.abs(b7)) &&
-    Math.abs(a8 - b8) <=
-      vectorMath.EPSILON * Math.max(1.0, Math.abs(a8), Math.abs(b8)) &&
-    Math.abs(a9 - b9) <=
-      vectorMath.EPSILON * Math.max(1.0, Math.abs(a9), Math.abs(b9)) &&
-    Math.abs(a10 - b10) <=
-      vectorMath.EPSILON * Math.max(1.0, Math.abs(a10), Math.abs(b10)) &&
-    Math.abs(a11 - b11) <=
-      vectorMath.EPSILON * Math.max(1.0, Math.abs(a11), Math.abs(b11)) &&
-    Math.abs(a12 - b12) <=
-      vectorMath.EPSILON * Math.max(1.0, Math.abs(a12), Math.abs(b12)) &&
-    Math.abs(a13 - b13) <=
-      vectorMath.EPSILON * Math.max(1.0, Math.abs(a13), Math.abs(b13)) &&
-    Math.abs(a14 - b14) <=
-      vectorMath.EPSILON * Math.max(1.0, Math.abs(a14), Math.abs(b14)) &&
-    Math.abs(a15 - b15) <=
-      vectorMath.EPSILON * Math.max(1.0, Math.abs(a15), Math.abs(b15))
+    Math.abs(a0 - b0) <= vectorMath.EPSILON * Math.max(1.0, Math.abs(a0), Math.abs(b0)) &&
+    Math.abs(a1 - b1) <= vectorMath.EPSILON * Math.max(1.0, Math.abs(a1), Math.abs(b1)) &&
+    Math.abs(a2 - b2) <= vectorMath.EPSILON * Math.max(1.0, Math.abs(a2), Math.abs(b2)) &&
+    Math.abs(a3 - b3) <= vectorMath.EPSILON * Math.max(1.0, Math.abs(a3), Math.abs(b3)) &&
+    Math.abs(a4 - b4) <= vectorMath.EPSILON * Math.max(1.0, Math.abs(a4), Math.abs(b4)) &&
+    Math.abs(a5 - b5) <= vectorMath.EPSILON * Math.max(1.0, Math.abs(a5), Math.abs(b5)) &&
+    Math.abs(a6 - b6) <= vectorMath.EPSILON * Math.max(1.0, Math.abs(a6), Math.abs(b6)) &&
+    Math.abs(a7 - b7) <= vectorMath.EPSILON * Math.max(1.0, Math.abs(a7), Math.abs(b7)) &&
+    Math.abs(a8 - b8) <= vectorMath.EPSILON * Math.max(1.0, Math.abs(a8), Math.abs(b8)) &&
+    Math.abs(a9 - b9) <= vectorMath.EPSILON * Math.max(1.0, Math.abs(a9), Math.abs(b9)) &&
+    Math.abs(a10 - b10) <= vectorMath.EPSILON * Math.max(1.0, Math.abs(a10), Math.abs(b10)) &&
+    Math.abs(a11 - b11) <= vectorMath.EPSILON * Math.max(1.0, Math.abs(a11), Math.abs(b11)) &&
+    Math.abs(a12 - b12) <= vectorMath.EPSILON * Math.max(1.0, Math.abs(a12), Math.abs(b12)) &&
+    Math.abs(a13 - b13) <= vectorMath.EPSILON * Math.max(1.0, Math.abs(a13), Math.abs(b13)) &&
+    Math.abs(a14 - b14) <= vectorMath.EPSILON * Math.max(1.0, Math.abs(a14), Math.abs(b14)) &&
+    Math.abs(a15 - b15) <= vectorMath.EPSILON * Math.max(1.0, Math.abs(a15), Math.abs(b15))
   );
 }
 

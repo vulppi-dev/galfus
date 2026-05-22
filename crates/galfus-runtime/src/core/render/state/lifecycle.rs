@@ -7,7 +7,7 @@ use crate::core::render::cache::RenderCache;
 use crate::core::render::gizmos::GizmoSystem;
 #[cfg(any(not(target_arch = "wasm32"), target_arch = "wasm32"))]
 use crate::core::render::state::collector::DrawCollector;
-use crate::core::resources::{MATERIAL_FALLBACK_ID, ShaderMaterialRecord};
+use crate::core::resources::{MATERIAL_FALLBACK_ID, MATERIAL_STANDARD_2D_ID, ShaderMaterialRecord};
 #[cfg(any(not(target_arch = "wasm32"), target_arch = "wasm32"))]
 use std::collections::HashMap;
 use std::collections::HashSet;
@@ -25,6 +25,10 @@ impl RenderState {
         materials.insert(
             MATERIAL_FALLBACK_ID,
             ShaderMaterialRecord::new_standard(Some("Fallback Material".into())),
+        );
+        materials.insert(
+            MATERIAL_STANDARD_2D_ID,
+            ShaderMaterialRecord::new_standard_2d(Some("Standard 2D Material".into())),
         );
 
         Self {
@@ -62,11 +66,16 @@ impl RenderState {
             collector: DrawCollector::default(),
             skinning: crate::core::render::state::SkinningSystem::default(),
             ui_renderers: HashMap::new(),
+            two_d_source: crate::core::render::state::TwoDSourceState::default(),
+            two_d_prepared: crate::core::render::state::TwoDPreparedState::default(),
+            two_d_batched: crate::core::render::state::TwoDBatchedState::default(),
             environment: crate::core::resources::EnvironmentConfig::default(),
             environment_is_configured: false,
             camera_environment_overrides: HashMap::new(),
             compose_bind_cache: HashMap::new(),
             post_bind_cache: HashMap::new(),
+            two_d_texture_bind_cache: HashMap::new(),
+            two_d_pass_resources: None,
             compose_bind_cache_hits: 0,
             compose_bind_cache_misses: 0,
             post_bind_cache_hits: 0,
@@ -94,6 +103,10 @@ impl RenderState {
             MATERIAL_FALLBACK_ID,
             ShaderMaterialRecord::new_standard(Some("Fallback Material".into())),
         );
+        self.scene.materials.insert(
+            MATERIAL_STANDARD_2D_ID,
+            ShaderMaterialRecord::new_standard_2d(Some("Standard 2D Material".into())),
+        );
         self.scene.textures.clear();
         self.scene.forward_atlas_entries.clear();
         self.target_texture_binds.clear();
@@ -117,11 +130,20 @@ impl RenderState {
         self.skybox_uniform_buffer = None;
         self.skinning.clear();
         self.ui_renderers.clear();
+        self.two_d_source.cameras.clear();
+        self.two_d_source.sprites.clear();
+        self.two_d_source.shapes.clear();
+        self.two_d_prepared.cameras.clear();
+        self.two_d_prepared.items.clear();
+        self.two_d_batched.items.clear();
+        self.two_d_batched.ranges.clear();
         self.environment = crate::core::resources::EnvironmentConfig::default();
         self.environment_is_configured = false;
         self.camera_environment_overrides.clear();
         self.compose_bind_cache.clear();
         self.post_bind_cache.clear();
+        self.two_d_texture_bind_cache.clear();
+        self.two_d_pass_resources = None;
         self.compose_bind_cache_hits = 0;
         self.compose_bind_cache_misses = 0;
         self.post_bind_cache_hits = 0;
@@ -153,10 +175,8 @@ impl RenderState {
             bindings.instance_pool.begin_frame(frame_index);
             bindings.outline_instance_pool.begin_frame(frame_index);
             bindings.shadow_instance_pool.begin_frame(frame_index);
-            bindings.material_standard_pool.begin_frame(frame_index);
-            bindings.material_standard_inputs.begin_frame(frame_index);
-            bindings.material_pbr_pool.begin_frame(frame_index);
-            bindings.material_pbr_inputs.begin_frame(frame_index);
+            bindings.material_3d_pool.begin_frame(frame_index);
+            bindings.material_3d_inputs.begin_frame(frame_index);
             bindings.bones_pool.begin_frame(frame_index);
         }
         if let Some(light_system) = self.light_system.as_mut() {
@@ -174,8 +194,14 @@ impl RenderState {
         self.compose_bind_cache_misses = 0;
         self.post_bind_cache_hits = 0;
         self.post_bind_cache_misses = 0;
+        self.two_d_texture_bind_cache.clear();
+        self.two_d_pass_resources = None;
         self.cache.reset_frame_stats();
         self.cache.gc(frame_index);
+        self.two_d_prepared.cameras.clear();
+        self.two_d_prepared.items.clear();
+        self.two_d_batched.items.clear();
+        self.two_d_batched.ranges.clear();
         let active_shader_ids: HashSet<u64> = self
             .scene
             .materials

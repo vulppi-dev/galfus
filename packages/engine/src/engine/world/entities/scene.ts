@@ -9,6 +9,8 @@ import type {
   LightProps,
   MaterialProps,
   ModelProps,
+  Shape2DProps,
+  Sprite2DProps,
   TagProps,
   TextureProps,
   TransformComponent,
@@ -131,6 +133,24 @@ export function createLight(worldId: number, entityId: number, props: LightProps
 export function createModel(worldId: number, entityId: number, props: ModelProps): void {
   emitIntent(worldId, {
     type: 'attach-model',
+    entityId,
+    props
+  });
+}
+
+/** Attaches a 2D sprite component to an entity via Intent. */
+export function createSprite2D(worldId: number, entityId: number, props: Sprite2DProps): void {
+  emitIntent(worldId, {
+    type: 'attach-sprite2d',
+    entityId,
+    props
+  });
+}
+
+/** Attaches a 2D shape component to an entity via Intent. */
+export function createShape2D(worldId: number, entityId: number, props: Shape2DProps): void {
+  emitIntent(worldId, {
+    type: 'attach-shape2d',
     entityId,
     props
   });

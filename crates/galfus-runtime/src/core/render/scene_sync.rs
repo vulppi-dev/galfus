@@ -146,6 +146,30 @@ pub(super) fn sync_scene_from_realm_and_universal_resources(
         render_state.scene.lights.clear();
     }
 
+    render_state.two_d_source.cameras.clear();
+    render_state.two_d_source.sprites.clear();
+    render_state.two_d_source.shapes.clear();
+    if let Some(entities) = universal.scene.realm2d.entities.get(&realm_id) {
+        render_state.two_d_source.cameras.extend(
+            entities
+                .cameras
+                .iter()
+                .map(|(id, record)| (*id, record.clone())),
+        );
+        render_state.two_d_source.sprites.extend(
+            entities
+                .sprites
+                .iter()
+                .map(|(id, record)| (*id, record.clone())),
+        );
+        render_state.two_d_source.shapes.extend(
+            entities
+                .shapes
+                .iter()
+                .map(|(id, record)| (*id, record.clone())),
+        );
+    }
+
     galfus_realm_3d::rebuild_record_map(
         &mut render_state.scene.materials,
         &universal.scene.realm3d.materials,

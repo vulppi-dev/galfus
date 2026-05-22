@@ -43,14 +43,14 @@ export interface CmdResultLightUpsert {
 }
 
 /** Upsert payload accepted by the core (`create` or `update`). */
-export type CmdLightUpsertArgs = CmdLightCreateArgs | CmdLightUpdateArgs;
+export type CmdLight3dUpsertArgs = CmdLightCreateArgs | CmdLightUpdateArgs;
 
 /** Backward-compatible aliases. */
 export type CmdResultLightCreate = CmdResultLightUpsert;
 export type CmdResultLightUpdate = CmdResultLightUpsert;
 
 /** Command payload for disposing a light. */
-export interface CmdLightDisposeArgs {
+export interface CmdLight3dDisposeArgs {
   realmId: number;
   lightId: number;
 }

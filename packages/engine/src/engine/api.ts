@@ -381,6 +381,22 @@ export function createWorld3D(config?: CreateWorldOptions): WorldId {
 }
 
 /**
+ * Creates a `two-d` realm world and queues `cmd-realm-create`.
+ *
+ * This function only allocates local runtime state and enqueues the create command.
+ * The core realm is resolved asynchronously after at least one `tick`.
+ *
+ * Preconditions:
+ * - `initEngine` must have been called.
+ *
+ * @param config Optional create options.
+ * @returns Numeric world ID associated with a core `two-d` realm.
+ */
+export function createWorld2D(config?: CreateWorldOptions): WorldId {
+  return createRealmWorld('two-d', config);
+}
+
+/**
  * Creates a default `three-d` world.
  *
  * @example

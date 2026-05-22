@@ -11,6 +11,7 @@ pub mod shadow;
 mod spec;
 mod storage;
 mod texture;
+mod two_d;
 mod uniform;
 mod vertex;
 
@@ -27,5 +28,6 @@ pub use query::*;
 pub use spec::*;
 pub use storage::*;
 pub use texture::*;
+pub use two_d::*;
 pub use uniform::*;
 pub use vertex::*;

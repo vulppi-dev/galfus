@@ -1,3 +1,4 @@
+use crate::core::resources::MaterialRealmKind;
 use crate::core::state::EngineState;
 use serde::{Deserialize, Serialize};
 
@@ -74,6 +75,7 @@ pub fn engine_cmd_model_list(
 #[serde(rename_all = "camelCase")]
 pub struct CmdMaterialListArgs {
     pub window_id: u32,
+    pub realm_kind: Option<MaterialRealmKind>,
 }
 
 #[derive(Debug, Default, Deserialize, Serialize, Clone)]
@@ -94,6 +96,13 @@ pub fn engine_cmd_material_list(
     let mut materials = Vec::new();
 
     for (&id, rec) in &realm3d.materials {
+        if let Some(filter_kind) = args.realm_kind
+            && filter_kind != MaterialRealmKind::Both
+            && rec.realm_kind != MaterialRealmKind::Both
+            && rec.realm_kind != filter_kind
+        {
+            continue;
+        }
         materials.push(ResourceEntry {
             id,
             label: rec.label.clone(),
@@ -319,3 +328,7 @@ pub fn engine_cmd_camera_list(
         cameras,
     }
 }
+
+#[cfg(test)]
+#[path = "list_tests.rs"]
+mod tests;

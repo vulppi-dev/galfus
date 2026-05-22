@@ -1,7 +1,7 @@
 use super::super::RenderState;
 use crate::core::resources::{
-    MaterialPbrParams, MaterialStandardParams, SHADER_MATERIAL_INVALID_SLOT,
-    SHADER_MATERIAL_TEXTURE_SLOTS, TEX_SOURCE_ATLAS, TEX_SOURCE_INVALID, TEX_SOURCE_STANDALONE,
+    Material3dParams, SHADER_MATERIAL_INVALID_SLOT, SHADER_MATERIAL_TEXTURE_SLOTS,
+    TEX_SOURCE_ATLAS, TEX_SOURCE_INVALID, TEX_SOURCE_STANDALONE,
 };
 
 fn set_uvec4_lane(vecs: &mut [glam::UVec4; 2], index: usize, value: u32) {
@@ -15,6 +15,49 @@ fn set_uvec4_lane(vecs: &mut [glam::UVec4; 2], index: usize, value: u32) {
         _ => v.w = value,
     }
     vecs[vec_index] = v;
+}
+
+fn pbr_to_material3d(params: &crate::core::resources::MaterialPbrParams) -> Material3dParams {
+    Material3dParams {
+        input_indices: params.input_indices,
+        inputs_offset_count: params.inputs_offset_count,
+        surface_flags: params.surface_flags,
+        texture_slots: params.texture_slots,
+        sampler_indices: params.sampler_indices,
+        tex_sources: params.tex_sources,
+        atlas_layers: params.atlas_layers,
+        atlas_scale_bias: params.atlas_scale_bias,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::pbr_to_material3d;
+
+    #[test]
+    fn pbr_payload_maps_losslessly_to_material3d_payload() {
+        let mut pbr = crate::core::resources::MaterialPbrParams::default();
+        pbr.input_indices = glam::UVec4::new(3, 2, 1, 0);
+        pbr.inputs_offset_count = glam::UVec2::new(42, 8);
+        pbr.surface_flags = glam::UVec2::new(2, 17);
+        pbr.texture_slots = [glam::UVec4::new(1, 2, 3, 4), glam::UVec4::new(5, 6, 7, 8)];
+        pbr.sampler_indices = [glam::UVec4::new(2, 2, 2, 2), glam::UVec4::new(3, 3, 3, 3)];
+        pbr.tex_sources = [glam::UVec4::new(0, 1, 2, 0), glam::UVec4::new(1, 2, 0, 1)];
+        pbr.atlas_layers = [glam::UVec4::new(9, 8, 7, 6), glam::UVec4::new(5, 4, 3, 2)];
+        pbr.atlas_scale_bias[0] = glam::Vec4::new(0.5, 0.5, 0.1, 0.2);
+        pbr.atlas_scale_bias[7] = glam::Vec4::new(1.2, 1.3, 0.4, 0.5);
+
+        let mapped = pbr_to_material3d(&pbr);
+
+        assert_eq!(mapped.input_indices, pbr.input_indices);
+        assert_eq!(mapped.inputs_offset_count, pbr.inputs_offset_count);
+        assert_eq!(mapped.surface_flags, pbr.surface_flags);
+        assert_eq!(mapped.texture_slots, pbr.texture_slots);
+        assert_eq!(mapped.sampler_indices, pbr.sampler_indices);
+        assert_eq!(mapped.tex_sources, pbr.tex_sources);
+        assert_eq!(mapped.atlas_layers, pbr.atlas_layers);
+        assert_eq!(mapped.atlas_scale_bias, pbr.atlas_scale_bias);
+    }
 }
 
 impl RenderState {
@@ -91,26 +134,25 @@ impl RenderState {
             }
 
             if record.is_dirty || atlas_changed {
-                match record.preset {
-                    crate::core::resources::ShaderMaterialPreset::Standard => {
-                        bindings
-                            .material_standard_pool
-                            .write(*id, &record.data_standard);
-                        if record.is_dirty {
-                            bindings.material_standard_inputs.write_slice(
-                                record.data_standard.inputs_offset_count.x,
-                                &record.inputs,
-                            );
-                        }
-                    }
+                let material_params = match record.preset {
+                    crate::core::resources::ShaderMaterialPreset::Standard => record.data_standard,
                     crate::core::resources::ShaderMaterialPreset::Pbr => {
-                        bindings.material_pbr_pool.write(*id, &record.data_pbr);
-                        if record.is_dirty {
-                            bindings
-                                .material_pbr_inputs
-                                .write_slice(record.data_pbr.inputs_offset_count.x, &record.inputs);
-                        }
+                        pbr_to_material3d(&record.data_pbr)
                     }
+                };
+                bindings.material_3d_pool.write(*id, &material_params);
+                if record.is_dirty {
+                    let inputs_offset = match record.preset {
+                        crate::core::resources::ShaderMaterialPreset::Standard => {
+                            record.data_standard.inputs_offset_count.x
+                        }
+                        crate::core::resources::ShaderMaterialPreset::Pbr => {
+                            record.data_pbr.inputs_offset_count.x
+                        }
+                    };
+                    bindings
+                        .material_3d_inputs
+                        .write_slice(inputs_offset, &record.inputs);
                 }
                 record.clear_dirty();
             }
@@ -125,56 +167,27 @@ impl RenderState {
                         size: None,
                     }),
                 });
-                match record.preset {
-                    crate::core::resources::ShaderMaterialPreset::Standard => {
-                        entries.push(wgpu::BindGroupEntry {
-                            binding: 1,
-                            resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
-                                buffer: bindings.material_standard_pool.buffer(),
-                                offset: 0,
-                                size: Some(
-                                    std::num::NonZeroU64::new(std::mem::size_of::<
-                                        MaterialStandardParams,
-                                    >(
-                                    )
-                                        as u64)
-                                    .expect("nz"),
-                                ),
-                            }),
-                        });
-                        entries.push(wgpu::BindGroupEntry {
-                            binding: 2,
-                            resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
-                                buffer: bindings.material_standard_inputs.buffer(),
-                                offset: 0,
-                                size: None,
-                            }),
-                        });
-                    }
-                    crate::core::resources::ShaderMaterialPreset::Pbr => {
-                        entries.push(wgpu::BindGroupEntry {
-                            binding: 1,
-                            resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
-                                buffer: bindings.material_pbr_pool.buffer(),
-                                offset: 0,
-                                size: Some(
-                                    std::num::NonZeroU64::new(
-                                        std::mem::size_of::<MaterialPbrParams>() as u64,
-                                    )
-                                    .expect("nz"),
-                                ),
-                            }),
-                        });
-                        entries.push(wgpu::BindGroupEntry {
-                            binding: 2,
-                            resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
-                                buffer: bindings.material_pbr_inputs.buffer(),
-                                offset: 0,
-                                size: None,
-                            }),
-                        });
-                    }
-                }
+                entries.push(wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
+                        buffer: bindings.material_3d_pool.buffer(),
+                        offset: 0,
+                        size: Some(
+                            std::num::NonZeroU64::new(
+                                std::mem::size_of::<Material3dParams>() as u64
+                            )
+                            .expect("nz"),
+                        ),
+                    }),
+                });
+                entries.push(wgpu::BindGroupEntry {
+                    binding: 2,
+                    resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
+                        buffer: bindings.material_3d_inputs.buffer(),
+                        offset: 0,
+                        size: None,
+                    }),
+                });
 
                 for slot in 0..SHADER_MATERIAL_TEXTURE_SLOTS {
                     let tex_id = record.texture_ids[slot];
@@ -204,14 +217,7 @@ impl RenderState {
 
                 record.bind_group = Some(device.create_bind_group(&wgpu::BindGroupDescriptor {
                     label: Some("BindGroup ShaderMaterial"),
-                    layout: match record.preset {
-                        crate::core::resources::ShaderMaterialPreset::Standard => {
-                            &library.layout_object_standard
-                        }
-                        crate::core::resources::ShaderMaterialPreset::Pbr => {
-                            &library.layout_object_pbr
-                        }
-                    },
+                    layout: &library.layout_object_3d_material,
                     entries: &entries,
                 }));
             }

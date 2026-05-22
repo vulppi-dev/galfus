@@ -4,14 +4,14 @@ use galfus_core::core;
 use galfus_core::core::GalfusResult;
 use galfus_core::core::cmd::EngineEvent;
 use galfus_core::core::cmd::{
-    CmdCameraUpsertArgs, CmdEnvironmentUpsertArgs, CmdLightUpsertArgs,
-    CmdMaterialDefinitionUpsertArgs, CmdMaterialUpsertArgs, CmdModelUpsertArgs, EngineCmd,
+    CmdCamera3dUpsertArgs, CmdEnvironmentUpsertArgs, CmdLight3dUpsertArgs,
+    CmdMaterialDefinitionUpsertArgs, CmdMaterialUpsertArgs, CmdModel3dUpsertArgs, EngineCmd,
 };
 use galfus_core::core::resources::{
     CameraKind, CmdCameraCreateArgs, CmdEnvironmentCreateArgs, CmdLightCreateArgs,
     CmdMaterialCreateArgs, CmdMaterialDefinitionCreateArgs, CmdModelCreateArgs, CmdModelUpdateArgs,
     CmdPrimitiveGeometryCreateArgs, EnvironmentConfig, LightKind, MaterialKind, MaterialOptions,
-    MaterialShaderType, PostProcessConfig, PrimitiveShape, RenderSide, ShaderMaterialPreset,
+    MaterialRealmKind, MaterialShaderType, PostProcessConfig, PrimitiveShape, RenderSide,
     StandardOptions,
 };
 use galfus_core::core::target::{
@@ -30,7 +30,7 @@ const WINDOW_TARGET_ID: u64 = 1;
 const GEOMETRY_CUBE_ID: u32 = 1;
 const GEOMETRY_FLOOR_ID: u32 = 11;
 const MATERIAL_STANDARD_ID: u32 = 2;
-const MATERIAL_PBR_ID: u32 = 3;
+const MATERIAL_PBR_ID: u32 = 30;
 const MATERIAL_CUSTOM_SIMPLE_ID: u32 = 4;
 const MATERIAL_FLOOR_ID: u32 = 12;
 const MATERIAL_DEF_CUSTOM_SIMPLE_ID: u32 = 100;
@@ -88,7 +88,7 @@ fn build_rotating_cube_updates(realm_id: u32, time_seconds: f32) -> Vec<EngineCm
     let angle_b = time_seconds * 2.50 + 0.60;
     let angle_c = time_seconds * 1.40 + 1.20;
     vec![
-        EngineCmd::CmdModelUpsert(CmdModelUpsertArgs::Update(CmdModelUpdateArgs {
+        EngineCmd::CmdModel3dUpsert(CmdModel3dUpsertArgs::Update(CmdModelUpdateArgs {
             realm_id,
             model_id: MODEL_CUBE_A_ID,
             label: None,
@@ -103,7 +103,7 @@ fn build_rotating_cube_updates(realm_id: u32, time_seconds: f32) -> Vec<EngineCm
             cast_outline: None,
             outline_color: None,
         })),
-        EngineCmd::CmdModelUpsert(CmdModelUpsertArgs::Update(CmdModelUpdateArgs {
+        EngineCmd::CmdModel3dUpsert(CmdModel3dUpsertArgs::Update(CmdModelUpdateArgs {
             realm_id,
             model_id: MODEL_CUBE_B_ID,
             label: None,
@@ -118,7 +118,7 @@ fn build_rotating_cube_updates(realm_id: u32, time_seconds: f32) -> Vec<EngineCm
             cast_outline: None,
             outline_color: None,
         })),
-        EngineCmd::CmdModelUpsert(CmdModelUpsertArgs::Update(CmdModelUpdateArgs {
+        EngineCmd::CmdModel3dUpsert(CmdModel3dUpsertArgs::Update(CmdModelUpdateArgs {
             realm_id,
             model_id: MODEL_CUBE_C_ID,
             label: None,
@@ -193,8 +193,9 @@ fn build_realm3d_scene(realm_id: u32) -> Vec<EngineCmd> {
             label: Some("demo-mat-standard".into()),
             slug: "standard".into(),
             kind: MaterialKind::Shader,
+            realm_kind: MaterialRealmKind::ThreeD,
             options: Some(MaterialOptions::Standard(StandardOptions {
-                base_color: Some(Vec4::new(0.92, 0.35, 0.32, 1.0)),
+                base_color: Some(Vec4::new(1.0, 0.2, 0.8, 1.0)),
                 render_side: Some(RenderSide::Back),
                 ..Default::default()
             })),
@@ -204,9 +205,10 @@ fn build_realm3d_scene(realm_id: u32) -> Vec<EngineCmd> {
             label: Some("demo-mat-pbr".into()),
             slug: "pbr".into(),
             kind: MaterialKind::Shader,
+            realm_kind: MaterialRealmKind::ThreeD,
             options: Some(MaterialOptions::Pbr(
                 galfus_core::core::resources::PbrOptions {
-                    base_color: Some(Vec4::new(0.25, 0.86, 0.62, 1.0)),
+                    base_color: Some(Vec4::new(1.0, 1.0, 0.2, 1.0)),
                     metallic: Some(0.55),
                     roughness: Some(0.35),
                     render_side: Some(RenderSide::Back),
@@ -219,9 +221,9 @@ fn build_realm3d_scene(realm_id: u32) -> Vec<EngineCmd> {
                 definition_id: MATERIAL_DEF_CUSTOM_SIMPLE_ID,
                 slug: "demo-custom-simple".into(),
                 label: Some("demo-def-custom-simple".into()),
-                preset: ShaderMaterialPreset::Standard,
+                preset: None,
                 shader_type: Some(MaterialShaderType::Model),
-                shader_source: r#"
+                shader_source: Some(r#"
 fn vertex(input: VertexInput) -> VertexOutput {
   var out: VertexOutput;
   out.world_position = vec3<f32>(0.0);
@@ -239,7 +241,7 @@ fn fragment(input: FragmentInput) -> FragmentOutput {
   return out;
 }
 "#
-                .to_string(),
+                .to_string()),
                 shader_params_schema: None,
                 capabilities: None,
             },
@@ -249,6 +251,7 @@ fn fragment(input: FragmentInput) -> FragmentOutput {
             label: Some("demo-mat-custom-simple".into()),
             slug: "demo-custom-simple".into(),
             kind: MaterialKind::Shader,
+            realm_kind: MaterialRealmKind::ThreeD,
             options: Some(MaterialOptions::Standard(StandardOptions {
                 base_color: Some(Vec4::new(0.25, 0.45, 0.98, 1.0)),
                 emissive_color: Some(Vec4::new(0.0, 0.0, 0.0, 0.0)),
@@ -263,6 +266,7 @@ fn fragment(input: FragmentInput) -> FragmentOutput {
             label: Some("demo-mat-floor".into()),
             slug: "standard".into(),
             kind: MaterialKind::Shader,
+            realm_kind: MaterialRealmKind::ThreeD,
             options: Some(MaterialOptions::Standard(StandardOptions {
                 base_color: Some(Vec4::new(0.24, 0.24, 0.26, 1.0)),
                 spec_color: Some(Vec4::new(0.05, 0.05, 0.05, 1.0)),
@@ -271,7 +275,7 @@ fn fragment(input: FragmentInput) -> FragmentOutput {
                 ..Default::default()
             })),
         })),
-        EngineCmd::CmdCameraUpsert(CmdCameraUpsertArgs::Create(CmdCameraCreateArgs {
+        EngineCmd::CmdCamera3dUpsert(CmdCamera3dUpsertArgs::Create(CmdCameraCreateArgs {
             realm_id,
             camera_id: CAMERA_ID,
             label: Some("demo-camera".into()),
@@ -284,7 +288,7 @@ fn fragment(input: FragmentInput) -> FragmentOutput {
             view_position: None,
             ortho_scale: 10.0,
         })),
-        EngineCmd::CmdLightUpsert(CmdLightUpsertArgs::Create(CmdLightCreateArgs {
+        EngineCmd::CmdLight3dUpsert(CmdLight3dUpsertArgs::Create(CmdLightCreateArgs {
             realm_id,
             light_id: LIGHT_ID,
             label: Some("demo-light".into()),
@@ -309,13 +313,17 @@ fn fragment(input: FragmentInput) -> FragmentOutput {
                         outline_strength: 0.5,
                         outline_threshold: 0.25,
                         outline_width: 1.25,
+                        bloom_enabled: true,
+                        bloom_intensity: 1.0,
+                        bloom_threshold: 0.05,
+                        bloom_knee: 0.5,
                         ..Default::default()
                     },
                     ..Default::default()
                 },
             },
         )),
-        EngineCmd::CmdModelUpsert(CmdModelUpsertArgs::Create(CmdModelCreateArgs {
+        EngineCmd::CmdModel3dUpsert(CmdModel3dUpsertArgs::Create(CmdModelCreateArgs {
             realm_id,
             model_id: MODEL_CUBE_A_ID,
             label: Some("demo-cube-standard".into()),
@@ -328,7 +336,7 @@ fn fragment(input: FragmentInput) -> FragmentOutput {
             cast_outline: true,
             outline_color: Vec4::new(1.0, 0.55, 0.0, 1.0),
         })),
-        EngineCmd::CmdModelUpsert(CmdModelUpsertArgs::Create(CmdModelCreateArgs {
+        EngineCmd::CmdModel3dUpsert(CmdModel3dUpsertArgs::Create(CmdModelCreateArgs {
             realm_id,
             model_id: MODEL_CUBE_B_ID,
             label: Some("demo-cube-pbr".into()),
@@ -341,7 +349,7 @@ fn fragment(input: FragmentInput) -> FragmentOutput {
             cast_outline: false,
             outline_color: Vec4::ZERO,
         })),
-        EngineCmd::CmdModelUpsert(CmdModelUpsertArgs::Create(CmdModelCreateArgs {
+        EngineCmd::CmdModel3dUpsert(CmdModel3dUpsertArgs::Create(CmdModelCreateArgs {
             realm_id,
             model_id: MODEL_CUBE_C_ID,
             label: Some("demo-cube-custom-simple".into()),
@@ -354,7 +362,7 @@ fn fragment(input: FragmentInput) -> FragmentOutput {
             cast_outline: false,
             outline_color: Vec4::ZERO,
         })),
-        EngineCmd::CmdModelUpsert(CmdModelUpsertArgs::Create(CmdModelCreateArgs {
+        EngineCmd::CmdModel3dUpsert(CmdModel3dUpsertArgs::Create(CmdModelCreateArgs {
             realm_id,
             model_id: MODEL_FLOOR_ID,
             label: Some("demo-floor".into()),

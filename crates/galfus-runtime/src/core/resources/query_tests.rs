@@ -1,10 +1,11 @@
 use super::*;
 use crate::core::realm::RealmId;
 use crate::core::resources::{
-    CameraKind, CmdCameraCreateArgs, CmdEnvironmentCreateArgs, CmdMaterialDefinitionCreateArgs,
-    CmdMaterialInstanceCreateArgs, EnvironmentConfig, ShaderMaterialPreset,
-    engine_cmd_camera_create, engine_cmd_environment_create, engine_cmd_material_definition_create,
-    engine_cmd_material_instance_create,
+    CameraKind, CmdCameraCreateArgs, CmdEnvironmentCreateArgs, CmdMaterialCreateArgs,
+    CmdMaterialDefinitionCreateArgs, CmdMaterialInstanceCreateArgs, EnvironmentConfig,
+    MaterialKind, MaterialRealmKind, ShaderMaterialPreset, engine_cmd_camera_create,
+    engine_cmd_environment_create, engine_cmd_material_create,
+    engine_cmd_material_definition_create, engine_cmd_material_instance_create,
 };
 use crate::core::test_support::test_engine;
 use glam::{Mat4, Vec2};
@@ -129,9 +130,9 @@ fn material_definition_and_instance_get_and_list_work() {
             definition_id: 901,
             slug: "test-def-901".into(),
             label: Some("Test Definition".into()),
-            preset: ShaderMaterialPreset::Standard,
+            preset: Some(ShaderMaterialPreset::Standard),
             shader_type: None,
-            shader_source: "fn vertex(input: VertexInput) -> VertexOutput { var out: VertexOutput; out.world_position = input.position; out.world_normal = input.normal; out.uv = input.uv; out.clip_position = vec4<f32>(0.0); return out; } fn fragment(input: FragmentInput) -> FragmentOutput { var out: FragmentOutput; out.color = vec4<f32>(1.0); out.emissive = vec4<f32>(0.0); return out; }".into(),
+            shader_source: None,
             shader_params_schema: None,
             capabilities: None,
         },
@@ -161,9 +162,10 @@ fn material_definition_and_instance_get_and_list_work() {
 
     let instance_get = engine_cmd_material_instance_get(
         &mut engine,
-        &CmdResourceGetArgs {
+        &CmdMaterialInstanceGetArgs {
             id: 902,
             scope: QueryScopeArgs::default(),
+            realm_kind: None,
         },
     );
     assert!(instance_get.success);
@@ -184,14 +186,140 @@ fn material_definition_and_instance_get_and_list_work() {
 
     let instance_list = engine_cmd_material_instance_list(
         &mut engine,
-        &CmdResourceListArgs {
+        &CmdMaterialInstanceListArgs {
             scope: QueryScopeArgs {
                 ids: Some(vec![902]),
                 ..Default::default()
             },
+            realm_kind: None,
         },
     );
     assert!(instance_list.success);
     assert_eq!(instance_list.items.len(), 1);
     assert_eq!(instance_list.items[0].id, 902);
+}
+
+#[test]
+fn material_get_filters_by_realm_kind() {
+    let mut engine = test_engine();
+
+    let create_result = engine_cmd_material_create(
+        &mut engine,
+        &CmdMaterialCreateArgs {
+            material_id: 1001,
+            label: Some("mat-3d-only".into()),
+            slug: "standard".into(),
+            kind: MaterialKind::Shader,
+            realm_kind: MaterialRealmKind::ThreeD,
+            options: None,
+        },
+    );
+    assert!(create_result.success, "{}", create_result.message);
+
+    let get_ok = engine_cmd_material_get(
+        &mut engine,
+        &CmdMaterialGetArgs {
+            id: 1001,
+            scope: QueryScopeArgs::default(),
+            realm_kind: Some(MaterialRealmKind::ThreeD),
+        },
+    );
+    assert!(get_ok.success, "{}", get_ok.message);
+
+    let get_mismatch = engine_cmd_material_get(
+        &mut engine,
+        &CmdMaterialGetArgs {
+            id: 1001,
+            scope: QueryScopeArgs::default(),
+            realm_kind: Some(MaterialRealmKind::TwoD),
+        },
+    );
+    assert!(!get_mismatch.success);
+    assert_eq!(get_mismatch.message, "Material realm kind mismatch");
+}
+
+#[test]
+fn material_instance_get_and_list_filter_by_realm_kind() {
+    let mut engine = test_engine();
+
+    let definition_result = engine_cmd_material_definition_create(
+        &mut engine,
+        &CmdMaterialDefinitionCreateArgs {
+            definition_id: 2001,
+            slug: "test-def-2001".into(),
+            label: Some("Test Definition 2001".into()),
+            preset: Some(ShaderMaterialPreset::Standard),
+            shader_type: None,
+            shader_source: None,
+            shader_params_schema: None,
+            capabilities: None,
+        },
+    );
+    assert!(definition_result.success, "{}", definition_result.message);
+
+    let instance_result = engine_cmd_material_instance_create(
+        &mut engine,
+        &CmdMaterialInstanceCreateArgs {
+            material_id: 2002,
+            slug: "test-def-2001".into(),
+            label: Some("Instance 2002".into()),
+            options: None,
+        },
+    );
+    assert!(instance_result.success, "{}", instance_result.message);
+
+    {
+        let material = engine
+            .universal_state
+            .scene
+            .realm3d
+            .materials
+            .get_mut(&2002)
+            .expect("material instance should create backing material");
+        material.realm_kind = MaterialRealmKind::TwoD;
+    }
+
+    let get_mismatch = engine_cmd_material_instance_get(
+        &mut engine,
+        &CmdMaterialInstanceGetArgs {
+            id: 2002,
+            scope: QueryScopeArgs::default(),
+            realm_kind: Some(MaterialRealmKind::ThreeD),
+        },
+    );
+    assert!(!get_mismatch.success);
+    assert_eq!(
+        get_mismatch.message,
+        "Material instance realm kind mismatch"
+    );
+
+    let get_ok = engine_cmd_material_instance_get(
+        &mut engine,
+        &CmdMaterialInstanceGetArgs {
+            id: 2002,
+            scope: QueryScopeArgs::default(),
+            realm_kind: Some(MaterialRealmKind::TwoD),
+        },
+    );
+    assert!(get_ok.success, "{}", get_ok.message);
+
+    let list_filtered = engine_cmd_material_instance_list(
+        &mut engine,
+        &CmdMaterialInstanceListArgs {
+            scope: QueryScopeArgs::default(),
+            realm_kind: Some(MaterialRealmKind::ThreeD),
+        },
+    );
+    assert!(list_filtered.success);
+    assert!(list_filtered.items.iter().all(|entry| entry.id != 2002));
+
+    let list_ok = engine_cmd_material_instance_list(
+        &mut engine,
+        &CmdMaterialInstanceListArgs {
+            scope: QueryScopeArgs::default(),
+            realm_kind: Some(MaterialRealmKind::TwoD),
+        },
+    );
+    assert!(list_ok.success);
+    assert!(list_ok.items.iter().any(|entry| entry.id == 2002));
 }

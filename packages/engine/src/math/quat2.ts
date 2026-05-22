@@ -29,7 +29,7 @@ export type ReadonlyQuat2 =
  */
 export function create(): quat2 {
   let dq = vectorMath.createArray(8);
-  
+
   dq[3] = 1;
   return dq;
 }
@@ -68,7 +68,16 @@ export function clone(a: ReadonlyQuat2): quat2 {
  * @returns {quat2} new dual quaternion
  * @function
  */
-export function fromValues(x1: number, y1: number, z1: number, w1: number, x2: number, y2: number, z2: number, w2: number): quat2 {
+export function fromValues(
+  x1: number,
+  y1: number,
+  z1: number,
+  w1: number,
+  x2: number,
+  y2: number,
+  z2: number,
+  w2: number
+): quat2 {
   let dq = vectorMath.createArray(8);
   dq[0] = x1;
   dq[1] = y1;
@@ -94,7 +103,15 @@ export function fromValues(x1: number, y1: number, z1: number, w1: number, x2: n
  * @returns {quat2} new dual quaternion
  * @function
  */
-export function fromRotationTranslationValues(x1: number, y1: number, z1: number, w1: number, x2: number, y2: number, z2: number): quat2 {
+export function fromRotationTranslationValues(
+  x1: number,
+  y1: number,
+  z1: number,
+  w1: number,
+  x2: number,
+  y2: number,
+  z2: number
+): quat2 {
   let dq = vectorMath.createArray(8);
   dq[0] = x1;
   dq[1] = y1;
@@ -249,7 +266,17 @@ export function identity(out: quat2): quat2 {
  * @returns {quat2} out
  * @function
  */
-export function set(out: quat2, x1: number, y1: number, z1: number, w1: number, x2: number, y2: number, z2: number, w2: number): quat2 {
+export function set(
+  out: quat2,
+  x1: number,
+  y1: number,
+  z1: number,
+  w1: number,
+  x2: number,
+  y2: number,
+  z2: number,
+  w2: number
+): quat2 {
   out[0] = x1;
   out[1] = y1;
   out[2] = z1;
@@ -536,7 +563,12 @@ export function rotateByQuatPrepend(out: quat2, q: ReadonlyQuat, a: ReadonlyQuat
  * @param {Number} rad how far the rotation should be
  * @returns {quat2} out
  */
-export function rotateAroundAxis(out: quat2, a: ReadonlyQuat2, axis: ReadonlyVec3, rad: number): quat2 {
+export function rotateAroundAxis(
+  out: quat2,
+  a: ReadonlyQuat2,
+  axis: ReadonlyVec3,
+  rad: number
+): quat2 {
   //Special case for rad = 0
   if (Math.abs(rad) < vectorMath.EPSILON) {
     return copy(out, a);
@@ -622,41 +654,13 @@ export function multiply(out: quat2, a: ReadonlyQuat2, b: ReadonlyQuat2): quat2 
   out[2] = az0 * bw0 + aw0 * bz0 + ax0 * by0 - ay0 * bx0;
   out[3] = aw0 * bw0 - ax0 * bx0 - ay0 * by0 - az0 * bz0;
   out[4] =
-    ax0 * bw1 +
-    aw0 * bx1 +
-    ay0 * bz1 -
-    az0 * by1 +
-    ax1 * bw0 +
-    aw1 * bx0 +
-    ay1 * bz0 -
-    az1 * by0;
+    ax0 * bw1 + aw0 * bx1 + ay0 * bz1 - az0 * by1 + ax1 * bw0 + aw1 * bx0 + ay1 * bz0 - az1 * by0;
   out[5] =
-    ay0 * bw1 +
-    aw0 * by1 +
-    az0 * bx1 -
-    ax0 * bz1 +
-    ay1 * bw0 +
-    aw1 * by0 +
-    az1 * bx0 -
-    ax1 * bz0;
+    ay0 * bw1 + aw0 * by1 + az0 * bx1 - ax0 * bz1 + ay1 * bw0 + aw1 * by0 + az1 * bx0 - ax1 * bz0;
   out[6] =
-    az0 * bw1 +
-    aw0 * bz1 +
-    ax0 * by1 -
-    ay0 * bx1 +
-    az1 * bw0 +
-    aw1 * bz0 +
-    ax1 * by0 -
-    ay1 * bx0;
+    az0 * bw1 + aw0 * bz1 + ax0 * by1 - ay0 * bx1 + az1 * bw0 + aw1 * bz0 + ax1 * by0 - ay1 * bx0;
   out[7] =
-    aw0 * bw1 -
-    ax0 * bx1 -
-    ay0 * by1 -
-    az0 * bz1 +
-    aw1 * bw0 -
-    ax1 * bx0 -
-    ay1 * by0 -
-    az1 * bz0;
+    aw0 * bw1 - ax0 * bx1 - ay0 * by1 - az0 * bz1 + aw1 * bw0 - ax1 * bx0 - ay1 * by0 - az1 * bz0;
   return out;
 }
 
@@ -839,23 +843,23 @@ export function normalize(out: quat2, a: ReadonlyQuat2): quat2 {
  */
 export function str(a: ReadonlyQuat2): string {
   return (
-    "quat2(" +
+    'quat2(' +
     a[0] +
-    ", " +
+    ', ' +
     a[1] +
-    ", " +
+    ', ' +
     a[2] +
-    ", " +
+    ', ' +
     a[3] +
-    ", " +
+    ', ' +
     a[4] +
-    ", " +
+    ', ' +
     a[5] +
-    ", " +
+    ', ' +
     a[6] +
-    ", " +
+    ', ' +
     a[7] +
-    ")"
+    ')'
   );
 }
 
@@ -904,21 +908,13 @@ export function equals(a: ReadonlyQuat2, b: ReadonlyQuat2): boolean {
     b6 = b[6],
     b7 = b[7];
   return (
-    Math.abs(a0 - b0) <=
-      vectorMath.EPSILON * Math.max(1.0, Math.abs(a0), Math.abs(b0)) &&
-    Math.abs(a1 - b1) <=
-      vectorMath.EPSILON * Math.max(1.0, Math.abs(a1), Math.abs(b1)) &&
-    Math.abs(a2 - b2) <=
-      vectorMath.EPSILON * Math.max(1.0, Math.abs(a2), Math.abs(b2)) &&
-    Math.abs(a3 - b3) <=
-      vectorMath.EPSILON * Math.max(1.0, Math.abs(a3), Math.abs(b3)) &&
-    Math.abs(a4 - b4) <=
-      vectorMath.EPSILON * Math.max(1.0, Math.abs(a4), Math.abs(b4)) &&
-    Math.abs(a5 - b5) <=
-      vectorMath.EPSILON * Math.max(1.0, Math.abs(a5), Math.abs(b5)) &&
-    Math.abs(a6 - b6) <=
-      vectorMath.EPSILON * Math.max(1.0, Math.abs(a6), Math.abs(b6)) &&
-    Math.abs(a7 - b7) <=
-      vectorMath.EPSILON * Math.max(1.0, Math.abs(a7), Math.abs(b7))
+    Math.abs(a0 - b0) <= vectorMath.EPSILON * Math.max(1.0, Math.abs(a0), Math.abs(b0)) &&
+    Math.abs(a1 - b1) <= vectorMath.EPSILON * Math.max(1.0, Math.abs(a1), Math.abs(b1)) &&
+    Math.abs(a2 - b2) <= vectorMath.EPSILON * Math.max(1.0, Math.abs(a2), Math.abs(b2)) &&
+    Math.abs(a3 - b3) <= vectorMath.EPSILON * Math.max(1.0, Math.abs(a3), Math.abs(b3)) &&
+    Math.abs(a4 - b4) <= vectorMath.EPSILON * Math.max(1.0, Math.abs(a4), Math.abs(b4)) &&
+    Math.abs(a5 - b5) <= vectorMath.EPSILON * Math.max(1.0, Math.abs(a5), Math.abs(b5)) &&
+    Math.abs(a6 - b6) <= vectorMath.EPSILON * Math.max(1.0, Math.abs(a6), Math.abs(b6)) &&
+    Math.abs(a7 - b7) <= vectorMath.EPSILON * Math.max(1.0, Math.abs(a7), Math.abs(b7))
   );
 }

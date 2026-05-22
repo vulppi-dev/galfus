@@ -4,15 +4,15 @@ use galfus_core::core;
 use galfus_core::core::GalfusResult;
 use galfus_core::core::cmd::EngineEvent;
 use galfus_core::core::cmd::{
-    CmdCameraUpsertArgs, CmdEnvironmentUpsertArgs, CmdLightUpsertArgs,
-    CmdMaterialDefinitionUpsertArgs, CmdMaterialUpsertArgs, CmdModelUpsertArgs, EngineCmd,
+    CmdCamera3dUpsertArgs, CmdEnvironmentUpsertArgs, CmdLight3dUpsertArgs,
+    CmdMaterialDefinitionUpsertArgs, CmdMaterialUpsertArgs, CmdModel3dUpsertArgs, EngineCmd,
 };
 use galfus_core::core::resources::{
     CameraKind, CmdCameraCreateArgs, CmdEnvironmentCreateArgs, CmdLightCreateArgs,
     CmdMaterialCreateArgs, CmdMaterialDefinitionCreateArgs, CmdModelCreateArgs, CmdModelUpdateArgs,
     CmdPrimitiveGeometryCreateArgs, EnvironmentConfig, LightKind, MaterialKind, MaterialOptions,
-    MaterialShaderCapabilities, MaterialShaderType, PostProcessConfig, PrimitiveShape, RenderSide,
-    ShaderMaterialPreset, StandardOptions,
+    MaterialRealmKind, MaterialShaderCapabilities, MaterialShaderType, PostProcessConfig,
+    PrimitiveShape, RenderSide, StandardOptions,
 };
 use galfus_core::core::target::{
     CmdTargetLayerUpsertArgs, CmdTargetUpsertArgs, DimensionValue, TargetKind, TargetLayerLayout,
@@ -66,7 +66,7 @@ pub fn run(ctx: DemoContext) -> bool {
     while start.elapsed() < RUN_DURATION {
         let t = total_ms as f32 / 1000.0;
         let updates = vec![
-            EngineCmd::CmdModelUpsert(CmdModelUpsertArgs::Update(CmdModelUpdateArgs {
+            EngineCmd::CmdModel3dUpsert(CmdModel3dUpsertArgs::Update(CmdModelUpdateArgs {
                 realm_id: realm_3d,
                 model_id: MODEL_GHOST_CUBE_ID,
                 label: None,
@@ -86,7 +86,7 @@ pub fn run(ctx: DemoContext) -> bool {
                 cast_outline: None,
                 outline_color: None,
             })),
-            EngineCmd::CmdModelUpsert(CmdModelUpsertArgs::Update(CmdModelUpdateArgs {
+            EngineCmd::CmdModel3dUpsert(CmdModel3dUpsertArgs::Update(CmdModelUpdateArgs {
                 realm_id: realm_3d,
                 model_id: MODEL_FRESNEL_CUBE_ID,
                 label: None,
@@ -137,9 +137,10 @@ fn build_scene(realm_id: u32) -> Vec<EngineCmd> {
                 definition_id: MATERIAL_DEF_GHOST_ID,
                 slug: "demo2-ghost".into(),
                 label: Some("demo2-ghost-definition".into()),
-                preset: ShaderMaterialPreset::Standard,
+                preset: None,
                 shader_type: Some(MaterialShaderType::Model),
-                shader_source: r#"
+                shader_source: Some(
+                    r#"
 fn project_world_to_screen_uv(world_position: vec3<f32>) -> vec2<f32> {
   let clip = camera.view_projection * vec4<f32>(world_position, 1.0);
   let inv_w = select(0.0, 1.0 / clip.w, abs(clip.w) > 1e-6);
@@ -174,7 +175,8 @@ fn fragment(input: FragmentInput) -> FragmentOutput {
   return out;
 }
 "#
-                .to_string(),
+                    .to_string(),
+                ),
                 shader_params_schema: None,
                 capabilities: Some(MaterialShaderCapabilities {
                     semantics: vec!["history0".to_string()],
@@ -186,9 +188,10 @@ fn fragment(input: FragmentInput) -> FragmentOutput {
                 definition_id: MATERIAL_DEF_FRESNEL_ID,
                 slug: "demo2-fresnel".into(),
                 label: Some("demo2-fresnel-definition".into()),
-                preset: ShaderMaterialPreset::Standard,
+                preset: None,
                 shader_type: Some(MaterialShaderType::Model),
-                shader_source: r#"
+                shader_source: Some(
+                    r#"
 fn vertex(input: VertexInput) -> VertexOutput {
   var out: VertexOutput;
   out.world_position = input.position;
@@ -212,7 +215,8 @@ fn fragment(input: FragmentInput) -> FragmentOutput {
   return out;
 }
 "#
-                .to_string(),
+                    .to_string(),
+                ),
                 shader_params_schema: None,
                 capabilities: None,
             },
@@ -222,6 +226,7 @@ fn fragment(input: FragmentInput) -> FragmentOutput {
             label: Some("demo2-mat-ghost".into()),
             slug: "demo2-ghost".into(),
             kind: MaterialKind::Shader,
+            realm_kind: MaterialRealmKind::ThreeD,
             options: Some(MaterialOptions::Standard(StandardOptions {
                 base_color: Some(Vec4::new(0.2, 0.7, 1.0, 1.0)),
                 render_side: Some(RenderSide::Back),
@@ -233,6 +238,7 @@ fn fragment(input: FragmentInput) -> FragmentOutput {
             label: Some("demo2-mat-fresnel".into()),
             slug: "demo2-fresnel".into(),
             kind: MaterialKind::Shader,
+            realm_kind: MaterialRealmKind::ThreeD,
             options: Some(MaterialOptions::Standard(StandardOptions {
                 base_color: Some(Vec4::new(1.0, 0.3, 0.2, 1.0)),
                 render_side: Some(RenderSide::Back),
@@ -244,6 +250,7 @@ fn fragment(input: FragmentInput) -> FragmentOutput {
             label: Some("demo2-mat-floor".into()),
             slug: "standard".into(),
             kind: MaterialKind::Shader,
+            realm_kind: MaterialRealmKind::ThreeD,
             options: Some(MaterialOptions::Standard(StandardOptions {
                 base_color: Some(Vec4::new(0.08, 0.08, 0.10, 1.0)),
                 spec_color: Some(Vec4::new(0.02, 0.02, 0.02, 1.0)),
@@ -252,12 +259,16 @@ fn fragment(input: FragmentInput) -> FragmentOutput {
                 ..Default::default()
             })),
         })),
-        EngineCmd::CmdCameraUpsert(CmdCameraUpsertArgs::Create(CmdCameraCreateArgs {
+        EngineCmd::CmdCamera3dUpsert(CmdCamera3dUpsertArgs::Create(CmdCameraCreateArgs {
             realm_id,
             camera_id: CAMERA_ID,
             label: Some("demo2-camera".into()),
-            transform: Mat4::look_at_rh(Vec3::new(0.0, 2.3, 7.5), Vec3::new(0.0, 0.7, 0.0), Vec3::Y)
-                .inverse(),
+            transform: Mat4::look_at_rh(
+                Vec3::new(0.0, 2.3, 7.5),
+                Vec3::new(0.0, 0.7, 0.0),
+                Vec3::Y,
+            )
+            .inverse(),
             kind: CameraKind::Perspective,
             flags: 0,
             near_far: Vec2::new(0.1, 120.0),
@@ -266,7 +277,7 @@ fn fragment(input: FragmentInput) -> FragmentOutput {
             view_position: None,
             ortho_scale: 10.0,
         })),
-        EngineCmd::CmdLightUpsert(CmdLightUpsertArgs::Create(CmdLightCreateArgs {
+        EngineCmd::CmdLight3dUpsert(CmdLight3dUpsertArgs::Create(CmdLightCreateArgs {
             realm_id,
             light_id: LIGHT_ID,
             label: Some("demo2-light".into()),
@@ -296,7 +307,7 @@ fn fragment(input: FragmentInput) -> FragmentOutput {
                 },
             },
         )),
-        EngineCmd::CmdModelUpsert(CmdModelUpsertArgs::Create(CmdModelCreateArgs {
+        EngineCmd::CmdModel3dUpsert(CmdModel3dUpsertArgs::Create(CmdModelCreateArgs {
             realm_id,
             model_id: MODEL_GHOST_CUBE_ID,
             label: Some("demo2-ghost-cube-model".into()),
@@ -309,7 +320,7 @@ fn fragment(input: FragmentInput) -> FragmentOutput {
             cast_outline: false,
             outline_color: Vec4::ZERO,
         })),
-        EngineCmd::CmdModelUpsert(CmdModelUpsertArgs::Create(CmdModelCreateArgs {
+        EngineCmd::CmdModel3dUpsert(CmdModel3dUpsertArgs::Create(CmdModelCreateArgs {
             realm_id,
             model_id: MODEL_FRESNEL_CUBE_ID,
             label: Some("demo2-fresnel-cube-model".into()),
@@ -322,7 +333,7 @@ fn fragment(input: FragmentInput) -> FragmentOutput {
             cast_outline: false,
             outline_color: Vec4::ZERO,
         })),
-        EngineCmd::CmdModelUpsert(CmdModelUpsertArgs::Create(CmdModelCreateArgs {
+        EngineCmd::CmdModel3dUpsert(CmdModel3dUpsertArgs::Create(CmdModelCreateArgs {
             realm_id,
             model_id: MODEL_FLOOR_ID,
             label: Some("demo2-floor-model".into()),

@@ -68,7 +68,7 @@ pub struct CmdResultLightUpdate {
 
 #[derive(Debug, Default, Deserialize, Serialize, Clone)]
 #[serde(default, rename_all = "camelCase")]
-pub struct CmdLightDisposeArgs {
+pub struct CmdLight3dDisposeArgs {
     pub realm_id: u32,
     pub light_id: u32,
 }
@@ -99,7 +99,7 @@ pub fn engine_cmd_light_create(
             "light",
             message.clone(),
             None,
-            Some("light-upsert".into()),
+            Some("light3d-upsert".into()),
         );
         return CmdResultLightCreate {
             success: false,
@@ -174,7 +174,7 @@ pub fn engine_cmd_light_update(
             "light",
             message.clone(),
             None,
-            Some("light-upsert".into()),
+            Some("light3d-upsert".into()),
         );
         return CmdResultLightUpdate {
             success: false,
@@ -188,7 +188,7 @@ pub fn engine_cmd_light_update(
             "light",
             message.clone(),
             None,
-            Some("light-upsert".into()),
+            Some("light3d-upsert".into()),
         );
         return CmdResultLightUpdate {
             success: false,
@@ -247,7 +247,7 @@ pub fn engine_cmd_light_update(
 
 pub fn engine_cmd_light_dispose(
     engine: &mut EngineState,
-    args: &CmdLightDisposeArgs,
+    args: &CmdLight3dDisposeArgs,
 ) -> CmdResultLightDispose {
     let realm_id = crate::core::realm::RealmId(args.realm_id);
     let Some(entities) = engine
@@ -263,7 +263,7 @@ pub fn engine_cmd_light_dispose(
             "light",
             message.clone(),
             None,
-            Some("light-dispose".into()),
+            Some("light3d-dispose".into()),
         );
         return CmdResultLightDispose {
             success: false,
@@ -288,7 +288,7 @@ pub fn engine_cmd_light_dispose(
             "light",
             message.clone(),
             None,
-            Some("light-dispose".into()),
+            Some("light3d-dispose".into()),
         );
         CmdResultLightDispose {
             success: false,

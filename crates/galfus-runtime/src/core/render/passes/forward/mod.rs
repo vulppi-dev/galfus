@@ -161,19 +161,20 @@ pub fn pass_forward(
         &mut render_state.gizmos,
         &mut render_state.material_shader_modules,
     );
-    let fallback_depth_view = library
-        ._fallback_shadow_texture
-        .create_view(&wgpu::TextureViewDescriptor {
-            label: Some("Forward Fallback Depth View"),
-            format: Some(wgpu::TextureFormat::Depth32Float),
-            dimension: Some(wgpu::TextureViewDimension::D2),
-            aspect: wgpu::TextureAspect::DepthOnly,
-            base_mip_level: 0,
-            mip_level_count: Some(1),
-            base_array_layer: 0,
-            array_layer_count: Some(1),
-            usage: None,
-        });
+    let fallback_depth_view =
+        library
+            ._fallback_shadow_texture
+            .create_view(&wgpu::TextureViewDescriptor {
+                label: Some("Forward Fallback Depth View"),
+                format: Some(wgpu::TextureFormat::Depth32Float),
+                dimension: Some(wgpu::TextureViewDimension::D2),
+                aspect: wgpu::TextureAspect::DepthOnly,
+                base_mip_level: 0,
+                mip_level_count: Some(1),
+                base_array_layer: 0,
+                array_layer_count: Some(1),
+                usage: None,
+            });
 
     // 1. Sort cameras by order
     for (camera_index, camera_id) in camera_ids.iter().copied().enumerate() {
@@ -300,12 +301,13 @@ pub fn pass_forward(
             .map(|buffer| buffer.size() < meta_bytes.len() as u64)
             .unwrap_or(true);
         if needs_realloc {
-            render_state.forward_semantics_buffer = Some(device.create_buffer(&wgpu::BufferDescriptor {
-                label: Some("Forward Semantics Buffer"),
-                size: meta_bytes.len() as u64,
-                usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-                mapped_at_creation: false,
-            }));
+            render_state.forward_semantics_buffer =
+                Some(device.create_buffer(&wgpu::BufferDescriptor {
+                    label: Some("Forward Semantics Buffer"),
+                    size: meta_bytes.len() as u64,
+                    usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+                    mapped_at_creation: false,
+                }));
         }
         let Some(forward_semantics_buffer) = render_state.forward_semantics_buffer.as_ref() else {
             continue;

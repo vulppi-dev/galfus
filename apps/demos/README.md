@@ -1,6 +1,10 @@
 # Galfus TypeScript Demos
 
-This package now keeps a single canonical demo: `001` (FrameGraph baseline parity).
+This package exposes three canonical demos:
+
+- `001` (FrameGraph baseline parity)
+- `002` (Optical Persistence style 3D motion/material showcase)
+- `003` (Realm2D sprites/shapes/materials showcase)
 
 ## Local build prerequisites
 
@@ -37,16 +41,22 @@ Validation script for repo checks:
 bun run check
 ```
 
-## Run Demo 001 (CLI Bun)
+## Run Demos (CLI Bun)
 
 ```bash
 bun run --cwd apps/demos demo 001
+bun run --cwd apps/demos demo 002
+bun run --cwd apps/demos demo 003
 ```
 
-## Run Demo 001 (Web/WASM)
+## Run Demos (Web/WASM)
 
 ```bash
 bun run demo:web
 ```
 
-Open with hash `#demo-001` (default is already `001`).
+Open with hash:
+
+- `#demo-001`
+- `#demo-002`
+- `#demo-003`

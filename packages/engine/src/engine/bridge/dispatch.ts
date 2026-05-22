@@ -108,25 +108,46 @@ function getMergeableCommandKey(envelope: { type: string; content: unknown }): s
       : null;
   if (!content) return null;
 
-  if (envelope.type === 'cmd-model-upsert') {
+  if (envelope.type === 'cmd-model3d-upsert') {
     const realmId = content.realmId;
     const modelId = content.modelId;
     if (typeof realmId === 'number' && typeof modelId === 'number') {
       return `${envelope.type}:${realmId}:${modelId}`;
     }
   }
-  if (envelope.type === 'cmd-camera-upsert') {
+  if (envelope.type === 'cmd-camera3d-upsert') {
     const realmId = content.realmId;
     const cameraId = content.cameraId;
     if (typeof realmId === 'number' && typeof cameraId === 'number') {
       return `${envelope.type}:${realmId}:${cameraId}`;
     }
   }
-  if (envelope.type === 'cmd-light-upsert') {
+  if (envelope.type === 'cmd-camera2d-upsert') {
+    const realmId = content.realmId;
+    const cameraId = content.cameraId;
+    if (typeof realmId === 'number' && typeof cameraId === 'number') {
+      return `${envelope.type}:${realmId}:${cameraId}`;
+    }
+  }
+  if (envelope.type === 'cmd-light3d-upsert') {
     const realmId = content.realmId;
     const lightId = content.lightId;
     if (typeof realmId === 'number' && typeof lightId === 'number') {
       return `${envelope.type}:${realmId}:${lightId}`;
+    }
+  }
+  if (envelope.type === 'cmd-sprite2d-upsert') {
+    const realmId = content.realmId;
+    const spriteId = content.spriteId;
+    if (typeof realmId === 'number' && typeof spriteId === 'number') {
+      return `${envelope.type}:${realmId}:${spriteId}`;
+    }
+  }
+  if (envelope.type === 'cmd-shape2d-upsert') {
+    const realmId = content.realmId;
+    const shapeId = content.shapeId;
+    if (typeof realmId === 'number' && typeof shapeId === 'number') {
+      return `${envelope.type}:${realmId}:${shapeId}`;
     }
   }
   if (envelope.type === 'cmd-target-layer-upsert') {

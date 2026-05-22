@@ -1,0 +1,724 @@
+use glam::Mat4;
+use serde::{Deserialize, Serialize};
+
+use crate::core::realm::{RealmId, RealmKind};
+use crate::core::resources::common::mark_realm_windows_dirty;
+use crate::core::state::EngineState;
+use crate::core::system::push_error_event;
+
+#[derive(Debug, Clone)]
+pub struct Camera2dRecord {
+    pub label: Option<String>,
+    pub transform: Mat4,
+    pub near_far: glam::Vec2,
+    pub ortho_scale: f32,
+    pub layer_mask: u32,
+    pub order: i32,
+}
+
+#[derive(Debug, Clone)]
+pub struct Sprite2dRecord {
+    pub label: Option<String>,
+    pub transform: Mat4,
+    pub geometry_id: u32,
+    pub material_id: Option<u32>,
+    pub layer: i32,
+}
+
+#[derive(Debug, Clone)]
+pub struct Shape2dRecord {
+    pub label: Option<String>,
+    pub transform: Mat4,
+    pub geometry_id: u32,
+    pub material_id: Option<u32>,
+    pub layer: i32,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct CmdCamera2dCreateArgs {
+    pub realm_id: u32,
+    pub camera_id: u32,
+    pub label: Option<String>,
+    pub transform: Mat4,
+    pub near_far: glam::Vec2,
+    #[serde(default = "default_ortho_scale")]
+    pub ortho_scale: f32,
+    #[serde(default = "default_layer_mask")]
+    pub layer_mask: u32,
+    #[serde(default)]
+    pub order: i32,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct CmdCamera2dUpdateArgs {
+    pub realm_id: u32,
+    pub camera_id: u32,
+    pub label: Option<String>,
+    pub transform: Option<Mat4>,
+    pub near_far: Option<glam::Vec2>,
+    pub ortho_scale: Option<f32>,
+    pub layer_mask: Option<u32>,
+    pub order: Option<i32>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(untagged)]
+pub enum CmdCamera2dUpsertArgs {
+    Create(CmdCamera2dCreateArgs),
+    Update(CmdCamera2dUpdateArgs),
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct CmdCamera2dDisposeArgs {
+    pub realm_id: u32,
+    pub camera_id: u32,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct CmdSprite2dCreateArgs {
+    pub realm_id: u32,
+    pub sprite_id: u32,
+    pub label: Option<String>,
+    pub transform: Mat4,
+    pub geometry_id: u32,
+    #[serde(default)]
+    pub material_id: Option<u32>,
+    #[serde(default)]
+    pub layer: i32,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct CmdSprite2dUpdateArgs {
+    pub realm_id: u32,
+    pub sprite_id: u32,
+    pub label: Option<String>,
+    pub transform: Option<Mat4>,
+    pub geometry_id: Option<u32>,
+    #[serde(default)]
+    pub material_id: Option<u32>,
+    pub layer: Option<i32>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(untagged)]
+pub enum CmdSprite2dUpsertArgs {
+    Create(CmdSprite2dCreateArgs),
+    Update(CmdSprite2dUpdateArgs),
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct CmdSprite2dDisposeArgs {
+    pub realm_id: u32,
+    pub sprite_id: u32,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct CmdShape2dCreateArgs {
+    pub realm_id: u32,
+    pub shape_id: u32,
+    pub label: Option<String>,
+    pub transform: Mat4,
+    pub geometry_id: u32,
+    #[serde(default)]
+    pub material_id: Option<u32>,
+    #[serde(default)]
+    pub layer: i32,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct CmdShape2dUpdateArgs {
+    pub realm_id: u32,
+    pub shape_id: u32,
+    pub label: Option<String>,
+    pub transform: Option<Mat4>,
+    pub geometry_id: Option<u32>,
+    #[serde(default)]
+    pub material_id: Option<u32>,
+    pub layer: Option<i32>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(untagged)]
+pub enum CmdShape2dUpsertArgs {
+    Create(CmdShape2dCreateArgs),
+    Update(CmdShape2dUpdateArgs),
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct CmdShape2dDisposeArgs {
+    pub realm_id: u32,
+    pub shape_id: u32,
+}
+
+#[derive(Debug, Default, Deserialize, Serialize, Clone)]
+#[serde(default, rename_all = "camelCase")]
+pub struct CmdResultTwoDUpsert {
+    pub success: bool,
+    pub message: String,
+}
+
+#[derive(Debug, Default, Deserialize, Serialize, Clone)]
+#[serde(default, rename_all = "camelCase")]
+pub struct CmdResultTwoDDispose {
+    pub success: bool,
+    pub message: String,
+}
+
+fn default_ortho_scale() -> f32 {
+    1.0
+}
+
+fn default_layer_mask() -> u32 {
+    1
+}
+
+fn ensure_realm_is_2d(
+    engine: &mut EngineState,
+    realm_id: RealmId,
+    command: &str,
+) -> Result<(), String> {
+    let Some(realm) = engine
+        .universal_state
+        .composition
+        .realms
+        .entries
+        .get(&realm_id)
+    else {
+        return Err(format!("Realm {} not found", realm_id.0));
+    };
+    if realm.value.kind != RealmKind::TwoD {
+        return Err(format!("Realm {} is not a two-d realm", realm_id.0));
+    }
+    let _ = command;
+    Ok(())
+}
+
+fn upsert_error(
+    engine: &mut EngineState,
+    scope: &str,
+    command: &str,
+    message: String,
+) -> CmdResultTwoDUpsert {
+    push_error_event(
+        engine,
+        scope,
+        message.clone(),
+        None,
+        Some(command.to_string()),
+    );
+    CmdResultTwoDUpsert {
+        success: false,
+        message,
+    }
+}
+
+fn dispose_error(
+    engine: &mut EngineState,
+    scope: &str,
+    command: &str,
+    message: String,
+) -> CmdResultTwoDDispose {
+    push_error_event(
+        engine,
+        scope,
+        message.clone(),
+        None,
+        Some(command.to_string()),
+    );
+    CmdResultTwoDDispose {
+        success: false,
+        message,
+    }
+}
+
+pub fn engine_cmd_camera2d_upsert(
+    engine: &mut EngineState,
+    args: CmdCamera2dUpsertArgs,
+) -> CmdResultTwoDUpsert {
+    match args {
+        CmdCamera2dUpsertArgs::Create(create) => {
+            let realm_id = RealmId(create.realm_id);
+            if let Err(message) = ensure_realm_is_2d(engine, realm_id, "camera2d-upsert") {
+                return upsert_error(engine, "camera2d", "camera2d-upsert", message);
+            }
+            let entities = engine
+                .universal_state
+                .scene
+                .realm2d
+                .entities
+                .entry(realm_id)
+                .or_default();
+            if entities.cameras.contains_key(&create.camera_id) {
+                return upsert_error(
+                    engine,
+                    "camera2d",
+                    "camera2d-upsert",
+                    format!("Camera2D with id {} already exists", create.camera_id),
+                );
+            }
+            entities.cameras.insert(
+                create.camera_id,
+                Camera2dRecord {
+                    label: create.label,
+                    transform: create.transform,
+                    near_far: create.near_far,
+                    ortho_scale: create.ortho_scale,
+                    layer_mask: create.layer_mask,
+                    order: create.order,
+                },
+            );
+            mark_realm_windows_dirty(engine, create.realm_id);
+            CmdResultTwoDUpsert {
+                success: true,
+                message: "Camera2D upserted successfully".to_string(),
+            }
+        }
+        CmdCamera2dUpsertArgs::Update(update) => {
+            let realm_id = RealmId(update.realm_id);
+            if let Err(message) = ensure_realm_is_2d(engine, realm_id, "camera2d-upsert") {
+                return upsert_error(engine, "camera2d", "camera2d-upsert", message);
+            }
+            let Some(entities) = engine
+                .universal_state
+                .scene
+                .realm2d
+                .entities
+                .get_mut(&realm_id)
+            else {
+                return upsert_error(
+                    engine,
+                    "camera2d",
+                    "camera2d-upsert",
+                    format!("Realm {} not found", update.realm_id),
+                );
+            };
+            let Some(record) = entities.cameras.get_mut(&update.camera_id) else {
+                return upsert_error(
+                    engine,
+                    "camera2d",
+                    "camera2d-upsert",
+                    format!("Camera2D with id {} not found", update.camera_id),
+                );
+            };
+            if update.label.is_some() {
+                record.label = update.label;
+            }
+            if let Some(transform) = update.transform {
+                record.transform = transform;
+            }
+            if let Some(near_far) = update.near_far {
+                record.near_far = near_far;
+            }
+            if let Some(ortho_scale) = update.ortho_scale {
+                record.ortho_scale = ortho_scale;
+            }
+            if let Some(layer_mask) = update.layer_mask {
+                record.layer_mask = layer_mask;
+            }
+            if let Some(order) = update.order {
+                record.order = order;
+            }
+            mark_realm_windows_dirty(engine, update.realm_id);
+            CmdResultTwoDUpsert {
+                success: true,
+                message: "Camera2D upserted successfully".to_string(),
+            }
+        }
+    }
+}
+
+pub fn engine_cmd_camera2d_dispose(
+    engine: &mut EngineState,
+    args: &CmdCamera2dDisposeArgs,
+) -> CmdResultTwoDDispose {
+    let realm_id = RealmId(args.realm_id);
+    if let Err(message) = ensure_realm_is_2d(engine, realm_id, "camera2d-dispose") {
+        return dispose_error(engine, "camera2d", "camera2d-dispose", message);
+    }
+    let Some(entities) = engine
+        .universal_state
+        .scene
+        .realm2d
+        .entities
+        .get_mut(&realm_id)
+    else {
+        return dispose_error(
+            engine,
+            "camera2d",
+            "camera2d-dispose",
+            format!("Realm {} not found", args.realm_id),
+        );
+    };
+    if entities.cameras.remove(&args.camera_id).is_none() {
+        return dispose_error(
+            engine,
+            "camera2d",
+            "camera2d-dispose",
+            format!("Camera2D with id {} not found", args.camera_id),
+        );
+    }
+    mark_realm_windows_dirty(engine, args.realm_id);
+    CmdResultTwoDDispose {
+        success: true,
+        message: "Camera2D disposed successfully".to_string(),
+    }
+}
+
+pub fn engine_cmd_sprite2d_upsert(
+    engine: &mut EngineState,
+    args: CmdSprite2dUpsertArgs,
+) -> CmdResultTwoDUpsert {
+    match args {
+        CmdSprite2dUpsertArgs::Create(create) => {
+            let realm_id = RealmId(create.realm_id);
+            if let Err(message) = ensure_realm_is_2d(engine, realm_id, "sprite2d-upsert") {
+                return upsert_error(engine, "sprite2d", "sprite2d-upsert", message);
+            }
+            let entities = engine
+                .universal_state
+                .scene
+                .realm2d
+                .entities
+                .entry(realm_id)
+                .or_default();
+            if entities.sprites.contains_key(&create.sprite_id) {
+                return upsert_error(
+                    engine,
+                    "sprite2d",
+                    "sprite2d-upsert",
+                    format!("Sprite2D with id {} already exists", create.sprite_id),
+                );
+            }
+            entities.sprites.insert(
+                create.sprite_id,
+                Sprite2dRecord {
+                    label: create.label,
+                    transform: create.transform,
+                    geometry_id: create.geometry_id,
+                    material_id: create.material_id,
+                    layer: create.layer,
+                },
+            );
+            mark_realm_windows_dirty(engine, create.realm_id);
+            CmdResultTwoDUpsert {
+                success: true,
+                message: "Sprite2D upserted successfully".to_string(),
+            }
+        }
+        CmdSprite2dUpsertArgs::Update(update) => {
+            let realm_id = RealmId(update.realm_id);
+            if let Err(message) = ensure_realm_is_2d(engine, realm_id, "sprite2d-upsert") {
+                return upsert_error(engine, "sprite2d", "sprite2d-upsert", message);
+            }
+            let Some(entities) = engine
+                .universal_state
+                .scene
+                .realm2d
+                .entities
+                .get_mut(&realm_id)
+            else {
+                return upsert_error(
+                    engine,
+                    "sprite2d",
+                    "sprite2d-upsert",
+                    format!("Realm {} not found", update.realm_id),
+                );
+            };
+            let Some(record) = entities.sprites.get_mut(&update.sprite_id) else {
+                return upsert_error(
+                    engine,
+                    "sprite2d",
+                    "sprite2d-upsert",
+                    format!("Sprite2D with id {} not found", update.sprite_id),
+                );
+            };
+            if update.label.is_some() {
+                record.label = update.label;
+            }
+            if let Some(transform) = update.transform {
+                record.transform = transform;
+            }
+            if let Some(geometry_id) = update.geometry_id {
+                record.geometry_id = geometry_id;
+            }
+            if update.material_id.is_some() {
+                record.material_id = update.material_id;
+            }
+            if let Some(layer) = update.layer {
+                record.layer = layer;
+            }
+            mark_realm_windows_dirty(engine, update.realm_id);
+            CmdResultTwoDUpsert {
+                success: true,
+                message: "Sprite2D upserted successfully".to_string(),
+            }
+        }
+    }
+}
+
+pub fn engine_cmd_sprite2d_dispose(
+    engine: &mut EngineState,
+    args: &CmdSprite2dDisposeArgs,
+) -> CmdResultTwoDDispose {
+    let realm_id = RealmId(args.realm_id);
+    if let Err(message) = ensure_realm_is_2d(engine, realm_id, "sprite2d-dispose") {
+        return dispose_error(engine, "sprite2d", "sprite2d-dispose", message);
+    }
+    let Some(entities) = engine
+        .universal_state
+        .scene
+        .realm2d
+        .entities
+        .get_mut(&realm_id)
+    else {
+        return dispose_error(
+            engine,
+            "sprite2d",
+            "sprite2d-dispose",
+            format!("Realm {} not found", args.realm_id),
+        );
+    };
+    if entities.sprites.remove(&args.sprite_id).is_none() {
+        return dispose_error(
+            engine,
+            "sprite2d",
+            "sprite2d-dispose",
+            format!("Sprite2D with id {} not found", args.sprite_id),
+        );
+    }
+    mark_realm_windows_dirty(engine, args.realm_id);
+    CmdResultTwoDDispose {
+        success: true,
+        message: "Sprite2D disposed successfully".to_string(),
+    }
+}
+
+pub fn engine_cmd_shape2d_upsert(
+    engine: &mut EngineState,
+    args: CmdShape2dUpsertArgs,
+) -> CmdResultTwoDUpsert {
+    match args {
+        CmdShape2dUpsertArgs::Create(create) => {
+            let realm_id = RealmId(create.realm_id);
+            if let Err(message) = ensure_realm_is_2d(engine, realm_id, "shape2d-upsert") {
+                return upsert_error(engine, "shape2d", "shape2d-upsert", message);
+            }
+            let entities = engine
+                .universal_state
+                .scene
+                .realm2d
+                .entities
+                .entry(realm_id)
+                .or_default();
+            if entities.shapes.contains_key(&create.shape_id) {
+                return upsert_error(
+                    engine,
+                    "shape2d",
+                    "shape2d-upsert",
+                    format!("Shape2D with id {} already exists", create.shape_id),
+                );
+            }
+            entities.shapes.insert(
+                create.shape_id,
+                Shape2dRecord {
+                    label: create.label,
+                    transform: create.transform,
+                    geometry_id: create.geometry_id,
+                    material_id: create.material_id,
+                    layer: create.layer,
+                },
+            );
+            mark_realm_windows_dirty(engine, create.realm_id);
+            CmdResultTwoDUpsert {
+                success: true,
+                message: "Shape2D upserted successfully".to_string(),
+            }
+        }
+        CmdShape2dUpsertArgs::Update(update) => {
+            let realm_id = RealmId(update.realm_id);
+            if let Err(message) = ensure_realm_is_2d(engine, realm_id, "shape2d-upsert") {
+                return upsert_error(engine, "shape2d", "shape2d-upsert", message);
+            }
+            let Some(entities) = engine
+                .universal_state
+                .scene
+                .realm2d
+                .entities
+                .get_mut(&realm_id)
+            else {
+                return upsert_error(
+                    engine,
+                    "shape2d",
+                    "shape2d-upsert",
+                    format!("Realm {} not found", update.realm_id),
+                );
+            };
+            let Some(record) = entities.shapes.get_mut(&update.shape_id) else {
+                return upsert_error(
+                    engine,
+                    "shape2d",
+                    "shape2d-upsert",
+                    format!("Shape2D with id {} not found", update.shape_id),
+                );
+            };
+            if update.label.is_some() {
+                record.label = update.label;
+            }
+            if let Some(transform) = update.transform {
+                record.transform = transform;
+            }
+            if let Some(geometry_id) = update.geometry_id {
+                record.geometry_id = geometry_id;
+            }
+            if update.material_id.is_some() {
+                record.material_id = update.material_id;
+            }
+            if let Some(layer) = update.layer {
+                record.layer = layer;
+            }
+            mark_realm_windows_dirty(engine, update.realm_id);
+            CmdResultTwoDUpsert {
+                success: true,
+                message: "Shape2D upserted successfully".to_string(),
+            }
+        }
+    }
+}
+
+pub fn engine_cmd_shape2d_dispose(
+    engine: &mut EngineState,
+    args: &CmdShape2dDisposeArgs,
+) -> CmdResultTwoDDispose {
+    let realm_id = RealmId(args.realm_id);
+    if let Err(message) = ensure_realm_is_2d(engine, realm_id, "shape2d-dispose") {
+        return dispose_error(engine, "shape2d", "shape2d-dispose", message);
+    }
+    let Some(entities) = engine
+        .universal_state
+        .scene
+        .realm2d
+        .entities
+        .get_mut(&realm_id)
+    else {
+        return dispose_error(
+            engine,
+            "shape2d",
+            "shape2d-dispose",
+            format!("Realm {} not found", args.realm_id),
+        );
+    };
+    if entities.shapes.remove(&args.shape_id).is_none() {
+        return dispose_error(
+            engine,
+            "shape2d",
+            "shape2d-dispose",
+            format!("Shape2D with id {} not found", args.shape_id),
+        );
+    }
+    mark_realm_windows_dirty(engine, args.realm_id);
+    CmdResultTwoDDispose {
+        success: true,
+        message: "Shape2D disposed successfully".to_string(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::realm::cmd::{CmdRealmCreateArgs, RealmKindDto, engine_cmd_realm_create};
+    use crate::core::test_support::test_engine;
+
+    #[test]
+    fn camera2d_upsert_and_dispose_work_on_twod_realm() {
+        let mut engine = test_engine();
+        let realm_id = engine_cmd_realm_create(
+            &mut engine,
+            &CmdRealmCreateArgs {
+                kind: RealmKindDto::TwoD,
+                importance: None,
+                cache_policy: None,
+                flags: None,
+            },
+        )
+        .realm_id
+        .expect("realm id should exist");
+
+        let create = engine_cmd_camera2d_upsert(
+            &mut engine,
+            CmdCamera2dUpsertArgs::Create(CmdCamera2dCreateArgs {
+                realm_id,
+                camera_id: 10,
+                label: Some("main".to_string()),
+                transform: Mat4::IDENTITY,
+                near_far: glam::Vec2::new(0.1, 10.0),
+                ortho_scale: 1.0,
+                layer_mask: 1,
+                order: 0,
+            }),
+        );
+        assert!(create.success);
+
+        let update = engine_cmd_camera2d_upsert(
+            &mut engine,
+            CmdCamera2dUpsertArgs::Update(CmdCamera2dUpdateArgs {
+                realm_id,
+                camera_id: 10,
+                label: None,
+                transform: None,
+                near_far: None,
+                ortho_scale: Some(2.0),
+                layer_mask: None,
+                order: None,
+            }),
+        );
+        assert!(update.success);
+
+        let dispose = engine_cmd_camera2d_dispose(
+            &mut engine,
+            &CmdCamera2dDisposeArgs {
+                realm_id,
+                camera_id: 10,
+            },
+        );
+        assert!(dispose.success);
+    }
+
+    #[test]
+    fn sprite2d_create_rejects_threed_realm() {
+        let mut engine = test_engine();
+        let realm_id = engine_cmd_realm_create(
+            &mut engine,
+            &CmdRealmCreateArgs {
+                kind: RealmKindDto::ThreeD,
+                importance: None,
+                cache_policy: None,
+                flags: None,
+            },
+        )
+        .realm_id
+        .expect("realm id should exist");
+
+        let result = engine_cmd_sprite2d_upsert(
+            &mut engine,
+            CmdSprite2dUpsertArgs::Create(CmdSprite2dCreateArgs {
+                realm_id,
+                sprite_id: 22,
+                label: None,
+                transform: Mat4::IDENTITY,
+                geometry_id: 100,
+                material_id: Some(200),
+                layer: 0,
+            }),
+        );
+        assert!(!result.success);
+    }
+}

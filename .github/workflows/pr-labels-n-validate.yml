@@ -4,7 +4,12 @@ on:
   pull_request_target:
     branches:
       - main
-      - dev/**
+      - feat/**
+      - fix/**
+      - refactor/**
+      - docs/**
+      - test/**
+      - chore/**
       - stable/**
       - alpha/**
       - beta/**

@@ -248,6 +248,16 @@ pub fn ensure_runtime_render_defaults(universal: &mut crate::core::realm::Univer
                 "Fallback Material".into(),
             ))
         });
+    universal
+        .scene
+        .realm3d
+        .materials
+        .entry(crate::core::resources::MATERIAL_STANDARD_2D_ID)
+        .or_insert_with(|| {
+            crate::core::resources::ShaderMaterialRecord::new_standard_2d(Some(
+                "Standard 2D Material".into(),
+            ))
+        });
 }
 
 pub fn render_frames(engine_state: &mut EngineState) {
@@ -428,7 +438,6 @@ pub fn render_frames(engine_state: &mut EngineState) {
     let mut updated_surfaces: HashSet<crate::core::realm::SurfaceId> = HashSet::new();
     let mut invocation_targets: std::collections::HashMap<(u64, u32), RenderTarget> =
         std::collections::HashMap::new();
-    let mut synced_windows: HashSet<u32> = HashSet::new();
     const MAX_REALM_ITERATIONS: u32 = 1;
     let mut iteration: u32 = 0;
     loop {
@@ -566,12 +575,10 @@ pub fn render_frames(engine_state: &mut EngineState) {
                 &engine_state.universal_state,
                 realm_id,
             );
-            if synced_windows.insert(window_id) {
-                sync_window_geometry_registry(
-                    render_state,
-                    &engine_state.universal_state.scene.realm3d.geometries,
-                );
-            }
+            sync_window_geometry_registry(
+                render_state,
+                &engine_state.universal_state.scene.realm3d.geometries,
+            );
             let camera_target_sizes = collect_window_camera_target_sizes(
                 &engine_state.universal_state,
                 realm_id,

@@ -14,9 +14,9 @@ use crate::core::render::gizmos::GizmoSystem;
 use crate::core::resources::VertexAllocatorSystem;
 use crate::core::resources::shadow::ShadowManager;
 use crate::core::resources::{
-    CameraNode, EnvironmentConfig, ForwardAtlasEntry, GeometryPrimitiveType, LightRecord,
-    MaterialDefinitionRecord, MaterialInstanceRecord, ModelRecord, ShaderMaterialRecord,
-    TargetTextureBinding, TextureRecord,
+    Camera2dRecord, CameraNode, EnvironmentConfig, ForwardAtlasEntry, GeometryPrimitiveType,
+    LightRecord, MaterialDefinitionRecord, MaterialInstanceRecord, ModelRecord,
+    ShaderMaterialRecord, Shape2dRecord, Sprite2dRecord, TargetTextureBinding, TextureRecord,
 };
 use crate::core::ui::UiRenderer;
 
@@ -39,6 +39,72 @@ pub type Realm3dState = galfus_realm_3d::Realm3dState<
     UniversalGeometryRecord,
     EnvironmentConfig,
 >;
+pub type Realm2dState = galfus_realm_2d::Realm2dState<
+    Camera2dRecord,
+    Sprite2dRecord,
+    Shape2dRecord,
+    ShaderMaterialRecord,
+>;
+
+#[derive(Debug, Default, Clone)]
+pub struct TwoDSourceState {
+    pub cameras: std::collections::HashMap<u32, Camera2dRecord>,
+    pub sprites: std::collections::HashMap<u32, Sprite2dRecord>,
+    pub shapes: std::collections::HashMap<u32, Shape2dRecord>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum TwoDItemKind {
+    Sprite,
+    Shape,
+}
+
+#[derive(Debug, Clone)]
+pub struct TwoDPreparedCamera {
+    pub camera_id: u32,
+    pub transform: glam::Mat4,
+    pub near_far: glam::Vec2,
+    pub ortho_scale: f32,
+    pub layer_mask: u32,
+    pub order: i32,
+}
+
+#[derive(Debug, Clone)]
+pub struct TwoDPreparedItem {
+    pub item_id: u32,
+    pub kind: TwoDItemKind,
+    pub transform: glam::Mat4,
+    pub geometry_id: u32,
+    pub material_id: Option<u32>,
+    pub layer: i32,
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct TwoDPreparedState {
+    pub cameras: Vec<TwoDPreparedCamera>,
+    pub items: Vec<TwoDPreparedItem>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub struct TwoDBatchKey {
+    pub layer: i32,
+    pub material_id: u32,
+    pub geometry_id: u32,
+    pub kind: TwoDItemKind,
+}
+
+#[derive(Debug, Clone)]
+pub struct TwoDBatchRange {
+    pub key: TwoDBatchKey,
+    pub start: u32,
+    pub count: u32,
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct TwoDBatchedState {
+    pub items: Vec<TwoDPreparedItem>,
+    pub ranges: Vec<TwoDBatchRange>,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct SampledTargetBindKey {
@@ -47,6 +113,23 @@ pub struct SampledTargetBindKey {
     pub ssao_view_ptr: usize,
     pub bloom_view_ptr: usize,
     pub uniform_buffer_ptr: usize,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct TwoDTextureBindKey {
+    pub texture_view_ptr: usize,
+    pub sampler_ptr: usize,
+}
+
+pub struct TwoDPassResources {
+    pub camera_bind_group_layout: wgpu::BindGroupLayout,
+    pub texture_bind_group_layout: wgpu::BindGroupLayout,
+    pub pipeline_layout: wgpu::PipelineLayout,
+    pub camera_dynamic_buffer: wgpu::Buffer,
+    pub camera_dynamic_bind_group: wgpu::BindGroup,
+    pub camera_dynamic_stride: u64,
+    pub camera_dynamic_capacity_slots: usize,
+    pub fallback_tex_view: wgpu::TextureView,
 }
 
 #[derive(Debug, Default)]
@@ -59,6 +142,7 @@ pub struct RenderResourceState {
 #[derive(Debug, Default)]
 pub struct SceneRuntimeState {
     pub realm3d: Realm3dState,
+    pub realm2d: Realm2dState,
     pub render_resources: RenderResourceState,
     pub material_definitions: std::collections::HashMap<u32, MaterialDefinitionRecord>,
     pub material_instances: std::collections::HashMap<u32, MaterialInstanceRecord>,
@@ -112,6 +196,8 @@ pub struct RenderState {
     pub camera_environment_overrides: std::collections::HashMap<u32, EnvironmentConfig>,
     pub compose_bind_cache: std::collections::HashMap<SampledTargetBindKey, wgpu::BindGroup>,
     pub post_bind_cache: std::collections::HashMap<SampledTargetBindKey, wgpu::BindGroup>,
+    pub two_d_texture_bind_cache: std::collections::HashMap<TwoDTextureBindKey, wgpu::BindGroup>,
+    pub two_d_pass_resources: Option<TwoDPassResources>,
     pub compose_bind_cache_hits: u32,
     pub compose_bind_cache_misses: u32,
     pub post_bind_cache_hits: u32,
@@ -125,6 +211,9 @@ pub struct RenderState {
     pub rgba16f_msaa_supported_mask: u8,
     pub skinning: SkinningSystem,
     pub ui_renderers: std::collections::HashMap<RealmId, UiRenderer>,
+    pub two_d_source: TwoDSourceState,
+    pub two_d_prepared: TwoDPreparedState,
+    pub two_d_batched: TwoDBatchedState,
 
     /// Per-frame collector for draw calls, reused to avoid allocations.
     pub collector: DrawCollector,
@@ -303,10 +392,8 @@ impl RenderState {
             .saturating_add(bindings.instance_pool.allocated_bytes())
             .saturating_add(bindings.outline_instance_pool.allocated_bytes())
             .saturating_add(bindings.shadow_instance_pool.allocated_bytes())
-            .saturating_add(bindings.material_standard_pool.allocated_bytes())
-            .saturating_add(bindings.material_standard_inputs.allocated_bytes())
-            .saturating_add(bindings.material_pbr_pool.allocated_bytes())
-            .saturating_add(bindings.material_pbr_inputs.allocated_bytes())
+            .saturating_add(bindings.material_3d_pool.allocated_bytes())
+            .saturating_add(bindings.material_3d_inputs.allocated_bytes())
             .saturating_add(bindings.bones_pool.allocated_bytes())
     }
 

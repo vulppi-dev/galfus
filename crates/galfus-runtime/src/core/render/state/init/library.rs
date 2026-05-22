@@ -12,11 +12,8 @@ impl RenderState {
             >() as u64,
             model_storage_min_size: std::mem::size_of::<crate::core::resources::ModelComponent>()
                 as u64,
-            material_standard_uniform_min_size: std::mem::size_of::<
-                crate::core::resources::MaterialStandardParams,
-            >() as u64,
-            material_pbr_uniform_min_size: std::mem::size_of::<
-                crate::core::resources::MaterialPbrParams,
+            material_3d_uniform_min_size: std::mem::size_of::<
+                crate::core::resources::Material3dParams,
             >() as u64,
             matrix_storage_min_size: std::mem::size_of::<glam::Mat4>() as u64,
         };

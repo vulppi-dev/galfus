@@ -16,10 +16,10 @@ pub(crate) fn draw_batches(
     frame_semantics_bind_group: &wgpu::BindGroup,
     log_events: &mut Vec<galfus_log::LogEvent>,
 ) {
-    // 1. PBR Opaque
+    // 1. Opaque
     draw_group(
         render_pass,
-        &collector.pbr_opaque,
+        &collector.opaque,
         SurfaceType::Opaque,
         scene,
         bindings,
@@ -34,10 +34,10 @@ pub(crate) fn draw_batches(
         log_events,
     );
 
-    // 2. PBR Masked
+    // 2. Masked
     draw_group(
         render_pass,
-        &collector.pbr_masked,
+        &collector.masked,
         SurfaceType::Masked,
         scene,
         bindings,
@@ -52,43 +52,7 @@ pub(crate) fn draw_batches(
         log_events,
     );
 
-    // 3. Standard Opaque
-    draw_group(
-        render_pass,
-        &collector.standard_opaque,
-        SurfaceType::Opaque,
-        scene,
-        bindings,
-        vertex_sys,
-        frame_index,
-        device,
-        cache,
-        library,
-        sample_count,
-        material_shader_modules,
-        frame_semantics_bind_group,
-        log_events,
-    );
-
-    // 4. Standard Masked
-    draw_group(
-        render_pass,
-        &collector.standard_masked,
-        SurfaceType::Masked,
-        scene,
-        bindings,
-        vertex_sys,
-        frame_index,
-        device,
-        cache,
-        library,
-        sample_count,
-        material_shader_modules,
-        frame_semantics_bind_group,
-        log_events,
-    );
-
-    // 5. Transparent (global order across presets)
+    // 3. Transparent
     draw_group(
         render_pass,
         &collector.transparent,
@@ -142,10 +106,6 @@ fn draw_group(
             i += 1;
             continue;
         };
-        let is_pbr = matches!(
-            material_record.base_preset,
-            crate::core::resources::ShaderMaterialPreset::Pbr
-        );
         let Some(shader_source) = material_record.compiled_shader_source.as_ref() else {
             i += 1;
             continue;
@@ -163,35 +123,19 @@ fn draw_group(
         };
 
         if current_state != Some((shader_id, topology, polygon_mode, render_side)) {
-            let pipeline = if is_pbr {
-                branches::pbr::get_pipeline(
-                    cache,
-                    frame_index,
-                    device,
-                    library,
-                    surface_type,
-                    topology,
-                    polygon_mode,
-                    render_side,
-                    sample_count,
-                    shader_id,
-                    shader_module,
-                )
-            } else {
-                branches::standard::get_pipeline(
-                    cache,
-                    frame_index,
-                    device,
-                    library,
-                    surface_type,
-                    topology,
-                    polygon_mode,
-                    render_side,
-                    sample_count,
-                    shader_id,
-                    shader_module,
-                )
-            };
+            let pipeline = branches::material::get_pipeline(
+                cache,
+                frame_index,
+                device,
+                library,
+                surface_type,
+                topology,
+                polygon_mode,
+                render_side,
+                sample_count,
+                shader_id,
+                shader_module,
+            );
             render_pass.set_pipeline(pipeline);
             render_pass.set_bind_group(2, frame_semantics_bind_group, &[]);
             current_state = Some((shader_id, topology, polygon_mode, render_side));
@@ -202,36 +146,19 @@ fn draw_group(
         }
         let batch_count = (i - batch_start) as u32;
 
-        if is_pbr {
-            if let Some(material) = scene.materials.get(&mat_id) {
-                if let Some(group) = material.bind_group.as_ref() {
-                    let material_offset = bindings.material_pbr_pool.get_offset(mat_id) as u32;
-                    render_pass.set_bind_group(1, group, &[material_offset]);
-                }
-                galfus_log::galfus_log_debug!(
-                    log_events,
-                    "forward.material",
-                    "material={} preset={:?} has_bind_group={}",
-                    mat_id,
-                    material.base_preset,
-                    material.bind_group.is_some()
-                );
+        if let Some(material) = scene.materials.get(&mat_id) {
+            if let Some(group) = material.bind_group.as_ref() {
+                let material_offset = bindings.material_3d_pool.get_offset(mat_id) as u32;
+                render_pass.set_bind_group(1, group, &[material_offset]);
             }
-        } else {
-            if let Some(material) = scene.materials.get(&mat_id) {
-                if let Some(group) = material.bind_group.as_ref() {
-                    let material_offset = bindings.material_standard_pool.get_offset(mat_id) as u32;
-                    render_pass.set_bind_group(1, group, &[material_offset]);
-                }
-                galfus_log::galfus_log_debug!(
-                    log_events,
-                    "forward.material",
-                    "material={} preset={:?} has_bind_group={}",
-                    mat_id,
-                    material.base_preset,
-                    material.bind_group.is_some()
-                );
-            }
+            galfus_log::galfus_log_debug!(
+                log_events,
+                "forward.material",
+                "material={} preset={:?} has_bind_group={}",
+                mat_id,
+                material.base_preset,
+                material.bind_group.is_some()
+            );
         }
 
         if let Ok(Some(index_info)) = vertex_sys.index_info(geom_id) {

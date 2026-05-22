@@ -11,6 +11,7 @@ import * as RenderGraph from './render-graph';
 import * as Sys from './system';
 import * as Target from './target';
 import * as Tex from './texture';
+import * as TwoD from './two-d';
 import * as Win from './window';
 
 export * from './audio';
@@ -28,6 +29,7 @@ export * from './shadow';
 export * from './system';
 export * from './target';
 export * from './texture';
+export * from './two-d';
 export * from './window';
 
 export type EngineCmd =
@@ -42,13 +44,19 @@ export type EngineCmd =
   | { type: 'cmd-window-cursor'; content: Win.CmdWindowCursorArgs }
   | { type: 'cmd-window-state'; content: Win.CmdWindowStateArgs }
   | { type: 'cmd-upload-buffer-discard-all'; content: Sys.CmdUploadBufferDiscardAllArgs }
-  | { type: 'cmd-camera-upsert'; content: Cam.CmdCameraUpsertArgs }
-  | { type: 'cmd-camera-dispose'; content: Cam.CmdCameraDisposeArgs }
-  | { type: 'cmd-model-upsert'; content: Mod.CmdModelUpsertArgs }
+  | { type: 'cmd-camera3d-upsert'; content: Cam.CmdCamera3dUpsertArgs }
+  | { type: 'cmd-camera2d-upsert'; content: TwoD.CmdCamera2dUpsertArgs }
+  | { type: 'cmd-camera3d-dispose'; content: Cam.CmdCamera3dDisposeArgs }
+  | { type: 'cmd-camera2d-dispose'; content: TwoD.CmdCamera2dDisposeArgs }
+  | { type: 'cmd-model3d-upsert'; content: Mod.CmdModel3dUpsertArgs }
+  | { type: 'cmd-sprite2d-upsert'; content: TwoD.CmdSprite2dUpsertArgs }
+  | { type: 'cmd-shape2d-upsert'; content: TwoD.CmdShape2dUpsertArgs }
   | { type: 'cmd-pose-update'; content: Mod.CmdPoseUpdateArgs }
-  | { type: 'cmd-model-dispose'; content: Mod.CmdModelDisposeArgs }
-  | { type: 'cmd-light-upsert'; content: Lite.CmdLightUpsertArgs }
-  | { type: 'cmd-light-dispose'; content: Lite.CmdLightDisposeArgs }
+  | { type: 'cmd-model3d-dispose'; content: Mod.CmdModel3dDisposeArgs }
+  | { type: 'cmd-sprite2d-dispose'; content: TwoD.CmdSprite2dDisposeArgs }
+  | { type: 'cmd-shape2d-dispose'; content: TwoD.CmdShape2dDisposeArgs }
+  | { type: 'cmd-light3d-upsert'; content: Lite.CmdLight3dUpsertArgs }
+  | { type: 'cmd-light3d-dispose'; content: Lite.CmdLight3dDisposeArgs }
   | { type: 'cmd-material-upsert'; content: Mat.CmdMaterialUpsertArgs }
   | { type: 'cmd-material-dispose'; content: Mat.CmdMaterialDisposeArgs }
   | { type: 'cmd-material-definition-upsert'; content: Mat.CmdMaterialDefinitionUpsertArgs }
@@ -130,13 +138,19 @@ export type CommandResponse =
   | { type: 'window-cursor'; content: Win.CmdResultWindowCursor }
   | { type: 'window-state'; content: Win.CmdResultWindowState }
   | { type: 'upload-buffer-discard-all'; content: Sys.CmdResultUploadBufferDiscardAll }
-  | { type: 'camera-upsert'; content: Cam.CmdResultCameraUpsert }
-  | { type: 'camera-dispose'; content: Cam.CmdResultCameraDispose }
-  | { type: 'model-upsert'; content: Mod.CmdResultModelUpsert }
+  | { type: 'camera3d-upsert'; content: Cam.CmdResultCameraUpsert }
+  | { type: 'camera2d-upsert'; content: TwoD.CmdResultTwoDUpsert }
+  | { type: 'camera3d-dispose'; content: Cam.CmdResultCameraDispose }
+  | { type: 'camera2d-dispose'; content: TwoD.CmdResultTwoDDispose }
+  | { type: 'model3d-upsert'; content: Mod.CmdResultModelUpsert }
+  | { type: 'sprite2d-upsert'; content: TwoD.CmdResultTwoDUpsert }
+  | { type: 'shape2d-upsert'; content: TwoD.CmdResultTwoDUpsert }
   | { type: 'pose-update'; content: Mod.CmdResultPoseUpdate }
-  | { type: 'model-dispose'; content: Mod.CmdResultModelDispose }
-  | { type: 'light-upsert'; content: Lite.CmdResultLightUpsert }
-  | { type: 'light-dispose'; content: Lite.CmdResultLightDispose }
+  | { type: 'model3d-dispose'; content: Mod.CmdResultModelDispose }
+  | { type: 'sprite2d-dispose'; content: TwoD.CmdResultTwoDDispose }
+  | { type: 'shape2d-dispose'; content: TwoD.CmdResultTwoDDispose }
+  | { type: 'light3d-upsert'; content: Lite.CmdResultLightUpsert }
+  | { type: 'light3d-dispose'; content: Lite.CmdResultLightDispose }
   | { type: 'material-upsert'; content: Mat.CmdResultMaterialUpsert }
   | { type: 'material-dispose'; content: Mat.CmdResultMaterialDispose }
   | { type: 'material-definition-upsert'; content: Mat.CmdResultMaterialDefinition }

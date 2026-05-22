@@ -133,12 +133,14 @@ export const ResourceUploadSystem: System = (world, context) => {
 
     if (intent.type === 'create-material') {
       const options = normalizeSparseMaterialOptions(intent.props.options);
+      const upsertType = 'cmd-material-upsert';
 
-      enqueueCommand(context.worldId, 'cmd-material-upsert', {
+      enqueueCommand(context.worldId, upsertType, {
         materialId: intent.resourceId,
         label: intent.props.label,
         slug: intent.props.kind,
         kind: 'shader',
+        realmKind: world.realmKind === 'two-d' ? 'two-d' : 'three-d',
         options
       });
     } else if (intent.type === 'dispose-material') {

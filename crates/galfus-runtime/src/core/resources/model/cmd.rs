@@ -80,7 +80,7 @@ pub struct CmdResultPoseUpdate {
 
 #[derive(Debug, Default, Deserialize, Serialize, Clone)]
 #[serde(default, rename_all = "camelCase")]
-pub struct CmdModelDisposeArgs {
+pub struct CmdModel3dDisposeArgs {
     pub realm_id: u32,
     pub model_id: u32,
 }
@@ -130,7 +130,7 @@ pub fn engine_cmd_model_create(
             "model",
             message.clone(),
             None,
-            Some("model-upsert".into()),
+            Some("model3d-upsert".into()),
         );
         return CmdResultModelCreate {
             success: false,
@@ -185,7 +185,7 @@ pub fn engine_cmd_model_update(
         return fail_model(
             engine,
             "model",
-            "model-upsert",
+            "model3d-upsert",
             format!("Realm {} not found", args.realm_id),
         );
     };
@@ -194,7 +194,7 @@ pub fn engine_cmd_model_update(
         return fail_model(
             engine,
             "model",
-            "model-upsert",
+            "model3d-upsert",
             format!("Model with id {} not found", args.model_id),
         );
     };
@@ -378,7 +378,7 @@ pub fn engine_cmd_pose_update(
 
 pub fn engine_cmd_model_dispose(
     engine: &mut EngineState,
-    args: &CmdModelDisposeArgs,
+    args: &CmdModel3dDisposeArgs,
 ) -> CmdResultModelDispose {
     let realm_id = crate::core::realm::RealmId(args.realm_id);
     let Some(entities) = engine
@@ -394,7 +394,7 @@ pub fn engine_cmd_model_dispose(
             "model",
             message.clone(),
             None,
-            Some("model-dispose".into()),
+            Some("model3d-dispose".into()),
         );
         return CmdResultModelDispose {
             success: false,
@@ -418,7 +418,7 @@ pub fn engine_cmd_model_dispose(
             "model",
             message.clone(),
             None,
-            Some("model-dispose".into()),
+            Some("model3d-dispose".into()),
         );
         CmdResultModelDispose {
             success: false,

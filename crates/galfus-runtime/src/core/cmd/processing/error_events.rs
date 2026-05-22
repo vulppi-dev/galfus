@@ -24,17 +24,17 @@ pub(super) fn maybe_emit_response_error_event(
         CommandResponse::SystemDiagnosticsSet(result) => {
             failure_case!(result, "system-diagnostics-set")
         }
-        CommandResponse::CameraUpsert(result) => failure_case!(result, "camera-upsert"),
+        CommandResponse::Camera3dUpsert(result) => failure_case!(result, "camera3d-upsert"),
         CommandResponse::WindowCreate(result) => failure_case!(result, "window-create"),
         CommandResponse::WindowMeasurement(result) => failure_case!(result, "window-measurement"),
         CommandResponse::WindowCursor(result) => failure_case!(result, "window-cursor"),
         CommandResponse::WindowState(result) => failure_case!(result, "window-state"),
-        CommandResponse::CameraDispose(result) => failure_case!(result, "camera-dispose"),
-        CommandResponse::ModelUpsert(result) => failure_case!(result, "model-upsert"),
+        CommandResponse::Camera3dDispose(result) => failure_case!(result, "camera3d-dispose"),
+        CommandResponse::Model3dUpsert(result) => failure_case!(result, "model3d-upsert"),
         CommandResponse::PoseUpdate(result) => failure_case!(result, "pose-update"),
-        CommandResponse::ModelDispose(result) => failure_case!(result, "model-dispose"),
-        CommandResponse::LightUpsert(result) => failure_case!(result, "light-upsert"),
-        CommandResponse::LightDispose(result) => failure_case!(result, "light-dispose"),
+        CommandResponse::Model3dDispose(result) => failure_case!(result, "model3d-dispose"),
+        CommandResponse::Light3dUpsert(result) => failure_case!(result, "light3d-upsert"),
+        CommandResponse::Light3dDispose(result) => failure_case!(result, "light3d-dispose"),
         CommandResponse::MaterialUpsert(result) => failure_case!(result, "material-upsert"),
         CommandResponse::MaterialDispose(result) => failure_case!(result, "material-dispose"),
         CommandResponse::MaterialDefinitionUpsert(result) => {

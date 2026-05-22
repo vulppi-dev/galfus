@@ -48,7 +48,7 @@ pub fn get_pipeline<'a>(
         shader_id,
         color_format: wgpu::TextureFormat::Rgba16Float,
         color_target_count: 2,
-        depth_format: Some(wgpu::TextureFormat::Depth32Float), // Reverse Z
+        depth_format: Some(wgpu::TextureFormat::Depth32Float),
         sample_count,
         topology: wgpu_topology,
         polygon_mode: wgpu_polygon_mode,
@@ -61,13 +61,12 @@ pub fn get_pipeline<'a>(
 
     cache.get_or_create(key, frame_index, || {
         device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-            label: Some("Forward Standard Pipeline"),
-            layout: Some(&library.forward_standard_pipeline_layout),
+            label: Some("Forward 3D Material Pipeline"),
+            layout: Some(&library.forward_3d_material_pipeline_layout),
             vertex: wgpu::VertexState {
                 module: shader_module,
                 entry_point: Some("vs_main"),
                 buffers: &[
-                    // 0: Position
                     wgpu::VertexBufferLayout {
                         array_stride: VertexStream::Position.stride_bytes(),
                         step_mode: wgpu::VertexStepMode::Vertex,
@@ -77,7 +76,6 @@ pub fn get_pipeline<'a>(
                             shader_location: 0,
                         }],
                     },
-                    // 1: Normal
                     wgpu::VertexBufferLayout {
                         array_stride: VertexStream::Normal.stride_bytes(),
                         step_mode: wgpu::VertexStepMode::Vertex,
@@ -87,7 +85,6 @@ pub fn get_pipeline<'a>(
                             shader_location: 1,
                         }],
                     },
-                    // 2: Tangent
                     wgpu::VertexBufferLayout {
                         array_stride: VertexStream::Tangent.stride_bytes(),
                         step_mode: wgpu::VertexStepMode::Vertex,
@@ -97,7 +94,6 @@ pub fn get_pipeline<'a>(
                             shader_location: 2,
                         }],
                     },
-                    // 3: Color0
                     wgpu::VertexBufferLayout {
                         array_stride: VertexStream::Color0.stride_bytes(),
                         step_mode: wgpu::VertexStepMode::Vertex,
@@ -107,7 +103,6 @@ pub fn get_pipeline<'a>(
                             shader_location: 3,
                         }],
                     },
-                    // 4: UV0
                     wgpu::VertexBufferLayout {
                         array_stride: VertexStream::UV0.stride_bytes(),
                         step_mode: wgpu::VertexStepMode::Vertex,
@@ -117,7 +112,6 @@ pub fn get_pipeline<'a>(
                             shader_location: 4,
                         }],
                     },
-                    // 5: UV1
                     wgpu::VertexBufferLayout {
                         array_stride: VertexStream::UV1.stride_bytes(),
                         step_mode: wgpu::VertexStepMode::Vertex,
@@ -127,7 +121,6 @@ pub fn get_pipeline<'a>(
                             shader_location: 5,
                         }],
                     },
-                    // 6: Joints
                     wgpu::VertexBufferLayout {
                         array_stride: VertexStream::Joints.stride_bytes(),
                         step_mode: wgpu::VertexStepMode::Vertex,
@@ -137,7 +130,6 @@ pub fn get_pipeline<'a>(
                             shader_location: 6,
                         }],
                     },
-                    // 7: Weights
                     wgpu::VertexBufferLayout {
                         array_stride: VertexStream::Weights.stride_bytes(),
                         step_mode: wgpu::VertexStepMode::Vertex,

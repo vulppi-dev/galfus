@@ -83,4 +83,40 @@ fn realm_list_filters_by_kind_and_ids() {
     assert_eq!(by_id.items.len(), 1);
     assert_eq!(by_id.items[0].realm_id, realm_2d);
     assert_ne!(realm_3d, realm_2d);
+
+    let realm_3d_id = crate::core::realm::RealmId(realm_3d);
+    let realm_2d_id = crate::core::realm::RealmId(realm_2d);
+
+    assert!(
+        engine
+            .universal_state
+            .scene
+            .realm3d
+            .entities
+            .contains_key(&realm_3d_id)
+    );
+    assert!(
+        !engine
+            .universal_state
+            .scene
+            .realm2d
+            .entities
+            .contains_key(&realm_3d_id)
+    );
+    assert!(
+        engine
+            .universal_state
+            .scene
+            .realm2d
+            .entities
+            .contains_key(&realm_2d_id)
+    );
+    assert!(
+        !engine
+            .universal_state
+            .scene
+            .realm3d
+            .entities
+            .contains_key(&realm_2d_id)
+    );
 }

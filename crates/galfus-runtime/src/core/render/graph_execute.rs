@@ -2,9 +2,10 @@ use crate::core::realm::RealmId;
 use crate::core::render::graph::RenderGraphPlan;
 use crate::core::render::passes;
 use galfus_realm_core::{
+    RENDER_PASS_2D_BATCH, RENDER_PASS_2D_COMPOSE, RENDER_PASS_2D_DRAW, RENDER_PASS_2D_PREPARE,
     RENDER_PASS_BLOOM, RENDER_PASS_COMPOSE, RENDER_PASS_FORWARD, RENDER_PASS_LIGHT_CULL,
     RENDER_PASS_OUTLINE, RENDER_PASS_POST, RENDER_PASS_SHADOW, RENDER_PASS_SKYBOX,
-    RENDER_PASS_SSAO, RENDER_PASS_SSAO_BLUR,
+    RENDER_PASS_SSAO, RENDER_PASS_SSAO_BLUR, RENDER_PASS_UI,
 };
 use std::hash::{DefaultHasher, Hash, Hasher};
 
@@ -480,12 +481,17 @@ pub(super) fn execute_graph_to_view(
         && let Some(record) = render_state.scene.cameras.get_mut(&camera_id)
     {
         record.history_idle_frames = 0;
-        let had_history_targets = record.history0_target.is_some() && record.history1_target.is_some();
-        let source_target = record.post_target.as_ref().or(record.render_target.as_ref());
+        let had_history_targets =
+            record.history0_target.is_some() && record.history1_target.is_some();
+        let source_target = record
+            .post_target
+            .as_ref()
+            .or(record.render_target.as_ref());
         if let Some(source) = source_target {
             let size = source.texture.size();
             ensure_custom_history_targets(record, device, size.width.max(1), size.height.max(1));
-            let has_history_targets = record.history0_target.is_some() && record.history1_target.is_some();
+            let has_history_targets =
+                record.history0_target.is_some() && record.history1_target.is_some();
             if !had_history_targets && has_history_targets {
                 galfus_log::galfus_log_debug!(
                     log_events,
@@ -521,7 +527,10 @@ pub(super) fn execute_graph_to_view(
     let (scene_color_view, scene_depth_view, history0_view, history1_view, semantics_meta) =
         if let Some(camera_id) = active_camera_id {
             if let Some(record) = render_state.camera_record(camera_id) {
-                let source_target = record.post_target.as_ref().or(record.render_target.as_ref());
+                let source_target = record
+                    .post_target
+                    .as_ref()
+                    .or(record.render_target.as_ref());
                 let scene_color = source_target
                     .map(|target| &target.view)
                     .unwrap_or(&fallback_view);
@@ -690,6 +699,50 @@ pub(super) fn execute_graph_to_view(
                     write_gpu_timestamp(encoder, gpu_profiler, base + 5, &mut gpu_written);
                 }
             }
+            RENDER_PASS_UI => {
+                // Explicitly handle UI pass in the graph executor to avoid silently
+                // falling through to custom-screen shader execution.
+                passes::pass_2d_compose(
+                    render_state,
+                    device,
+                    queue,
+                    encoder,
+                    target_view,
+                    target_format,
+                    target_size,
+                    frame_index,
+                );
+            }
+            RENDER_PASS_2D_PREPARE => {
+                passes::pass_2d_prepare(render_state);
+            }
+            RENDER_PASS_2D_BATCH => {
+                passes::pass_2d_batch(render_state);
+            }
+            RENDER_PASS_2D_DRAW => {
+                passes::pass_2d_draw(
+                    render_state,
+                    device,
+                    queue,
+                    encoder,
+                    target_view,
+                    target_format,
+                    target_size,
+                    frame_index,
+                );
+            }
+            RENDER_PASS_2D_COMPOSE => {
+                passes::pass_2d_compose(
+                    render_state,
+                    device,
+                    queue,
+                    encoder,
+                    target_view,
+                    target_format,
+                    target_size,
+                    frame_index,
+                );
+            }
             _ => {
                 if execute_custom_screen_pass(
                     node,
@@ -718,7 +771,10 @@ pub(super) fn execute_graph_to_view(
         && let Some(camera_id) = active_camera_id
         && let Some(record) = render_state.scene.cameras.get_mut(&camera_id)
     {
-        let source_target = record.post_target.as_ref().or(record.render_target.as_ref());
+        let source_target = record
+            .post_target
+            .as_ref()
+            .or(record.render_target.as_ref());
         if let Some(source) = source_target {
             let source_size = source.texture.size();
             if source.sample_count == 1 {

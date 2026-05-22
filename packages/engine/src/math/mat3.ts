@@ -25,7 +25,7 @@ export type ReadonlyMat3 =
  */
 export function create(): mat3 {
   let out = vectorMath.createArray(9);
-  
+
   out[0] = 1;
   out[4] = 1;
   out[8] = 1;
@@ -106,7 +106,17 @@ export function copy(out: mat3, a: ReadonlyMat3): mat3 {
  * @param {Number} m22 Component in column 2, row 2 position (index 8)
  * @returns {mat3} A new mat3
  */
-export function fromValues(m00: number, m01: number, m02: number, m10: number, m11: number, m12: number, m20: number, m21: number, m22: number): mat3 {
+export function fromValues(
+  m00: number,
+  m01: number,
+  m02: number,
+  m10: number,
+  m11: number,
+  m12: number,
+  m20: number,
+  m21: number,
+  m22: number
+): mat3 {
   let out = vectorMath.createArray(9);
   out[0] = m00;
   out[1] = m01;
@@ -135,7 +145,18 @@ export function fromValues(m00: number, m01: number, m02: number, m10: number, m
  * @param {Number} m22 Component in column 2, row 2 position (index 8)
  * @returns {mat3} out
  */
-export function set(out: mat3, m00: number, m01: number, m02: number, m10: number, m11: number, m12: number, m20: number, m21: number, m22: number): mat3 {
+export function set(
+  out: mat3,
+  m00: number,
+  m01: number,
+  m02: number,
+  m10: number,
+  m11: number,
+  m12: number,
+  m20: number,
+  m21: number,
+  m22: number
+): mat3 {
   out[0] = m00;
   out[1] = m01;
   out[2] = m02;
@@ -291,9 +312,7 @@ export function determinant(a: ReadonlyMat3): number {
     a22 = a[8];
 
   return (
-    a00 * (a22 * a11 - a12 * a21) +
-    a01 * (-a22 * a10 + a12 * a20) +
-    a02 * (a21 * a10 - a11 * a20)
+    a00 * (a22 * a11 - a12 * a21) + a01 * (-a22 * a10 + a12 * a20) + a02 * (a21 * a10 - a11 * a20)
   );
 }
 
@@ -619,8 +638,7 @@ export function normalFromMat4(out: mat3, a: ReadonlyMat4): mat3 | null {
   let b11 = a22 * a33 - a23 * a32;
 
   // Calculate the determinant
-  let det =
-    b00 * b11 - b01 * b10 + b02 * b09 + b03 * b08 - b04 * b07 + b05 * b06;
+  let det = b00 * b11 - b01 * b10 + b02 * b09 + b03 * b08 - b04 * b07 + b05 * b06;
 
   if (!det) {
     return null;
@@ -671,25 +689,25 @@ export function projection(out: mat3, width: number, height: number): mat3 {
  */
 export function str(a: ReadonlyMat3): string {
   return (
-    "mat3(" +
+    'mat3(' +
     a[0] +
-    ", " +
+    ', ' +
     a[1] +
-    ", " +
+    ', ' +
     a[2] +
-    ", " +
+    ', ' +
     a[3] +
-    ", " +
+    ', ' +
     a[4] +
-    ", " +
+    ', ' +
     a[5] +
-    ", " +
+    ', ' +
     a[6] +
-    ", " +
+    ', ' +
     a[7] +
-    ", " +
+    ', ' +
     a[8] +
-    ")"
+    ')'
   );
 }
 
@@ -702,14 +720,14 @@ export function str(a: ReadonlyMat3): string {
 export function frob(a: ReadonlyMat3): number {
   return Math.sqrt(
     a[0] * a[0] +
-    a[1] * a[1] +
-    a[2] * a[2] +
-    a[3] * a[3] +
-    a[4] * a[4] +
-    a[5] * a[5] +
-    a[6] * a[6] +
-    a[7] * a[7] +
-    a[8] * a[8]
+      a[1] * a[1] +
+      a[2] * a[2] +
+      a[3] * a[3] +
+      a[4] * a[4] +
+      a[5] * a[5] +
+      a[6] * a[6] +
+      a[7] * a[7] +
+      a[8] * a[8]
   );
 }
 
@@ -785,7 +803,12 @@ export function multiplyScalar(out: mat3, a: ReadonlyMat3, b: number): mat3 {
  * @param {Number} scale the amount to scale b's elements by before adding
  * @returns {mat3} out
  */
-export function multiplyScalarAndAdd(out: mat3, a: ReadonlyMat3, b: ReadonlyMat3, scale: number): mat3 {
+export function multiplyScalarAndAdd(
+  out: mat3,
+  a: ReadonlyMat3,
+  b: ReadonlyMat3,
+  scale: number
+): mat3 {
   out[0] = a[0] + b[0] * scale;
   out[1] = a[1] + b[1] * scale;
   out[2] = a[2] + b[2] * scale;
@@ -846,24 +869,15 @@ export function equals(a: ReadonlyMat3, b: ReadonlyMat3): boolean {
     b7 = b[7],
     b8 = b[8];
   return (
-    Math.abs(a0 - b0) <=
-      vectorMath.EPSILON * Math.max(1.0, Math.abs(a0), Math.abs(b0)) &&
-    Math.abs(a1 - b1) <=
-      vectorMath.EPSILON * Math.max(1.0, Math.abs(a1), Math.abs(b1)) &&
-    Math.abs(a2 - b2) <=
-      vectorMath.EPSILON * Math.max(1.0, Math.abs(a2), Math.abs(b2)) &&
-    Math.abs(a3 - b3) <=
-      vectorMath.EPSILON * Math.max(1.0, Math.abs(a3), Math.abs(b3)) &&
-    Math.abs(a4 - b4) <=
-      vectorMath.EPSILON * Math.max(1.0, Math.abs(a4), Math.abs(b4)) &&
-    Math.abs(a5 - b5) <=
-      vectorMath.EPSILON * Math.max(1.0, Math.abs(a5), Math.abs(b5)) &&
-    Math.abs(a6 - b6) <=
-      vectorMath.EPSILON * Math.max(1.0, Math.abs(a6), Math.abs(b6)) &&
-    Math.abs(a7 - b7) <=
-      vectorMath.EPSILON * Math.max(1.0, Math.abs(a7), Math.abs(b7)) &&
-    Math.abs(a8 - b8) <=
-      vectorMath.EPSILON * Math.max(1.0, Math.abs(a8), Math.abs(b8))
+    Math.abs(a0 - b0) <= vectorMath.EPSILON * Math.max(1.0, Math.abs(a0), Math.abs(b0)) &&
+    Math.abs(a1 - b1) <= vectorMath.EPSILON * Math.max(1.0, Math.abs(a1), Math.abs(b1)) &&
+    Math.abs(a2 - b2) <= vectorMath.EPSILON * Math.max(1.0, Math.abs(a2), Math.abs(b2)) &&
+    Math.abs(a3 - b3) <= vectorMath.EPSILON * Math.max(1.0, Math.abs(a3), Math.abs(b3)) &&
+    Math.abs(a4 - b4) <= vectorMath.EPSILON * Math.max(1.0, Math.abs(a4), Math.abs(b4)) &&
+    Math.abs(a5 - b5) <= vectorMath.EPSILON * Math.max(1.0, Math.abs(a5), Math.abs(b5)) &&
+    Math.abs(a6 - b6) <= vectorMath.EPSILON * Math.max(1.0, Math.abs(a6), Math.abs(b6)) &&
+    Math.abs(a7 - b7) <= vectorMath.EPSILON * Math.max(1.0, Math.abs(a7), Math.abs(b7)) &&
+    Math.abs(a8 - b8) <= vectorMath.EPSILON * Math.max(1.0, Math.abs(a8), Math.abs(b8))
   );
 }
 

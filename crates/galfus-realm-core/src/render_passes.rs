@@ -9,3 +9,7 @@ pub const RENDER_PASS_BLOOM: &str = "bloom";
 pub const RENDER_PASS_POST: &str = "post";
 pub const RENDER_PASS_COMPOSE: &str = "compose";
 pub const RENDER_PASS_UI: &str = "ui";
+pub const RENDER_PASS_2D_PREPARE: &str = "2d-prepare";
+pub const RENDER_PASS_2D_BATCH: &str = "2d-batch";
+pub const RENDER_PASS_2D_DRAW: &str = "2d-draw";
+pub const RENDER_PASS_2D_COMPOSE: &str = "2d-compose";

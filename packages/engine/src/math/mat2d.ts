@@ -34,7 +34,7 @@ export type ReadonlyMat2d =
  */
 export function create(): mat2d {
   let out = vectorMath.createArray(6);
-  
+
   out[0] = 1;
   out[3] = 1;
   return out;
@@ -101,7 +101,14 @@ export function identity(out: mat2d): mat2d {
  * @param {Number} ty Component TY (index 5)
  * @returns {mat2d} A new mat2d
  */
-export function fromValues(a: number, b: number, c: number, d: number, tx: number, ty: number): mat2d {
+export function fromValues(
+  a: number,
+  b: number,
+  c: number,
+  d: number,
+  tx: number,
+  ty: number
+): mat2d {
   let out = vectorMath.createArray(6);
   out[0] = a;
   out[1] = b;
@@ -124,7 +131,15 @@ export function fromValues(a: number, b: number, c: number, d: number, tx: numbe
  * @param {Number} ty Component TY (index 5)
  * @returns {mat2d} out
  */
-export function set(out: mat2d, a: number, b: number, c: number, d: number, tx: number, ty: number): mat2d {
+export function set(
+  out: mat2d,
+  a: number,
+  b: number,
+  c: number,
+  d: number,
+  tx: number,
+  ty: number
+): mat2d {
   out[0] = a;
   out[1] = b;
   out[2] = c;
@@ -355,19 +370,7 @@ export function fromTranslation(out: mat2d, v: ReadonlyVec2): mat2d {
  */
 export function str(a: ReadonlyMat2d): string {
   return (
-    "mat2d(" +
-    a[0] +
-    ", " +
-    a[1] +
-    ", " +
-    a[2] +
-    ", " +
-    a[3] +
-    ", " +
-    a[4] +
-    ", " +
-    a[5] +
-    ")"
+    'mat2d(' + a[0] + ', ' + a[1] + ', ' + a[2] + ', ' + a[3] + ', ' + a[4] + ', ' + a[5] + ')'
   );
 }
 
@@ -378,7 +381,9 @@ export function str(a: ReadonlyMat2d): string {
  * @returns {Number} Frobenius norm
  */
 export function frob(a: ReadonlyMat2d): number {
-  return Math.sqrt(a[0] * a[0] + a[1] * a[1] + a[2] * a[2] + a[3] * a[3] + a[4] * a[4] + a[5] * a[5] + 1);
+  return Math.sqrt(
+    a[0] * a[0] + a[1] * a[1] + a[2] * a[2] + a[3] * a[3] + a[4] * a[4] + a[5] * a[5] + 1
+  );
 }
 
 /**
@@ -444,7 +449,12 @@ export function multiplyScalar(out: mat2d, a: ReadonlyMat2d, b: number): mat2d {
  * @param {Number} scale the amount to scale b's elements by before adding
  * @returns {mat2d} out
  */
-export function multiplyScalarAndAdd(out: mat2d, a: ReadonlyMat2d, b: ReadonlyMat2d, scale: number): mat2d {
+export function multiplyScalarAndAdd(
+  out: mat2d,
+  a: ReadonlyMat2d,
+  b: ReadonlyMat2d,
+  scale: number
+): mat2d {
   out[0] = a[0] + b[0] * scale;
   out[1] = a[1] + b[1] * scale;
   out[2] = a[2] + b[2] * scale;
@@ -493,18 +503,12 @@ export function equals(a: ReadonlyMat2d, b: ReadonlyMat2d): boolean {
     b4 = b[4],
     b5 = b[5];
   return (
-    Math.abs(a0 - b0) <=
-      vectorMath.EPSILON * Math.max(1.0, Math.abs(a0), Math.abs(b0)) &&
-    Math.abs(a1 - b1) <=
-      vectorMath.EPSILON * Math.max(1.0, Math.abs(a1), Math.abs(b1)) &&
-    Math.abs(a2 - b2) <=
-      vectorMath.EPSILON * Math.max(1.0, Math.abs(a2), Math.abs(b2)) &&
-    Math.abs(a3 - b3) <=
-      vectorMath.EPSILON * Math.max(1.0, Math.abs(a3), Math.abs(b3)) &&
-    Math.abs(a4 - b4) <=
-      vectorMath.EPSILON * Math.max(1.0, Math.abs(a4), Math.abs(b4)) &&
-    Math.abs(a5 - b5) <=
-      vectorMath.EPSILON * Math.max(1.0, Math.abs(a5), Math.abs(b5))
+    Math.abs(a0 - b0) <= vectorMath.EPSILON * Math.max(1.0, Math.abs(a0), Math.abs(b0)) &&
+    Math.abs(a1 - b1) <= vectorMath.EPSILON * Math.max(1.0, Math.abs(a1), Math.abs(b1)) &&
+    Math.abs(a2 - b2) <= vectorMath.EPSILON * Math.max(1.0, Math.abs(a2), Math.abs(b2)) &&
+    Math.abs(a3 - b3) <= vectorMath.EPSILON * Math.max(1.0, Math.abs(a3), Math.abs(b3)) &&
+    Math.abs(a4 - b4) <= vectorMath.EPSILON * Math.max(1.0, Math.abs(a4), Math.abs(b4)) &&
+    Math.abs(a5 - b5) <= vectorMath.EPSILON * Math.max(1.0, Math.abs(a5), Math.abs(b5))
   );
 }
 

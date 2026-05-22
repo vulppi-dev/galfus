@@ -15,6 +15,12 @@ import type {
   CmdAudioSourceCreateArgs,
   CmdAudioSourceTransportArgs
 } from '../../types/cmds/audio';
+import type {
+  CmdMaterialDefinitionDisposeArgs,
+  CmdMaterialDefinitionUpsertArgs,
+  CmdMaterialInstanceDisposeArgs,
+  CmdMaterialInstanceUpsertArgs
+} from '../../types/cmds/material';
 import type { EnvironmentConfig } from '../../types/cmds/environment';
 import type {
   CmdGizmoDrawAabbArgs,
@@ -47,6 +53,8 @@ import {
   createTexture as createTextureRaw,
   createTag as createTagRaw,
   disposeRenderGraph as disposeRenderGraphRaw,
+  disposeMaterialDefinition as disposeMaterialDefinitionRaw,
+  disposeMaterialInstance as disposeMaterialInstanceRaw,
   disposeGeometry as disposeGeometryRaw,
   disposeMaterial as disposeMaterialRaw,
   disposeTexture as disposeTextureRaw,
@@ -68,6 +76,8 @@ import {
   sendNotification as sendNotificationRaw,
   setParent as setParentRaw,
   bindRealmRenderGraph as bindRealmRenderGraphRaw,
+  upsertMaterialDefinition as upsertMaterialDefinitionRaw,
+  upsertMaterialInstance as upsertMaterialInstanceRaw,
   upsertRenderGraph as upsertRenderGraphRaw,
   updateTransform as updateTransformRaw
 } from './entities';
@@ -473,6 +483,34 @@ export function bind3DRealmRenderGraph(
   args: CmdRealmRenderGraphBindArgs
 ): CommandId {
   return asCommandId(bindRealmRenderGraphRaw(asWorldNumber(worldId), args));
+}
+
+export function upsert3DMaterialDefinition(
+  worldId: World3DId,
+  args: CmdMaterialDefinitionUpsertArgs
+): CommandId {
+  return asCommandId(upsertMaterialDefinitionRaw(asWorldNumber(worldId), args));
+}
+
+export function dispose3DMaterialDefinition(
+  worldId: World3DId,
+  args: CmdMaterialDefinitionDisposeArgs
+): CommandId {
+  return asCommandId(disposeMaterialDefinitionRaw(asWorldNumber(worldId), args));
+}
+
+export function upsert3DMaterialInstance(
+  worldId: World3DId,
+  args: CmdMaterialInstanceUpsertArgs
+): CommandId {
+  return asCommandId(upsertMaterialInstanceRaw(asWorldNumber(worldId), args));
+}
+
+export function dispose3DMaterialInstance(
+  worldId: World3DId,
+  args: CmdMaterialInstanceDisposeArgs
+): CommandId {
+  return asCommandId(disposeMaterialInstanceRaw(asWorldNumber(worldId), args));
 }
 
 /** Requests target measurement for this world context.

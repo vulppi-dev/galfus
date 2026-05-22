@@ -64,7 +64,7 @@ pub struct CmdResultCameraUpdate {
 
 #[derive(Debug, Default, Deserialize, Serialize, Clone)]
 #[serde(default, rename_all = "camelCase")]
-pub struct CmdCameraDisposeArgs {
+pub struct CmdCamera3dDisposeArgs {
     pub realm_id: u32,
     pub camera_id: u32,
 }
@@ -170,7 +170,7 @@ pub fn engine_cmd_camera_create(
         return camera_create_error(
             engine,
             format!("Camera with id {} already exists", args.camera_id),
-            "camera-upsert",
+            "camera3d-upsert",
         );
     }
 
@@ -232,7 +232,7 @@ pub fn engine_cmd_camera_update(
             "camera",
             message.clone(),
             None,
-            Some("camera-upsert".into()),
+            Some("camera3d-upsert".into()),
         );
         return CmdResultCameraUpdate {
             success: false,
@@ -246,7 +246,7 @@ pub fn engine_cmd_camera_update(
             "camera",
             message.clone(),
             None,
-            Some("camera-upsert".into()),
+            Some("camera3d-upsert".into()),
         );
         return CmdResultCameraUpdate {
             success: false,
@@ -287,7 +287,7 @@ pub fn engine_cmd_camera_update(
 
 pub fn engine_cmd_camera_dispose(
     engine: &mut EngineState,
-    args: &CmdCameraDisposeArgs,
+    args: &CmdCamera3dDisposeArgs,
 ) -> CmdResultCameraDispose {
     let realm_id = RealmId(args.realm_id);
     let Some(entities) = engine
@@ -303,7 +303,7 @@ pub fn engine_cmd_camera_dispose(
             "camera",
             message.clone(),
             None,
-            Some("camera-dispose".into()),
+            Some("camera3d-dispose".into()),
         );
         return CmdResultCameraDispose {
             success: false,
@@ -324,7 +324,7 @@ pub fn engine_cmd_camera_dispose(
             "camera",
             message.clone(),
             None,
-            Some("camera-dispose".into()),
+            Some("camera3d-dispose".into()),
         );
         CmdResultCameraDispose {
             success: false,
