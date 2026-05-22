@@ -195,7 +195,6 @@ export interface SystemEventStateComponent {
   };
 }
 
-
 /** Base properties shared by resources. */
 export interface BaseResourceProps {
   label?: string;

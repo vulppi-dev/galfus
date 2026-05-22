@@ -18,7 +18,7 @@ export type ReadonlyMat2 = readonly [number, number, number, number] | IndexedCo
  */
 export function create(): mat2 {
   let out = vectorMath.createArray(4);
-  
+
   out[0] = 1;
   out[3] = 1;
   return out;
@@ -300,7 +300,7 @@ export function fromScaling(out: mat2, v: ReadonlyVec2): mat2 {
  * @returns {String} string representation of the matrix
  */
 export function str(a: ReadonlyMat2): string {
-  return "mat2(" + a[0] + ", " + a[1] + ", " + a[2] + ", " + a[3] + ")";
+  return 'mat2(' + a[0] + ', ' + a[1] + ', ' + a[2] + ', ' + a[3] + ')';
 }
 
 /**
@@ -389,14 +389,10 @@ export function equals(a: ReadonlyMat2, b: ReadonlyMat2): boolean {
     b2 = b[2],
     b3 = b[3];
   return (
-    Math.abs(a0 - b0) <=
-      vectorMath.EPSILON * Math.max(1.0, Math.abs(a0), Math.abs(b0)) &&
-    Math.abs(a1 - b1) <=
-      vectorMath.EPSILON * Math.max(1.0, Math.abs(a1), Math.abs(b1)) &&
-    Math.abs(a2 - b2) <=
-      vectorMath.EPSILON * Math.max(1.0, Math.abs(a2), Math.abs(b2)) &&
-    Math.abs(a3 - b3) <=
-      vectorMath.EPSILON * Math.max(1.0, Math.abs(a3), Math.abs(b3))
+    Math.abs(a0 - b0) <= vectorMath.EPSILON * Math.max(1.0, Math.abs(a0), Math.abs(b0)) &&
+    Math.abs(a1 - b1) <= vectorMath.EPSILON * Math.max(1.0, Math.abs(a1), Math.abs(b1)) &&
+    Math.abs(a2 - b2) <= vectorMath.EPSILON * Math.max(1.0, Math.abs(a2), Math.abs(b2)) &&
+    Math.abs(a3 - b3) <= vectorMath.EPSILON * Math.max(1.0, Math.abs(a3), Math.abs(b3))
   );
 }
 
@@ -425,7 +421,12 @@ export function multiplyScalar(out: mat2, a: ReadonlyMat2, b: number): mat2 {
  * @param {Number} scale the amount to scale b's elements by before adding
  * @returns {mat2} out
  */
-export function multiplyScalarAndAdd(out: mat2, a: ReadonlyMat2, b: ReadonlyMat2, scale: number): mat2 {
+export function multiplyScalarAndAdd(
+  out: mat2,
+  a: ReadonlyMat2,
+  b: ReadonlyMat2,
+  scale: number
+): mat2 {
   out[0] = a[0] + b[0] * scale;
   out[1] = a[1] + b[1] * scale;
   out[2] = a[2] + b[2] * scale;

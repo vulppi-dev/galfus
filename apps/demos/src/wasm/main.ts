@@ -162,13 +162,19 @@ function setupDemo001(worldId: World3DId): DemoUpdate {
     scale: [20, 20, 1]
   });
 
-  World3D.create3DModel(worldId, cubeA, { geometryId: cubeGeometryId, materialId: standardMaterialId });
+  World3D.create3DModel(worldId, cubeA, {
+    geometryId: cubeGeometryId,
+    materialId: standardMaterialId
+  });
   World3D.create3DModel(worldId, cubeB, { geometryId: cubeGeometryId, materialId: pbrMaterialId });
   World3D.create3DModel(worldId, cubeC, {
     geometryId: cubeGeometryId,
     materialId: customSimpleMaterialId
   });
-  World3D.create3DModel(worldId, floor, { geometryId: floorGeometryId, materialId: floorMaterialId });
+  World3D.create3DModel(worldId, floor, {
+    geometryId: floorGeometryId,
+    materialId: floorMaterialId
+  });
 
   let elapsedSeconds = 0;
   let nextShadowRefreshSeconds = 0;
@@ -201,24 +207,53 @@ function setupDemo002(worldId: World3DId): DemoUpdate {
   });
   const matA = World3D.create3DMaterial(worldId, {
     kind: 'standard',
-    options: { type: 'standard', content: { baseColor: [0.1, 0.85, 1.0, 0.65], surfaceType: 'transparent', renderSide: 'double-side' } }
+    options: {
+      type: 'standard',
+      content: {
+        baseColor: [0.1, 0.85, 1.0, 0.65],
+        surfaceType: 'transparent',
+        renderSide: 'double-side'
+      }
+    }
   });
   const matB = World3D.create3DMaterial(worldId, {
     kind: 'standard',
-    options: { type: 'standard', content: { baseColor: [0.95, 0.4, 0.2, 1.0], surfaceType: 'opaque' } }
+    options: {
+      type: 'standard',
+      content: { baseColor: [0.95, 0.4, 0.2, 1.0], surfaceType: 'opaque' }
+    }
   });
   const matC = World3D.create3DMaterial(worldId, {
     kind: 'pbr',
-    options: { type: 'pbr', content: { baseColor: [0.3, 0.45, 1.0, 1.0], metallic: 0.35, roughness: 0.25, ao: 1.0, normalScale: 1.0, surfaceType: 'opaque' } }
+    options: {
+      type: 'pbr',
+      content: {
+        baseColor: [0.3, 0.45, 1.0, 1.0],
+        metallic: 0.35,
+        roughness: 0.25,
+        ao: 1.0,
+        normalScale: 1.0,
+        surfaceType: 'opaque'
+      }
+    }
   });
 
   const camera = World3D.create3DEntity(worldId);
-  World3D.update3DTransform(worldId, camera, { position: [0, 2.3, 7.5], rotation: [-0.1305262, 0, 0, 0.9914449] });
+  World3D.update3DTransform(worldId, camera, {
+    position: [0, 2.3, 7.5],
+    rotation: [-0.1305262, 0, 0, 0.9914449]
+  });
   World3D.create3DCamera(worldId, camera, { kind: 'perspective', near: 0.1, far: 120, order: 0 });
 
   const light = World3D.create3DEntity(worldId);
   World3D.update3DTransform(worldId, light, { position: [0, 4, 0] });
-  World3D.create3DLight(worldId, light, { kind: 'directional', color: [1, 1, 1], intensity: 3.2, castShadow: true, direction: [-0.45, -1, -0.35] });
+  World3D.create3DLight(worldId, light, {
+    kind: 'directional',
+    color: [1, 1, 1],
+    intensity: 3.2,
+    castShadow: true,
+    direction: [-0.45, -1, -0.35]
+  });
 
   const a = World3D.create3DEntity(worldId);
   const b = World3D.create3DEntity(worldId);
@@ -235,9 +270,18 @@ function setupDemo002(worldId: World3DId): DemoUpdate {
     const qA = quat.fromEuler(quat.create(), 0, (ySpin * 180) / Math.PI, 0);
     const qB = quat.fromEuler(quat.create(), 0, ((ySpin + 1.2) * 180) / Math.PI, 0);
     const qC = quat.fromEuler(quat.create(), 0, ((ySpin + 2.4) * 180) / Math.PI, 0);
-    World3D.update3DTransform(worldId, a, { position: [Math.cos(t * 1.3) * radius, 0, Math.sin(t * 1.3) * radius], rotation: [qA[0], qA[1], qA[2], qA[3]] });
-    World3D.update3DTransform(worldId, b, { position: [Math.cos(t * 1.3 + 2.09) * radius, 0, Math.sin(t * 1.3 + 2.09) * radius], rotation: [qB[0], qB[1], qB[2], qB[3]] });
-    World3D.update3DTransform(worldId, c, { position: [Math.cos(t * 1.3 + 4.18) * radius, 0, Math.sin(t * 1.3 + 4.18) * radius], rotation: [qC[0], qC[1], qC[2], qC[3]] });
+    World3D.update3DTransform(worldId, a, {
+      position: [Math.cos(t * 1.3) * radius, 0, Math.sin(t * 1.3) * radius],
+      rotation: [qA[0], qA[1], qA[2], qA[3]]
+    });
+    World3D.update3DTransform(worldId, b, {
+      position: [Math.cos(t * 1.3 + 2.09) * radius, 0, Math.sin(t * 1.3 + 2.09) * radius],
+      rotation: [qB[0], qB[1], qB[2], qB[3]]
+    });
+    World3D.update3DTransform(worldId, c, {
+      position: [Math.cos(t * 1.3 + 4.18) * radius, 0, Math.sin(t * 1.3 + 4.18) * radius],
+      rotation: [qC[0], qC[1], qC[2], qC[3]]
+    });
   };
 }
 
@@ -246,15 +290,35 @@ function setupDemo003(worldId: World2DId): DemoUpdate {
   const quadB = World2D.create2DGeometry(worldId, { type: 'primitive', shape: 'plane' });
   const red = World2D.create2DMaterial(worldId, {
     kind: 'standard',
-    options: { type: 'standard', content: { baseColor: [0.95, 0.25, 0.35, 1], renderSide: 'double-side', surfaceType: 'opaque' } }
+    options: {
+      type: 'standard',
+      content: {
+        baseColor: [0.95, 0.25, 0.35, 1],
+        renderSide: 'double-side',
+        surfaceType: 'opaque'
+      }
+    }
   });
   const blue = World2D.create2DMaterial(worldId, {
     kind: 'standard',
-    options: { type: 'standard', content: { baseColor: [0.25, 0.45, 0.95, 1], renderSide: 'double-side', surfaceType: 'opaque' } }
+    options: {
+      type: 'standard',
+      content: {
+        baseColor: [0.25, 0.45, 0.95, 1],
+        renderSide: 'double-side',
+        surfaceType: 'opaque'
+      }
+    }
   });
   const camera = World2D.create2DEntity(worldId);
   World2D.update2DTransform(worldId, camera, { position: [0, 0, 5] });
-  World2D.create2DCamera(worldId, camera, { kind: 'orthographic', near: 0.01, far: 100, orthoScale: 2.5, order: 0 });
+  World2D.create2DCamera(worldId, camera, {
+    kind: 'orthographic',
+    near: 0.01,
+    far: 100,
+    orthoScale: 2.5,
+    order: 0
+  });
 
   const spriteA = World2D.create2DEntity(worldId);
   const spriteB = World2D.create2DEntity(worldId);
@@ -274,9 +338,17 @@ function setupDemo003(worldId: World2DId): DemoUpdate {
     const rot = t * 1.7;
     const rotA = quat.fromEuler(quat.create(), 0, 0, (rot * 180) / Math.PI);
     const rotShape = quat.fromEuler(quat.create(), 0, 0, (-rot * 0.7 * 180) / Math.PI);
-    World2D.update2DTransform(worldId, spriteA, { position: [xA, 0, 0], rotation: [rotA[0], rotA[1], rotA[2], rotA[3]], scale: [0.9, 0.9, 1] });
+    World2D.update2DTransform(worldId, spriteA, {
+      position: [xA, 0, 0],
+      rotation: [rotA[0], rotA[1], rotA[2], rotA[3]],
+      scale: [0.9, 0.9, 1]
+    });
     World2D.update2DTransform(worldId, spriteB, { position: [0.9, yB, 0], scale: [0.7, 0.7, 1] });
-    World2D.update2DTransform(worldId, shapeA, { position: [0, 0.35, 0], rotation: [rotShape[0], rotShape[1], rotShape[2], rotShape[3]], scale: [0.5, 1.4, 1] });
+    World2D.update2DTransform(worldId, shapeA, {
+      position: [0, 0.35, 0],
+      rotation: [rotShape[0], rotShape[1], rotShape[2], rotShape[3]],
+      scale: [0.5, 1.4, 1]
+    });
     World2D.update2DTransform(worldId, camera, { position: [Math.sin(t * 0.4) * 0.1, 0, 5] });
   };
 }

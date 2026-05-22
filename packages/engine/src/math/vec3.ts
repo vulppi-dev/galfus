@@ -20,7 +20,7 @@ export type ReadonlyVec3 = readonly [number, number, number] | IndexedCollection
  */
 export function create(): vec3 {
   let out = vectorMath.createArray(3) as Vec3;
-  
+
   return out as Vec3;
 }
 
@@ -436,7 +436,14 @@ export function slerp(out: vec3, a: ReadonlyVec3, b: ReadonlyVec3, t: number): v
  * @param {Number} t interpolation amount, in the range [0-1], between the two inputs
  * @returns {vec3} out
  */
-export function hermite(out: vec3, a: ReadonlyVec3, b: ReadonlyVec3, c: ReadonlyVec3, d: ReadonlyVec3, t: number): vec3 {
+export function hermite(
+  out: vec3,
+  a: ReadonlyVec3,
+  b: ReadonlyVec3,
+  c: ReadonlyVec3,
+  d: ReadonlyVec3,
+  t: number
+): vec3 {
   let factorTimes2 = t * t;
   let factor1 = factorTimes2 * (2 * t - 3) + 1;
   let factor2 = factorTimes2 * (t - 2) + t;
@@ -461,7 +468,14 @@ export function hermite(out: vec3, a: ReadonlyVec3, b: ReadonlyVec3, c: Readonly
  * @param {Number} t interpolation amount, in the range [0-1], between the two inputs
  * @returns {vec3} out
  */
-export function bezier(out: vec3, a: ReadonlyVec3, b: ReadonlyVec3, c: ReadonlyVec3, d: ReadonlyVec3, t: number): vec3 {
+export function bezier(
+  out: vec3,
+  a: ReadonlyVec3,
+  b: ReadonlyVec3,
+  c: ReadonlyVec3,
+  d: ReadonlyVec3,
+  t: number
+): vec3 {
   let inverseFactor = 1 - t;
   let inverseFactorTimesTwo = inverseFactor * inverseFactor;
   let factorTimes2 = t * t;
@@ -546,7 +560,6 @@ export function transformMat3(out: vec3, a: ReadonlyVec3, m: ReadonlyMat3): vec3
  * @returns {vec3} out
  */
 export function transformQuat(out: vec3, a: ReadonlyVec3, q: ReadonlyQuat): vec3 {
-
   // Fast Vector Rotation using Quaternions by Robert Eisele
   // https://raw.org/proof/vector-rotation-using-quaternions/
 
@@ -702,7 +715,7 @@ export function zero(out: vec3): vec3 {
  * @returns {String} string representation of the vector
  */
 export function str(a: ReadonlyVec3): string {
-  return "vec3(" + a[0] + ", " + a[1] + ", " + a[2] + ")";
+  return 'vec3(' + a[0] + ', ' + a[1] + ', ' + a[2] + ')';
 }
 
 /**
@@ -731,12 +744,9 @@ export function equals(a: ReadonlyVec3, b: ReadonlyVec3): boolean {
     b1 = b[1],
     b2 = b[2];
   return (
-    Math.abs(a0 - b0) <=
-      vectorMath.EPSILON * Math.max(1.0, Math.abs(a0), Math.abs(b0)) &&
-    Math.abs(a1 - b1) <=
-      vectorMath.EPSILON * Math.max(1.0, Math.abs(a1), Math.abs(b1)) &&
-    Math.abs(a2 - b2) <=
-      vectorMath.EPSILON * Math.max(1.0, Math.abs(a2), Math.abs(b2))
+    Math.abs(a0 - b0) <= vectorMath.EPSILON * Math.max(1.0, Math.abs(a0), Math.abs(b0)) &&
+    Math.abs(a1 - b1) <= vectorMath.EPSILON * Math.max(1.0, Math.abs(a1), Math.abs(b1)) &&
+    Math.abs(a2 - b2) <= vectorMath.EPSILON * Math.max(1.0, Math.abs(a2), Math.abs(b2))
   );
 }
 

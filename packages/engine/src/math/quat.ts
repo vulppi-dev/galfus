@@ -23,7 +23,7 @@ export type ReadonlyQuat = readonly [number, number, number, number] | IndexedCo
  */
 export function create(): quat {
   let out = vectorMath.createArray(4) as Quat;
-  
+
   out[3] = 1;
   return out as Quat;
 }
@@ -461,7 +461,13 @@ export function fromMat3(out: quat, m: ReadonlyMat3): quat {
  * @returns {quat} out
  * @function
  */
-export function fromEuler(out: quat, x: number, y: number, z: number, order: "xyz" | "xzy" | "yxz" | "yzx" | "zxy" | "zyx" = vectorMath.ANGLE_ORDER): quat {
+export function fromEuler(
+  out: quat,
+  x: number,
+  y: number,
+  z: number,
+  order: 'xyz' | 'xzy' | 'yxz' | 'yzx' | 'zxy' | 'zyx' = vectorMath.ANGLE_ORDER
+): quat {
   let halfToRad = Math.PI / 360;
   x *= halfToRad;
   z *= halfToRad;
@@ -475,42 +481,42 @@ export function fromEuler(out: quat, x: number, y: number, z: number, order: "xy
   let cz = Math.cos(z);
 
   switch (order) {
-    case "xyz":
+    case 'xyz':
       out[0] = sx * cy * cz + cx * sy * sz;
       out[1] = cx * sy * cz - sx * cy * sz;
       out[2] = cx * cy * sz + sx * sy * cz;
       out[3] = cx * cy * cz - sx * sy * sz;
       break;
 
-    case "xzy":
+    case 'xzy':
       out[0] = sx * cy * cz - cx * sy * sz;
       out[1] = cx * sy * cz - sx * cy * sz;
       out[2] = cx * cy * sz + sx * sy * cz;
       out[3] = cx * cy * cz + sx * sy * sz;
       break;
 
-    case "yxz":
+    case 'yxz':
       out[0] = sx * cy * cz + cx * sy * sz;
       out[1] = cx * sy * cz - sx * cy * sz;
       out[2] = cx * cy * sz - sx * sy * cz;
       out[3] = cx * cy * cz + sx * sy * sz;
       break;
 
-    case "yzx":
+    case 'yzx':
       out[0] = sx * cy * cz + cx * sy * sz;
       out[1] = cx * sy * cz + sx * cy * sz;
       out[2] = cx * cy * sz - sx * sy * cz;
       out[3] = cx * cy * cz - sx * sy * sz;
       break;
 
-    case "zxy":
+    case 'zxy':
       out[0] = sx * cy * cz - cx * sy * sz;
       out[1] = cx * sy * cz + sx * cy * sz;
       out[2] = cx * cy * sz + sx * sy * cz;
       out[3] = cx * cy * cz - sx * sy * sz;
       break;
 
-    case "zyx":
+    case 'zyx':
       out[0] = sx * cy * cz - cx * sy * sz;
       out[1] = cx * sy * cz + sx * cy * sz;
       out[2] = cx * cy * sz - sx * sy * cz;
@@ -531,7 +537,7 @@ export function fromEuler(out: quat, x: number, y: number, z: number, order: "xy
  * @returns {String} string representation of the vector
  */
 export function str(a: ReadonlyQuat): string {
-  return "quat(" + a[0] + ", " + a[1] + ", " + a[2] + ", " + a[3] + ")";
+  return 'quat(' + a[0] + ', ' + a[1] + ', ' + a[2] + ', ' + a[3] + ')';
 }
 
 /**
@@ -686,7 +692,7 @@ export const exactEquals = vec4Math.exactEquals;
  * @returns {Boolean} True if the quaternions are equal, false otherwise.
  */
 export function equals(a: ReadonlyQuat, b: ReadonlyQuat): boolean {
-    return Math.abs(vec4Math.dot(a, b)) >= 1 - vectorMath.EPSILON;
+  return Math.abs(vec4Math.dot(a, b)) >= 1 - vectorMath.EPSILON;
 }
 
 /**

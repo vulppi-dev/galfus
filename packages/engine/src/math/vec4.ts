@@ -19,7 +19,7 @@ export type ReadonlyVec4 = readonly [number, number, number, number] | IndexedCo
  */
 export function create(): vec4 {
   let out = vectorMath.createArray(4) as Vec4;
-  
+
   return out as Vec4;
 }
 
@@ -499,7 +499,6 @@ export function transformMat4(out: vec4, a: ReadonlyVec4, m: ReadonlyMat4): vec4
  * @returns {vec4} out
  */
 export function transformQuat(out: vec4, a: ReadonlyVec4, q: ReadonlyQuat): vec4 {
-
   // Fast Vector Rotation using Quaternions by Robert Eisele
   // https://raw.org/proof/vector-rotation-using-quaternions/
 
@@ -551,7 +550,7 @@ export function zero(out: vec4): vec4 {
  * @returns {String} string representation of the vector
  */
 export function str(a: ReadonlyVec4): string {
-  return "vec4(" + a[0] + ", " + a[1] + ", " + a[2] + ", " + a[3] + ")";
+  return 'vec4(' + a[0] + ', ' + a[1] + ', ' + a[2] + ', ' + a[3] + ')';
 }
 
 /**
@@ -582,14 +581,10 @@ export function equals(a: ReadonlyVec4, b: ReadonlyVec4): boolean {
     b2 = b[2],
     b3 = b[3];
   return (
-    Math.abs(a0 - b0) <=
-      vectorMath.EPSILON * Math.max(1.0, Math.abs(a0), Math.abs(b0)) &&
-    Math.abs(a1 - b1) <=
-      vectorMath.EPSILON * Math.max(1.0, Math.abs(a1), Math.abs(b1)) &&
-    Math.abs(a2 - b2) <=
-      vectorMath.EPSILON * Math.max(1.0, Math.abs(a2), Math.abs(b2)) &&
-    Math.abs(a3 - b3) <=
-      vectorMath.EPSILON * Math.max(1.0, Math.abs(a3), Math.abs(b3))
+    Math.abs(a0 - b0) <= vectorMath.EPSILON * Math.max(1.0, Math.abs(a0), Math.abs(b0)) &&
+    Math.abs(a1 - b1) <= vectorMath.EPSILON * Math.max(1.0, Math.abs(a1), Math.abs(b1)) &&
+    Math.abs(a2 - b2) <= vectorMath.EPSILON * Math.max(1.0, Math.abs(a2), Math.abs(b2)) &&
+    Math.abs(a3 - b3) <= vectorMath.EPSILON * Math.max(1.0, Math.abs(a3), Math.abs(b3))
   );
 }
 

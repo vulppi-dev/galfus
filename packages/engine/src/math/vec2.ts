@@ -22,7 +22,7 @@ export type ReadonlyVec2 = readonly [number, number] | IndexedCollection;
  */
 export function create(): vec2 {
   let out = vectorMath.createArray(2) as Vec2;
-  
+
   return out as Vec2;
 }
 
@@ -483,24 +483,27 @@ export function rotate(out: vec2, a: ReadonlyVec2, b: ReadonlyVec2, rad: number)
  * @returns {Number} The angle in radians
  */
 export function angle(a: ReadonlyVec2, b: ReadonlyVec2): number {
-  let ax = a[0], ay = a[1],
-    bx = b[0], by = b[1];
+  let ax = a[0],
+    ay = a[1],
+    bx = b[0],
+    by = b[1];
   return Math.abs(Math.atan2(ay * bx - ax * by, ax * bx + ay * by));
 }
 
 /**
  * Get the signed angle in the interval [-pi,pi] between two 2D vectors (positive if `a` is to the right of `b`)
- * 
+ *
  * @param {ReadonlyVec2} a The first vector
  * @param {ReadonlyVec2} b The second vector
  * @returns {number} The signed angle in radians
  */
 export function signedAngle(a: ReadonlyVec2, b: ReadonlyVec2): number {
-  let ax = a[0], ay = a[1],
-    bx = b[0], by = b[1];
+  let ax = a[0],
+    ay = a[1],
+    bx = b[0],
+    by = b[1];
   return Math.atan2(ax * by - ay * bx, ax * bx + ay * by);
 }
-
 
 /**
  * Set the components of a vec2 to zero
@@ -521,7 +524,7 @@ export function zero(out: vec2): vec2 {
  * @returns {String} string representation of the vector
  */
 export function str(a: ReadonlyVec2): string {
-  return "vec2(" + a[0] + ", " + a[1] + ")";
+  return 'vec2(' + a[0] + ', ' + a[1] + ')';
 }
 
 /**
@@ -548,10 +551,8 @@ export function equals(a: ReadonlyVec2, b: ReadonlyVec2): boolean {
   let b0 = b[0],
     b1 = b[1];
   return (
-    Math.abs(a0 - b0) <=
-      vectorMath.EPSILON * Math.max(1.0, Math.abs(a0), Math.abs(b0)) &&
-    Math.abs(a1 - b1) <=
-      vectorMath.EPSILON * Math.max(1.0, Math.abs(a1), Math.abs(b1))
+    Math.abs(a0 - b0) <= vectorMath.EPSILON * Math.max(1.0, Math.abs(a0), Math.abs(b0)) &&
+    Math.abs(a1 - b1) <= vectorMath.EPSILON * Math.max(1.0, Math.abs(a1), Math.abs(b1))
   );
 }
 

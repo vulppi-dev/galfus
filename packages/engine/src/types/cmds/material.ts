@@ -1,5 +1,11 @@
 import type { Vec4 as vec4 } from '../../math/index';
-import type { TransparencyMode, SamplerMode, PrimitiveTopology, PolygonMode, RenderSide } from '../kinds';
+import type {
+  TransparencyMode,
+  SamplerMode,
+  PrimitiveTopology,
+  PolygonMode,
+  RenderSide
+} from '../kinds';
 import type {
   CmdResourceGetArgs,
   CmdResourceListArgs,
@@ -174,7 +180,9 @@ export interface CmdMaterialInstanceUpdateArgs {
   options?: MaterialOptions;
 }
 
-export type CmdMaterialInstanceUpsertArgs = CmdMaterialInstanceCreateArgs | CmdMaterialInstanceUpdateArgs;
+export type CmdMaterialInstanceUpsertArgs =
+  | CmdMaterialInstanceCreateArgs
+  | CmdMaterialInstanceUpdateArgs;
 
 export interface CmdMaterialInstanceDisposeArgs {
   materialId: number;

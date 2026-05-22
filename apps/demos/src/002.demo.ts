@@ -170,7 +170,9 @@ async function main() {
 
     tick(totalMs, dtMs);
     const frameElapsed = performance.now() - now;
-    await new Promise((resolve) => setTimeout(resolve, Math.max(0, FRAME_TARGET_MS - frameElapsed)));
+    await new Promise((resolve) =>
+      setTimeout(resolve, Math.max(0, FRAME_TARGET_MS - frameElapsed))
+    );
   }
 
   closeWindow(windowId);

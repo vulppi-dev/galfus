@@ -51,14 +51,7 @@ import {
   upsertMaterialInstance as upsertMaterialInstanceRaw,
   updateTransform as updateTransformRaw
 } from './entities';
-import type {
-  CommandId,
-  EntityId,
-  GeometryId,
-  MaterialId,
-  TextureId,
-  World2DId
-} from './types';
+import type { CommandId, EntityId, GeometryId, MaterialId, TextureId, World2DId } from './types';
 import {
   asCommandId,
   asEntityId,
@@ -158,7 +151,10 @@ export function upsert2DRenderGraph(worldId: World2DId, args: CmdRenderGraphUpse
   return asCommandId(upsertRenderGraphRaw(asWorldNumber(worldId), args));
 }
 
-export function bind2DRenderGraph(worldId: World2DId, args: CmdRealmRenderGraphBindArgs): CommandId {
+export function bind2DRenderGraph(
+  worldId: World2DId,
+  args: CmdRealmRenderGraphBindArgs
+): CommandId {
   return asCommandId(bindRealmRenderGraphRaw(asWorldNumber(worldId), args));
 }
 
@@ -169,7 +165,10 @@ export function dispose2DRenderGraph(
   return asCommandId(disposeRenderGraphRaw(asWorldNumber(worldId), args));
 }
 
-export function list2DRenderGraphs(worldId: World2DId, args: CmdRenderGraphListArgs = {}): CommandId {
+export function list2DRenderGraphs(
+  worldId: World2DId,
+  args: CmdRenderGraphListArgs = {}
+): CommandId {
   return asCommandId(listRenderGraphsRaw(asWorldNumber(worldId), args));
 }
 

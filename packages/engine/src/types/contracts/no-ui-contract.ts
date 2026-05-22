@@ -13,4 +13,3 @@ type _assertNoUiEngineCmd = AssertNever<UiEngineCmd>;
 type _assertNoUiCommandResponse = AssertNever<UiCommandResponse>;
 type _assertNoUiEngineEvent = AssertNever<UiEngineEvent>;
 type _assertNoUiSystemEvent = AssertNever<UiSystemEvent>;
-

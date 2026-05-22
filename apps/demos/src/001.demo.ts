@@ -215,9 +215,24 @@ async function main() {
     const angleB = timeSeconds * 2.5 + 0.6;
     const angleC = timeSeconds * 1.4 + 1.2;
 
-    const qA: [number, number, number, number] = [0, Math.sin(angleA * 0.5), 0, Math.cos(angleA * 0.5)];
-    const qB: [number, number, number, number] = [0, Math.sin(angleB * 0.5), 0, Math.cos(angleB * 0.5)];
-    const qC: [number, number, number, number] = [0, Math.sin(angleC * 0.5), 0, Math.cos(angleC * 0.5)];
+    const qA: [number, number, number, number] = [
+      0,
+      Math.sin(angleA * 0.5),
+      0,
+      Math.cos(angleA * 0.5)
+    ];
+    const qB: [number, number, number, number] = [
+      0,
+      Math.sin(angleB * 0.5),
+      0,
+      Math.cos(angleB * 0.5)
+    ];
+    const qC: [number, number, number, number] = [
+      0,
+      Math.sin(angleC * 0.5),
+      0,
+      Math.cos(angleC * 0.5)
+    ];
 
     World3D.update3DTransform(worldId, cube1, { rotation: qA });
     World3D.update3DTransform(worldId, cube2, { rotation: qB });
@@ -232,7 +247,9 @@ async function main() {
     tick(totalMs, dtMs);
 
     const frameElapsed = performance.now() - now;
-    await new Promise((resolve) => setTimeout(resolve, Math.max(0, FRAME_TARGET_MS - frameElapsed)));
+    await new Promise((resolve) =>
+      setTimeout(resolve, Math.max(0, FRAME_TARGET_MS - frameElapsed))
+    );
   }
 
   closeWindow(windowId);

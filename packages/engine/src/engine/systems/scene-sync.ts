@@ -107,6 +107,7 @@ export const SceneSyncSystem: System = (world, context) => {
           realmId,
           cameraId,
           nearFar: vec2.fromValues(intent.props.near ?? 0.1, intent.props.far ?? 1000),
+          layerMask: intent.props.layerMask ?? 0xffffffff,
           order: intent.props.order,
           transform: copyMatrixToScratch(world, intent.entityId, transform),
           orthoScale: intent.props.orthoScale ?? 1.0
@@ -117,6 +118,7 @@ export const SceneSyncSystem: System = (world, context) => {
           cameraId,
           kind: cameraKind as CameraKind,
           nearFar: vec2.fromValues(intent.props.near ?? 0.1, intent.props.far ?? 1000),
+          layerMask: intent.props.layerMask ?? 0xffffffff,
           order: intent.props.order,
           transform: copyMatrixToScratch(world, intent.entityId, transform),
           orthoScale: intent.props.orthoScale,
