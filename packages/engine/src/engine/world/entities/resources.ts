@@ -3,7 +3,11 @@ import type { EnvironmentConfig, CmdEnvironmentDisposeArgs } from '../../../type
 import type { CmdResourceGetArgs, CmdResourceListArgs } from '../../../types/cmds/resources';
 import type {
   MaterialRealmKind,
+  CmdMaterialDefinitionDisposeArgs,
+  CmdMaterialDefinitionUpsertArgs,
   CmdMaterialGetArgs,
+  CmdMaterialInstanceDisposeArgs,
+  CmdMaterialInstanceUpsertArgs,
   CmdMaterialInstanceGetArgs,
   CmdMaterialInstanceListArgs
 } from '../../../types/cmds/material';
@@ -129,12 +133,28 @@ export function listMaterialDefinitions(worldId: number, args: CmdResourceListAr
   return enqueueCommand(worldId, 'cmd-material-definition-list', args);
 }
 
+export function upsertMaterialDefinition(worldId: number, args: CmdMaterialDefinitionUpsertArgs): number {
+  return enqueueCommand(worldId, 'cmd-material-definition-upsert', args);
+}
+
+export function disposeMaterialDefinition(worldId: number, args: CmdMaterialDefinitionDisposeArgs): number {
+  return enqueueCommand(worldId, 'cmd-material-definition-dispose', args);
+}
+
 export function getMaterialInstance(worldId: number, args: CmdMaterialInstanceGetArgs): number {
   return enqueueCommand(worldId, 'cmd-material-instance-get', args);
 }
 
 export function listMaterialInstances(worldId: number, args: CmdMaterialInstanceListArgs = {}): number {
   return enqueueCommand(worldId, 'cmd-material-instance-list', args);
+}
+
+export function upsertMaterialInstance(worldId: number, args: CmdMaterialInstanceUpsertArgs): number {
+  return enqueueCommand(worldId, 'cmd-material-instance-upsert', args);
+}
+
+export function disposeMaterialInstance(worldId: number, args: CmdMaterialInstanceDisposeArgs): number {
+  return enqueueCommand(worldId, 'cmd-material-instance-dispose', args);
 }
 
 /** Creates or updates a render graph in the core catalog. */

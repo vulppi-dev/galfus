@@ -13,6 +13,14 @@ import type {
   CmdRenderGraphListArgs,
   CmdRenderGraphUpsertArgs
 } from '../../types/cmds/render-graph';
+import type {
+  CmdMaterialDefinitionDisposeArgs,
+  CmdMaterialDefinitionUpsertArgs,
+  CmdMaterialInstanceDisposeArgs,
+  CmdMaterialInstanceUpsertArgs
+} from '../../types/cmds/material';
+import type { CmdTargetMeasurementArgs } from '../../types/cmds/target';
+import type { NotificationLevel } from '../../types/kinds';
 import {
   bindRealmRenderGraph as bindRealmRenderGraphRaw,
   createCamera as createCameraRaw,
@@ -25,12 +33,22 @@ import {
   createTexture as createTextureRaw,
   disposeGeometry as disposeGeometryRaw,
   disposeMaterial as disposeMaterialRaw,
+  disposeMaterialDefinition as disposeMaterialDefinitionRaw,
+  disposeMaterialInstance as disposeMaterialInstanceRaw,
   disposeRenderGraph as disposeRenderGraphRaw,
   disposeTexture as disposeTextureRaw,
   getWorldRealmId as getWorldRealmIdRaw,
+  listCameras as listCamerasRaw,
+  listGeometries as listGeometriesRaw,
+  listMaterials as listMaterialsRaw,
   listRenderGraphs as listRenderGraphsRaw,
+  listTextures as listTexturesRaw,
+  measureTarget as measureTargetRaw,
   removeEntity as removeEntityRaw,
+  sendNotification as sendNotificationRaw,
   upsertRenderGraph as upsertRenderGraphRaw,
+  upsertMaterialDefinition as upsertMaterialDefinitionRaw,
+  upsertMaterialInstance as upsertMaterialInstanceRaw,
   updateTransform as updateTransformRaw
 } from './entities';
 import type {
@@ -153,6 +171,61 @@ export function dispose2DRenderGraph(
 
 export function list2DRenderGraphs(worldId: World2DId, args: CmdRenderGraphListArgs = {}): CommandId {
   return asCommandId(listRenderGraphsRaw(asWorldNumber(worldId), args));
+}
+
+export function upsert2DMaterialDefinition(
+  worldId: World2DId,
+  args: CmdMaterialDefinitionUpsertArgs
+): CommandId {
+  return asCommandId(upsertMaterialDefinitionRaw(asWorldNumber(worldId), args));
+}
+
+export function dispose2DMaterialDefinition(
+  worldId: World2DId,
+  args: CmdMaterialDefinitionDisposeArgs
+): CommandId {
+  return asCommandId(disposeMaterialDefinitionRaw(asWorldNumber(worldId), args));
+}
+
+export function upsert2DMaterialInstance(
+  worldId: World2DId,
+  args: CmdMaterialInstanceUpsertArgs
+): CommandId {
+  return asCommandId(upsertMaterialInstanceRaw(asWorldNumber(worldId), args));
+}
+
+export function dispose2DMaterialInstance(
+  worldId: World2DId,
+  args: CmdMaterialInstanceDisposeArgs
+): CommandId {
+  return asCommandId(disposeMaterialInstanceRaw(asWorldNumber(worldId), args));
+}
+
+export function list2DMaterials(worldId: World2DId): CommandId {
+  return asCommandId(listMaterialsRaw(asWorldNumber(worldId), 'two-d'));
+}
+
+export function list2DTextures(worldId: World2DId): CommandId {
+  return asCommandId(listTexturesRaw(asWorldNumber(worldId)));
+}
+
+export function list2DGeometries(worldId: World2DId): CommandId {
+  return asCommandId(listGeometriesRaw(asWorldNumber(worldId)));
+}
+
+export function list2DCameras(worldId: World2DId): CommandId {
+  return asCommandId(listCamerasRaw(asWorldNumber(worldId)));
+}
+
+export function measure2DTarget(worldId: World2DId, args: CmdTargetMeasurementArgs): CommandId {
+  return asCommandId(measureTargetRaw(asWorldNumber(worldId), args));
+}
+
+export function send2DNotification(
+  worldId: World2DId,
+  args: { level: NotificationLevel; title: string; message: string }
+): void {
+  sendNotificationRaw(asWorldNumber(worldId), args);
 }
 
 export function get2DWorldRealmId(worldId: World2DId): number | null {
