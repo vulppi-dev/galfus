@@ -1,7 +1,7 @@
 use super::super::RenderState;
 use crate::core::resources::{
-    Material3dParams, SHADER_MATERIAL_INVALID_SLOT,
-    SHADER_MATERIAL_TEXTURE_SLOTS, TEX_SOURCE_ATLAS, TEX_SOURCE_INVALID, TEX_SOURCE_STANDALONE,
+    Material3dParams, SHADER_MATERIAL_INVALID_SLOT, SHADER_MATERIAL_TEXTURE_SLOTS,
+    TEX_SOURCE_ATLAS, TEX_SOURCE_INVALID, TEX_SOURCE_STANDALONE,
 };
 
 fn set_uvec4_lane(vecs: &mut [glam::UVec4; 2], index: usize, value: u32) {
@@ -150,7 +150,9 @@ impl RenderState {
                             record.data_pbr.inputs_offset_count.x
                         }
                     };
-                    bindings.material_3d_inputs.write_slice(inputs_offset, &record.inputs);
+                    bindings
+                        .material_3d_inputs
+                        .write_slice(inputs_offset, &record.inputs);
                 }
                 record.clear_dirty();
             }
@@ -171,8 +173,10 @@ impl RenderState {
                         buffer: bindings.material_3d_pool.buffer(),
                         offset: 0,
                         size: Some(
-                            std::num::NonZeroU64::new(std::mem::size_of::<Material3dParams>() as u64)
-                                .expect("nz"),
+                            std::num::NonZeroU64::new(
+                                std::mem::size_of::<Material3dParams>() as u64
+                            )
+                            .expect("nz"),
                         ),
                     }),
                 });

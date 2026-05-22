@@ -216,9 +216,7 @@ pub(crate) fn collect_objects(
 
     // Sort and prepare instance data
     sort_collector(collector);
-    let kept_count = collector.opaque.len()
-        + collector.masked.len()
-        + collector.transparent.len();
+    let kept_count = collector.opaque.len() + collector.masked.len() + collector.transparent.len();
     galfus_log::galfus_log_debug!(
         log_events,
         "forward.collector",

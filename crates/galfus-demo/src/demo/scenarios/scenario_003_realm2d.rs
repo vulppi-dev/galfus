@@ -12,8 +12,9 @@ use galfus_core::core::resources::{
     CmdCamera2dCreateArgs, CmdCamera2dUpdateArgs, CmdMaterialCreateArgs,
     CmdPrimitiveGeometryCreateArgs, CmdShape2dCreateArgs, CmdShape2dUpdateArgs,
     CmdSprite2dCreateArgs, CmdSprite2dUpdateArgs, MaterialKind, MaterialOptions, MaterialRealmKind,
-    PrimitiveShape, RenderSide, StandardOptions,
+    PrimitiveShape, RenderSide, StandardOptions, SurfaceType,
 };
+use galfus_core::core::system::LogLevel;
 use galfus_core::core::target::{
     CmdTargetLayerUpsertArgs, CmdTargetUpsertArgs, DimensionValue, TargetKind, TargetLayerLayout,
 };
@@ -121,6 +122,7 @@ fn build_scene(realm_id: u32) -> Vec<EngineCmd> {
             options: Some(MaterialOptions::Standard(StandardOptions {
                 base_color: Some(Vec4::new(0.95, 0.25, 0.35, 1.0)),
                 render_side: Some(RenderSide::DoubleSide),
+                surface_type: Some(SurfaceType::Opaque),
                 ..Default::default()
             })),
         })),
@@ -133,6 +135,7 @@ fn build_scene(realm_id: u32) -> Vec<EngineCmd> {
             options: Some(MaterialOptions::Standard(StandardOptions {
                 base_color: Some(Vec4::new(0.25, 0.45, 0.95, 1.0)),
                 render_side: Some(RenderSide::DoubleSide),
+                surface_type: Some(SurfaceType::Opaque),
                 ..Default::default()
             })),
         })),
@@ -140,8 +143,8 @@ fn build_scene(realm_id: u32) -> Vec<EngineCmd> {
             realm_id,
             camera_id: CAMERA_2D_ID,
             label: Some("demo3-camera-2d".into()),
-            transform: Mat4::IDENTITY,
-            near_far: Vec2::new(-10.0, 10.0),
+            transform: Mat4::from_translation(Vec3::new(0.0, 0.0, 5.0)),
+            near_far: Vec2::new(0.01, 100.0),
             ortho_scale: 2.5,
             layer_mask: u32::MAX,
             order: 0,
@@ -153,7 +156,7 @@ fn build_scene(realm_id: u32) -> Vec<EngineCmd> {
             transform: Mat4::from_translation(Vec3::new(-0.8, 0.0, 0.0))
                 * Mat4::from_scale(Vec3::new(0.9, 0.9, 1.0)),
             geometry_id: GEOMETRY_QUAD_A_ID,
-            material_id: None,
+            material_id: Some(MATERIAL_RED_ID),
             layer: 1,
         })),
         EngineCmd::CmdSprite2dUpsert(CmdSprite2dUpsertArgs::Create(CmdSprite2dCreateArgs {
@@ -163,7 +166,7 @@ fn build_scene(realm_id: u32) -> Vec<EngineCmd> {
             transform: Mat4::from_translation(Vec3::new(0.9, -0.5, 0.0))
                 * Mat4::from_scale(Vec3::new(0.7, 0.7, 1.0)),
             geometry_id: GEOMETRY_QUAD_B_ID,
-            material_id: None,
+            material_id: Some(MATERIAL_BLUE_ID),
             layer: 2,
         })),
         EngineCmd::CmdShape2dUpsert(CmdShape2dUpsertArgs::Create(CmdShape2dCreateArgs {
@@ -173,7 +176,7 @@ fn build_scene(realm_id: u32) -> Vec<EngineCmd> {
             transform: Mat4::from_translation(Vec3::new(0.0, 0.35, 0.0))
                 * Mat4::from_scale(Vec3::new(0.5, 1.4, 1.0)),
             geometry_id: GEOMETRY_QUAD_A_ID,
-            material_id: None,
+            material_id: Some(MATERIAL_RED_ID),
             layer: 0,
         })),
     ]
@@ -229,7 +232,7 @@ fn build_animated_updates(realm_id: u32, time_seconds: f32) -> Vec<EngineCmd> {
             transform: Some(Mat4::from_translation(Vec3::new(
                 (time_seconds * 0.4).sin() * 0.1,
                 0.0,
-                0.0,
+                5.0,
             ))),
             near_far: None,
             ortho_scale: None,
@@ -271,6 +274,9 @@ fn full_layout(z_index: i32) -> TargetLayerLayout {
 fn print_runtime_logs() {
     for event in receive_events() {
         if let EngineEvent::Log(log) = event {
+            if matches!(log.level, LogLevel::Trace | LogLevel::Debug) {
+                continue;
+            }
             println!("[runtime/{:?}][{}] {}", log.level, log.tag, log.message);
         }
     }

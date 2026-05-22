@@ -10,9 +10,9 @@ use galfus_core::core::cmd::{
 use galfus_core::core::resources::{
     CameraKind, CmdCameraCreateArgs, CmdEnvironmentCreateArgs, CmdLightCreateArgs,
     CmdMaterialCreateArgs, CmdMaterialDefinitionCreateArgs, CmdModelCreateArgs, CmdModelUpdateArgs,
-    CmdPrimitiveGeometryCreateArgs, EnvironmentConfig, LightKind, MaterialKind, MaterialOptions, MaterialRealmKind,
-    MaterialShaderCapabilities, MaterialShaderType, PostProcessConfig, PrimitiveShape, RenderSide,
-    StandardOptions,
+    CmdPrimitiveGeometryCreateArgs, EnvironmentConfig, LightKind, MaterialKind, MaterialOptions,
+    MaterialRealmKind, MaterialShaderCapabilities, MaterialShaderType, PostProcessConfig,
+    PrimitiveShape, RenderSide, StandardOptions,
 };
 use galfus_core::core::target::{
     CmdTargetLayerUpsertArgs, CmdTargetUpsertArgs, DimensionValue, TargetKind, TargetLayerLayout,
@@ -139,7 +139,8 @@ fn build_scene(realm_id: u32) -> Vec<EngineCmd> {
                 label: Some("demo2-ghost-definition".into()),
                 preset: None,
                 shader_type: Some(MaterialShaderType::Model),
-                shader_source: Some(r#"
+                shader_source: Some(
+                    r#"
 fn project_world_to_screen_uv(world_position: vec3<f32>) -> vec2<f32> {
   let clip = camera.view_projection * vec4<f32>(world_position, 1.0);
   let inv_w = select(0.0, 1.0 / clip.w, abs(clip.w) > 1e-6);
@@ -174,7 +175,8 @@ fn fragment(input: FragmentInput) -> FragmentOutput {
   return out;
 }
 "#
-                .to_string()),
+                    .to_string(),
+                ),
                 shader_params_schema: None,
                 capabilities: Some(MaterialShaderCapabilities {
                     semantics: vec!["history0".to_string()],
@@ -188,7 +190,8 @@ fn fragment(input: FragmentInput) -> FragmentOutput {
                 label: Some("demo2-fresnel-definition".into()),
                 preset: None,
                 shader_type: Some(MaterialShaderType::Model),
-                shader_source: Some(r#"
+                shader_source: Some(
+                    r#"
 fn vertex(input: VertexInput) -> VertexOutput {
   var out: VertexOutput;
   out.world_position = input.position;
@@ -212,7 +215,8 @@ fn fragment(input: FragmentInput) -> FragmentOutput {
   return out;
 }
 "#
-                .to_string()),
+                    .to_string(),
+                ),
                 shader_params_schema: None,
                 capabilities: None,
             },
@@ -259,8 +263,12 @@ fn fragment(input: FragmentInput) -> FragmentOutput {
             realm_id,
             camera_id: CAMERA_ID,
             label: Some("demo2-camera".into()),
-            transform: Mat4::look_at_rh(Vec3::new(0.0, 2.3, 7.5), Vec3::new(0.0, 0.7, 0.0), Vec3::Y)
-                .inverse(),
+            transform: Mat4::look_at_rh(
+                Vec3::new(0.0, 2.3, 7.5),
+                Vec3::new(0.0, 0.7, 0.0),
+                Vec3::Y,
+            )
+            .inverse(),
             kind: CameraKind::Perspective,
             flags: 0,
             near_far: Vec2::new(0.1, 120.0),

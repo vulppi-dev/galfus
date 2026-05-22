@@ -75,6 +75,7 @@ impl RenderState {
             compose_bind_cache: HashMap::new(),
             post_bind_cache: HashMap::new(),
             two_d_texture_bind_cache: HashMap::new(),
+            two_d_pass_resources: None,
             compose_bind_cache_hits: 0,
             compose_bind_cache_misses: 0,
             post_bind_cache_hits: 0,
@@ -142,6 +143,7 @@ impl RenderState {
         self.compose_bind_cache.clear();
         self.post_bind_cache.clear();
         self.two_d_texture_bind_cache.clear();
+        self.two_d_pass_resources = None;
         self.compose_bind_cache_hits = 0;
         self.compose_bind_cache_misses = 0;
         self.post_bind_cache_hits = 0;
@@ -193,6 +195,7 @@ impl RenderState {
         self.post_bind_cache_hits = 0;
         self.post_bind_cache_misses = 0;
         self.two_d_texture_bind_cache.clear();
+        self.two_d_pass_resources = None;
         self.cache.reset_frame_stats();
         self.cache.gc(frame_index);
         self.two_d_prepared.cameras.clear();

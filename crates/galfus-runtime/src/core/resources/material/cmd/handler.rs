@@ -354,7 +354,11 @@ pub fn engine_cmd_material_definition_create(
     }
 
     let create_mode = match (&args.preset, &args.shader_type, &args.shader_source) {
-        (Some(preset), None, None) => Ok((*preset, MaterialShaderType::Model, builtin_shader_source(*preset).to_string())),
+        (Some(preset), None, None) => Ok((
+            *preset,
+            MaterialShaderType::Model,
+            builtin_shader_source(*preset).to_string(),
+        )),
         (None, Some(shader_type), Some(shader_source)) => {
             if shader_source.trim().is_empty() {
                 Err("shaderSource must not be empty when creating with shaderType".to_string())
@@ -516,7 +520,11 @@ pub fn engine_cmd_material_definition_update(
     }
 
     let update_mode = match (&args.preset, &args.shader_type, &args.shader_source) {
-        (Some(preset), None, None) => Ok((*preset, MaterialShaderType::Model, builtin_shader_source(*preset).to_string())),
+        (Some(preset), None, None) => Ok((
+            *preset,
+            MaterialShaderType::Model,
+            builtin_shader_source(*preset).to_string(),
+        )),
         (None, Some(shader_type), Some(shader_source)) => {
             if shader_source.trim().is_empty() {
                 Err("shaderSource must not be empty when updating with shaderType".to_string())
@@ -528,7 +536,11 @@ pub fn engine_cmd_material_definition_update(
             if shader_source.trim().is_empty() {
                 Err("shaderSource must not be empty when updating shader".to_string())
             } else {
-                Ok((current.base_preset, current.shader_type, shader_source.clone()))
+                Ok((
+                    current.base_preset,
+                    current.shader_type,
+                    shader_source.clone(),
+                ))
             }
         }
         (None, Some(shader_type), None) => Ok((

@@ -121,6 +121,17 @@ pub struct TwoDTextureBindKey {
     pub sampler_ptr: usize,
 }
 
+pub struct TwoDPassResources {
+    pub camera_bind_group_layout: wgpu::BindGroupLayout,
+    pub texture_bind_group_layout: wgpu::BindGroupLayout,
+    pub pipeline_layout: wgpu::PipelineLayout,
+    pub camera_dynamic_buffer: wgpu::Buffer,
+    pub camera_dynamic_bind_group: wgpu::BindGroup,
+    pub camera_dynamic_stride: u64,
+    pub camera_dynamic_capacity_slots: usize,
+    pub fallback_tex_view: wgpu::TextureView,
+}
+
 #[derive(Debug, Default)]
 pub struct RenderResourceState {
     pub textures: std::collections::HashMap<u32, TextureRecord>,
@@ -186,6 +197,7 @@ pub struct RenderState {
     pub compose_bind_cache: std::collections::HashMap<SampledTargetBindKey, wgpu::BindGroup>,
     pub post_bind_cache: std::collections::HashMap<SampledTargetBindKey, wgpu::BindGroup>,
     pub two_d_texture_bind_cache: std::collections::HashMap<TwoDTextureBindKey, wgpu::BindGroup>,
+    pub two_d_pass_resources: Option<TwoDPassResources>,
     pub compose_bind_cache_hits: u32,
     pub compose_bind_cache_misses: u32,
     pub post_bind_cache_hits: u32,
