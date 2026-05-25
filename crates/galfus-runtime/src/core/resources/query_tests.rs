@@ -2,11 +2,16 @@ use super::*;
 use crate::core::realm::RealmId;
 use crate::core::resources::{
     CameraKind, CmdCameraCreateArgs, CmdEnvironmentCreateArgs, CmdMaterialCreateArgs,
-    CmdMaterialDefinitionCreateArgs, CmdMaterialInstanceCreateArgs, EnvironmentConfig,
-    MaterialKind, MaterialRealmKind, ShaderMaterialPreset, engine_cmd_camera_create,
-    engine_cmd_environment_create, engine_cmd_material_create,
-    engine_cmd_material_definition_create, engine_cmd_material_instance_create,
+    CmdMaterialDefinitionCreateArgs, CmdMaterialDefinitionDisposeArgs, CmdMaterialDefinitionUpdateArgs,
+    CmdMaterialInstanceCreateArgs, EnvironmentConfig, MATERIAL_DEFINITION_STANDARD_2D_ID,
+    MATERIAL_DEFINITION_STANDARD_ID, MaterialKind, MaterialOptions, MaterialRealmKind,
+    ShaderMaterialPreset,
+    engine_cmd_camera_create, engine_cmd_environment_create, engine_cmd_material_create,
+    engine_cmd_material_definition_create, engine_cmd_material_definition_dispose,
+    engine_cmd_material_definition_update, engine_cmd_material_instance_create,
 };
+use crate::core::cmd::EngineEvent;
+use crate::core::system::SystemEvent;
 use crate::core::test_support::test_engine;
 use glam::{Mat4, Vec2};
 
@@ -130,6 +135,7 @@ fn material_definition_and_instance_get_and_list_work() {
             definition_id: 901,
             slug: "test-def-901".into(),
             label: Some("Test Definition".into()),
+            realm_kind: MaterialRealmKind::ThreeD,
             preset: Some(ShaderMaterialPreset::Standard),
             shader_type: None,
             shader_source: None,
@@ -248,6 +254,7 @@ fn material_instance_get_and_list_filter_by_realm_kind() {
             definition_id: 2001,
             slug: "test-def-2001".into(),
             label: Some("Test Definition 2001".into()),
+            realm_kind: MaterialRealmKind::ThreeD,
             preset: Some(ShaderMaterialPreset::Standard),
             shader_type: None,
             shader_source: None,
@@ -322,4 +329,189 @@ fn material_instance_get_and_list_filter_by_realm_kind() {
     );
     assert!(list_ok.success);
     assert!(list_ok.items.iter().any(|entry| entry.id == 2002));
+}
+
+#[test]
+fn builtin_material_definitions_are_immutable() {
+    let mut engine = test_engine();
+
+    let result = engine_cmd_material_definition_update(
+        &mut engine,
+        &CmdMaterialDefinitionUpdateArgs {
+            definition_id: MATERIAL_DEFINITION_STANDARD_ID,
+            slug: None,
+            label: Some("mutated".into()),
+            realm_kind: None,
+            preset: None,
+            shader_type: None,
+            shader_source: None,
+            shader_params_schema: None,
+            capabilities: None,
+        },
+    );
+
+    assert!(!result.success);
+    assert_eq!(result.message, "Builtin material definitions are immutable");
+}
+
+#[test]
+fn material_create_rejects_realm_kind_mismatch_with_definition() {
+    let mut engine = test_engine();
+
+    let create = engine_cmd_material_create(
+        &mut engine,
+        &CmdMaterialCreateArgs {
+            material_id: 32001,
+            label: Some("bad-realm".into()),
+            slug: "standard".into(),
+            kind: MaterialKind::Shader,
+            realm_kind: MaterialRealmKind::TwoD,
+            options: None,
+        },
+    );
+
+    assert!(!create.success);
+    assert!(create.message.contains("Material realm kind mismatch"));
+}
+
+#[test]
+fn disposing_definition_rebinds_instances_to_fallback_and_emits_event() {
+    let mut engine = test_engine();
+
+    let create_definition = engine_cmd_material_definition_create(
+        &mut engine,
+        &CmdMaterialDefinitionCreateArgs {
+            definition_id: 33001,
+            slug: "custom-33001".into(),
+            label: Some("Custom 33001".into()),
+            realm_kind: MaterialRealmKind::ThreeD,
+            preset: Some(ShaderMaterialPreset::Standard),
+            shader_type: None,
+            shader_source: None,
+            shader_params_schema: None,
+            capabilities: None,
+        },
+    );
+    assert!(create_definition.success, "{}", create_definition.message);
+
+    let create_instance = engine_cmd_material_instance_create(
+        &mut engine,
+        &CmdMaterialInstanceCreateArgs {
+            material_id: 33002,
+            slug: "custom-33001".into(),
+            label: Some("Instance 33002".into()),
+            options: None,
+        },
+    );
+    assert!(create_instance.success, "{}", create_instance.message);
+
+    let dispose = engine_cmd_material_definition_dispose(
+        &mut engine,
+        &CmdMaterialDefinitionDisposeArgs {
+            definition_id: 33001,
+        },
+    );
+    assert!(dispose.success, "{}", dispose.message);
+
+    let instance = engine
+        .universal_state
+        .scene
+        .material_instances
+        .get(&33002)
+        .expect("instance must remain after fallback");
+    assert_eq!(instance.definition_id, MATERIAL_DEFINITION_STANDARD_ID);
+
+    let material = engine
+        .universal_state
+        .scene
+        .realm3d
+        .materials
+        .get(&33002)
+        .expect("material must remain after fallback");
+    assert_eq!(material.realm_kind, MaterialRealmKind::ThreeD);
+
+    let had_event = engine.runtime.events().iter().any(|event| {
+        matches!(
+            event,
+            EngineEvent::System(SystemEvent::MaterialInstanceFallbackApplied {
+                material_id,
+                previous_definition_id,
+                fallback_definition_id,
+                ..
+            }) if *material_id == 33002
+                && *previous_definition_id == 33001
+                && *fallback_definition_id == MATERIAL_DEFINITION_STANDARD_ID
+        )
+    });
+    assert!(had_event);
+
+    let dispose_builtin_2d = engine_cmd_material_definition_dispose(
+        &mut engine,
+        &CmdMaterialDefinitionDisposeArgs {
+            definition_id: MATERIAL_DEFINITION_STANDARD_2D_ID,
+        },
+    );
+    assert!(!dispose_builtin_2d.success);
+}
+
+#[test]
+fn material_create_accepts_schema_options_path() {
+    let mut engine = test_engine();
+
+    let create = engine_cmd_material_create(
+        &mut engine,
+        &CmdMaterialCreateArgs {
+            material_id: 34001,
+            label: Some("schema-mat".into()),
+            slug: "standard".into(),
+            kind: MaterialKind::Shader,
+            realm_kind: MaterialRealmKind::ThreeD,
+            options: Some(MaterialOptions::Schema(std::collections::HashMap::from([
+                ("baseColor".to_string(), glam::Vec4::new(0.2, 0.3, 0.4, 1.0)),
+                ("input6".to_string(), glam::Vec4::new(6.0, 0.0, 0.0, 0.0)),
+            ]))),
+        },
+    );
+    assert!(create.success, "{}", create.message);
+
+    let material = engine
+        .universal_state
+        .scene
+        .realm3d
+        .materials
+        .get(&34001)
+        .expect("material should exist");
+    assert_eq!(material.inputs[0], glam::Vec4::new(0.2, 0.3, 0.4, 1.0));
+    assert_eq!(material.inputs[6], glam::Vec4::new(6.0, 0.0, 0.0, 0.0));
+}
+
+#[test]
+fn material_program_cache_reports_evictions() {
+    let mut engine = test_engine();
+
+    for i in 0..1100_u32 {
+        engine.runtime.begin_tick(i as u64, 16);
+        engine.runtime.advance_frame();
+
+        let result = engine_cmd_material_definition_create(
+            &mut engine,
+            &CmdMaterialDefinitionCreateArgs {
+                definition_id: 40000 + i,
+                slug: format!("cache-evict-{i}"),
+                label: None,
+                realm_kind: MaterialRealmKind::ThreeD,
+                preset: Some(ShaderMaterialPreset::Standard),
+                shader_type: None,
+                shader_source: None,
+                shader_params_schema: Some(std::collections::HashMap::from([(
+                    format!("param_{i}"),
+                    "vec4<f32>".to_string(),
+                )])),
+                capabilities: None,
+            },
+        );
+        assert!(result.success, "{}", result.message);
+    }
+
+    assert!(engine.profiling.render.material_program_cache_evictions > 0);
 }

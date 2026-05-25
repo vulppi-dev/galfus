@@ -81,12 +81,18 @@ pub struct ProfilingUtilization {
 pub struct ProfilingCache {
     pub render_pipeline_hits: u32,
     pub render_pipeline_misses: u32,
+    pub render_pipeline_evictions: u32,
     pub compute_pipeline_hits: u32,
     pub compute_pipeline_misses: u32,
+    pub compute_pipeline_evictions: u32,
     pub compose_bind_cache_hits: u32,
     pub compose_bind_cache_misses: u32,
+    pub compose_bind_cache_evictions: u32,
     pub post_bind_cache_hits: u32,
     pub post_bind_cache_misses: u32,
+    pub post_bind_cache_evictions: u32,
+    pub material_shader_module_evictions: u32,
+    pub material_program_cache_evictions: u32,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -263,12 +269,30 @@ pub fn galfus_get_profiling(out_ptr: *mut *const u8, out_length: *mut usize) -> 
             cache: ProfilingCache {
                 render_pipeline_hits: engine.profiling.render.render_pipeline_cache_hits,
                 render_pipeline_misses: engine.profiling.render.render_pipeline_cache_misses,
+                render_pipeline_evictions: engine.profiling.render.render_pipeline_cache_evictions,
                 compute_pipeline_hits: engine.profiling.render.compute_pipeline_cache_hits,
                 compute_pipeline_misses: engine.profiling.render.compute_pipeline_cache_misses,
+                compute_pipeline_evictions: engine
+                    .profiling
+                    .render
+                    .compute_pipeline_cache_evictions,
                 compose_bind_cache_hits: engine.profiling.render.compose_bind_cache_hits,
                 compose_bind_cache_misses: engine.profiling.render.compose_bind_cache_misses,
+                compose_bind_cache_evictions: engine
+                    .profiling
+                    .render
+                    .compose_bind_cache_evictions,
                 post_bind_cache_hits: engine.profiling.render.post_bind_cache_hits,
                 post_bind_cache_misses: engine.profiling.render.post_bind_cache_misses,
+                post_bind_cache_evictions: engine.profiling.render.post_bind_cache_evictions,
+                material_shader_module_evictions: engine
+                    .profiling
+                    .render
+                    .material_shader_module_evictions,
+                material_program_cache_evictions: engine
+                    .profiling
+                    .render
+                    .material_program_cache_evictions,
             },
             fps_instant: if engine.profiling.render.frame_delta_ns > 0 {
                 1_000_000_000.0 / engine.profiling.render.frame_delta_ns as f64

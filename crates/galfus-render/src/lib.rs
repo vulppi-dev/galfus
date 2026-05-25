@@ -29,7 +29,7 @@ pub use graph::{
     RenderGraphValue, ensure_default_render_graphs, fallback_render_graph_id,
     is_reserved_render_graph_id, render_graph_desc_hash, resolve_render_graph_id, validate_graph,
 };
-pub use graph_fallbacks::{fallback_graph, ui_fallback_graph};
+pub use graph_fallbacks::{fallback_graph, realm2d_fallback_graph};
 pub use layouts::{
     EffectBuffers, Layouts, PipelineLayouts, create_effect_buffers, create_pipeline_layouts,
 };

@@ -228,8 +228,6 @@ pub fn engine_cmd_material_get(
         };
     };
     if let Some(filter_kind) = args.realm_kind
-        && filter_kind != MaterialRealmKind::Both
-        && rec.realm_kind != MaterialRealmKind::Both
         && rec.realm_kind != filter_kind
     {
         return CmdResultResourceGet {
@@ -384,8 +382,6 @@ pub fn engine_cmd_material_instance_get(
     };
     if let Some(filter_kind) = args.realm_kind
         && let Some(material) = engine.universal_state.scene.realm3d.materials.get(&args.id)
-        && filter_kind != MaterialRealmKind::Both
-        && material.realm_kind != MaterialRealmKind::Both
         && material.realm_kind != filter_kind
     {
         return CmdResultResourceGet {
@@ -482,12 +478,8 @@ pub fn engine_cmd_material_instance_list(
             .iter()
             .filter(|(id, _)| {
                 if let Some(filter_kind) = args.realm_kind {
-                    if filter_kind == MaterialRealmKind::Both {
-                        return true;
-                    }
                     if let Some(material) = engine.universal_state.scene.realm3d.materials.get(id) {
-                        return material.realm_kind == MaterialRealmKind::Both
-                            || material.realm_kind == filter_kind;
+                        return material.realm_kind == filter_kind;
                     }
                     return false;
                 }

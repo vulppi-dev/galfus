@@ -5,11 +5,7 @@ use crate::core::resources::{
 };
 
 fn material_allows_3d(record: &crate::core::resources::ShaderMaterialRecord) -> bool {
-    matches!(
-        record.realm_kind,
-        crate::core::resources::MaterialRealmKind::ThreeD
-            | crate::core::resources::MaterialRealmKind::Both
-    )
+    matches!(record.realm_kind, crate::core::resources::MaterialRealmKind::ThreeD)
 }
 
 pub(crate) fn collect_objects(

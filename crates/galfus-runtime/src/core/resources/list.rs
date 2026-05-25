@@ -97,8 +97,6 @@ pub fn engine_cmd_material_list(
 
     for (&id, rec) in &realm3d.materials {
         if let Some(filter_kind) = args.realm_kind
-            && filter_kind != MaterialRealmKind::Both
-            && rec.realm_kind != MaterialRealmKind::Both
             && rec.realm_kind != filter_kind
         {
             continue;

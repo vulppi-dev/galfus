@@ -10,8 +10,8 @@ use bytemuck::{Pod, Zeroable};
 #[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable)]
 struct ForwardFrameSemanticMeta {
-    resolution: [f32; 2],
-    inv_resolution: [f32; 2],
+    resolution: glam::Vec2,
+    inv_resolution: glam::Vec2,
     frame_index: u32,
     flags: u32,
 }
@@ -289,8 +289,8 @@ pub fn pass_forward(
         let w = target_size.width.max(1) as f32;
         let h = target_size.height.max(1) as f32;
         let meta = ForwardFrameSemanticMeta {
-            resolution: [w, h],
-            inv_resolution: [1.0 / w, 1.0 / h],
+            resolution: glam::Vec2::new(w, h),
+            inv_resolution: glam::Vec2::new(1.0 / w, 1.0 / h),
             frame_index: frame_index as u32,
             flags: semantics_flags,
         };

@@ -53,12 +53,18 @@ pub struct RenderProfiling {
     pub frame_delta_ns: u64,
     pub render_pipeline_cache_hits: u32,
     pub render_pipeline_cache_misses: u32,
+    pub render_pipeline_cache_evictions: u32,
     pub compute_pipeline_cache_hits: u32,
     pub compute_pipeline_cache_misses: u32,
+    pub compute_pipeline_cache_evictions: u32,
     pub compose_bind_cache_hits: u32,
     pub compose_bind_cache_misses: u32,
+    pub compose_bind_cache_evictions: u32,
     pub post_bind_cache_hits: u32,
     pub post_bind_cache_misses: u32,
+    pub post_bind_cache_evictions: u32,
+    pub material_shader_module_evictions: u32,
+    pub material_program_cache_evictions: u32,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -144,12 +150,18 @@ impl TickProfiling {
         self.render.frame_delta_ns = (delta_time_ms as u64).saturating_mul(1_000_000);
         self.render.render_pipeline_cache_hits = 0;
         self.render.render_pipeline_cache_misses = 0;
+        self.render.render_pipeline_cache_evictions = 0;
         self.render.compute_pipeline_cache_hits = 0;
         self.render.compute_pipeline_cache_misses = 0;
+        self.render.compute_pipeline_cache_evictions = 0;
         self.render.compose_bind_cache_hits = 0;
         self.render.compose_bind_cache_misses = 0;
+        self.render.compose_bind_cache_evictions = 0;
         self.render.post_bind_cache_hits = 0;
         self.render.post_bind_cache_misses = 0;
+        self.render.post_bind_cache_evictions = 0;
+        self.render.material_shader_module_evictions = 0;
+        self.render.material_program_cache_evictions = 0;
         self.gpu.shadow_ns = 0;
         self.gpu.light_cull_ns = 0;
         self.gpu.forward_ns = 0;

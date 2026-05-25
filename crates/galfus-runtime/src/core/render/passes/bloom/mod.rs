@@ -9,8 +9,8 @@ const BLOOM_DOWNSAMPLE_COUNT: usize = 4;
 #[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable)]
 struct BloomUniform {
-    params0: [f32; 4],
-    params1: [f32; 4],
+    params0: glam::Vec4,
+    params1: glam::Vec4,
 }
 
 fn update_bloom_uniform(
@@ -24,8 +24,8 @@ fn update_bloom_uniform(
     let texel_y = 1.0 / size.height.max(1) as f32;
 
     let uniform = BloomUniform {
-        params0: [config.bloom_threshold, config.bloom_knee, texel_x, texel_y],
-        params1: [scatter, 0.0, 0.0, 0.0],
+        params0: glam::Vec4::new(config.bloom_threshold, config.bloom_knee, texel_x, texel_y),
+        params1: glam::Vec4::new(scatter, 0.0, 0.0, 0.0),
     };
 
     queue.write_buffer(buffer, 0, bytemuck::bytes_of(&uniform));

@@ -214,4 +214,12 @@ pub enum SystemEvent {
         window_id: Option<u32>,
         revision: u64,
     },
+
+    #[serde(rename_all = "camelCase")]
+    MaterialInstanceFallbackApplied {
+        material_id: u32,
+        previous_definition_id: u32,
+        fallback_definition_id: u32,
+        reason: String,
+    },
 }

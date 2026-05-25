@@ -2,10 +2,10 @@ use crate::core::realm::RealmId;
 use crate::core::render::graph::RenderGraphPlan;
 use crate::core::render::passes;
 use galfus_realm_core::{
-    RENDER_PASS_2D_BATCH, RENDER_PASS_2D_COMPOSE, RENDER_PASS_2D_DRAW, RENDER_PASS_2D_PREPARE,
-    RENDER_PASS_BLOOM, RENDER_PASS_COMPOSE, RENDER_PASS_FORWARD, RENDER_PASS_LIGHT_CULL,
-    RENDER_PASS_OUTLINE, RENDER_PASS_POST, RENDER_PASS_SHADOW, RENDER_PASS_SKYBOX,
-    RENDER_PASS_SSAO, RENDER_PASS_SSAO_BLUR, RENDER_PASS_UI,
+    RENDER_PASS_BATCH, RENDER_PASS_BLOOM, RENDER_PASS_COMPOSE, RENDER_PASS_CUSTOM_POST_FORWARD,
+    RENDER_PASS_CUSTOM_PRE_FORWARD, RENDER_PASS_FORWARD, RENDER_PASS_LIGHT_CULL,
+    RENDER_PASS_OUTLINE, RENDER_PASS_POST, RENDER_PASS_PREPARE, RENDER_PASS_SHADOW,
+    RENDER_PASS_SKYBOX, RENDER_PASS_SSAO, RENDER_PASS_SSAO_BLUR, RealmKind,
 };
 use std::hash::{DefaultHasher, Hash, Hasher};
 
@@ -24,8 +24,8 @@ fn now_ns() -> u64 {
 #[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable)]
 struct CustomFrameSemanticMeta {
-    resolution: [f32; 2],
-    inv_resolution: [f32; 2],
+    resolution: glam::Vec2,
+    inv_resolution: glam::Vec2,
     frame_index: u32,
     flags: u32,
 }
@@ -420,6 +420,7 @@ pub(super) fn execute_graph_to_view(
     plan: &RenderGraphPlan,
     render_state: &mut RenderState,
     _realm_id: RealmId,
+    realm_kind: RealmKind,
     _targets: &crate::core::target::TargetTable,
     _target_layers: &crate::core::target::TargetLayerTable,
     _surfaces: &crate::core::realm::SurfaceTable,
@@ -569,8 +570,8 @@ pub(super) fn execute_graph_to_view(
                     history0.clone(),
                     history1.clone(),
                     CustomFrameSemanticMeta {
-                        resolution: [w, h],
-                        inv_resolution: [1.0 / w, 1.0 / h],
+                        resolution: glam::Vec2::new(w, h),
+                        inv_resolution: glam::Vec2::new(1.0 / w, 1.0 / h),
                         frame_index: frame_index as u32,
                         flags,
                     },
@@ -582,8 +583,8 @@ pub(super) fn execute_graph_to_view(
                     fallback_view.clone(),
                     fallback_view.clone(),
                     CustomFrameSemanticMeta {
-                        resolution: [1.0, 1.0],
-                        inv_resolution: [1.0, 1.0],
+                        resolution: glam::Vec2::ONE,
+                        inv_resolution: glam::Vec2::ONE,
                         frame_index: frame_index as u32,
                         flags: SEM_SCENE_DEPTH,
                     },
@@ -596,8 +597,8 @@ pub(super) fn execute_graph_to_view(
                 fallback_view.clone(),
                 fallback_view.clone(),
                 CustomFrameSemanticMeta {
-                    resolution: [1.0, 1.0],
-                    inv_resolution: [1.0, 1.0],
+                    resolution: glam::Vec2::ONE,
+                    inv_resolution: glam::Vec2::ONE,
                     frame_index: frame_index as u32,
                     flags: SEM_SCENE_DEPTH,
                 },
@@ -648,23 +649,37 @@ pub(super) fn execute_graph_to_view(
                     write_gpu_timestamp(encoder, gpu_profiler, base + 1, &mut gpu_written);
                 }
             }
-            RENDER_PASS_FORWARD => {
-                if let Some(base) = gpu_base {
-                    write_gpu_timestamp(encoder, gpu_profiler, base + 2, &mut gpu_written);
+            RENDER_PASS_FORWARD => match realm_kind {
+                RealmKind::ThreeD => {
+                    if let Some(base) = gpu_base {
+                        write_gpu_timestamp(encoder, gpu_profiler, base + 2, &mut gpu_written);
+                    }
+                    passes::pass_forward(
+                        render_state,
+                        device,
+                        queue,
+                        encoder,
+                        frame_index,
+                        !skybox_done,
+                        log_events,
+                    );
+                    if let Some(base) = gpu_base {
+                        write_gpu_timestamp(encoder, gpu_profiler, base + 3, &mut gpu_written);
+                    }
                 }
-                passes::pass_forward(
-                    render_state,
-                    device,
-                    queue,
-                    encoder,
-                    frame_index,
-                    !skybox_done,
-                    log_events,
-                );
-                if let Some(base) = gpu_base {
-                    write_gpu_timestamp(encoder, gpu_profiler, base + 3, &mut gpu_written);
+                RealmKind::TwoD => {
+                    passes::pass_2d_draw(
+                        render_state,
+                        device,
+                        queue,
+                        encoder,
+                        target_view,
+                        target_format,
+                        target_size,
+                        frame_index,
+                    );
                 }
-            }
+            },
             RENDER_PASS_OUTLINE => {
                 passes::pass_outline(render_state, device, queue, encoder, frame_index);
             }
@@ -680,68 +695,65 @@ pub(super) fn execute_graph_to_view(
             RENDER_PASS_POST => {
                 passes::pass_post(render_state, device, queue, encoder, frame_index);
             }
-            RENDER_PASS_COMPOSE => {
-                if let Some(base) = gpu_base {
-                    write_gpu_timestamp(encoder, gpu_profiler, base + 4, &mut gpu_written);
+            RENDER_PASS_COMPOSE => match realm_kind {
+                RealmKind::ThreeD => {
+                    if let Some(base) = gpu_base {
+                        write_gpu_timestamp(encoder, gpu_profiler, base + 4, &mut gpu_written);
+                    }
+                    passes::pass_compose_to_view(
+                        render_state,
+                        device,
+                        queue,
+                        encoder,
+                        target_view,
+                        target_format,
+                        target_size.x,
+                        target_size.y,
+                        frame_index,
+                    );
+                    if let Some(base) = gpu_base {
+                        write_gpu_timestamp(encoder, gpu_profiler, base + 5, &mut gpu_written);
+                    }
                 }
-                passes::pass_compose_to_view(
-                    render_state,
-                    device,
-                    queue,
-                    encoder,
-                    target_view,
-                    target_format,
-                    target_size.x,
-                    target_size.y,
-                    frame_index,
-                );
-                if let Some(base) = gpu_base {
-                    write_gpu_timestamp(encoder, gpu_profiler, base + 5, &mut gpu_written);
+                RealmKind::TwoD => {
+                    passes::pass_2d_compose(
+                        render_state,
+                        device,
+                        queue,
+                        encoder,
+                        target_view,
+                        target_format,
+                        target_size,
+                        frame_index,
+                    );
                 }
-            }
-            RENDER_PASS_UI => {
-                // Explicitly handle UI pass in the graph executor to avoid silently
-                // falling through to custom-screen shader execution.
-                passes::pass_2d_compose(
-                    render_state,
-                    device,
-                    queue,
-                    encoder,
-                    target_view,
-                    target_format,
-                    target_size,
-                    frame_index,
-                );
-            }
-            RENDER_PASS_2D_PREPARE => {
+            },
+            RENDER_PASS_PREPARE => {
                 passes::pass_2d_prepare(render_state);
             }
-            RENDER_PASS_2D_BATCH => {
+            RENDER_PASS_BATCH => {
                 passes::pass_2d_batch(render_state);
             }
-            RENDER_PASS_2D_DRAW => {
-                passes::pass_2d_draw(
+            RENDER_PASS_CUSTOM_PRE_FORWARD | RENDER_PASS_CUSTOM_POST_FORWARD => {
+                if execute_custom_screen_pass(
+                    node,
                     render_state,
                     device,
                     queue,
                     encoder,
                     target_view,
                     target_format,
-                    target_size,
+                    &scene_color_view,
+                    &scene_depth_view,
+                    &history0_view,
+                    &history1_view,
+                    &linear_sampler,
+                    &point_sampler,
+                    semantics_meta,
                     frame_index,
-                );
-            }
-            RENDER_PASS_2D_COMPOSE => {
-                passes::pass_2d_compose(
-                    render_state,
-                    device,
-                    queue,
-                    encoder,
-                    target_view,
-                    target_format,
-                    target_size,
-                    frame_index,
-                );
+                ) {
+                    gpu_written = true;
+                }
             }
             _ => {
                 if execute_custom_screen_pass(

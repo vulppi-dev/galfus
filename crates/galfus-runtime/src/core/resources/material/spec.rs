@@ -44,8 +44,10 @@ pub const MATERIAL_FALLBACK_ID: u32 = 0;
 pub const MATERIAL_STANDARD_2D_ID: u32 = 3;
 pub const MATERIAL_DEFINITION_STANDARD_ID: u32 = 1;
 pub const MATERIAL_DEFINITION_PBR_ID: u32 = 2;
+pub const MATERIAL_DEFINITION_STANDARD_2D_ID: u32 = 3;
 pub const MATERIAL_DEFINITION_STANDARD_SLUG: &str = "standard";
 pub const MATERIAL_DEFINITION_PBR_SLUG: &str = "pbr";
+pub const MATERIAL_DEFINITION_STANDARD_2D_SLUG: &str = "standard-2d";
 pub const SHADER_MATERIAL_INPUTS_PER_MATERIAL: u32 = 8;
 pub const SHADER_MATERIAL_TEXTURE_SLOTS: usize = 8;
 pub const SHADER_MATERIAL_INVALID_SLOT: u32 = u32::MAX;
@@ -84,12 +86,11 @@ impl Default for MaterialShaderType {
 pub enum MaterialRealmKind {
     TwoD,
     ThreeD,
-    Both,
 }
 
 impl Default for MaterialRealmKind {
     fn default() -> Self {
-        Self::Both
+        Self::ThreeD
     }
 }
 
@@ -98,6 +99,7 @@ pub struct MaterialDefinitionRecord {
     pub definition_id: u32,
     pub slug: String,
     pub label: Option<String>,
+    pub realm_kind: MaterialRealmKind,
     pub base_preset: ShaderMaterialPreset,
     pub shader_type: MaterialShaderType,
     pub shader_source: Option<String>,

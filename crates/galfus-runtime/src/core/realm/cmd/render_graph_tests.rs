@@ -6,7 +6,7 @@ use crate::core::render::graph::{
 };
 use crate::core::state::EngineState;
 use crate::core::system::SystemEvent;
-use galfus_realm_core::{RENDER_PASS_FORWARD, RENDER_PASS_SHADOW, RENDER_PASS_UI};
+use galfus_realm_core::{RENDER_PASS_FORWARD, RENDER_PASS_PREPARE, RENDER_PASS_SHADOW};
 use std::collections::HashMap;
 
 fn valid_graph(graph_name: &str, resource_name: &str) -> RenderGraphDesc {
@@ -54,12 +54,12 @@ fn invalid_graph_missing_resource(graph_name: &str) -> RenderGraphDesc {
     }
 }
 
-fn ui_only_graph(graph_name: &str, resource_name: &str) -> RenderGraphDesc {
+fn realm2d_only_graph(graph_name: &str, resource_name: &str) -> RenderGraphDesc {
     RenderGraphDesc {
         graph_id: LogicalId::Str(graph_name.into()),
         nodes: vec![RenderGraphNode {
-            node_id: LogicalId::Str(format!("{graph_name}-ui")),
-            pass_id: RENDER_PASS_UI.into(),
+            node_id: LogicalId::Str(format!("{graph_name}-prepare")),
+            pass_id: RENDER_PASS_PREPARE.into(),
             inputs: Vec::new(),
             outputs: vec![LogicalId::Str(resource_name.into())],
             require: Vec::new(),
@@ -329,7 +329,7 @@ fn invalid_upsert_and_unknown_bind_emit_error_events() {
 }
 
 #[test]
-fn twod_realm_rejects_graph_with_non_ui_passes() {
+fn twod_realm_rejects_graph_with_non_twod_passes() {
     let mut engine = EngineState::new();
     let twod_realm_id = create_realm(&mut engine, RealmKindDto::TwoD);
 
@@ -358,7 +358,7 @@ fn twod_realm_rejects_graph_with_non_ui_passes() {
             &mut engine,
             &CmdRenderGraphUpsertArgs {
                 render_graph_id: 106,
-                graph: ui_only_graph("custom_ui_only", "swapchain_custom"),
+                graph: realm2d_only_graph("custom_2d_only", "swapchain_custom"),
             },
         )
         .success
@@ -373,7 +373,7 @@ fn twod_realm_rejects_graph_with_non_ui_passes() {
     );
     assert!(
         compatible_bind.success,
-        "TwoD realm should accept ui-only graph: {}",
+        "TwoD realm should accept 2D-only graph: {}",
         compatible_bind.message
     );
 }
@@ -388,7 +388,7 @@ fn upsert_rejects_incompatible_update_for_bound_realms() {
             &mut engine,
             &CmdRenderGraphUpsertArgs {
                 render_graph_id: 107,
-                graph: ui_only_graph("custom_ui_only_for_update", "swapchain_custom_update"),
+                graph: realm2d_only_graph("custom_2d_only_for_update", "swapchain_custom_update"),
             },
         )
         .success

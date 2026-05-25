@@ -8,24 +8,22 @@ use crate::{
     plan_target_texture_bind_sync, plan_texture_record_sync, supports_render_pass,
 };
 use galfus_realm_core::{
-    RENDER_PASS_COMPOSE, RENDER_PASS_FORWARD, RENDER_PASS_SHADOW, RENDER_PASS_UI,
+    RENDER_PASS_COMPOSE, RENDER_PASS_CUSTOM_POST_FORWARD, RENDER_PASS_CUSTOM_PRE_FORWARD,
+    RENDER_PASS_FORWARD, RENDER_PASS_SHADOW,
 };
 
 #[test]
 fn threed_realm_accepts_full_pipeline_passes() {
     assert!(supports_render_pass(RENDER_PASS_SHADOW));
-    assert!(!supports_render_pass(RENDER_PASS_UI));
+    assert!(supports_render_pass(RENDER_PASS_CUSTOM_PRE_FORWARD));
+    assert!(supports_render_pass(RENDER_PASS_CUSTOM_POST_FORWARD));
     assert!(!supports_render_pass("unknown"));
     assert!(graph_is_compatible([
         RENDER_PASS_SHADOW,
+        RENDER_PASS_CUSTOM_PRE_FORWARD,
         RENDER_PASS_FORWARD,
+        RENDER_PASS_CUSTOM_POST_FORWARD,
         RENDER_PASS_COMPOSE,
-    ]));
-    assert!(!graph_is_compatible([
-        RENDER_PASS_SHADOW,
-        RENDER_PASS_FORWARD,
-        RENDER_PASS_COMPOSE,
-        RENDER_PASS_UI,
     ]));
     assert!(!graph_is_compatible([RENDER_PASS_SHADOW, "unknown"]));
 }

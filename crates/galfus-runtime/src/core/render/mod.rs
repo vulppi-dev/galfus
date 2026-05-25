@@ -222,13 +222,13 @@ pub fn ensure_runtime_render_defaults(universal: &mut crate::core::realm::Univer
             desc_hash: hash_3d,
         });
 
-    let fallback_2d = crate::core::render::graph::ui_fallback_graph();
+    let fallback_2d = crate::core::render::graph::realm2d_fallback_graph();
     let hash_2d = crate::core::render::graph::render_graph_desc_hash(&fallback_2d);
     let state_2d = universal
         .render_catalog
         .render_graph_plan_cache_2d
         .entry(hash_2d)
-        .or_insert_with(crate::core::render::graph::RenderGraphState::new_ui)
+        .or_insert_with(crate::core::render::graph::RenderGraphState::new_realm2d)
         .clone();
     universal
         .render_catalog
@@ -518,6 +518,14 @@ pub fn render_frames(engine_state: &mut EngineState) {
                     should_render_realm(realm_entry, engine_state.runtime.frame_index())
                 })
                 .unwrap_or(false);
+            let realm_kind = engine_state
+                .universal_state
+                .composition
+                .realms
+                .entries
+                .get(&realm_id)
+                .map(|entry| entry.value.kind)
+                .unwrap_or(crate::core::realm::RealmKind::ThreeD);
             if !should_render {
                 FrameReport::push_unique(&mut frame_report.throttled_realms, realm_id.0);
                 continue;
@@ -687,6 +695,7 @@ pub fn render_frames(engine_state: &mut EngineState) {
                 &plan,
                 render_state,
                 realm_id,
+                realm_kind,
                 targets,
                 target_layers,
                 surfaces,

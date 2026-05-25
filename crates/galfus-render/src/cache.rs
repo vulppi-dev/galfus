@@ -60,6 +60,8 @@ pub struct RenderCacheStats {
     pub render_pipeline_misses: u32,
     pub compute_pipeline_hits: u32,
     pub compute_pipeline_misses: u32,
+    pub render_pipeline_evictions: u32,
+    pub compute_pipeline_evictions: u32,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -114,10 +116,22 @@ impl RenderCache {
 
     pub fn gc(&mut self, frame_index: u64) {
         let max_unused = self.max_unused_frames;
+        let before_render = self.pipelines.len();
         self.pipelines
             .retain(|_, entry| frame_index.saturating_sub(entry.last_used_frame) <= max_unused);
+        let evicted_render = before_render.saturating_sub(self.pipelines.len());
+        self.frame_stats.render_pipeline_evictions = self
+            .frame_stats
+            .render_pipeline_evictions
+            .saturating_add(evicted_render as u32);
+        let before_compute = self.compute_pipelines.len();
         self.compute_pipelines
             .retain(|_, entry| frame_index.saturating_sub(entry.last_used_frame) <= max_unused);
+        let evicted_compute = before_compute.saturating_sub(self.compute_pipelines.len());
+        self.frame_stats.compute_pipeline_evictions = self
+            .frame_stats
+            .compute_pipeline_evictions
+            .saturating_add(evicted_compute as u32);
     }
 
     pub fn clear(&mut self) {

@@ -1,4 +1,3 @@
-use crate::core::resources::{PolygonMode, PrimitiveTopology, RenderSide, SurfaceType};
 use glam::Vec4;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -9,72 +8,10 @@ pub enum MaterialKind {
     Shader,
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone, Copy)]
-#[serde(rename_all = "kebab-case")]
-#[repr(u32)]
-pub enum MaterialSampler {
-    PointClamp = 0,
-    LinearClamp = 1,
-    PointRepeat = 2,
-    LinearRepeat = 3,
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone, Default)]
-#[serde(rename_all = "camelCase")]
-pub struct StandardOptions {
-    pub base_color: Option<Vec4>,
-    pub surface_type: Option<SurfaceType>,
-    pub topology: Option<PrimitiveTopology>,
-    pub polygon_mode: Option<PolygonMode>,
-    pub render_side: Option<RenderSide>,
-    pub emissive_color: Option<Vec4>,
-    pub spec_color: Option<Vec4>,
-    pub spec_power: Option<f32>,
-    pub base_tex_id: Option<u32>,
-    pub base_sampler: Option<MaterialSampler>,
-    pub spec_tex_id: Option<u32>,
-    pub spec_sampler: Option<MaterialSampler>,
-    pub normal_tex_id: Option<u32>,
-    pub normal_sampler: Option<MaterialSampler>,
-    pub toon_ramp_tex_id: Option<u32>,
-    pub toon_ramp_sampler: Option<MaterialSampler>,
-    pub emissive_tex_id: Option<u32>,
-    pub emissive_sampler: Option<MaterialSampler>,
-    pub flags: Option<u32>,
-    pub toon_params: Option<Vec4>,
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone, Default)]
-#[serde(rename_all = "camelCase")]
-pub struct PbrOptions {
-    pub base_color: Option<Vec4>,
-    pub surface_type: Option<SurfaceType>,
-    pub topology: Option<PrimitiveTopology>,
-    pub polygon_mode: Option<PolygonMode>,
-    pub render_side: Option<RenderSide>,
-    pub emissive_color: Option<Vec4>,
-    pub metallic: Option<f32>,
-    pub roughness: Option<f32>,
-    pub ao: Option<f32>,
-    pub normal_scale: Option<f32>,
-    pub base_tex_id: Option<u32>,
-    pub base_sampler: Option<MaterialSampler>,
-    pub normal_tex_id: Option<u32>,
-    pub normal_sampler: Option<MaterialSampler>,
-    pub metallic_roughness_tex_id: Option<u32>,
-    pub metallic_roughness_sampler: Option<MaterialSampler>,
-    pub emissive_tex_id: Option<u32>,
-    pub emissive_sampler: Option<MaterialSampler>,
-    pub ao_tex_id: Option<u32>,
-    pub ao_sampler: Option<MaterialSampler>,
-    pub flags: Option<u32>,
-}
-
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(tag = "type", content = "content", rename_all = "kebab-case")]
 pub enum MaterialOptions {
-    Standard(StandardOptions),
-    Pbr(PbrOptions),
+    Schema(HashMap<String, Vec4>),
 }
 
 // MARK: - Create Material
@@ -144,6 +81,7 @@ pub struct CmdMaterialDefinitionCreateArgs {
     pub definition_id: u32,
     pub slug: String,
     pub label: Option<String>,
+    pub realm_kind: crate::core::resources::MaterialRealmKind,
     #[serde(default)]
     pub preset: Option<crate::core::resources::ShaderMaterialPreset>,
     #[serde(default)]
@@ -162,6 +100,8 @@ pub struct CmdMaterialDefinitionUpdateArgs {
     pub definition_id: u32,
     pub slug: Option<String>,
     pub label: Option<String>,
+    #[serde(default)]
+    pub realm_kind: Option<crate::core::resources::MaterialRealmKind>,
     #[serde(default)]
     pub preset: Option<crate::core::resources::ShaderMaterialPreset>,
     #[serde(default)]
