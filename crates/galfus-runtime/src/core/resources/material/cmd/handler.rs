@@ -15,59 +15,9 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 use std::hash::{DefaultHasher, Hash, Hasher};
 
-const CAP_REALM_2D: &str = "realm:2d";
-const CAP_LAYOUT_2D_V1: &str = "layout:2d-v1";
-
-fn builtin_shader_source_2d() -> String {
-    r#"
-struct CameraUniform {
-    view_projection: mat4x4<f32>,
-    tint: vec4<f32>,
-};
-
-@group(0) @binding(0)
-var<uniform> camera: CameraUniform;
-@group(1) @binding(0)
-var base_tex: texture_2d<f32>;
-@group(1) @binding(1)
-var base_sampler: sampler;
-
-struct VsOut {
-    @builtin(position) position: vec4<f32>,
-    @location(0) color: vec4<f32>,
-    @location(1) uv: vec2<f32>,
-};
-
-@vertex
-fn vs_main(
-    @location(0) position: vec3<f32>,
-    @location(4) uv0: vec2<f32>,
-) -> VsOut {
-    let world_pos = vec4<f32>(position, 1.0);
-    var out: VsOut;
-    out.position = camera.view_projection * world_pos;
-    out.color = camera.tint;
-    out.uv = uv0;
-    return out;
-}
-
-@fragment
-fn fs_main(in: VsOut) -> @location(0) vec4<f32> {
-    return textureSample(base_tex, base_sampler, in.uv) * in.color;
-}
-"#
-    .to_string()
-}
-
-fn default_capabilities_for_realm(
-    realm_kind: MaterialRealmKind,
-    capabilities: Option<Vec<String>>,
-) -> Vec<String> {
+fn default_capabilities_for_realm(capabilities: Option<Vec<String>>) -> Vec<String> {
     if let Some(value) = capabilities {
         return value;
-    }
-    if realm_kind == MaterialRealmKind::TwoD {
-        return vec![CAP_REALM_2D.to_string(), CAP_LAYOUT_2D_V1.to_string()];
     }
     Vec::new()
 }
@@ -102,6 +52,7 @@ fn validate_preset_realm(
 
 fn compile_material_program(
     engine: &mut EngineState,
+    realm_kind: MaterialRealmKind,
     preset: ShaderMaterialPreset,
     shader_type: MaterialShaderType,
     shader_source: String,
@@ -118,9 +69,14 @@ fn compile_material_program(
         shader_params_schema,
         capabilities: Default::default(),
     };
+    let realm = match realm_kind {
+        MaterialRealmKind::ThreeD => galfus_render::MaterialShaderRealm::ThreeD,
+        MaterialRealmKind::TwoD => galfus_render::MaterialShaderRealm::TwoD,
+    };
 
     let cache_key = {
         let mut hasher = DefaultHasher::new();
+        realm.hash(&mut hasher);
         to_render_preset(preset).hash(&mut hasher);
         to_render_shader_type(shader_type).hash(&mut hasher);
         spec.shader_source.hash(&mut hasher);
@@ -166,7 +122,7 @@ fn compile_material_program(
         shader_type
     );
 
-    let compiled = galfus_render::compile_material_shader_spec(&spec)?;
+    let compiled = galfus_render::compile_material_shader_spec_for_realm(&spec, realm)?;
     let frame_index = engine.runtime.frame_index();
     engine
         .universal_state
@@ -269,29 +225,6 @@ fn compile_material_program(
                 .contains_key(key)
         });
     Ok(compiled)
-}
-
-fn compile_or_passthrough_for_realm(
-    engine: &mut EngineState,
-    realm_kind: MaterialRealmKind,
-    preset: ShaderMaterialPreset,
-    shader_type: MaterialShaderType,
-    shader_source: String,
-    shader_params_schema: HashMap<String, String>,
-    shader_capabilities: &[String],
-) -> Result<(String, u64), String> {
-    let is_layout_2d_v1 = realm_kind == MaterialRealmKind::TwoD
-        && shader_capabilities
-            .iter()
-            .any(|capability| capability == CAP_LAYOUT_2D_V1);
-    if is_layout_2d_v1 {
-        let mut hasher = DefaultHasher::new();
-        shader_source.hash(&mut hasher);
-        return Ok((shader_source, hasher.finish()));
-    }
-    let compiled =
-        compile_material_program(engine, preset, shader_type, shader_source, shader_params_schema)?;
-    Ok((compiled.source, compiled.hash))
 }
 
 fn builtin_shader_source(preset: ShaderMaterialPreset) -> &'static str {
@@ -406,20 +339,20 @@ fn bootstrap_builtin_material_definitions(engine: &mut EngineState) {
             continue;
         }
         let shader_source = if realm_kind == MaterialRealmKind::TwoD {
-            builtin_shader_source_2d()
+            galfus_render::builtin_material_source_2d().to_string()
         } else {
             builtin_shader_source(preset).to_string()
         };
-        let shader_capabilities = default_capabilities_for_realm(realm_kind, None);
-        let compile_result = compile_or_passthrough_for_realm(
+        let shader_capabilities = default_capabilities_for_realm(None);
+        let compile_result = compile_material_program(
             engine,
             realm_kind,
             preset,
             MaterialShaderType::Model,
             shader_source.clone(),
             HashMap::new(),
-            &shader_capabilities,
-        );
+        )
+        .map(|compiled| (compiled.source, compiled.hash));
         let (compiled_source, compiled_hash, compile_error) = match compile_result {
             Ok((source, hash)) => (Some(source), hash, None),
             Err(error) => (None, 0, Some(error)),
@@ -535,7 +468,7 @@ pub fn engine_cmd_material_definition_create(
             *preset,
             MaterialShaderType::Model,
             if args.realm_kind == MaterialRealmKind::TwoD {
-                builtin_shader_source_2d()
+                galfus_render::builtin_material_source_2d().to_string()
             } else {
                 builtin_shader_source(*preset).to_string()
             },
@@ -582,20 +515,19 @@ pub fn engine_cmd_material_definition_create(
     );
 
     let shader_capabilities = default_capabilities_for_realm(
-        args.realm_kind,
         args.capabilities
             .as_ref()
             .map(|value| value.semantics.clone()),
     );
-    let compile_result = compile_or_passthrough_for_realm(
+    let compile_result = compile_material_program(
         engine,
         args.realm_kind,
         preset,
         shader_type,
         shader_source.clone(),
         args.shader_params_schema.clone().unwrap_or_default(),
-        &shader_capabilities,
-    );
+    )
+    .map(|compiled| (compiled.source, compiled.hash));
 
     let (compiled_source, compiled_hash, compile_error, compile_failed_msg) = match compile_result {
         Ok((source, hash)) => {
@@ -702,7 +634,6 @@ pub fn engine_cmd_material_definition_update(
     let realm_kind = args.realm_kind.unwrap_or(current.realm_kind);
 
     let shader_capabilities = default_capabilities_for_realm(
-        realm_kind,
         args.capabilities
             .as_ref()
             .map(|value| value.semantics.clone())
@@ -735,7 +666,7 @@ pub fn engine_cmd_material_definition_update(
             *preset,
             MaterialShaderType::Model,
             if realm_kind == MaterialRealmKind::TwoD {
-                builtin_shader_source_2d()
+                galfus_render::builtin_material_source_2d().to_string()
             } else {
                 builtin_shader_source(*preset).to_string()
             },
@@ -798,15 +729,15 @@ pub fn engine_cmd_material_definition_update(
         shader_type
     );
 
-    let compile_result = compile_or_passthrough_for_realm(
+    let compile_result = compile_material_program(
         engine,
         realm_kind,
         preset,
         shader_type,
         shader_source.clone(),
         shader_params_schema.clone(),
-        &shader_capabilities,
-    );
+    )
+    .map(|compiled| (compiled.source, compiled.hash));
 
     let (compiled_source, compiled_hash, compile_error, compile_failed_msg) = match compile_result {
         Ok((source, hash)) => {

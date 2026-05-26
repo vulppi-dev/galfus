@@ -292,12 +292,17 @@ pub struct ShaderMaterialRecord {
 impl ShaderMaterialRecord {
     fn builtin_compiled(
         preset: ShaderMaterialPreset,
+        realm_kind: MaterialRealmKind,
     ) -> (Option<String>, u64, Option<String>, Option<String>) {
         let render_preset = match preset {
             ShaderMaterialPreset::Standard => galfus_render::MaterialShaderBasePreset::Standard,
             ShaderMaterialPreset::Pbr => galfus_render::MaterialShaderBasePreset::Pbr,
         };
-        let shader_source = galfus_render::builtin_material_source(render_preset).to_string();
+        let shader_source = if realm_kind == MaterialRealmKind::TwoD {
+            galfus_render::builtin_material_source_2d().to_string()
+        } else {
+            galfus_render::builtin_material_source(render_preset).to_string()
+        };
         let spec = galfus_render::MaterialShaderCompileSpec {
             base_preset: render_preset,
             shader_type: galfus_render::MaterialShaderType::Model,
@@ -305,7 +310,11 @@ impl ShaderMaterialRecord {
             shader_params_schema: HashMap::new(),
             capabilities: Default::default(),
         };
-        match galfus_render::compile_material_shader_spec(&spec) {
+        let realm = match realm_kind {
+            MaterialRealmKind::ThreeD => galfus_render::MaterialShaderRealm::ThreeD,
+            MaterialRealmKind::TwoD => galfus_render::MaterialShaderRealm::TwoD,
+        };
+        match galfus_render::compile_material_shader_spec_for_realm(&spec, realm) {
             Ok(compiled) => (
                 Some(shader_source),
                 compiled.hash,
@@ -318,7 +327,7 @@ impl ShaderMaterialRecord {
 
     pub fn new_standard(label: Option<String>) -> Self {
         let (shader_source, compiled_shader_hash, compiled_shader_source, compile_error) =
-            Self::builtin_compiled(ShaderMaterialPreset::Standard);
+            Self::builtin_compiled(ShaderMaterialPreset::Standard, MaterialRealmKind::ThreeD);
         let mut inputs = vec![Vec4::ZERO; SHADER_MATERIAL_INPUTS_PER_MATERIAL as usize];
         inputs[0] = Vec4::ONE;
         inputs[1] = Vec4::ONE;
@@ -350,6 +359,12 @@ impl ShaderMaterialRecord {
 
     pub fn new_standard_2d(label: Option<String>) -> Self {
         let mut record = Self::new_standard(label);
+        let (shader_source, compiled_shader_hash, compiled_shader_source, compile_error) =
+            Self::builtin_compiled(ShaderMaterialPreset::Standard, MaterialRealmKind::TwoD);
+        record.shader_source = shader_source;
+        record.compiled_shader_hash = compiled_shader_hash;
+        record.compiled_shader_source = compiled_shader_source;
+        record.compile_error = compile_error;
         // 2D bootstrap defaults: alpha blending friendly and double-sided by default.
         record.surface_type = SurfaceType::Transparent;
         record.render_side = RenderSide::DoubleSide;
@@ -359,7 +374,7 @@ impl ShaderMaterialRecord {
 
     pub fn new_pbr(label: Option<String>) -> Self {
         let (shader_source, compiled_shader_hash, compiled_shader_source, compile_error) =
-            Self::builtin_compiled(ShaderMaterialPreset::Pbr);
+            Self::builtin_compiled(ShaderMaterialPreset::Pbr, MaterialRealmKind::ThreeD);
         let mut inputs = vec![Vec4::ZERO; SHADER_MATERIAL_INPUTS_PER_MATERIAL as usize];
         inputs[0] = Vec4::ONE;
         inputs[1] = Vec4::ZERO;

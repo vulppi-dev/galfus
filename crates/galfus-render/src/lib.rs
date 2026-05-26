@@ -35,8 +35,8 @@ pub use layouts::{
 pub use library::ResourceLibrary;
 pub use material_shader::{
     CompiledMaterialShader, MaterialShaderBasePreset, MaterialShaderCapabilities,
-    MaterialShaderCompileSpec, MaterialShaderType, builtin_material_source,
-    compile_material_shader_spec,
+    MaterialShaderCompileSpec, MaterialShaderRealm, MaterialShaderType, builtin_material_source,
+    builtin_material_source_2d, compile_material_shader_spec, compile_material_shader_spec_for_realm,
 };
 pub use profiler::{GpuProfiler, GpuTimingReport};
 pub use realm_planner::{
