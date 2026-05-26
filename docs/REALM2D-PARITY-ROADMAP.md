@@ -149,6 +149,8 @@ Validation:
 
 ## Phase 6: Final Host Contract and Docs Consolidation
 
+Status: `completed`
+
 Goal:
 - Publish final 2D flow contracts mirroring 3D doc quality.
 
@@ -191,10 +193,10 @@ Validation:
 
 ## Binary Checklist for Parity Closure
 
-- [ ] Forward 2D uses complete material contract semantics.
-- [ ] Custom passes for 2D support formal definition + instance lifecycle.
-- [ ] Native 2D lighting exists (culling + light buffer + shading integration).
-- [ ] Native 2D shadows exist (`cast/receive` pipeline-level behavior).
-- [ ] Dedicated 2D parity test suite exists and is stable.
-- [ ] Final host contract docs for 2D are complete and implementation-aligned.
+- [x] Forward 2D uses complete material contract semantics.
+- [x] Custom passes for 2D support formal definition + instance lifecycle.
+- [x] Native 2D lighting exists (culling + light buffer + shading integration).
+- [x] Native 2D shadows exist (`cast/receive` pipeline-level behavior).
+- [x] Dedicated 2D parity test suite exists and is stable.
+- [x] Final host contract docs for 2D are complete and implementation-aligned.
 - [ ] Demo 004 exists and validates 2D light/shadow behavior end-to-end.
