@@ -15,7 +15,16 @@ Minimal flow:
 2. upsert a material instance with the same `slug`
 3. assign material ID to one or more models
 
-## 2. Required Logical Entry Points
+## 2. Realm Equivalence (2D and 3D)
+
+- `realm-2d` and `realm-3d` are different worlds, but follow the same material flow:
+  1. define material
+  2. compile logical WGSL through composer
+  3. create/update material instance by `slug`
+- There is no realm-specific bypass path for raw pipeline WGSL.
+- Builtin presets are bootstrap definitions (`standard`, `pbr`, `standard-2d`), not an alternative material pipeline.
+
+## 3. Required Logical Entry Points
 
 Your logical WGSL snippet must provide:
 
@@ -24,7 +33,7 @@ Your logical WGSL snippet must provide:
 
 The engine composes physical WGSL around this snippet.
 
-## 3. Core-Provided Inputs
+## 4. Core-Provided Inputs
 
 The composer prelude injects global uniforms and storage bindings, including:
 
@@ -36,7 +45,7 @@ The composer prelude injects global uniforms and storage bindings, including:
 
 Use only the logical structs/functions documented in this file and in `SHADERS-GLOSSARY.md`.
 
-## 4. History/Semantics on Demand
+## 5. History/Semantics on Demand
 
 To request semantic resources like history textures, set capabilities in definition:
 
@@ -44,7 +53,7 @@ To request semantic resources like history textures, set capabilities in definit
 
 If omitted/empty, semantics are considered not required by that definition.
 
-## 5. Example: Fresnel + Ghost Trail
+## 6. Example: Fresnel + Ghost Trail
 
 ```wgsl
 fn project_world_to_screen_uv(world_position: vec3<f32>) -> vec2<f32> {
@@ -79,7 +88,13 @@ fn fragment(input: FragmentInput) -> FragmentOutput {
 }
 ```
 
-## 6. Current Limits
+## 7. Core-Reserved IDs (Host Restriction)
+
+- Core-owned bootstrap resources use reserved logical IDs.
+- Host must not create/update/dispose resources using IDs in the reserved range.
+- For `u32`: `4294901761..=4294967295`.
+
+## 8. Current Limits
 
 - Shader contract is logical WGSL, not raw pipeline WGSL.
 - No public contract for custom bind-group layout overrides.

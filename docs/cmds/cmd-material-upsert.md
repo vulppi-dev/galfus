@@ -11,6 +11,7 @@ Current contract in this phase:
 - `options`: definition-specific payload
 
 Definitions are managed through material definition commands and compiled by the unified composer.
+`realm-2d` and `realm-3d` share the same definition/instance workflow.
 
 ## Create payload (`CmdMaterialCreateArgs`)
 
@@ -25,6 +26,10 @@ Optional:
 - `slug` (defaults to `standard`)
 - `options`
 
+Restrictions:
+
+- `materialId` must not be in core-reserved range (`4294901761..=4294967295` for `u32`).
+
 ## Update payload (`CmdMaterialUpdateArgs`)
 
 Required:
@@ -37,6 +42,10 @@ Optional:
 - `kind` (`shader`)
 - `slug`
 - `options`
+
+Restrictions:
+
+- Reserved core material IDs cannot be updated/disposed by host commands.
 
 ## Response
 
