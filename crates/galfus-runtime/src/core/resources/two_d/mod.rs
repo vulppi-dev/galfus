@@ -24,6 +24,8 @@ pub struct Sprite2dRecord {
     pub geometry_id: u32,
     pub material_id: Option<u32>,
     pub layer: i32,
+    pub cast_shadow: bool,
+    pub receive_shadow: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -33,6 +35,8 @@ pub struct Shape2dRecord {
     pub geometry_id: u32,
     pub material_id: Option<u32>,
     pub layer: i32,
+    pub cast_shadow: bool,
+    pub receive_shadow: bool,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -90,6 +94,10 @@ pub struct CmdSprite2dCreateArgs {
     pub material_id: Option<u32>,
     #[serde(default)]
     pub layer: i32,
+    #[serde(default = "crate::core::resources::common::default_true")]
+    pub cast_shadow: bool,
+    #[serde(default = "crate::core::resources::common::default_true")]
+    pub receive_shadow: bool,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -103,6 +111,8 @@ pub struct CmdSprite2dUpdateArgs {
     #[serde(default)]
     pub material_id: Option<u32>,
     pub layer: Option<i32>,
+    pub cast_shadow: Option<bool>,
+    pub receive_shadow: Option<bool>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -131,6 +141,10 @@ pub struct CmdShape2dCreateArgs {
     pub material_id: Option<u32>,
     #[serde(default)]
     pub layer: i32,
+    #[serde(default = "crate::core::resources::common::default_true")]
+    pub cast_shadow: bool,
+    #[serde(default = "crate::core::resources::common::default_true")]
+    pub receive_shadow: bool,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -144,6 +158,8 @@ pub struct CmdShape2dUpdateArgs {
     #[serde(default)]
     pub material_id: Option<u32>,
     pub layer: Option<i32>,
+    pub cast_shadow: Option<bool>,
+    pub receive_shadow: Option<bool>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -446,6 +462,8 @@ pub fn engine_cmd_sprite2d_upsert(
                     geometry_id: create.geometry_id,
                     material_id: create.material_id,
                     layer: create.layer,
+                    cast_shadow: create.cast_shadow,
+                    receive_shadow: create.receive_shadow,
                 },
             );
             mark_realm_windows_dirty(engine, create.realm_id);
@@ -510,6 +528,12 @@ pub fn engine_cmd_sprite2d_upsert(
             }
             if let Some(layer) = update.layer {
                 record.layer = layer;
+            }
+            if let Some(cast_shadow) = update.cast_shadow {
+                record.cast_shadow = cast_shadow;
+            }
+            if let Some(receive_shadow) = update.receive_shadow {
+                record.receive_shadow = receive_shadow;
             }
             mark_realm_windows_dirty(engine, update.realm_id);
             CmdResultTwoDUpsert {
@@ -608,6 +632,8 @@ pub fn engine_cmd_shape2d_upsert(
                     geometry_id: create.geometry_id,
                     material_id: create.material_id,
                     layer: create.layer,
+                    cast_shadow: create.cast_shadow,
+                    receive_shadow: create.receive_shadow,
                 },
             );
             mark_realm_windows_dirty(engine, create.realm_id);
@@ -672,6 +698,12 @@ pub fn engine_cmd_shape2d_upsert(
             }
             if let Some(layer) = update.layer {
                 record.layer = layer;
+            }
+            if let Some(cast_shadow) = update.cast_shadow {
+                record.cast_shadow = cast_shadow;
+            }
+            if let Some(receive_shadow) = update.receive_shadow {
+                record.receive_shadow = receive_shadow;
             }
             mark_realm_windows_dirty(engine, update.realm_id);
             CmdResultTwoDUpsert {
@@ -810,6 +842,8 @@ mod tests {
                 geometry_id: 100,
                 material_id: Some(200),
                 layer: 0,
+                cast_shadow: true,
+                receive_shadow: true,
             }),
         );
         assert!(!result.success);

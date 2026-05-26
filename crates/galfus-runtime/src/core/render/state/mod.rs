@@ -75,6 +75,8 @@ pub struct TwoDPreparedItem {
     pub geometry_id: u32,
     pub material_id: Option<u32>,
     pub layer: i32,
+    pub cast_shadow: bool,
+    pub receive_shadow: bool,
 }
 
 #[derive(Debug, Default, Clone)]

@@ -103,6 +103,8 @@ Validation:
 
 ## Phase 4: Native Realm2D Shadows
 
+Status: `completed`
+
 Goal:
 - Add native 2D shadow pass with `cast/receive` semantics at pipeline level.
 

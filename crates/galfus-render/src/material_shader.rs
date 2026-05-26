@@ -768,6 +768,7 @@ struct CameraUniform {
     tint: vec4<f32>,
     model_position: vec4<f32>,
     light_offset_count: vec4<u32>,
+    shadow_params: vec4<f32>,
 }
 
 @group(0) @binding(0)
@@ -885,7 +886,7 @@ fn apply_2d_lighting(base_color: vec4<f32>, model_position: vec2<f32>) -> vec4<f
         let attenuation = max(1.0 - (dist / range), 0.0);
         lit += l.color.rgb * attenuation * l.intensity_range.x;
     }
-    return vec4<f32>(base_color.rgb * lit, base_color.a);
+    return vec4<f32>(base_color.rgb * lit * camera.shadow_params.x, base_color.a);
 }
 
 struct VertexStageInput {

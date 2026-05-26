@@ -11,6 +11,7 @@ struct TwoDCameraRaw {
     tint: glam::Vec4,
     model_position: glam::Vec4,
     light_offset_count: glam::UVec4,
+    shadow_params: glam::Vec4,
 }
 
 #[repr(C)]
@@ -135,6 +136,52 @@ fn collect_visible_2d_lights(
         }
     }
     visible_lights
+}
+
+fn compute_item_shadow_factor(
+    item: &crate::core::render::state::TwoDPreparedItem,
+    visible_lights: &[TwoDLightRaw],
+    casters: &[crate::core::render::state::TwoDPreparedItem],
+) -> f32 {
+    if !item.receive_shadow || visible_lights.is_empty() || casters.is_empty() {
+        return 1.0;
+    }
+    let item_pos = item.transform.w_axis.truncate();
+    let mut factor = 1.0f32;
+    for light in visible_lights {
+        let light_pos = light.position.truncate();
+        let seg = item_pos - light_pos;
+        let seg_len_sq = seg.length_squared();
+        if seg_len_sq <= 1e-6 {
+            continue;
+        }
+        let mut blocked = false;
+        for caster in casters {
+            if !caster.cast_shadow || caster.item_id == item.item_id || caster.layer != item.layer {
+                continue;
+            }
+            let caster_pos = caster.transform.w_axis.truncate();
+            let t = ((caster_pos - light_pos).dot(seg) / seg_len_sq).clamp(0.0, 1.0);
+            let closest = light_pos + seg * t;
+            let radius = caster
+                .transform
+                .to_scale_rotation_translation()
+                .0
+                .truncate()
+                .abs()
+                .max_element()
+                * 0.35
+                + 0.15;
+            if (caster_pos - closest).length_squared() <= radius * radius {
+                blocked = true;
+                break;
+            }
+        }
+        if blocked {
+            factor *= 0.65;
+        }
+    }
+    factor.clamp(0.15, 1.0)
 }
 
 fn ensure_two_d_pass_resources(
@@ -402,6 +449,8 @@ pub fn pass_2d_prepare(render_state: &mut RenderState) {
                 geometry_id: record.geometry_id,
                 material_id: record.material_id,
                 layer: record.layer,
+                cast_shadow: record.cast_shadow,
+                receive_shadow: record.receive_shadow,
             }),
     );
     prepared.items.extend(
@@ -416,6 +465,8 @@ pub fn pass_2d_prepare(render_state: &mut RenderState) {
                 geometry_id: record.geometry_id,
                 material_id: record.material_id,
                 layer: record.layer,
+                cast_shadow: record.cast_shadow,
+                receive_shadow: record.receive_shadow,
             }),
     );
 
@@ -518,6 +569,7 @@ struct CameraUniform {
     tint: vec4<f32>,
     model_position: vec4<f32>,
     light_offset_count: vec4<u32>,
+    shadow_params: vec4<f32>,
 };
 
 @group(0) @binding(0)
@@ -568,7 +620,7 @@ fn fs_main(in: VsOut) -> @location(0) vec4<f32> {
         lit += l.color.rgb * attenuation * l.intensity_range.x;
     }
     let base = textureSample(material_tex0, linear_clamp_sampler, in.uv) * in.color;
-    return vec4<f32>(base.rgb * lit, base.a);
+    return vec4<f32>(base.rgb * lit * camera.shadow_params.x, base.a);
 }
 "#
                     .into(),
@@ -726,6 +778,15 @@ fn fs_main(in: VsOut) -> @location(0) vec4<f32> {
         for (camera_index, camera) in cameras.iter().enumerate() {
             let camera_vp = build_2d_view_projection(Some(camera), target_size);
             let visible_lights = &camera_visible_lights[camera_index];
+            let camera_casters: Vec<_> = render_state
+                .two_d_batched
+                .items
+                .iter()
+                .filter(|item| {
+                    layer_visible_in_camera(item.layer, camera.layer_mask) && item.cast_shadow
+                })
+                .cloned()
+                .collect();
             if !visible_lights.is_empty() {
                 queue.write_buffer(
                     &light_storage_buffer,
@@ -983,11 +1044,14 @@ fn fs_main(in: VsOut) -> @location(0) vec4<f32> {
                     material_tint_for_batch(&render_state.scene, batch.key.material_id);
                 for item in items {
                     let item_vp = camera_vp * item.transform;
+                    let shadow_factor =
+                        compute_item_shadow_factor(item, visible_lights, &camera_casters);
                     let camera_raw = TwoDCameraRaw {
                         view_projection: item_vp,
                         tint: material_tint,
                         model_position: item.transform.w_axis,
                         light_offset_count: glam::UVec4::new(0, visible_lights.len() as u32, 0, 0),
+                        shadow_params: glam::Vec4::new(shadow_factor, 0.0, 0.0, 0.0),
                     };
                     let offset = (camera_slot_index as u64) * camera_dynamic_stride;
                     queue.write_buffer(
@@ -1070,8 +1134,9 @@ fn layer_visible_in_camera(layer: i32, layer_mask: u32) -> bool {
 #[cfg(test)]
 mod tests {
     use super::{
-        layer_visible_in_camera, material_allows_2d, material_tint_for_batch,
-        material_uses_custom_2d_shader, pass_2d_batch, pass_2d_prepare, resolve_2d_draw_batches,
+        TwoDLightRaw, compute_item_shadow_factor, layer_visible_in_camera, material_allows_2d,
+        material_tint_for_batch, material_uses_custom_2d_shader, pass_2d_batch, pass_2d_prepare,
+        resolve_2d_draw_batches,
     };
     use crate::core::render::RenderState;
     use crate::core::render::state::{TwoDBatchKey, TwoDBatchRange, TwoDItemKind};
@@ -1110,6 +1175,8 @@ mod tests {
                 geometry_id: 1,
                 material_id: Some(100),
                 layer: 4,
+                cast_shadow: true,
+                receive_shadow: true,
             },
         );
         render_state.two_d_source.shapes.insert(
@@ -1120,6 +1187,8 @@ mod tests {
                 geometry_id: 2,
                 material_id: None,
                 layer: 4,
+                cast_shadow: true,
+                receive_shadow: true,
             },
         );
         render_state.two_d_source.sprites.insert(
@@ -1130,6 +1199,8 @@ mod tests {
                 geometry_id: 3,
                 material_id: None,
                 layer: 1,
+                cast_shadow: true,
+                receive_shadow: true,
             },
         );
 
@@ -1163,6 +1234,8 @@ mod tests {
                 geometry_id: 7,
                 material_id: Some(11),
                 layer: 1,
+                cast_shadow: true,
+                receive_shadow: true,
             },
         );
         render_state.two_d_source.sprites.insert(
@@ -1173,6 +1246,8 @@ mod tests {
                 geometry_id: 7,
                 material_id: Some(11),
                 layer: 1,
+                cast_shadow: true,
+                receive_shadow: true,
             },
         );
         render_state.two_d_source.shapes.insert(
@@ -1183,6 +1258,8 @@ mod tests {
                 geometry_id: 7,
                 material_id: Some(11),
                 layer: 1,
+                cast_shadow: true,
+                receive_shadow: true,
             },
         );
         render_state.two_d_source.sprites.insert(
@@ -1193,6 +1270,8 @@ mod tests {
                 geometry_id: 9,
                 material_id: None,
                 layer: 2,
+                cast_shadow: true,
+                receive_shadow: true,
             },
         );
 
@@ -1219,6 +1298,8 @@ mod tests {
                 geometry_id: 7,
                 material_id: Some(11),
                 layer: 1,
+                cast_shadow: true,
+                receive_shadow: true,
             },
         );
         render_state.two_d_source.sprites.insert(
@@ -1229,6 +1310,8 @@ mod tests {
                 geometry_id: 7,
                 material_id: Some(11),
                 layer: 1,
+                cast_shadow: true,
+                receive_shadow: true,
             },
         );
         render_state.two_d_source.sprites.insert(
@@ -1239,6 +1322,8 @@ mod tests {
                 geometry_id: 7,
                 material_id: Some(11),
                 layer: 1,
+                cast_shadow: true,
+                receive_shadow: true,
             },
         );
 
@@ -1348,6 +1433,38 @@ mod tests {
         assert!(material_allows_2d(&material));
         material.realm_kind = crate::core::resources::MaterialRealmKind::TwoD;
         assert!(material_allows_2d(&material));
+    }
+
+    #[test]
+    fn shadow_factor_darkens_receiver_when_blocked() {
+        let receiver = crate::core::render::state::TwoDPreparedItem {
+            item_id: 2,
+            kind: TwoDItemKind::Sprite,
+            transform: glam::Mat4::from_translation(glam::vec3(1.0, 0.0, 0.0)),
+            geometry_id: 1,
+            material_id: Some(1),
+            layer: 0,
+            cast_shadow: false,
+            receive_shadow: true,
+        };
+        let caster = crate::core::render::state::TwoDPreparedItem {
+            item_id: 1,
+            kind: TwoDItemKind::Sprite,
+            transform: glam::Mat4::from_translation(glam::vec3(0.5, 0.0, 0.0)),
+            geometry_id: 1,
+            material_id: Some(1),
+            layer: 0,
+            cast_shadow: true,
+            receive_shadow: false,
+        };
+        let lights = vec![TwoDLightRaw {
+            position: glam::Vec4::new(0.0, 0.0, 0.0, 1.0),
+            color: glam::Vec4::ONE,
+            intensity_range: glam::Vec2::new(1.0, 5.0),
+            kind_flags: glam::UVec2::new(crate::core::resources::LightKind::Point.to_u32(), 0),
+        }];
+        let factor = compute_item_shadow_factor(&receiver, &lights, &[caster]);
+        assert!(factor < 1.0);
     }
 
     #[test]
