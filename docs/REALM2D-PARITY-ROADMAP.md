@@ -126,6 +126,8 @@ Validation:
 
 ## Phase 5: Dedicated Realm2D Parity Test Suite
 
+Status: `completed`
+
 Goal:
 - Add explicit parity-focused tests for 2D.
 
