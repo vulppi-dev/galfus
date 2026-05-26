@@ -167,48 +167,7 @@ impl EngineState {
             debug_capture: DebugCaptureState::from_env(),
         };
 
-        let _ = crate::core::resources::engine_cmd_material_definition_create(
-            &mut state,
-            &crate::core::resources::CmdMaterialDefinitionCreateArgs {
-                definition_id: crate::core::resources::MATERIAL_DEFINITION_STANDARD_ID,
-                slug: crate::core::resources::MATERIAL_DEFINITION_STANDARD_SLUG.to_string(),
-                label: Some("builtin-standard".to_string()),
-                realm_kind: crate::core::resources::MaterialRealmKind::ThreeD,
-                preset: Some(crate::core::resources::ShaderMaterialPreset::Standard),
-                shader_type: None,
-                shader_source: None,
-                shader_params_schema: None,
-                capabilities: None,
-            },
-        );
-        let _ = crate::core::resources::engine_cmd_material_definition_create(
-            &mut state,
-            &crate::core::resources::CmdMaterialDefinitionCreateArgs {
-                definition_id: crate::core::resources::MATERIAL_DEFINITION_PBR_ID,
-                slug: crate::core::resources::MATERIAL_DEFINITION_PBR_SLUG.to_string(),
-                label: Some("builtin-pbr".to_string()),
-                realm_kind: crate::core::resources::MaterialRealmKind::ThreeD,
-                preset: Some(crate::core::resources::ShaderMaterialPreset::Pbr),
-                shader_type: None,
-                shader_source: None,
-                shader_params_schema: None,
-                capabilities: None,
-            },
-        );
-        let _ = crate::core::resources::engine_cmd_material_definition_create(
-            &mut state,
-            &crate::core::resources::CmdMaterialDefinitionCreateArgs {
-                definition_id: crate::core::resources::MATERIAL_DEFINITION_STANDARD_2D_ID,
-                slug: crate::core::resources::MATERIAL_DEFINITION_STANDARD_2D_SLUG.to_string(),
-                label: Some("builtin-standard-2d".to_string()),
-                realm_kind: crate::core::resources::MaterialRealmKind::TwoD,
-                preset: Some(crate::core::resources::ShaderMaterialPreset::Standard),
-                shader_type: None,
-                shader_source: None,
-                shader_params_schema: None,
-                capabilities: None,
-            },
-        );
+        crate::core::resources::ensure_material_bootstrap_defaults(&mut state);
 
         state
     }

@@ -40,11 +40,13 @@ pub enum RenderSide {
     DoubleSide = 2,
 }
 
-pub const MATERIAL_FALLBACK_ID: u32 = 0;
-pub const MATERIAL_STANDARD_2D_ID: u32 = 3;
-pub const MATERIAL_DEFINITION_STANDARD_ID: u32 = 1;
-pub const MATERIAL_DEFINITION_PBR_ID: u32 = 2;
-pub const MATERIAL_DEFINITION_STANDARD_2D_ID: u32 = 3;
+pub const MATERIAL_FALLBACK_ID: u32 = crate::core::id_policy::CORE_RESERVED_LOGICAL_ID_START;
+pub const MATERIAL_DEFINITION_STANDARD_ID: u32 =
+    crate::core::id_policy::CORE_RESERVED_LOGICAL_ID_START + 1;
+pub const MATERIAL_DEFINITION_PBR_ID: u32 =
+    crate::core::id_policy::CORE_RESERVED_LOGICAL_ID_START + 2;
+pub const MATERIAL_DEFINITION_STANDARD_2D_ID: u32 =
+    crate::core::id_policy::CORE_RESERVED_LOGICAL_ID_START + 3;
 pub const MATERIAL_DEFINITION_STANDARD_SLUG: &str = "standard";
 pub const MATERIAL_DEFINITION_PBR_SLUG: &str = "pbr";
 pub const MATERIAL_DEFINITION_STANDARD_2D_SLUG: &str = "standard-2d";
@@ -421,12 +423,31 @@ impl ShaderMaterialRecord {
 
 #[cfg(test)]
 mod tests {
-    use super::{RenderSide, ShaderMaterialRecord, SurfaceType};
+    use super::{
+        MATERIAL_DEFINITION_PBR_ID, MATERIAL_DEFINITION_STANDARD_2D_ID, MATERIAL_DEFINITION_STANDARD_ID,
+        MATERIAL_FALLBACK_ID, RenderSide, ShaderMaterialRecord, SurfaceType,
+    };
 
     #[test]
     fn standard_2d_bootstrap_defaults() {
         let record = ShaderMaterialRecord::new_standard_2d(Some("Standard 2D Material".into()));
         assert_eq!(record.surface_type, SurfaceType::Transparent);
         assert_eq!(record.render_side, RenderSide::DoubleSide);
+    }
+
+    #[test]
+    fn core_material_ids_use_reserved_range() {
+        assert!(crate::core::id_policy::is_core_reserved_logical_id(
+            MATERIAL_FALLBACK_ID
+        ));
+        assert!(crate::core::id_policy::is_core_reserved_logical_id(
+            MATERIAL_DEFINITION_STANDARD_ID
+        ));
+        assert!(crate::core::id_policy::is_core_reserved_logical_id(
+            MATERIAL_DEFINITION_PBR_ID
+        ));
+        assert!(crate::core::id_policy::is_core_reserved_logical_id(
+            MATERIAL_DEFINITION_STANDARD_2D_ID
+        ));
     }
 }

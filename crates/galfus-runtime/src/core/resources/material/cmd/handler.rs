@@ -378,6 +378,10 @@ fn bootstrap_builtin_material_definitions(engine: &mut EngineState) {
     ensure_fallback_material_instance(engine);
 }
 
+pub fn ensure_material_bootstrap_defaults(engine: &mut EngineState) {
+    bootstrap_builtin_material_definitions(engine);
+}
+
 fn definition_by_slug(engine: &mut EngineState, slug: &str) -> Option<MaterialDefinitionRecord> {
     bootstrap_builtin_material_definitions(engine);
     engine
