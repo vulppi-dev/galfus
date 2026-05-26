@@ -117,9 +117,11 @@ pub struct TwoDPassResources {
     pub global_bind_group_layout: wgpu::BindGroupLayout,
     pub pipeline_layout: wgpu::PipelineLayout,
     pub camera_dynamic_buffer: wgpu::Buffer,
+    pub light_storage_buffer: wgpu::Buffer,
     pub global_bind_group: wgpu::BindGroup,
     pub camera_dynamic_stride: u64,
     pub camera_dynamic_capacity_slots: usize,
+    pub light_capacity_slots: usize,
     pub fallback_depth_view: wgpu::TextureView,
 }
 

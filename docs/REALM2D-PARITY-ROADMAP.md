@@ -80,6 +80,8 @@ Validation:
 
 ## Phase 3: Native Realm2D Lighting
 
+Status: `completed`
+
 Goal:
 - Introduce a native 2D lighting pipeline with architecture equivalent to 3D where applicable.
 

@@ -9,6 +9,8 @@ use crate::core::render::state::{
 struct TwoDCameraRaw {
     view_projection: glam::Mat4,
     tint: glam::Vec4,
+    model_position: glam::Vec4,
+    light_offset_count: glam::UVec4,
 }
 
 #[repr(C)]
@@ -19,6 +21,17 @@ struct TwoDFrameSemanticMeta {
     frame_index: u32,
     flags: u32,
 }
+
+#[repr(C)]
+#[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
+struct TwoDLightRaw {
+    position: glam::Vec4,
+    color: glam::Vec4,
+    intensity_range: glam::Vec2,
+    kind_flags: glam::UVec2,
+}
+
+const TWO_D_MAX_LIGHTS_PER_CAMERA: usize = 64;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct TwoDDrawBatch {
@@ -91,6 +104,39 @@ fn align_up(value: u64, alignment: u64) -> u64 {
     value.div_ceil(alignment) * alignment
 }
 
+fn collect_visible_2d_lights(
+    render_state: &RenderState,
+    camera: &crate::core::render::state::TwoDPreparedCamera,
+) -> Vec<TwoDLightRaw> {
+    let mut visible_lights = Vec::with_capacity(TWO_D_MAX_LIGHTS_PER_CAMERA);
+    let camera_position = camera.transform.w_axis.truncate();
+    for light in render_state.scene.lights.values() {
+        if !light.active || (light.layer_mask & camera.layer_mask) == 0 {
+            continue;
+        }
+        let light_kind = light.data.kind_flags.x;
+        if light_kind == crate::core::resources::LightKind::Point.to_u32()
+            || light_kind == crate::core::resources::LightKind::Spot.to_u32()
+        {
+            let range = light.data.intensity_range.y.max(0.0001);
+            let delta = light.data.position.truncate() - camera_position;
+            if delta.length_squared() > (range * range * 4.0) {
+                continue;
+            }
+        }
+        visible_lights.push(TwoDLightRaw {
+            position: light.data.position,
+            color: light.data.color,
+            intensity_range: light.data.intensity_range,
+            kind_flags: light.data.kind_flags,
+        });
+        if visible_lights.len() >= TWO_D_MAX_LIGHTS_PER_CAMERA {
+            break;
+        }
+    }
+    visible_lights
+}
+
 fn ensure_two_d_pass_resources(
     render_state: &mut RenderState,
     device: &wgpu::Device,
@@ -100,6 +146,7 @@ fn ensure_two_d_pass_resources(
     let min_alignment = device.limits().min_uniform_buffer_offset_alignment as u64;
     let stride = align_up(std::mem::size_of::<TwoDCameraRaw>() as u64, min_alignment);
     let initial_slots = required_slots.max(1);
+    let initial_light_slots = TWO_D_MAX_LIGHTS_PER_CAMERA.max(1);
     let resources = render_state.two_d_pass_resources.get_or_insert_with(|| {
         let global_bind_group_layout =
             device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
@@ -143,6 +190,16 @@ fn ensure_two_d_pass_resources(
                         ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
                         count: None,
                     },
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 5,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Buffer {
+                            ty: wgpu::BufferBindingType::Storage { read_only: true },
+                            has_dynamic_offset: false,
+                            min_binding_size: None,
+                        },
+                        count: None,
+                    },
                 ],
             });
         let library = render_state.library.as_ref().expect("library must exist");
@@ -159,6 +216,12 @@ fn ensure_two_d_pass_resources(
             label: Some("2D Camera Dynamic Buffer"),
             size: stride * initial_slots as u64,
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+        let light_storage_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("2D Light Storage Buffer"),
+            size: (std::mem::size_of::<TwoDLightRaw>() * initial_light_slots) as u64,
+            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
         let global_bind_group =
@@ -191,6 +254,10 @@ fn ensure_two_d_pass_resources(
                     wgpu::BindGroupEntry {
                         binding: 4,
                         resource: wgpu::BindingResource::Sampler(&library.samplers.linear_repeat),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 5,
+                        resource: light_storage_buffer.as_entire_binding(),
                     },
                 ],
             });
@@ -233,21 +300,30 @@ fn ensure_two_d_pass_resources(
             global_bind_group_layout,
             pipeline_layout,
             camera_dynamic_buffer,
+            light_storage_buffer,
             global_bind_group,
             camera_dynamic_stride: stride,
             camera_dynamic_capacity_slots: initial_slots,
+            light_capacity_slots: initial_light_slots,
             fallback_depth_view,
         }
     });
     if resources.camera_dynamic_capacity_slots < required_slots {
-        let mut new_slots = resources.camera_dynamic_capacity_slots.max(1);
-        while new_slots < required_slots {
-            new_slots *= 2;
+        let mut new_camera_slots = resources.camera_dynamic_capacity_slots.max(1);
+        while new_camera_slots < required_slots {
+            new_camera_slots *= 2;
         }
-        let new_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+        let new_camera_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("2D Camera Dynamic Buffer"),
-            size: resources.camera_dynamic_stride * new_slots as u64,
+            size: resources.camera_dynamic_stride * new_camera_slots as u64,
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+        let new_light_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("2D Light Storage Buffer"),
+            size: (std::mem::size_of::<TwoDLightRaw>() * resources.light_capacity_slots.max(1))
+                as u64,
+            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
         let library = render_state.library.as_ref().expect("library must exist");
@@ -259,7 +335,7 @@ fn ensure_two_d_pass_resources(
                     wgpu::BindGroupEntry {
                         binding: 0,
                         resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
-                            buffer: &new_buffer,
+                            buffer: &new_camera_buffer,
                             offset: 0,
                             size: std::num::NonZeroU64::new(
                                 std::mem::size_of::<TwoDCameraRaw>() as u64
@@ -282,11 +358,16 @@ fn ensure_two_d_pass_resources(
                         binding: 4,
                         resource: wgpu::BindingResource::Sampler(&library.samplers.linear_repeat),
                     },
+                    wgpu::BindGroupEntry {
+                        binding: 5,
+                        resource: new_light_buffer.as_entire_binding(),
+                    },
                 ],
             });
-        resources.camera_dynamic_buffer = new_buffer;
+        resources.camera_dynamic_buffer = new_camera_buffer;
+        resources.light_storage_buffer = new_light_buffer;
         resources.global_bind_group = new_bind_group;
-        resources.camera_dynamic_capacity_slots = new_slots;
+        resources.camera_dynamic_capacity_slots = new_camera_slots;
     }
 }
 
@@ -435,14 +516,25 @@ pub fn pass_2d_draw(
 struct CameraUniform {
     view_projection: mat4x4<f32>,
     tint: vec4<f32>,
+    model_position: vec4<f32>,
+    light_offset_count: vec4<u32>,
 };
 
 @group(0) @binding(0)
 var<uniform> camera: CameraUniform;
-@group(1) @binding(0)
-var base_tex: texture_2d<f32>;
-@group(1) @binding(1)
-var base_sampler: sampler;
+@group(0) @binding(2)
+var linear_clamp_sampler: sampler;
+@group(1) @binding(3)
+var material_tex0: texture_2d<f32>;
+
+struct Light2D {
+    position: vec4<f32>,
+    color: vec4<f32>,
+    intensity_range: vec2<f32>,
+    kind_flags: vec2<u32>,
+}
+@group(0) @binding(5)
+var<storage, read> lights_2d: array<Light2D>;
 
 struct VsOut {
     @builtin(position) position: vec4<f32>,
@@ -465,7 +557,18 @@ fn vs_main(
 
 @fragment
 fn fs_main(in: VsOut) -> @location(0) vec4<f32> {
-    return textureSample(base_tex, base_sampler, in.uv) * in.color;
+    var lit = vec3<f32>(0.12, 0.12, 0.12);
+    let light_count = min(camera.light_offset_count.y, 64u);
+    for (var i: u32 = 0u; i < light_count; i = i + 1u) {
+        let l = lights_2d[i];
+        let to_light = l.position.xy - camera.model_position.xy;
+        let dist = length(to_light);
+        let range = max(l.intensity_range.y, 0.0001);
+        let attenuation = max(1.0 - (dist / range), 0.0);
+        lit += l.color.rgb * attenuation * l.intensity_range.x;
+    }
+    let base = textureSample(material_tex0, linear_clamp_sampler, in.uv) * in.color;
+    return vec4<f32>(base.rgb * lit, base.a);
 }
 "#
                     .into(),
@@ -490,6 +593,7 @@ fn fs_main(in: VsOut) -> @location(0) vec4<f32> {
     let (
         pipeline_layout,
         camera_dynamic_buffer,
+        light_storage_buffer,
         global_bind_group,
         camera_dynamic_stride,
         fallback_depth_view,
@@ -501,6 +605,7 @@ fn fs_main(in: VsOut) -> @location(0) vec4<f32> {
         (
             resources.pipeline_layout.clone(),
             resources.camera_dynamic_buffer.clone(),
+            resources.light_storage_buffer.clone(),
             resources.global_bind_group.clone(),
             resources.camera_dynamic_stride,
             resources.fallback_depth_view.clone(),
@@ -590,6 +695,10 @@ fn fs_main(in: VsOut) -> @location(0) vec4<f32> {
             None => Vec::new(),
         }
     };
+    let camera_visible_lights: Vec<Vec<TwoDLightRaw>> = cameras
+        .iter()
+        .map(|camera| collect_visible_2d_lights(render_state, camera))
+        .collect();
 
     let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
         label: Some("2D Draw Pass"),
@@ -614,8 +723,16 @@ fn fs_main(in: VsOut) -> @location(0) vec4<f32> {
     if let Some(vertex_sys) = render_state.vertex.as_mut() {
         vertex_sys.begin_pass();
         let mut camera_slot_index: usize = 0;
-        for camera in &cameras {
+        for (camera_index, camera) in cameras.iter().enumerate() {
             let camera_vp = build_2d_view_projection(Some(camera), target_size);
+            let visible_lights = &camera_visible_lights[camera_index];
+            if !visible_lights.is_empty() {
+                queue.write_buffer(
+                    &light_storage_buffer,
+                    0,
+                    bytemuck::cast_slice(visible_lights),
+                );
+            }
             // Reserve one slot per camera to keep deterministic offset mapping and sizing.
             camera_slot_index = camera_slot_index.saturating_add(1);
             for batch in &draw_batches {
@@ -869,6 +986,8 @@ fn fs_main(in: VsOut) -> @location(0) vec4<f32> {
                     let camera_raw = TwoDCameraRaw {
                         view_projection: item_vp,
                         tint: material_tint,
+                        model_position: item.transform.w_axis,
+                        light_offset_count: glam::UVec4::new(0, visible_lights.len() as u32, 0, 0),
                     };
                     let offset = (camera_slot_index as u64) * camera_dynamic_stride;
                     queue.write_buffer(

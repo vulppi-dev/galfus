@@ -766,6 +766,8 @@ fn two_d_composer_prelude() -> &'static str {
 struct CameraUniform {
     view_projection: mat4x4<f32>,
     tint: vec4<f32>,
+    model_position: vec4<f32>,
+    light_offset_count: vec4<u32>,
 }
 
 @group(0) @binding(0)
@@ -774,6 +776,13 @@ var<uniform> camera: CameraUniform;
 @group(0) @binding(2) var linear_clamp_sampler: sampler;
 @group(0) @binding(3) var point_repeat_sampler: sampler;
 @group(0) @binding(4) var linear_repeat_sampler: sampler;
+struct Light2D {
+    position: vec4<f32>,
+    color: vec4<f32>,
+    intensity_range: vec2<f32>,
+    kind_flags: vec2<u32>,
+}
+@group(0) @binding(5) var<storage, read> lights_2d: array<Light2D>;
 
 struct MaterialParams {
     input_indices: vec4<u32>,
@@ -865,6 +874,20 @@ fn load_scene_depth(pixel: vec2<i32>) -> f32 {
     return textureLoad(frame_scene_depth, pixel, 0);
 }
 
+fn apply_2d_lighting(base_color: vec4<f32>, model_position: vec2<f32>) -> vec4<f32> {
+    var lit = vec3<f32>(0.12, 0.12, 0.12);
+    let light_count = min(camera.light_offset_count.y, 64u);
+    for (var i: u32 = 0u; i < light_count; i = i + 1u) {
+        let l = lights_2d[camera.light_offset_count.x + i];
+        let to_light = l.position.xy - model_position;
+        let dist = length(to_light);
+        let range = max(l.intensity_range.y, 0.0001);
+        let attenuation = max(1.0 - (dist / range), 0.0);
+        lit += l.color.rgb * attenuation * l.intensity_range.x;
+    }
+    return vec4<f32>(base_color.rgb * lit, base_color.a);
+}
+
 struct VertexStageInput {
     @location(0) position: vec3<f32>,
     @location(4) uv: vec2<f32>,
@@ -911,7 +934,7 @@ fn vs_main(input: VertexStageInput) -> VertexStageOutput {
 fn fs_main(input: VertexStageOutput) -> @location(0) vec4<f32> {
     let logical_input = FragmentInput(input.color, input.uv);
     let logical_output = fragment(logical_input);
-    return logical_output.color;
+    return apply_2d_lighting(logical_output.color, camera.model_position.xy);
 }
 "#
 }
