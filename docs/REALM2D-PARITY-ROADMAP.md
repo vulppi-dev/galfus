@@ -10,7 +10,7 @@ This roadmap closes the architecture parity gap between `realm2d` and `realm3d` 
 
 ## Phase 0: Baseline and Contracts
 
-Status: `in_progress`
+Status: `completed` (commit `28bd02a`)
 
 Goal:
 - Freeze parity scope and acceptance contracts before feature work.
@@ -34,6 +34,8 @@ Validation:
 - Docs consistency review against existing runtime architecture docs.
 
 ## Phase 1: Realm2D Forward Material Layout Completion
+
+Status: `completed`
 
 Goal:
 - Align 2D forward material data layout semantics with 3D mindset (`global + material + frame semantics`).

@@ -2,7 +2,6 @@ use crate::core::render::RenderState;
 use crate::core::render::cache::PipelineKey;
 use crate::core::render::state::{
     TwoDBatchKey, TwoDBatchRange, TwoDItemKind, TwoDPreparedCamera, TwoDPreparedItem,
-    TwoDTextureBindKey,
 };
 
 #[repr(C)]
@@ -10,6 +9,15 @@ use crate::core::render::state::{
 struct TwoDCameraRaw {
     view_projection: glam::Mat4,
     tint: glam::Vec4,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
+struct TwoDFrameSemanticMeta {
+    resolution: glam::Vec2,
+    inv_resolution: glam::Vec2,
+    frame_index: u32,
+    flags: u32,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -76,18 +84,6 @@ fn material_tint_for_batch(
     glam::Vec4::ONE
 }
 
-fn material_base_texture_id(
-    scene: &crate::core::render::state::RenderScene,
-    material_id: u32,
-) -> Option<u32> {
-    let material = scene.materials.get(&material_id)?;
-    let texture_id = material.texture_ids[0];
-    if texture_id == crate::core::resources::SHADER_MATERIAL_INVALID_SLOT {
-        return None;
-    }
-    Some(texture_id)
-}
-
 fn align_up(value: u64, alignment: u64) -> u64 {
     if alignment <= 1 {
         return value;
@@ -105,47 +101,58 @@ fn ensure_two_d_pass_resources(
     let stride = align_up(std::mem::size_of::<TwoDCameraRaw>() as u64, min_alignment);
     let initial_slots = required_slots.max(1);
     let resources = render_state.two_d_pass_resources.get_or_insert_with(|| {
-        let camera_bind_group_layout =
+        let global_bind_group_layout =
             device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                label: Some("2D Camera BGL"),
-                entries: &[wgpu::BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: wgpu::ShaderStages::VERTEX,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Uniform,
-                        has_dynamic_offset: true,
-                        min_binding_size: std::num::NonZeroU64::new(
-                            std::mem::size_of::<TwoDCameraRaw>() as u64,
-                        ),
-                    },
-                    count: None,
-                }],
-            });
-        let texture_bind_group_layout =
-            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                label: Some("2D Texture BGL"),
+                label: Some("2D Global BGL"),
                 entries: &[
                     wgpu::BindGroupLayoutEntry {
                         binding: 0,
-                        visibility: wgpu::ShaderStages::FRAGMENT,
-                        ty: wgpu::BindingType::Texture {
-                            sample_type: wgpu::TextureSampleType::Float { filterable: true },
-                            view_dimension: wgpu::TextureViewDimension::D2,
-                            multisampled: false,
+                        visibility: wgpu::ShaderStages::VERTEX,
+                        ty: wgpu::BindingType::Buffer {
+                            ty: wgpu::BufferBindingType::Uniform,
+                            has_dynamic_offset: true,
+                            min_binding_size: std::num::NonZeroU64::new(std::mem::size_of::<
+                                TwoDCameraRaw,
+                            >(
+                            )
+                                as u64),
                         },
                         count: None,
                     },
                     wgpu::BindGroupLayoutEntry {
                         binding: 1,
                         visibility: wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::NonFiltering),
+                        count: None,
+                    },
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 2,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
+                        count: None,
+                    },
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 3,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::NonFiltering),
+                        count: None,
+                    },
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 4,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
                         ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Filtering),
                         count: None,
                     },
                 ],
             });
+        let library = render_state.library.as_ref().expect("library must exist");
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-            label: Some("2D Builtin Pipeline Layout"),
-            bind_group_layouts: &[&camera_bind_group_layout, &texture_bind_group_layout],
+            label: Some("2D Material Pipeline Layout"),
+            bind_group_layouts: &[
+                &global_bind_group_layout,
+                &library.layout_object_3d_material,
+                &library.layout_frame_semantics,
+            ],
             ..Default::default()
         });
         let camera_dynamic_buffer = device.create_buffer(&wgpu::BufferDescriptor {
@@ -154,20 +161,41 @@ fn ensure_two_d_pass_resources(
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
-        let camera_dynamic_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("2D Camera Dynamic BG"),
-            layout: &camera_bind_group_layout,
-            entries: &[wgpu::BindGroupEntry {
-                binding: 0,
-                resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
-                    buffer: &camera_dynamic_buffer,
-                    offset: 0,
-                    size: std::num::NonZeroU64::new(std::mem::size_of::<TwoDCameraRaw>() as u64),
-                }),
-            }],
-        });
-        let fallback_tex = device.create_texture(&wgpu::TextureDescriptor {
-            label: Some("2D Fallback White Texture"),
+        let global_bind_group =
+            device.create_bind_group(&wgpu::BindGroupDescriptor {
+                label: Some("2D Global BG"),
+                layout: &global_bind_group_layout,
+                entries: &[
+                    wgpu::BindGroupEntry {
+                        binding: 0,
+                        resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
+                            buffer: &camera_dynamic_buffer,
+                            offset: 0,
+                            size: std::num::NonZeroU64::new(
+                                std::mem::size_of::<TwoDCameraRaw>() as u64
+                            ),
+                        }),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 1,
+                        resource: wgpu::BindingResource::Sampler(&library.samplers.point_clamp),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 2,
+                        resource: wgpu::BindingResource::Sampler(&library.samplers.linear_clamp),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 3,
+                        resource: wgpu::BindingResource::Sampler(&library.samplers.point_repeat),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 4,
+                        resource: wgpu::BindingResource::Sampler(&library.samplers.linear_repeat),
+                    },
+                ],
+            });
+        let fallback_depth = device.create_texture(&wgpu::TextureDescriptor {
+            label: Some("2D Fallback Depth Texture"),
             size: wgpu::Extent3d {
                 width: 1,
                 height: 1,
@@ -176,18 +204,18 @@ fn ensure_two_d_pass_resources(
             mip_level_count: 1,
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
-            format: wgpu::TextureFormat::Rgba8Unorm,
+            format: wgpu::TextureFormat::Depth32Float,
             usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
             view_formats: &[],
         });
         queue.write_texture(
             wgpu::TexelCopyTextureInfo {
-                texture: &fallback_tex,
+                texture: &fallback_depth,
                 mip_level: 0,
                 origin: wgpu::Origin3d::ZERO,
                 aspect: wgpu::TextureAspect::All,
             },
-            &[255, 255, 255, 255],
+            bytemuck::bytes_of(&1.0f32),
             wgpu::TexelCopyBufferLayout {
                 offset: 0,
                 bytes_per_row: Some(4),
@@ -199,16 +227,16 @@ fn ensure_two_d_pass_resources(
                 depth_or_array_layers: 1,
             },
         );
-        let fallback_tex_view = fallback_tex.create_view(&wgpu::TextureViewDescriptor::default());
+        let fallback_depth_view =
+            fallback_depth.create_view(&wgpu::TextureViewDescriptor::default());
         crate::core::render::state::TwoDPassResources {
-            camera_bind_group_layout,
-            texture_bind_group_layout,
+            global_bind_group_layout,
             pipeline_layout,
             camera_dynamic_buffer,
-            camera_dynamic_bind_group,
+            global_bind_group,
             camera_dynamic_stride: stride,
             camera_dynamic_capacity_slots: initial_slots,
-            fallback_tex_view,
+            fallback_depth_view,
         }
     });
     if resources.camera_dynamic_capacity_slots < required_slots {
@@ -222,20 +250,42 @@ fn ensure_two_d_pass_resources(
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
-        let new_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("2D Camera Dynamic BG"),
-            layout: &resources.camera_bind_group_layout,
-            entries: &[wgpu::BindGroupEntry {
-                binding: 0,
-                resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
-                    buffer: &new_buffer,
-                    offset: 0,
-                    size: std::num::NonZeroU64::new(std::mem::size_of::<TwoDCameraRaw>() as u64),
-                }),
-            }],
-        });
+        let library = render_state.library.as_ref().expect("library must exist");
+        let new_bind_group =
+            device.create_bind_group(&wgpu::BindGroupDescriptor {
+                label: Some("2D Global BG"),
+                layout: &resources.global_bind_group_layout,
+                entries: &[
+                    wgpu::BindGroupEntry {
+                        binding: 0,
+                        resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
+                            buffer: &new_buffer,
+                            offset: 0,
+                            size: std::num::NonZeroU64::new(
+                                std::mem::size_of::<TwoDCameraRaw>() as u64
+                            ),
+                        }),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 1,
+                        resource: wgpu::BindingResource::Sampler(&library.samplers.point_clamp),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 2,
+                        resource: wgpu::BindingResource::Sampler(&library.samplers.linear_clamp),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 3,
+                        resource: wgpu::BindingResource::Sampler(&library.samplers.point_repeat),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 4,
+                        resource: wgpu::BindingResource::Sampler(&library.samplers.linear_repeat),
+                    },
+                ],
+            });
         resources.camera_dynamic_buffer = new_buffer;
-        resources.camera_dynamic_bind_group = new_bind_group;
+        resources.global_bind_group = new_bind_group;
         resources.camera_dynamic_capacity_slots = new_slots;
     }
 }
@@ -438,26 +488,87 @@ fn fs_main(in: VsOut) -> @location(0) vec4<f32> {
     let required_slots = (cameras.len() * (1 + render_state.two_d_batched.items.len())).max(1);
     ensure_two_d_pass_resources(render_state, device, queue, required_slots);
     let (
-        texture_bind_group_layout,
         pipeline_layout,
         camera_dynamic_buffer,
-        camera_dynamic_bind_group,
+        global_bind_group,
         camera_dynamic_stride,
-        fallback_tex_view,
+        fallback_depth_view,
     ) = {
         let resources = render_state
             .two_d_pass_resources
             .as_ref()
             .expect("2D pass resources must be initialized");
         (
-            resources.texture_bind_group_layout.clone(),
             resources.pipeline_layout.clone(),
             resources.camera_dynamic_buffer.clone(),
-            resources.camera_dynamic_bind_group.clone(),
+            resources.global_bind_group.clone(),
             resources.camera_dynamic_stride,
-            resources.fallback_tex_view.clone(),
+            resources.fallback_depth_view.clone(),
         )
     };
+    let library = render_state.library.as_ref().expect("library must exist");
+    let meta = TwoDFrameSemanticMeta {
+        resolution: glam::Vec2::new(target_size.x.max(1) as f32, target_size.y.max(1) as f32),
+        inv_resolution: glam::Vec2::new(
+            1.0 / target_size.x.max(1) as f32,
+            1.0 / target_size.y.max(1) as f32,
+        ),
+        frame_index: frame_index as u32,
+        flags: 1,
+    };
+    let meta_bytes = bytemuck::bytes_of(&meta);
+    let needs_realloc = render_state
+        .forward_semantics_buffer
+        .as_ref()
+        .map(|buffer| buffer.size() < meta_bytes.len() as u64)
+        .unwrap_or(true);
+    if needs_realloc {
+        render_state.forward_semantics_buffer =
+            Some(device.create_buffer(&wgpu::BufferDescriptor {
+                label: Some("2D Frame Semantics Buffer"),
+                size: meta_bytes.len() as u64,
+                usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+                mapped_at_creation: false,
+            }));
+    }
+    let Some(frame_semantics_buffer) = render_state.forward_semantics_buffer.as_ref() else {
+        return;
+    };
+    queue.write_buffer(frame_semantics_buffer, 0, meta_bytes);
+    let frame_semantics_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+        label: Some("2D Frame Semantics BG"),
+        layout: &library.layout_frame_semantics,
+        entries: &[
+            wgpu::BindGroupEntry {
+                binding: 0,
+                resource: wgpu::BindingResource::TextureView(target_view),
+            },
+            wgpu::BindGroupEntry {
+                binding: 1,
+                resource: wgpu::BindingResource::TextureView(&fallback_depth_view),
+            },
+            wgpu::BindGroupEntry {
+                binding: 2,
+                resource: wgpu::BindingResource::TextureView(&library.fallback_view),
+            },
+            wgpu::BindGroupEntry {
+                binding: 3,
+                resource: wgpu::BindingResource::TextureView(&library.fallback_view),
+            },
+            wgpu::BindGroupEntry {
+                binding: 4,
+                resource: wgpu::BindingResource::Sampler(&library.samplers.linear_clamp),
+            },
+            wgpu::BindGroupEntry {
+                binding: 5,
+                resource: wgpu::BindingResource::Sampler(&library.samplers.point_clamp),
+            },
+            wgpu::BindGroupEntry {
+                binding: 6,
+                resource: frame_semantics_buffer.as_entire_binding(),
+            },
+        ],
+    });
 
     let draw_batches = {
         let scene = &render_state.scene;
@@ -507,11 +618,6 @@ fn fs_main(in: VsOut) -> @location(0) vec4<f32> {
             let camera_vp = build_2d_view_projection(Some(camera), target_size);
             // Reserve one slot per camera to keep deterministic offset mapping and sizing.
             camera_slot_index = camera_slot_index.saturating_add(1);
-            let base_sampler = render_state
-                .library
-                .as_ref()
-                .map(|library| library.samplers.linear_clamp.clone());
-
             for batch in &draw_batches {
                 vertex_sys.begin_pass();
                 if !layer_visible_in_camera(batch.key.layer, camera.layer_mask) {
@@ -729,39 +835,24 @@ fn fs_main(in: VsOut) -> @location(0) vec4<f32> {
                     batch.count,
                 );
                 pass.insert_debug_marker(&marker);
-                let texture_view =
-                    material_base_texture_id(&render_state.scene, batch.key.material_id)
-                        .and_then(|texture_id| render_state.scene.textures.get(&texture_id))
-                        .map(|record| &record.view)
-                        .unwrap_or(&fallback_tex_view);
-                let Some(base_sampler) = base_sampler.as_ref() else {
-                    continue;
-                };
-                let bind_key = TwoDTextureBindKey {
-                    texture_view_ptr: texture_view as *const _ as usize,
-                    sampler_ptr: base_sampler as *const _ as usize,
-                };
-                let texture_bind_group = render_state
-                    .two_d_texture_bind_cache
-                    .entry(bind_key)
-                    .or_insert_with(|| {
-                        device.create_bind_group(&wgpu::BindGroupDescriptor {
-                            label: Some("2D Texture BG"),
-                            layout: &texture_bind_group_layout,
-                            entries: &[
-                                wgpu::BindGroupEntry {
-                                    binding: 0,
-                                    resource: wgpu::BindingResource::TextureView(texture_view),
-                                },
-                                wgpu::BindGroupEntry {
-                                    binding: 1,
-                                    resource: wgpu::BindingResource::Sampler(base_sampler),
-                                },
-                            ],
-                        })
-                    });
-                let texture_bind_group_ref: &wgpu::BindGroup = texture_bind_group;
-                pass.set_bind_group(1, texture_bind_group_ref, &[]);
+                pass.set_bind_group(0, &global_bind_group, &[0]);
+                pass.set_bind_group(2, &frame_semantics_bind_group, &[]);
+                if let Some(material) = material {
+                    if let Some(group) = material.bind_group.as_ref() {
+                        if let Some(material_slot) = render_state
+                            .material_uniform_slots
+                            .get(&batch.key.material_id)
+                            .copied()
+                        {
+                            let Some(bindings) = render_state.bindings.as_ref() else {
+                                continue;
+                            };
+                            let material_offset =
+                                bindings.material_3d_pool.get_offset(material_slot) as u32;
+                            pass.set_bind_group(1, group, &[material_offset]);
+                        }
+                    }
+                }
 
                 let start = batch.start as usize;
                 let end = start.saturating_add(batch.count as usize);
@@ -785,7 +876,7 @@ fn fs_main(in: VsOut) -> @location(0) vec4<f32> {
                         offset,
                         bytemuck::bytes_of(&camera_raw),
                     );
-                    pass.set_bind_group(0, &camera_dynamic_bind_group, &[offset as u32]);
+                    pass.set_bind_group(0, &global_bind_group, &[offset as u32]);
                     camera_slot_index = camera_slot_index.saturating_add(1);
                     pass.draw_indexed(0..index_info.count, 0, 0..1);
                 }

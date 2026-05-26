@@ -770,10 +770,46 @@ struct CameraUniform {
 
 @group(0) @binding(0)
 var<uniform> camera: CameraUniform;
-@group(1) @binding(0)
-var base_tex: texture_2d<f32>;
-@group(1) @binding(1)
-var base_sampler: sampler;
+@group(0) @binding(1) var point_clamp_sampler: sampler;
+@group(0) @binding(2) var linear_clamp_sampler: sampler;
+@group(0) @binding(3) var point_repeat_sampler: sampler;
+@group(0) @binding(4) var linear_repeat_sampler: sampler;
+
+struct MaterialParams {
+    input_indices: vec4<u32>,
+    inputs_offset_count: vec2<u32>,
+    surface_flags: vec2<u32>,
+    texture_slots: array<vec4<u32>, 2>,
+    sampler_indices: array<vec4<u32>, 2>,
+    tex_sources: array<vec4<u32>, 2>,
+    atlas_layers: array<vec4<u32>, 2>,
+    atlas_scale_bias: array<vec4<f32>, 8>,
+}
+
+@group(1) @binding(1) var<uniform> material: MaterialParams;
+@group(1) @binding(2) var<storage, read> material_inputs: array<vec4<f32>>;
+@group(1) @binding(3) var material_tex0: texture_2d<f32>;
+@group(1) @binding(4) var material_tex1: texture_2d<f32>;
+@group(1) @binding(5) var material_tex2: texture_2d<f32>;
+@group(1) @binding(6) var material_tex3: texture_2d<f32>;
+@group(1) @binding(7) var material_tex4: texture_2d<f32>;
+@group(1) @binding(8) var material_tex5: texture_2d<f32>;
+@group(1) @binding(9) var material_tex6: texture_2d<f32>;
+@group(1) @binding(10) var material_tex7: texture_2d<f32>;
+
+struct FrameSemanticMeta {
+    resolution: vec2<f32>,
+    inv_resolution: vec2<f32>,
+    frame_index: u32,
+    flags: u32,
+}
+@group(2) @binding(0) var frame_scene_color: texture_2d<f32>;
+@group(2) @binding(1) var frame_scene_depth: texture_depth_2d;
+@group(2) @binding(2) var frame_history0: texture_2d<f32>;
+@group(2) @binding(3) var frame_history1: texture_2d<f32>;
+@group(2) @binding(4) var frame_linear_sampler: sampler;
+@group(2) @binding(5) var frame_point_sampler: sampler;
+@group(2) @binding(6) var<uniform> frame_semantics: FrameSemanticMeta;
 
 struct VertexInput {
     position: vec3<f32>,
@@ -798,7 +834,35 @@ struct FragmentOutput {
 }
 
 fn sample_material(uv: vec2<f32>) -> vec4<f32> {
-    return textureSample(base_tex, base_sampler, uv);
+    return textureSample(material_tex0, linear_clamp_sampler, uv);
+}
+
+fn scene_resolution() -> vec2<f32> {
+    return frame_semantics.resolution;
+}
+
+fn scene_inv_resolution() -> vec2<f32> {
+    return frame_semantics.inv_resolution;
+}
+
+fn current_frame_index() -> u32 {
+    return frame_semantics.frame_index;
+}
+
+fn sample_scene_color(uv: vec2<f32>) -> vec4<f32> {
+    return textureSample(frame_scene_color, frame_linear_sampler, uv);
+}
+
+fn sample_history0(uv: vec2<f32>) -> vec4<f32> {
+    return textureSample(frame_history0, frame_linear_sampler, uv);
+}
+
+fn sample_history1(uv: vec2<f32>) -> vec4<f32> {
+    return textureSample(frame_history1, frame_linear_sampler, uv);
+}
+
+fn load_scene_depth(pixel: vec2<i32>) -> f32 {
+    return textureLoad(frame_scene_depth, pixel, 0);
 }
 
 struct VertexStageInput {
