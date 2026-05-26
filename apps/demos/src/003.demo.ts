@@ -45,11 +45,9 @@ async function main() {
     kind: 'standard',
     label: 'Demo003Red',
     options: {
-      type: 'standard',
+      type: 'schema',
       content: {
-        baseColor: [0.95, 0.25, 0.35, 1.0],
-        renderSide: 'double-side',
-        surfaceType: 'opaque'
+        baseColor: [0.95, 0.25, 0.35, 1.0]
       }
     }
   });
@@ -58,11 +56,9 @@ async function main() {
     kind: 'standard',
     label: 'Demo003Blue',
     options: {
-      type: 'standard',
+      type: 'schema',
       content: {
-        baseColor: [0.25, 0.45, 0.95, 1.0],
-        renderSide: 'double-side',
-        surfaceType: 'opaque'
+        baseColor: [0.25, 0.45, 0.95, 1.0]
       }
     }
   });

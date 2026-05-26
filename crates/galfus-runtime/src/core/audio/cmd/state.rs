@@ -1,4 +1,5 @@
 use crate::core::state::EngineState;
+use crate::core::id_policy::validate_host_logical_id;
 use galfus_audio::snapshot_audio_state;
 
 use super::types::{
@@ -95,6 +96,13 @@ pub fn engine_cmd_audio_source_get(
     engine: &mut EngineState,
     args: &CmdAudioSourceGetArgs,
 ) -> CmdResultAudioSourceGet {
+    if let Err(message) = validate_host_logical_id(args.source_id, "sourceId") {
+        return CmdResultAudioSourceGet {
+            success: false,
+            message,
+            ..Default::default()
+        };
+    }
     if !engine.audio_available {
         return CmdResultAudioSourceGet {
             success: false,
@@ -131,6 +139,13 @@ pub fn engine_cmd_audio_resource_get(
     engine: &mut EngineState,
     args: &CmdAudioResourceGetArgs,
 ) -> CmdResultAudioResourceGet {
+    if let Err(message) = validate_host_logical_id(args.resource_id, "resourceId") {
+        return CmdResultAudioResourceGet {
+            success: false,
+            message,
+            ..Default::default()
+        };
+    }
     if !engine.audio_available {
         return CmdResultAudioResourceGet {
             success: false,
@@ -161,6 +176,17 @@ pub fn engine_cmd_audio_source_list(
     engine: &mut EngineState,
     args: &CmdAudioSourceListArgs,
 ) -> CmdResultAudioSourceList {
+    if let Some(source_ids) = args.source_ids.as_ref() {
+        for source_id in source_ids {
+            if let Err(message) = validate_host_logical_id(*source_id, "sourceId") {
+                return CmdResultAudioSourceList {
+                    success: false,
+                    message,
+                    ..Default::default()
+                };
+            }
+        }
+    }
     if !engine.audio_available {
         return CmdResultAudioSourceList {
             success: false,
@@ -202,6 +228,17 @@ pub fn engine_cmd_audio_resource_list(
     engine: &mut EngineState,
     args: &CmdAudioResourceListArgs,
 ) -> CmdResultAudioResourceList {
+    if let Some(resource_ids) = args.resource_ids.as_ref() {
+        for resource_id in resource_ids {
+            if let Err(message) = validate_host_logical_id(*resource_id, "resourceId") {
+                return CmdResultAudioResourceList {
+                    success: false,
+                    message,
+                    ..Default::default()
+                };
+            }
+        }
+    }
     if !engine.audio_available {
         return CmdResultAudioResourceList {
             success: false,

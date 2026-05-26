@@ -15,7 +15,6 @@ mod samplers;
 mod shader_dsl;
 mod shaders;
 mod target;
-mod ui_actions;
 mod validation;
 mod window_state_map;
 
@@ -53,7 +52,7 @@ pub use realm_planner::{
     plan_auto_graph_layer_sync, plan_auto_graph_link, plan_auto_graph_surface_spec,
     plan_compose_overlays, plan_external_texture_refresh, plan_host_realm_index,
     plan_realm_environment_bindings, plan_surface_targets, plan_target_size_updates,
-    plan_target_ui_realm_index, resolve_auto_graph_layout, resolve_connector_surface,
+    resolve_auto_graph_layout, resolve_connector_surface,
     resolve_realm_surface, should_render_realm, update_present_size_cache, update_surface_cache,
 };
 pub use realm_policy::{
@@ -76,5 +75,4 @@ pub use target::{
     RenderTarget, ensure_render_target, ensure_surface_target, estimate_texture_bytes,
     texture_format_texel_bytes,
 };
-pub use ui_actions::{UiPlatformAction, collect_platform_actions};
 pub use window_state_map::WindowStateMap;

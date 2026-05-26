@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+use crate::core::id_policy::validate_host_logical_id;
 use crate::core::resources::EnvironmentConfig;
 use crate::core::state::EngineState;
 
@@ -36,6 +37,12 @@ pub fn engine_cmd_environment_create(
     engine: &mut EngineState,
     args: &CmdEnvironmentCreateArgs,
 ) -> CmdResultEnvironment {
+    if let Err(message) = validate_host_logical_id(args.environment_id, "environmentId") {
+        return CmdResultEnvironment {
+            success: false,
+            message,
+        };
+    }
     engine
         .universal_state
         .scene
@@ -54,6 +61,12 @@ pub fn engine_cmd_environment_update(
     engine: &mut EngineState,
     args: &CmdEnvironmentUpdateArgs,
 ) -> CmdResultEnvironment {
+    if let Err(message) = validate_host_logical_id(args.environment_id, "environmentId") {
+        return CmdResultEnvironment {
+            success: false,
+            message,
+        };
+    }
     engine
         .universal_state
         .scene
@@ -72,6 +85,12 @@ pub fn engine_cmd_environment_dispose(
     engine: &mut EngineState,
     args: &CmdEnvironmentDisposeArgs,
 ) -> CmdResultEnvironment {
+    if let Err(message) = validate_host_logical_id(args.environment_id, "environmentId") {
+        return CmdResultEnvironment {
+            success: false,
+            message,
+        };
+    }
     if engine
         .universal_state
         .scene

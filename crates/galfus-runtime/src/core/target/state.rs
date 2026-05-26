@@ -84,7 +84,8 @@ pub struct TargetRoutingState {
     pub target_graph_cache: TargetGraphCache,
     pub auto_links: HashMap<(u32, TargetId), AutoLink>,
     pub host_realm_index: HashMap<u32, RealmId>,
-    pub target_ui_realm_index: HashMap<TargetId, RealmId>,
+    pub external_textures: HashMap<u32, glam::UVec2>,
+    pub target_size_requests: HashMap<u64, glam::UVec2>,
     pub target_autolink_failures: Vec<crate::core::realm::TargetAutoLinkFailure>,
 }
 

@@ -1,5 +1,5 @@
-use std::time::{Duration, Instant};
 use std::collections::HashMap;
+use std::time::{Duration, Instant};
 
 use galfus_core::core;
 use galfus_core::core::GalfusResult;
@@ -73,7 +73,10 @@ pub fn run(ctx: DemoContext) -> bool {
         let time_seconds = total_ms as f32 / 1000.0;
         let updates = build_rotating_cube_updates(realm_3d, time_seconds);
         let _ = send_commands(updates);
-        assert_eq!(core::galfus_tick(total_ms as i64, FRAME_MS), GalfusResult::Success);
+        assert_eq!(
+            core::galfus_tick(total_ms as i64, FRAME_MS),
+            GalfusResult::Success
+        );
         total_ms = total_ms.saturating_add(FRAME_MS as u64);
         let _ = receive_responses();
         print_runtime_logs();

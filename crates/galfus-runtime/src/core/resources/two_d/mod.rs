@@ -1,6 +1,7 @@
 use glam::Mat4;
 use serde::{Deserialize, Serialize};
 
+use crate::core::id_policy::validate_host_logical_id;
 use crate::core::realm::{RealmId, RealmKind};
 use crate::core::resources::common::mark_realm_windows_dirty;
 use crate::core::state::EngineState;
@@ -240,12 +241,28 @@ fn dispose_error(
     }
 }
 
+fn validate_realm_entity_ids(
+    realm_id: u32,
+    entity_id: u32,
+    realm_field: &str,
+    entity_field: &str,
+) -> Result<(), String> {
+    validate_host_logical_id(realm_id, realm_field)?;
+    validate_host_logical_id(entity_id, entity_field)?;
+    Ok(())
+}
+
 pub fn engine_cmd_camera2d_upsert(
     engine: &mut EngineState,
     args: CmdCamera2dUpsertArgs,
 ) -> CmdResultTwoDUpsert {
     match args {
         CmdCamera2dUpsertArgs::Create(create) => {
+            if let Err(message) =
+                validate_realm_entity_ids(create.realm_id, create.camera_id, "realmId", "cameraId")
+            {
+                return upsert_error(engine, "camera2d", "camera2d-upsert", message);
+            }
             let realm_id = RealmId(create.realm_id);
             if let Err(message) = ensure_realm_is_2d(engine, realm_id, "camera2d-upsert") {
                 return upsert_error(engine, "camera2d", "camera2d-upsert", message);
@@ -283,6 +300,11 @@ pub fn engine_cmd_camera2d_upsert(
             }
         }
         CmdCamera2dUpsertArgs::Update(update) => {
+            if let Err(message) =
+                validate_realm_entity_ids(update.realm_id, update.camera_id, "realmId", "cameraId")
+            {
+                return upsert_error(engine, "camera2d", "camera2d-upsert", message);
+            }
             let realm_id = RealmId(update.realm_id);
             if let Err(message) = ensure_realm_is_2d(engine, realm_id, "camera2d-upsert") {
                 return upsert_error(engine, "camera2d", "camera2d-upsert", message);
@@ -340,6 +362,11 @@ pub fn engine_cmd_camera2d_dispose(
     engine: &mut EngineState,
     args: &CmdCamera2dDisposeArgs,
 ) -> CmdResultTwoDDispose {
+    if let Err(message) =
+        validate_realm_entity_ids(args.realm_id, args.camera_id, "realmId", "cameraId")
+    {
+        return dispose_error(engine, "camera2d", "camera2d-dispose", message);
+    }
     let realm_id = RealmId(args.realm_id);
     if let Err(message) = ensure_realm_is_2d(engine, realm_id, "camera2d-dispose") {
         return dispose_error(engine, "camera2d", "camera2d-dispose", message);
@@ -379,6 +406,19 @@ pub fn engine_cmd_sprite2d_upsert(
 ) -> CmdResultTwoDUpsert {
     match args {
         CmdSprite2dUpsertArgs::Create(create) => {
+            if let Err(message) =
+                validate_realm_entity_ids(create.realm_id, create.sprite_id, "realmId", "spriteId")
+            {
+                return upsert_error(engine, "sprite2d", "sprite2d-upsert", message);
+            }
+            if let Err(message) = validate_host_logical_id(create.geometry_id, "geometryId") {
+                return upsert_error(engine, "sprite2d", "sprite2d-upsert", message);
+            }
+            if let Some(material_id) = create.material_id
+                && let Err(message) = validate_host_logical_id(material_id, "materialId")
+            {
+                return upsert_error(engine, "sprite2d", "sprite2d-upsert", message);
+            }
             let realm_id = RealmId(create.realm_id);
             if let Err(message) = ensure_realm_is_2d(engine, realm_id, "sprite2d-upsert") {
                 return upsert_error(engine, "sprite2d", "sprite2d-upsert", message);
@@ -415,6 +455,21 @@ pub fn engine_cmd_sprite2d_upsert(
             }
         }
         CmdSprite2dUpsertArgs::Update(update) => {
+            if let Err(message) =
+                validate_realm_entity_ids(update.realm_id, update.sprite_id, "realmId", "spriteId")
+            {
+                return upsert_error(engine, "sprite2d", "sprite2d-upsert", message);
+            }
+            if let Some(geometry_id) = update.geometry_id
+                && let Err(message) = validate_host_logical_id(geometry_id, "geometryId")
+            {
+                return upsert_error(engine, "sprite2d", "sprite2d-upsert", message);
+            }
+            if let Some(material_id) = update.material_id
+                && let Err(message) = validate_host_logical_id(material_id, "materialId")
+            {
+                return upsert_error(engine, "sprite2d", "sprite2d-upsert", message);
+            }
             let realm_id = RealmId(update.realm_id);
             if let Err(message) = ensure_realm_is_2d(engine, realm_id, "sprite2d-upsert") {
                 return upsert_error(engine, "sprite2d", "sprite2d-upsert", message);
@@ -469,6 +524,11 @@ pub fn engine_cmd_sprite2d_dispose(
     engine: &mut EngineState,
     args: &CmdSprite2dDisposeArgs,
 ) -> CmdResultTwoDDispose {
+    if let Err(message) =
+        validate_realm_entity_ids(args.realm_id, args.sprite_id, "realmId", "spriteId")
+    {
+        return dispose_error(engine, "sprite2d", "sprite2d-dispose", message);
+    }
     let realm_id = RealmId(args.realm_id);
     if let Err(message) = ensure_realm_is_2d(engine, realm_id, "sprite2d-dispose") {
         return dispose_error(engine, "sprite2d", "sprite2d-dispose", message);
@@ -508,6 +568,19 @@ pub fn engine_cmd_shape2d_upsert(
 ) -> CmdResultTwoDUpsert {
     match args {
         CmdShape2dUpsertArgs::Create(create) => {
+            if let Err(message) =
+                validate_realm_entity_ids(create.realm_id, create.shape_id, "realmId", "shapeId")
+            {
+                return upsert_error(engine, "shape2d", "shape2d-upsert", message);
+            }
+            if let Err(message) = validate_host_logical_id(create.geometry_id, "geometryId") {
+                return upsert_error(engine, "shape2d", "shape2d-upsert", message);
+            }
+            if let Some(material_id) = create.material_id
+                && let Err(message) = validate_host_logical_id(material_id, "materialId")
+            {
+                return upsert_error(engine, "shape2d", "shape2d-upsert", message);
+            }
             let realm_id = RealmId(create.realm_id);
             if let Err(message) = ensure_realm_is_2d(engine, realm_id, "shape2d-upsert") {
                 return upsert_error(engine, "shape2d", "shape2d-upsert", message);
@@ -544,6 +617,21 @@ pub fn engine_cmd_shape2d_upsert(
             }
         }
         CmdShape2dUpsertArgs::Update(update) => {
+            if let Err(message) =
+                validate_realm_entity_ids(update.realm_id, update.shape_id, "realmId", "shapeId")
+            {
+                return upsert_error(engine, "shape2d", "shape2d-upsert", message);
+            }
+            if let Some(geometry_id) = update.geometry_id
+                && let Err(message) = validate_host_logical_id(geometry_id, "geometryId")
+            {
+                return upsert_error(engine, "shape2d", "shape2d-upsert", message);
+            }
+            if let Some(material_id) = update.material_id
+                && let Err(message) = validate_host_logical_id(material_id, "materialId")
+            {
+                return upsert_error(engine, "shape2d", "shape2d-upsert", message);
+            }
             let realm_id = RealmId(update.realm_id);
             if let Err(message) = ensure_realm_is_2d(engine, realm_id, "shape2d-upsert") {
                 return upsert_error(engine, "shape2d", "shape2d-upsert", message);
@@ -598,6 +686,11 @@ pub fn engine_cmd_shape2d_dispose(
     engine: &mut EngineState,
     args: &CmdShape2dDisposeArgs,
 ) -> CmdResultTwoDDispose {
+    if let Err(message) =
+        validate_realm_entity_ids(args.realm_id, args.shape_id, "realmId", "shapeId")
+    {
+        return dispose_error(engine, "shape2d", "shape2d-dispose", message);
+    }
     let realm_id = RealmId(args.realm_id);
     if let Err(message) = ensure_realm_is_2d(engine, realm_id, "shape2d-dispose") {
         return dispose_error(engine, "shape2d", "shape2d-dispose", message);

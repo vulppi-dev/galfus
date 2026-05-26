@@ -1,6 +1,7 @@
 use super::types::*;
 use super::utils::mark_global_materials_dirty;
 use crate::core::buffers::state::UploadType;
+use crate::core::id_policy::{validate_host_logical_id, validate_host_logical_id_u64};
 use crate::core::image::{ImageBuffer, ImagePixels};
 use crate::core::resources::texture::{
     TextureAsyncEvent, TextureDecodeJob, TextureDecodeResult, TextureRecord,
@@ -13,6 +14,13 @@ pub fn engine_cmd_texture_create_from_buffer(
     engine: &mut EngineState,
     args: &CmdTextureCreateFromBufferArgs,
 ) -> CmdResultTextureCreateFromBuffer {
+    if let Err(message) = validate_host_logical_id(args.texture_id, "textureId") {
+        return CmdResultTextureCreateFromBuffer {
+            success: false,
+            message,
+            pending: false,
+        };
+    }
     let render_resources = &engine.universal_state.scene.render_resources;
     if render_resources.textures.contains_key(&args.texture_id)
         || render_resources
@@ -311,6 +319,12 @@ pub fn engine_cmd_texture_create_solid_color(
     engine: &mut EngineState,
     args: &CmdTextureCreateSolidColorArgs,
 ) -> CmdResultTextureCreateSolidColor {
+    if let Err(message) = validate_host_logical_id(args.texture_id, "textureId") {
+        return CmdResultTextureCreateSolidColor {
+            success: false,
+            message,
+        };
+    }
     let render_resources = &mut engine.universal_state.scene.render_resources;
     if render_resources.textures.contains_key(&args.texture_id)
         || render_resources
@@ -402,6 +416,12 @@ pub fn engine_cmd_texture_dispose(
     engine: &mut EngineState,
     args: &CmdTextureDisposeArgs,
 ) -> CmdResultTextureDispose {
+    if let Err(message) = validate_host_logical_id(args.texture_id, "textureId") {
+        return CmdResultTextureDispose {
+            success: false,
+            message,
+        };
+    }
     engine.texture_async.cancel(args.texture_id);
     engine
         .pending_texture_decode_results
@@ -438,6 +458,18 @@ pub fn engine_cmd_texture_bind_target(
     engine: &mut EngineState,
     args: &CmdTextureBindTargetArgs,
 ) -> CmdResultTextureBindTarget {
+    if let Err(message) = validate_host_logical_id(args.texture_id, "textureId") {
+        return CmdResultTextureBindTarget {
+            success: false,
+            message,
+        };
+    }
+    if let Err(message) = validate_host_logical_id_u64(args.target_id, "targetId") {
+        return CmdResultTextureBindTarget {
+            success: false,
+            message,
+        };
+    }
     let render_resources = &mut engine.universal_state.scene.render_resources;
     if render_resources.textures.contains_key(&args.texture_id)
         || render_resources

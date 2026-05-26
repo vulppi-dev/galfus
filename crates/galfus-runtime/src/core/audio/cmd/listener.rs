@@ -1,4 +1,5 @@
 use crate::core::audio::AudioListenerState;
+use crate::core::id_policy::validate_host_logical_id;
 use crate::core::state::EngineState;
 use galfus_audio::{
     AudioModelTransform, bind_listener, dispose_listener_for_realm, resolve_listener_binding_state,
@@ -42,6 +43,18 @@ pub fn engine_cmd_audio_listener_create(
     engine: &mut EngineState,
     args: &CmdAudioListenerCreateArgs,
 ) -> CmdResultAudioListenerCreate {
+    if let Err(message) = validate_host_logical_id(args.realm_id, "realmId") {
+        return CmdResultAudioListenerCreate {
+            success: false,
+            message,
+        };
+    }
+    if let Err(message) = validate_host_logical_id(args.model_id, "modelId") {
+        return CmdResultAudioListenerCreate {
+            success: false,
+            message,
+        };
+    }
     if !engine.audio_available {
         return CmdResultAudioListenerCreate {
             success: false,
@@ -59,6 +72,12 @@ pub fn engine_cmd_audio_listener_dispose(
     engine: &mut EngineState,
     args: &CmdAudioListenerDisposeArgs,
 ) -> CmdResultAudioListenerDispose {
+    if let Err(message) = validate_host_logical_id(args.realm_id, "realmId") {
+        return CmdResultAudioListenerDispose {
+            success: false,
+            message,
+        };
+    }
     if !engine.audio_available {
         return CmdResultAudioListenerDispose {
             success: false,

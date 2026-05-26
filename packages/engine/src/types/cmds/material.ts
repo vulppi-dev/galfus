@@ -1,10 +1,10 @@
 import type { Vec4 as vec4 } from '../../math/index';
 import type {
-  TransparencyMode,
-  SamplerMode,
   PrimitiveTopology,
   PolygonMode,
-  RenderSide
+  RenderSide,
+  SamplerMode,
+  TransparencyMode
 } from '../kinds';
 import type {
   CmdResourceGetArgs,
@@ -14,62 +14,14 @@ import type {
   ResourceEntry
 } from './resources';
 
-/** Standard material options. */
-export interface StandardOptions {
-  baseColor?: vec4;
-  surfaceType?: TransparencyMode;
-  topology?: PrimitiveTopology;
-  polygonMode?: PolygonMode;
-  renderSide?: RenderSide;
-  emissiveColor?: vec4 | null;
-  specColor?: vec4 | null;
-  specPower?: number | null;
-  baseTexId?: number | null;
-  baseSampler?: SamplerMode | null;
-  specTexId?: number | null;
-  specSampler?: SamplerMode | null;
-  normalTexId?: number | null;
-  normalSampler?: SamplerMode | null;
-  toonRampTexId?: number | null;
-  toonRampSampler?: SamplerMode | null;
-  emissiveTexId?: number | null;
-  emissiveSampler?: SamplerMode | null;
-  flags?: number;
-  toonParams?: vec4 | null;
-}
-
-/** PBR material options. */
-export interface PbrOptions {
-  baseColor?: vec4;
-  surfaceType?: TransparencyMode;
-  topology?: PrimitiveTopology;
-  polygonMode?: PolygonMode;
-  renderSide?: RenderSide;
-  emissiveColor?: vec4;
-  metallic?: number;
-  roughness?: number;
-  ao?: number;
-  normalScale?: number;
-  baseTexId?: number | null;
-  baseSampler?: SamplerMode | null;
-  normalTexId?: number | null;
-  normalSampler?: SamplerMode | null;
-  metallicRoughnessTexId?: number | null;
-  metallicRoughnessSampler?: SamplerMode | null;
-  emissiveTexId?: number | null;
-  emissiveSampler?: SamplerMode | null;
-  aoTexId?: number | null;
-  aoSampler?: SamplerMode | null;
-  flags?: number;
-}
-
-/** Union of material option payloads. */
-export type MaterialOptions =
-  | { type: 'standard'; content: StandardOptions }
-  | { type: 'pbr'; content: PbrOptions };
+/** Material options payload accepted by core (schema-only). */
+export type MaterialOptions = {
+  type: 'schema';
+  content: Record<string, vec4>;
+};
 
 /** Command payload for creating a material. */
-export type MaterialRealmKind = 'two-d' | 'three-d' | 'both';
+export type MaterialRealmKind = 'two-d' | 'three-d';
 
 export interface CmdMaterialCreateArgs {
   materialId: number;
@@ -131,9 +83,10 @@ export interface CmdMaterialDefinitionCreateArgs {
   definitionId: number;
   slug: string;
   label?: string;
-  preset: string;
+  realmKind: MaterialRealmKind;
+  preset?: string;
   shaderType?: string;
-  shaderSource: string;
+  shaderSource?: string;
   shaderParamsSchema?: Record<string, string>;
   capabilities?: MaterialShaderCapabilities;
 }
@@ -142,9 +95,10 @@ export interface CmdMaterialDefinitionUpdateArgs {
   definitionId: number;
   slug?: string;
   label?: string;
+  realmKind?: MaterialRealmKind;
   preset?: string;
   shaderType?: string;
-  shaderSource: string;
+  shaderSource?: string;
   shaderParamsSchema?: Record<string, string>;
   capabilities?: MaterialShaderCapabilities;
 }

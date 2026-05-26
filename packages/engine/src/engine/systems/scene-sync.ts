@@ -138,6 +138,7 @@ export const SceneSyncSystem: System = (world, context) => {
         near: intent.props.near ?? 0.1,
         far: intent.props.far ?? 1000,
         order: intent.props.order ?? 0,
+        layerMask: intent.props.layerMask ?? 0xffffffff,
         orthoScale: intent.props.orthoScale ?? (is2D ? 1.0 : 10.0),
         skipUpdate: true
       });

@@ -466,22 +466,6 @@ fn rebuild_target_indexes(universal: &mut UniversalState) {
         &layer_target_kinds,
     );
 
-    let target_layers: Vec<_> = universal
-        .targets
-        .target_layers
-        .entries
-        .keys()
-        .map(|(realm_id, target_id)| (*realm_id, *target_id))
-        .collect();
-    let realm_kinds: HashMap<_, _> = universal
-        .composition
-        .realms
-        .entries
-        .iter()
-        .map(|(realm_id, entry)| (*realm_id, entry.value.kind))
-        .collect();
-    universal.targets.target_ui_realm_index =
-        galfus_render::plan_target_ui_realm_index(&target_layers, &realm_kinds);
 }
 
 fn surface_state_for_target(

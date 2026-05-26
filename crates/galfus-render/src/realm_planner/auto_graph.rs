@@ -128,36 +128,6 @@ pub fn plan_host_realm_index(
     host_realm_index
 }
 
-pub fn plan_target_ui_realm_index(
-    layers: &[(u32, TargetId)],
-    realm_kinds: &HashMap<RealmId, RealmKind>,
-) -> HashMap<TargetId, RealmId> {
-    let mut target_ui_realm_index: HashMap<TargetId, RealmId> = HashMap::new();
-
-    for (realm_id, target_id) in layers {
-        let realm_id = RealmId(*realm_id);
-        let Some(realm_kind) = realm_kinds.get(&realm_id) else {
-            continue;
-        };
-        if *realm_kind != RealmKind::TwoD {
-            continue;
-        }
-
-        match target_ui_realm_index.get_mut(target_id) {
-            Some(existing) => {
-                if realm_id.0 < existing.0 {
-                    *existing = realm_id;
-                }
-            }
-            None => {
-                target_ui_realm_index.insert(*target_id, realm_id);
-            }
-        }
-    }
-
-    target_ui_realm_index
-}
-
 pub fn plan_auto_graph_surface_spec(
     target_kind: TargetKind,
     target_window_id: Option<u32>,

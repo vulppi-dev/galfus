@@ -1,4 +1,5 @@
 use crate::core::realm::RealmId;
+use crate::core::id_policy::validate_host_logical_id;
 use crate::core::resources::MaterialRealmKind;
 use crate::core::resources::list::ResourceEntry;
 use crate::core::state::EngineState;
@@ -46,6 +47,21 @@ fn resolve_realm_scope(engine: &EngineState, scope: &QueryScopeArgs) -> Option<R
     })
 }
 
+fn validate_scope_ids(scope: &QueryScopeArgs) -> Result<(), String> {
+    if let Some(window_id) = scope.window_id {
+        validate_host_logical_id(window_id, "windowId")?;
+    }
+    if let Some(realm_id) = scope.realm_id {
+        validate_host_logical_id(realm_id, "realmId")?;
+    }
+    if let Some(ids) = scope.ids.as_ref() {
+        for id in ids {
+            validate_host_logical_id(*id, "id")?;
+        }
+    }
+    Ok(())
+}
+
 fn id_allowed(scope: &QueryScopeArgs, id: u32) -> bool {
     scope.ids.as_ref().is_none_or(|ids| ids.contains(&id))
 }
@@ -77,6 +93,16 @@ pub fn engine_cmd_camera_get(
     engine: &mut EngineState,
     args: &CmdResourceGetArgs,
 ) -> CmdResultResourceGet {
+    if let Err(message) = validate_host_logical_id(args.id, "id")
+        .and_then(|_| validate_scope_ids(&args.scope))
+    {
+        return CmdResultResourceGet {
+            success: false,
+            message,
+            kind: "camera".into(),
+            ..Default::default()
+        };
+    }
     let Some(realm_id) = resolve_realm_scope(engine, &args.scope) else {
         return CmdResultResourceGet {
             success: false,
@@ -115,6 +141,16 @@ pub fn engine_cmd_model_get(
     engine: &mut EngineState,
     args: &CmdResourceGetArgs,
 ) -> CmdResultResourceGet {
+    if let Err(message) = validate_host_logical_id(args.id, "id")
+        .and_then(|_| validate_scope_ids(&args.scope))
+    {
+        return CmdResultResourceGet {
+            success: false,
+            message,
+            kind: "model".into(),
+            ..Default::default()
+        };
+    }
     let Some(realm_id) = resolve_realm_scope(engine, &args.scope) else {
         return CmdResultResourceGet {
             success: false,
@@ -153,6 +189,16 @@ pub fn engine_cmd_light_get(
     engine: &mut EngineState,
     args: &CmdResourceGetArgs,
 ) -> CmdResultResourceGet {
+    if let Err(message) = validate_host_logical_id(args.id, "id")
+        .and_then(|_| validate_scope_ids(&args.scope))
+    {
+        return CmdResultResourceGet {
+            success: false,
+            message,
+            kind: "light".into(),
+            ..Default::default()
+        };
+    }
     let Some(realm_id) = resolve_realm_scope(engine, &args.scope) else {
         return CmdResultResourceGet {
             success: false,
@@ -191,6 +237,16 @@ pub fn engine_cmd_geometry_get(
     engine: &mut EngineState,
     args: &CmdResourceGetArgs,
 ) -> CmdResultResourceGet {
+    if let Err(message) = validate_host_logical_id(args.id, "id")
+        .and_then(|_| validate_scope_ids(&args.scope))
+    {
+        return CmdResultResourceGet {
+            success: false,
+            message,
+            kind: "geometry".into(),
+            ..Default::default()
+        };
+    }
     let Some(rec) = engine
         .universal_state
         .scene
@@ -219,6 +275,16 @@ pub fn engine_cmd_material_get(
     engine: &mut EngineState,
     args: &CmdMaterialGetArgs,
 ) -> CmdResultResourceGet {
+    if let Err(message) = validate_host_logical_id(args.id, "id")
+        .and_then(|_| validate_scope_ids(&args.scope))
+    {
+        return CmdResultResourceGet {
+            success: false,
+            message,
+            kind: "material".into(),
+            ..Default::default()
+        };
+    }
     let Some(rec) = engine.universal_state.scene.realm3d.materials.get(&args.id) else {
         return CmdResultResourceGet {
             success: false,
@@ -251,6 +317,16 @@ pub fn engine_cmd_texture_get(
     engine: &mut EngineState,
     args: &CmdResourceGetArgs,
 ) -> CmdResultResourceGet {
+    if let Err(message) = validate_host_logical_id(args.id, "id")
+        .and_then(|_| validate_scope_ids(&args.scope))
+    {
+        return CmdResultResourceGet {
+            success: false,
+            message,
+            kind: "texture".into(),
+            ..Default::default()
+        };
+    }
     if let Some(rec) = engine
         .universal_state
         .scene
@@ -311,6 +387,16 @@ pub fn engine_cmd_environment_get(
     engine: &mut EngineState,
     args: &CmdResourceGetArgs,
 ) -> CmdResultResourceGet {
+    if let Err(message) = validate_host_logical_id(args.id, "id")
+        .and_then(|_| validate_scope_ids(&args.scope))
+    {
+        return CmdResultResourceGet {
+            success: false,
+            message,
+            kind: "environment".into(),
+            ..Default::default()
+        };
+    }
     let Some(rec) = engine
         .universal_state
         .scene
@@ -340,6 +426,16 @@ pub fn engine_cmd_material_definition_get(
     engine: &mut EngineState,
     args: &CmdResourceGetArgs,
 ) -> CmdResultResourceGet {
+    if let Err(message) = validate_host_logical_id(args.id, "id")
+        .and_then(|_| validate_scope_ids(&args.scope))
+    {
+        return CmdResultResourceGet {
+            success: false,
+            message,
+            kind: "material-definition".into(),
+            ..Default::default()
+        };
+    }
     let Some(rec) = engine
         .universal_state
         .scene
@@ -367,6 +463,16 @@ pub fn engine_cmd_material_instance_get(
     engine: &mut EngineState,
     args: &CmdMaterialInstanceGetArgs,
 ) -> CmdResultResourceGet {
+    if let Err(message) = validate_host_logical_id(args.id, "id")
+        .and_then(|_| validate_scope_ids(&args.scope))
+    {
+        return CmdResultResourceGet {
+            success: false,
+            message,
+            kind: "material-instance".into(),
+            ..Default::default()
+        };
+    }
     let Some(rec) = engine
         .universal_state
         .scene
@@ -427,6 +533,14 @@ pub fn engine_cmd_environment_list(
     engine: &mut EngineState,
     args: &CmdResourceListArgs,
 ) -> CmdResultResourceList {
+    if let Err(message) = validate_scope_ids(&args.scope) {
+        return CmdResultResourceList {
+            success: false,
+            message,
+            kind: "environment".into(),
+            items: Vec::new(),
+        };
+    }
     let items = entries_from_iter(
         engine
             .universal_state
@@ -449,6 +563,14 @@ pub fn engine_cmd_material_definition_list(
     engine: &mut EngineState,
     args: &CmdResourceListArgs,
 ) -> CmdResultResourceList {
+    if let Err(message) = validate_scope_ids(&args.scope) {
+        return CmdResultResourceList {
+            success: false,
+            message,
+            kind: "material-definition".into(),
+            items: Vec::new(),
+        };
+    }
     let items = entries_from_iter(
         engine
             .universal_state
@@ -470,6 +592,14 @@ pub fn engine_cmd_material_instance_list(
     engine: &mut EngineState,
     args: &CmdMaterialInstanceListArgs,
 ) -> CmdResultResourceList {
+    if let Err(message) = validate_scope_ids(&args.scope) {
+        return CmdResultResourceList {
+            success: false,
+            message,
+            kind: "material-instance".into(),
+            items: Vec::new(),
+        };
+    }
     let items = entries_from_iter(
         engine
             .universal_state

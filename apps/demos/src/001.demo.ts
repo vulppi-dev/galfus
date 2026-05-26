@@ -9,7 +9,7 @@ import {
 } from '@galfus/engine';
 import { transportBunFfi } from '@galfus/transport-bun';
 
-const RUN_DURATION_MS = 5_000;
+const RUN_DURATION_MS = 50_000;
 const FRAME_TARGET_MS = 16;
 const SHADOW_CONFIG = {
   tileResolution: 1024,
@@ -64,12 +64,9 @@ async function main() {
     kind: 'standard',
     label: 'Demo001Standard',
     options: {
-      type: 'standard',
+      type: 'schema',
       content: {
-        baseColor: [0.92, 0.35, 0.32, 1],
-        renderSide: 'back',
-        surfaceType: 'opaque',
-        flags: 0
+        baseColor: [0.92, 0.35, 0.32, 1]
       }
     }
   });
@@ -78,16 +75,13 @@ async function main() {
     kind: 'pbr',
     label: 'Demo001Pbr',
     options: {
-      type: 'pbr',
+      type: 'schema',
       content: {
         baseColor: [0.25, 0.86, 0.62, 1],
-        metallic: 0.55,
-        roughness: 0.35,
-        ao: 1,
-        normalScale: 1,
-        renderSide: 'back',
-        flags: 0,
-        surfaceType: 'opaque'
+        metallic: [0.55, 0, 0, 0],
+        roughness: [0.35, 0, 0, 0],
+        ao: [1, 0, 0, 0],
+        normalScale: [1, 0, 0, 0]
       }
     }
   });
@@ -96,15 +90,12 @@ async function main() {
     kind: 'standard',
     label: 'Demo001CustomSimplePlaceholder',
     options: {
-      type: 'standard',
+      type: 'schema',
       content: {
         baseColor: [0.25, 0.45, 0.98, 1],
         emissiveColor: [0, 0, 0, 0],
         specColor: [1, 1, 1, 1],
-        specPower: 64,
-        renderSide: 'back',
-        surfaceType: 'opaque',
-        flags: 0
+        specPower: [64, 0, 0, 0]
       }
     }
   });
@@ -112,14 +103,11 @@ async function main() {
     kind: 'standard',
     label: 'Demo001Floor',
     options: {
-      type: 'standard',
+      type: 'schema',
       content: {
         baseColor: [0.24, 0.24, 0.26, 1],
         specColor: [0.05, 0.05, 0.05, 1],
-        specPower: 8,
-        renderSide: 'double-side',
-        surfaceType: 'opaque',
-        flags: 0
+        specPower: [8, 0, 0, 0]
       }
     }
   });

@@ -1,6 +1,7 @@
 use super::types::*;
 use super::utils::pack_schema_material;
 use crate::core::cmd::EngineEvent;
+use crate::core::id_policy::validate_host_logical_id;
 use crate::core::resources::{
     MATERIAL_DEFINITION_PBR_ID, MATERIAL_DEFINITION_PBR_SLUG, MATERIAL_DEFINITION_STANDARD_2D_ID,
     MATERIAL_DEFINITION_STANDARD_2D_SLUG, MATERIAL_DEFINITION_STANDARD_ID,
@@ -499,6 +500,12 @@ pub fn engine_cmd_material_definition_create(
     engine: &mut EngineState,
     args: &CmdMaterialDefinitionCreateArgs,
 ) -> CmdResultMaterialDefinition {
+    if let Err(message) = validate_host_logical_id(args.definition_id, "definitionId") {
+        return CmdResultMaterialDefinition {
+            success: false,
+            message,
+        };
+    }
     bootstrap_builtin_material_definitions(engine);
 
     if engine
@@ -652,6 +659,12 @@ pub fn engine_cmd_material_definition_update(
     engine: &mut EngineState,
     args: &CmdMaterialDefinitionUpdateArgs,
 ) -> CmdResultMaterialDefinition {
+    if let Err(message) = validate_host_logical_id(args.definition_id, "definitionId") {
+        return CmdResultMaterialDefinition {
+            success: false,
+            message,
+        };
+    }
     bootstrap_builtin_material_definitions(engine);
     if args.definition_id == MATERIAL_DEFINITION_STANDARD_ID
         || args.definition_id == MATERIAL_DEFINITION_PBR_ID
@@ -857,6 +870,12 @@ pub fn engine_cmd_material_definition_dispose(
     engine: &mut EngineState,
     args: &CmdMaterialDefinitionDisposeArgs,
 ) -> CmdResultMaterialDefinition {
+    if let Err(message) = validate_host_logical_id(args.definition_id, "definitionId") {
+        return CmdResultMaterialDefinition {
+            success: false,
+            message,
+        };
+    }
     if args.definition_id == MATERIAL_DEFINITION_STANDARD_ID
         || args.definition_id == MATERIAL_DEFINITION_PBR_ID
         || args.definition_id == MATERIAL_DEFINITION_STANDARD_2D_ID
@@ -983,6 +1002,12 @@ pub fn engine_cmd_material_instance_create(
     engine: &mut EngineState,
     args: &CmdMaterialInstanceCreateArgs,
 ) -> CmdResultMaterialInstance {
+    if let Err(message) = validate_host_logical_id(args.material_id, "materialId") {
+        return CmdResultMaterialInstance {
+            success: false,
+            message,
+        };
+    }
     let Some(definition) = definition_by_slug(engine, &args.slug) else {
         return CmdResultMaterialInstance {
             success: false,
@@ -1035,6 +1060,12 @@ pub fn engine_cmd_material_instance_update(
     engine: &mut EngineState,
     args: &CmdMaterialInstanceUpdateArgs,
 ) -> CmdResultMaterialInstance {
+    if let Err(message) = validate_host_logical_id(args.material_id, "materialId") {
+        return CmdResultMaterialInstance {
+            success: false,
+            message,
+        };
+    }
     if let Some(slug) = args.slug.as_ref() {
         let Some(definition) = definition_by_slug(engine, slug) else {
             return CmdResultMaterialInstance {
@@ -1071,6 +1102,12 @@ pub fn engine_cmd_material_instance_dispose(
     engine: &mut EngineState,
     args: &CmdMaterialInstanceDisposeArgs,
 ) -> CmdResultMaterialInstance {
+    if let Err(message) = validate_host_logical_id(args.material_id, "materialId") {
+        return CmdResultMaterialInstance {
+            success: false,
+            message,
+        };
+    }
     if engine
         .universal_state
         .scene
@@ -1101,6 +1138,12 @@ pub fn engine_cmd_material_create(
     engine: &mut EngineState,
     args: &CmdMaterialCreateArgs,
 ) -> CmdResultMaterialCreate {
+    if let Err(message) = validate_host_logical_id(args.material_id, "materialId") {
+        return CmdResultMaterialCreate {
+            success: false,
+            message,
+        };
+    }
     bootstrap_builtin_material_definitions(engine);
 
     let Some(definition) = definition_by_slug(engine, &args.slug) else {
@@ -1193,6 +1236,12 @@ pub fn engine_cmd_material_update(
     engine: &mut EngineState,
     args: &CmdMaterialUpdateArgs,
 ) -> CmdResultMaterialUpdate {
+    if let Err(message) = validate_host_logical_id(args.material_id, "materialId") {
+        return CmdResultMaterialUpdate {
+            success: false,
+            message,
+        };
+    }
     let mut target_slug: Option<String> = args.slug.clone();
 
     let instance_definition_id = engine
@@ -1301,6 +1350,12 @@ pub fn engine_cmd_material_dispose(
     engine: &mut EngineState,
     args: &CmdMaterialDisposeArgs,
 ) -> CmdResultMaterialDispose {
+    if let Err(message) = validate_host_logical_id(args.material_id, "materialId") {
+        return CmdResultMaterialDispose {
+            success: false,
+            message,
+        };
+    }
     if args.material_id == MATERIAL_FALLBACK_ID {
         return CmdResultMaterialDispose {
             success: false,

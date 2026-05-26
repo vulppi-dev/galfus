@@ -8,7 +8,6 @@ pub mod prepare;
 pub mod scene;
 pub mod skinning;
 
-use crate::core::realm::RealmId;
 use crate::core::render::cache::RenderCache;
 use crate::core::render::gizmos::GizmoSystem;
 use crate::core::resources::VertexAllocatorSystem;
@@ -18,7 +17,6 @@ use crate::core::resources::{
     LightRecord, MaterialDefinitionRecord, MaterialInstanceRecord, ModelRecord,
     ShaderMaterialRecord, Shape2dRecord, Sprite2dRecord, TargetTextureBinding, TextureRecord,
 };
-use crate::core::ui::UiRenderer;
 
 pub use self::binding::BindingSystem;
 pub use self::collector::{DrawCollector, DrawItem};
@@ -213,7 +211,6 @@ pub struct RenderState {
     pub light_prepare_frustums: Vec<FrustumPlane>,
     pub rgba16f_msaa_supported_mask: u8,
     pub skinning: SkinningSystem,
-    pub ui_renderers: std::collections::HashMap<RealmId, UiRenderer>,
     pub two_d_source: TwoDSourceState,
     pub two_d_prepared: TwoDPreparedState,
     pub two_d_batched: TwoDBatchedState,
@@ -321,12 +318,6 @@ impl RenderState {
         .flatten()
         .map(wgpu::Buffer::size)
         .sum::<u64>();
-        let ui_bytes = self
-            .ui_renderers
-            .values()
-            .map(crate::core::ui::UiRenderer::estimated_gpu_bytes)
-            .sum::<u64>();
-
         render_targets
             .saturating_add(scene_textures)
             .saturating_add(post_buffers)
@@ -355,7 +346,6 @@ impl RenderState {
                     .unwrap_or(0),
             )
             .saturating_add(self.gizmos.estimated_gpu_bytes())
-            .saturating_add(ui_bytes)
     }
 
     fn camera_record_gpu_bytes(record: &crate::core::resources::CameraRecord) -> u64 {

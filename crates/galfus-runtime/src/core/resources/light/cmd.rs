@@ -2,6 +2,7 @@ use glam::{Vec2, Vec4};
 use serde::{Deserialize, Serialize};
 
 use crate::core::resources::common::{default_layer_mask, mark_realm_windows_dirty};
+use crate::core::id_policy::validate_host_logical_id;
 use crate::core::resources::{LightComponent, LightKind, LightRecord};
 use crate::core::state::EngineState;
 use crate::core::system::push_error_event;
@@ -84,6 +85,18 @@ pub fn engine_cmd_light_create(
     engine: &mut EngineState,
     args: &CmdLightCreateArgs,
 ) -> CmdResultLightCreate {
+    if let Err(message) = validate_host_logical_id(args.realm_id, "realmId") {
+        return CmdResultLightCreate {
+            success: false,
+            message,
+        };
+    }
+    if let Err(message) = validate_host_logical_id(args.light_id, "lightId") {
+        return CmdResultLightCreate {
+            success: false,
+            message,
+        };
+    }
     let realm_id = crate::core::realm::RealmId(args.realm_id);
     let entities = engine
         .universal_state
@@ -160,6 +173,18 @@ pub fn engine_cmd_light_update(
     engine: &mut EngineState,
     args: &CmdLightUpdateArgs,
 ) -> CmdResultLightUpdate {
+    if let Err(message) = validate_host_logical_id(args.realm_id, "realmId") {
+        return CmdResultLightUpdate {
+            success: false,
+            message,
+        };
+    }
+    if let Err(message) = validate_host_logical_id(args.light_id, "lightId") {
+        return CmdResultLightUpdate {
+            success: false,
+            message,
+        };
+    }
     let realm_id = crate::core::realm::RealmId(args.realm_id);
     let Some(entities) = engine
         .universal_state
@@ -249,6 +274,18 @@ pub fn engine_cmd_light_dispose(
     engine: &mut EngineState,
     args: &CmdLight3dDisposeArgs,
 ) -> CmdResultLightDispose {
+    if let Err(message) = validate_host_logical_id(args.realm_id, "realmId") {
+        return CmdResultLightDispose {
+            success: false,
+            message,
+        };
+    }
+    if let Err(message) = validate_host_logical_id(args.light_id, "lightId") {
+        return CmdResultLightDispose {
+            success: false,
+            message,
+        };
+    }
     let realm_id = crate::core::realm::RealmId(args.realm_id);
     let Some(entities) = engine
         .universal_state

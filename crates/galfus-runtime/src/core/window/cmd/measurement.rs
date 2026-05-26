@@ -2,6 +2,7 @@
 use crate::core::platform::winit::dpi::{PhysicalPosition, PhysicalSize};
 
 use crate::core::state::EngineState;
+use crate::core::id_policy::validate_host_logical_id;
 pub use galfus_protocol::{CmdResultWindowMeasurement, CmdWindowMeasurementArgs};
 #[cfg(not(target_arch = "wasm32"))]
 use glam::IVec2;
@@ -11,6 +12,13 @@ pub fn engine_cmd_window_measurement(
     engine: &mut EngineState,
     args: &CmdWindowMeasurementArgs,
 ) -> CmdResultWindowMeasurement {
+    if let Err(message) = validate_host_logical_id(args.window_id, "windowId") {
+        return CmdResultWindowMeasurement {
+            success: false,
+            message,
+            ..Default::default()
+        };
+    }
     let mut resized_surface_size: Option<UVec2> = None;
     let result = {
         let Some(window_state) = engine.window.states.get_mut(&args.window_id) else {

@@ -2,6 +2,7 @@ use glam::Mat4;
 use serde::{Deserialize, Serialize};
 
 use crate::core::render::state::SkinningSystem;
+use crate::core::id_policy::validate_host_logical_id;
 use crate::core::resources::common::{default_layer_mask, mark_realm_windows_dirty};
 use crate::core::resources::{ModelComponent, ModelRecord};
 use crate::core::state::EngineState;
@@ -115,6 +116,32 @@ pub fn engine_cmd_model_create(
     engine: &mut EngineState,
     args: &CmdModelCreateArgs,
 ) -> CmdResultModelCreate {
+    if let Err(message) = validate_host_logical_id(args.realm_id, "realmId") {
+        return CmdResultModelCreate {
+            success: false,
+            message,
+        };
+    }
+    if let Err(message) = validate_host_logical_id(args.model_id, "modelId") {
+        return CmdResultModelCreate {
+            success: false,
+            message,
+        };
+    }
+    if let Err(message) = validate_host_logical_id(args.geometry_id, "geometryId") {
+        return CmdResultModelCreate {
+            success: false,
+            message,
+        };
+    }
+    if let Some(material_id) = args.material_id
+        && let Err(message) = validate_host_logical_id(material_id, "materialId")
+    {
+        return CmdResultModelCreate {
+            success: false,
+            message,
+        };
+    }
     let realm_id = crate::core::realm::RealmId(args.realm_id);
     let entities = engine
         .universal_state
@@ -174,6 +201,34 @@ pub fn engine_cmd_model_update(
     engine: &mut EngineState,
     args: &CmdModelUpdateArgs,
 ) -> CmdResultModelUpdate {
+    if let Err(message) = validate_host_logical_id(args.realm_id, "realmId") {
+        return CmdResultModelUpdate {
+            success: false,
+            message,
+        };
+    }
+    if let Err(message) = validate_host_logical_id(args.model_id, "modelId") {
+        return CmdResultModelUpdate {
+            success: false,
+            message,
+        };
+    }
+    if let Some(geometry_id) = args.geometry_id
+        && let Err(message) = validate_host_logical_id(geometry_id, "geometryId")
+    {
+        return CmdResultModelUpdate {
+            success: false,
+            message,
+        };
+    }
+    if let Some(material_id) = args.material_id
+        && let Err(message) = validate_host_logical_id(material_id, "materialId")
+    {
+        return CmdResultModelUpdate {
+            success: false,
+            message,
+        };
+    }
     let realm_id = crate::core::realm::RealmId(args.realm_id);
     let Some(entities) = engine
         .universal_state
@@ -236,6 +291,26 @@ pub fn engine_cmd_pose_update(
     engine: &mut EngineState,
     args: &CmdPoseUpdateArgs,
 ) -> CmdResultPoseUpdate {
+    if let Err(message) = validate_host_logical_id(args.realm_id, "realmId") {
+        return CmdResultPoseUpdate {
+            success: false,
+            message,
+        };
+    }
+    if let Err(message) = validate_host_logical_id(args.model_id, "modelId") {
+        return CmdResultPoseUpdate {
+            success: false,
+            message,
+        };
+    }
+    if let Some(window_id) = args.window_id
+        && let Err(message) = validate_host_logical_id(window_id, "windowId")
+    {
+        return CmdResultPoseUpdate {
+            success: false,
+            message,
+        };
+    }
     let realm_id = crate::core::realm::RealmId(args.realm_id);
     let Some(entities) = engine
         .universal_state
@@ -380,6 +455,18 @@ pub fn engine_cmd_model_dispose(
     engine: &mut EngineState,
     args: &CmdModel3dDisposeArgs,
 ) -> CmdResultModelDispose {
+    if let Err(message) = validate_host_logical_id(args.realm_id, "realmId") {
+        return CmdResultModelDispose {
+            success: false,
+            message,
+        };
+    }
+    if let Err(message) = validate_host_logical_id(args.model_id, "modelId") {
+        return CmdResultModelDispose {
+            success: false,
+            message,
+        };
+    }
     let realm_id = crate::core::realm::RealmId(args.realm_id);
     let Some(entities) = engine
         .universal_state

@@ -34,9 +34,9 @@ async function main() {
     clearColor: [0.01, 0.01, 0.02, 1],
     post: {
       bloomEnabled: true,
-      bloomStrength: 0.35,
+      bloomIntensity: 0.35,
       bloomThreshold: 0.75,
-      bloomRadius: 0.25,
+      bloomScatter: 0.25,
       outlineEnabled: false
     }
   });
@@ -51,12 +51,10 @@ async function main() {
     kind: 'standard',
     label: 'Demo002Ghost',
     options: {
-      type: 'standard',
+      type: 'schema',
       content: {
         baseColor: [0.1, 0.85, 1.0, 0.65],
-        emissiveColor: [0.08, 0.2, 0.4, 1.0],
-        renderSide: 'double-side',
-        surfaceType: 'transparent'
+        emissiveColor: [0.08, 0.2, 0.4, 1.0]
       }
     }
   });
@@ -65,12 +63,10 @@ async function main() {
     kind: 'standard',
     label: 'Demo002FresnelApprox',
     options: {
-      type: 'standard',
+      type: 'schema',
       content: {
         baseColor: [0.95, 0.4, 0.2, 1.0],
-        emissiveColor: [0.2, 0.05, 0.02, 1.0],
-        renderSide: 'double-side',
-        surfaceType: 'opaque'
+        emissiveColor: [0.2, 0.05, 0.02, 1.0]
       }
     }
   });
@@ -79,15 +75,13 @@ async function main() {
     kind: 'pbr',
     label: 'Demo002Pbr',
     options: {
-      type: 'pbr',
+      type: 'schema',
       content: {
         baseColor: [0.3, 0.45, 1.0, 1.0],
-        metallic: 0.35,
-        roughness: 0.25,
-        ao: 1.0,
-        normalScale: 1.0,
-        renderSide: 'double-side',
-        surfaceType: 'opaque'
+        metallic: [0.35, 0, 0, 0],
+        roughness: [0.25, 0, 0, 0],
+        ao: [1.0, 0, 0, 0],
+        normalScale: [1.0, 0, 0, 0]
       }
     }
   });

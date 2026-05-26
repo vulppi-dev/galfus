@@ -1,4 +1,5 @@
 use crate::core::cmd::EngineEvent;
+use crate::core::id_policy::validate_host_logical_id;
 #[cfg(not(target_arch = "wasm32"))]
 use crate::core::platform::winit;
 use crate::core::state::EngineState;
@@ -57,6 +58,12 @@ fn apply_window_cursor(
     args: &CmdWindowCursorArgs,
     persist_icon_override: bool,
 ) -> CmdResultWindowCursor {
+    if let Err(message) = validate_host_logical_id(args.window_id, "windowId") {
+        return CmdResultWindowCursor {
+            success: false,
+            message,
+        };
+    }
     let Some(window) = engine
         .window
         .states
@@ -127,30 +134,17 @@ pub fn engine_cmd_window_cursor(
     apply_window_cursor(engine, args, true)
 }
 
-#[cfg(not(target_arch = "wasm32"))]
-pub fn engine_cmd_window_cursor_from_ui(
-    engine: &mut EngineState,
-    args: &CmdWindowCursorArgs,
-) -> CmdResultWindowCursor {
-    if let Some(override_icon) = engine.window.cursor_icon_override.get(&args.window_id) {
-        if let Some(window_state) = engine.window.states.get(&args.window_id) {
-            window_state
-                .window
-                .set_cursor(map_cursor_icon(*override_icon));
-            return CmdResultWindowCursor {
-                success: true,
-                message: "Window cursor UI update ignored due to host override".into(),
-            };
-        }
-    }
-    apply_window_cursor(engine, args, false)
-}
-
 #[cfg(target_arch = "wasm32")]
 pub fn engine_cmd_window_cursor(
     _engine: &mut EngineState,
     args: &CmdWindowCursorArgs,
 ) -> CmdResultWindowCursor {
+    if let Err(message) = validate_host_logical_id(args.window_id, "windowId") {
+        return CmdResultWindowCursor {
+            success: false,
+            message,
+        };
+    }
     #[cfg(target_arch = "wasm32")]
     {
         let Some(window_state) = _engine.window.states.get(&args.window_id) else {
@@ -217,14 +211,6 @@ pub fn engine_cmd_window_cursor(
             args.window_id
         ),
     }
-}
-
-#[cfg(target_arch = "wasm32")]
-pub fn engine_cmd_window_cursor_from_ui(
-    _engine: &mut EngineState,
-    args: &CmdWindowCursorArgs,
-) -> CmdResultWindowCursor {
-    engine_cmd_window_cursor(_engine, args)
 }
 
 #[cfg(target_arch = "wasm32")]

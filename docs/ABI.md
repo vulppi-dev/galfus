@@ -79,6 +79,15 @@ Contract:
 The game code written in JS/Lua/Python **never** handles raw pointers.
 The binding hides this complexity.
 
+### 1.5 Logical ID Reserved Range
+
+Logical IDs are host-provided, but a tail range is reserved for core-owned bootstrap/default resources.
+
+- Reserved count: last `65535` possible values of the ID type.
+- For `u32`: `4294901761..=4294967295` (`u32::MAX - 65535 + 1 ..= u32::MAX`).
+- Host must not use IDs in this range for create/update/dispose/bind/get/list filters.
+- Core validates and rejects commands that use reserved logical IDs.
+
 ---
 
 ## 2. Function List

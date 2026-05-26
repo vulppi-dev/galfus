@@ -77,11 +77,6 @@ pub struct GpuProfiling {
 }
 
 #[derive(Debug, Clone, Default)]
-pub struct UiProfiling {
-    pub input_ns: u64,
-}
-
-#[derive(Debug, Clone, Default)]
 pub struct GraphProfiling {
     pub realm_graph_ns: u64,
     pub target_graph_ns: u64,
@@ -102,7 +97,6 @@ pub struct UtilizationProfiling {
     pub command_percent: f32,
     pub input_percent: f32,
     pub render_percent: f32,
-    pub ui_percent: f32,
     pub graph_percent: f32,
 }
 
@@ -121,7 +115,6 @@ pub struct TickProfiling {
     pub input: InputProfiling,
     pub render: RenderProfiling,
     pub gpu: GpuProfiling,
-    pub ui: UiProfiling,
     pub graph: GraphProfiling,
     pub memory: MemoryProfiling,
     pub utilization: UtilizationProfiling,
@@ -167,14 +160,12 @@ impl TickProfiling {
         self.gpu.forward_ns = 0;
         self.gpu.compose_ns = 0;
         self.gpu.total_ns = 0;
-        self.ui.input_ns = 0;
         self.graph.realm_graph_ns = 0;
         self.graph.target_graph_ns = 0;
         self.utilization.gpu_frame_percent = 0.0;
         self.utilization.command_percent = 0.0;
         self.utilization.input_percent = 0.0;
         self.utilization.render_percent = 0.0;
-        self.utilization.ui_percent = 0.0;
         self.utilization.graph_percent = 0.0;
         self.sampled_this_frame = self.should_sample(frame_index);
     }
@@ -220,7 +211,6 @@ impl TickProfiling {
             / frame_delta_ns)
             * 100.0;
         self.utilization.render_percent = (self.render.total_ns as f32 / frame_delta_ns) * 100.0;
-        self.utilization.ui_percent = (self.ui.input_ns as f32 / frame_delta_ns) * 100.0;
         self.utilization.graph_percent =
             ((self.graph.realm_graph_ns + self.graph.target_graph_ns) as f32 / frame_delta_ns)
                 * 100.0;

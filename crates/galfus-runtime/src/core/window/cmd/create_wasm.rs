@@ -1,5 +1,7 @@
 #[cfg(all(target_arch = "wasm32", target_arch = "wasm32"))]
 use crate::core::cmd::{CommandResponse, CommandResponseEnvelope, EngineEvent};
+#[cfg(all(target_arch = "wasm32", target_arch = "wasm32"))]
+use crate::core::id_policy::validate_host_logical_id;
 #[cfg(all(target_arch = "wasm32", not(target_arch = "wasm32")))]
 use crate::core::platform::ActiveEventLoop;
 #[cfg(all(target_arch = "wasm32", target_arch = "wasm32"))]
@@ -31,6 +33,14 @@ pub fn engine_cmd_window_create_async(
     args: &CmdWindowCreateArgs,
     cmd_id: u64,
 ) -> Result<(), CmdResultWindowCreate> {
+    if let Err(message) = validate_host_logical_id(args.window_id, "windowId") {
+        return Err(CmdResultWindowCreate {
+            success: false,
+            message,
+            realm_id: None,
+        });
+    }
+
     let canvas_id = match &args.canvas_id {
         Some(id) => id,
         None => {

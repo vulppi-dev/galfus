@@ -1,6 +1,6 @@
 import { mat4, quat, vec2, vec3, vec4 } from '../../math/index';
 import type { Mat4, Quat, Vec2, Vec3, Vec4 } from '../../math/index';
-import type { MaterialOptions, PbrOptions, StandardOptions } from '../../types/cmds/material';
+import type { MaterialOptions } from '../../types/cmds/material';
 import type {
   CubeOptions,
   PlaneOptions,
@@ -43,50 +43,18 @@ export function toQuat(value: ArrayLike<number>): Quat {
   return quat.fromValues(result[0] ?? 0, result[1] ?? 0, result[2] ?? 0, result[3] ?? 1);
 }
 
-/** Normalizes standard-material option payload for command serialization. */
-export function normalizeStandardOptions(options: StandardOptions): StandardOptions {
-  const normalized: StandardOptions = { ...options };
-  if (options.baseColor !== undefined) {
-    normalized.baseColor = toVec4(options.baseColor);
-  }
-  if (options.emissiveColor !== undefined) {
-    normalized.emissiveColor = options.emissiveColor ? toVec4(options.emissiveColor) : null;
-  }
-  if (options.specColor !== undefined) {
-    normalized.specColor = options.specColor ? toVec4(options.specColor) : null;
-  }
-  if (options.toonParams !== undefined) {
-    normalized.toonParams = options.toonParams ? toVec4(options.toonParams) : null;
-  }
-  return normalized;
-}
-
-/** Normalizes PBR-material option payload for command serialization. */
-export function normalizePbrOptions(options: PbrOptions): PbrOptions {
-  const normalized: PbrOptions = { ...options };
-  if (options.baseColor !== undefined) {
-    normalized.baseColor = toVec4(options.baseColor);
-  }
-  if (options.emissiveColor !== undefined) {
-    normalized.emissiveColor = toVec4(options.emissiveColor);
-  }
-  return normalized;
-}
-
-/** Normalizes polymorphic material options into strict tuple-backed values. */
+/** Normalizes schema material options into strict vec4-backed values. */
 export function normalizeMaterialOptions(
   options: MaterialOptions | undefined
 ): MaterialOptions | undefined {
   if (!options) return options;
-  if (options.type === 'standard') {
-    return {
-      type: 'standard',
-      content: normalizeStandardOptions(options.content)
-    };
+  const normalizedContent: Record<string, Vec4> = {};
+  for (const [name, value] of Object.entries(options.content)) {
+    normalizedContent[name] = toVec4(value);
   }
   return {
-    type: 'pbr',
-    content: normalizePbrOptions(options.content)
+    type: 'schema',
+    content: normalizedContent
   };
 }
 

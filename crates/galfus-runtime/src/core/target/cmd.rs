@@ -1,6 +1,7 @@
 use glam::UVec2;
 use serde::{Deserialize, Serialize};
 
+use crate::core::id_policy::{validate_host_logical_id, validate_host_logical_id_u64};
 use crate::core::state::EngineState;
 use crate::core::target::{
     SurfaceAlphaModeDto, SurfaceFormatDto, TargetId, TargetKind, TargetLayerLayout,
@@ -185,6 +186,20 @@ pub fn engine_cmd_target_upsert(
     engine: &mut EngineState,
     args: &CmdTargetUpsertArgs,
 ) -> CmdResultTargetUpsert {
+    if let Err(message) = validate_host_logical_id_u64(args.target_id, "targetId") {
+        return CmdResultTargetUpsert {
+            success: false,
+            message,
+        };
+    }
+    if let Some(window_id) = args.window_id
+        && let Err(message) = validate_host_logical_id(window_id, "windowId")
+    {
+        return CmdResultTargetUpsert {
+            success: false,
+            message,
+        };
+    }
     if matches!(args.kind, TargetKind::Window) && args.window_id.is_none() {
         return CmdResultTargetUpsert {
             success: false,
@@ -228,6 +243,13 @@ pub fn engine_cmd_target_measurement(
     engine: &mut EngineState,
     args: &CmdTargetMeasurementArgs,
 ) -> CmdResultTargetMeasurement {
+    if let Err(message) = validate_host_logical_id_u64(args.target_id, "targetId") {
+        return CmdResultTargetMeasurement {
+            success: false,
+            message,
+            ..Default::default()
+        };
+    }
     let target_id = TargetId(args.target_id);
     let Some(target) = engine
         .universal_state
@@ -330,6 +352,12 @@ pub fn engine_cmd_target_dispose(
     engine: &mut EngineState,
     args: &CmdTargetDisposeArgs,
 ) -> CmdResultTargetDispose {
+    if let Err(message) = validate_host_logical_id_u64(args.target_id, "targetId") {
+        return CmdResultTargetDispose {
+            success: false,
+            message,
+        };
+    }
     let target_id = TargetId(args.target_id);
     if !dispose_target(&mut engine.universal_state, target_id) {
         return CmdResultTargetDispose {
@@ -348,6 +376,34 @@ pub fn engine_cmd_target_layer_upsert(
     engine: &mut EngineState,
     args: &CmdTargetLayerUpsertArgs,
 ) -> CmdResultTargetLayerUpsert {
+    if let Err(message) = validate_host_logical_id(args.realm_id, "realmId") {
+        return CmdResultTargetLayerUpsert {
+            success: false,
+            message,
+        };
+    }
+    if let Err(message) = validate_host_logical_id_u64(args.target_id, "targetId") {
+        return CmdResultTargetLayerUpsert {
+            success: false,
+            message,
+        };
+    }
+    if let Some(environment_id) = args.environment_id
+        && let Err(message) = validate_host_logical_id(environment_id, "environmentId")
+    {
+        return CmdResultTargetLayerUpsert {
+            success: false,
+            message,
+        };
+    }
+    for camera_id in &args.enabled_camera_ids {
+        if let Err(message) = validate_host_logical_id(*camera_id, "cameraId") {
+            return CmdResultTargetLayerUpsert {
+                success: false,
+                message,
+            };
+        }
+    }
     let target_id = TargetId(args.target_id);
     if args.layout.width.resolve(1.0, 8.0) <= 0.0 || args.layout.height.resolve(1.0, 8.0) <= 0.0 {
         return CmdResultTargetLayerUpsert {
@@ -376,6 +432,18 @@ pub fn engine_cmd_target_layer_dispose(
     engine: &mut EngineState,
     args: &CmdTargetLayerDisposeArgs,
 ) -> CmdResultTargetLayerDispose {
+    if let Err(message) = validate_host_logical_id(args.realm_id, "realmId") {
+        return CmdResultTargetLayerDispose {
+            success: false,
+            message,
+        };
+    }
+    if let Err(message) = validate_host_logical_id_u64(args.target_id, "targetId") {
+        return CmdResultTargetLayerDispose {
+            success: false,
+            message,
+        };
+    }
     let target_id = TargetId(args.target_id);
     if !dispose_layer(&mut engine.universal_state, args.realm_id, target_id) {
         return CmdResultTargetLayerDispose {
@@ -397,6 +465,14 @@ pub fn engine_cmd_target_get(
     engine: &mut EngineState,
     args: &CmdTargetGetArgs,
 ) -> CmdResultTargetGet {
+    if let Err(message) = validate_host_logical_id_u64(args.target_id, "targetId") {
+        return CmdResultTargetGet {
+            success: false,
+            message,
+            target_id: args.target_id,
+            ..Default::default()
+        };
+    }
     let target_id = TargetId(args.target_id);
     let Some(target) = engine
         .universal_state
@@ -426,6 +502,26 @@ pub fn engine_cmd_target_list(
     engine: &mut EngineState,
     args: &CmdTargetListArgs,
 ) -> CmdResultTargetList {
+    if let Some(window_id) = args.window_id
+        && let Err(message) = validate_host_logical_id(window_id, "windowId")
+    {
+        return CmdResultTargetList {
+            success: false,
+            message,
+            items: Vec::new(),
+        };
+    }
+    if let Some(ids) = args.ids.as_ref() {
+        for target_id in ids {
+            if let Err(message) = validate_host_logical_id_u64(*target_id, "targetId") {
+                return CmdResultTargetList {
+                    success: false,
+                    message,
+                    items: Vec::new(),
+                };
+            }
+        }
+    }
     let items = engine
         .universal_state
         .targets
@@ -456,6 +552,24 @@ pub fn engine_cmd_target_layer_get(
     engine: &mut EngineState,
     args: &CmdTargetLayerGetArgs,
 ) -> CmdResultTargetLayerGet {
+    if let Err(message) = validate_host_logical_id(args.realm_id, "realmId") {
+        return CmdResultTargetLayerGet {
+            success: false,
+            message,
+            realm_id: args.realm_id,
+            target_id: args.target_id,
+            ..Default::default()
+        };
+    }
+    if let Err(message) = validate_host_logical_id_u64(args.target_id, "targetId") {
+        return CmdResultTargetLayerGet {
+            success: false,
+            message,
+            realm_id: args.realm_id,
+            target_id: args.target_id,
+            ..Default::default()
+        };
+    }
     let Some(layer) = engine
         .universal_state
         .targets
@@ -485,6 +599,24 @@ pub fn engine_cmd_target_layer_list(
     engine: &mut EngineState,
     args: &CmdTargetLayerListArgs,
 ) -> CmdResultTargetLayerList {
+    if let Some(realm_id) = args.realm_id
+        && let Err(message) = validate_host_logical_id(realm_id, "realmId")
+    {
+        return CmdResultTargetLayerList {
+            success: false,
+            message,
+            items: Vec::new(),
+        };
+    }
+    if let Some(target_id) = args.target_id
+        && let Err(message) = validate_host_logical_id_u64(target_id, "targetId")
+    {
+        return CmdResultTargetLayerList {
+            success: false,
+            message,
+            items: Vec::new(),
+        };
+    }
     let items = engine
         .universal_state
         .targets

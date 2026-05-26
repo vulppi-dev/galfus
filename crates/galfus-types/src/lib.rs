@@ -26,11 +26,6 @@ pub enum SurfaceKind {
     Offscreen,
 }
 
-pub type UiThemeId = u32;
-pub type UiFontId = u32;
-pub type UiImageId = u32;
-pub type UiDocumentId = u32;
-pub type UiNodeId = u32;
 
 #[cfg(test)]
 #[path = "lib_tests.rs"]

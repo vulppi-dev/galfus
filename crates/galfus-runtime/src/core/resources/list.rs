@@ -1,4 +1,5 @@
 use crate::core::resources::MaterialRealmKind;
+use crate::core::id_policy::validate_host_logical_id;
 use crate::core::state::EngineState;
 use serde::{Deserialize, Serialize};
 
@@ -31,6 +32,13 @@ pub fn engine_cmd_model_list(
     engine: &mut EngineState,
     args: &CmdModelListArgs,
 ) -> CmdResultModelList {
+    if let Err(message) = validate_host_logical_id(args.window_id, "windowId") {
+        return CmdResultModelList {
+            success: false,
+            message,
+            ..Default::default()
+        };
+    }
     let Some(realm_id) = engine
         .universal_state
         .targets
@@ -90,6 +98,13 @@ pub fn engine_cmd_material_list(
     engine: &mut EngineState,
     args: &CmdMaterialListArgs,
 ) -> CmdResultMaterialList {
+    if let Err(message) = validate_host_logical_id(args.window_id, "windowId") {
+        return CmdResultMaterialList {
+            success: false,
+            message,
+            ..Default::default()
+        };
+    }
     let _ = args;
     let realm3d = &engine.universal_state.scene.realm3d;
 
@@ -136,6 +151,13 @@ pub fn engine_cmd_texture_list(
     engine: &mut EngineState,
     args: &CmdTextureListArgs,
 ) -> CmdResultTextureList {
+    if let Err(message) = validate_host_logical_id(args.window_id, "windowId") {
+        return CmdResultTextureList {
+            success: false,
+            message,
+            ..Default::default()
+        };
+    }
     let _ = args;
     let render_resources = &engine.universal_state.scene.render_resources;
 
@@ -191,6 +213,13 @@ pub fn engine_cmd_geometry_list(
     engine: &mut EngineState,
     args: &CmdGeometryListArgs,
 ) -> CmdResultGeometryList {
+    if let Err(message) = validate_host_logical_id(args.window_id, "windowId") {
+        return CmdResultGeometryList {
+            success: false,
+            message,
+            ..Default::default()
+        };
+    }
     let _ = args;
     let geometries = engine
         .universal_state
@@ -233,6 +262,13 @@ pub fn engine_cmd_light_list(
     engine: &mut EngineState,
     args: &CmdLightListArgs,
 ) -> CmdResultLightList {
+    if let Err(message) = validate_host_logical_id(args.window_id, "windowId") {
+        return CmdResultLightList {
+            success: false,
+            message,
+            ..Default::default()
+        };
+    }
     let Some(realm_id) = engine
         .universal_state
         .targets
@@ -291,6 +327,13 @@ pub fn engine_cmd_camera_list(
     engine: &mut EngineState,
     args: &CmdCameraListArgs,
 ) -> CmdResultCameraList {
+    if let Err(message) = validate_host_logical_id(args.window_id, "windowId") {
+        return CmdResultCameraList {
+            success: false,
+            message,
+            ..Default::default()
+        };
+    }
     let Some(realm_id) = engine
         .universal_state
         .targets

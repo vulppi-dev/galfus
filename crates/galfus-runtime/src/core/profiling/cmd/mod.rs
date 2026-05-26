@@ -12,7 +12,6 @@ pub struct ProfilingDomainUs {
     pub routing: f64,
     pub render: f64,
     pub gpu: f64,
-    pub ui: f64,
     pub graph: f64,
 }
 
@@ -27,7 +26,6 @@ pub struct ProfilingTimesUs {
     pub render_total: f64,
     pub render_shadow: f64,
     pub render_windows: f64,
-    pub ui_input: f64,
     pub frame_delta: f64,
 }
 
@@ -72,7 +70,6 @@ pub struct ProfilingUtilization {
     pub command_percent: f32,
     pub input_percent: f32,
     pub render_percent: f32,
-    pub ui_percent: f32,
     pub graph_percent: f32,
 }
 
@@ -210,7 +207,6 @@ fn domain_from_tick(profiling: &TickProfiling) -> ProfilingDomainUs {
         routing: 0.0,
         render: to_us(profiling.render.total_ns),
         gpu: to_us(profiling.gpu.total_ns),
-        ui: to_us(profiling.ui.input_ns),
         graph: to_us(
             profiling
                 .graph
@@ -242,7 +238,6 @@ pub fn galfus_get_profiling(out_ptr: *mut *const u8, out_length: *mut usize) -> 
                 render_total: to_us(engine.profiling.render.total_ns),
                 render_shadow: to_us(engine.profiling.render.shadow_ns),
                 render_windows: to_us(engine.profiling.render.windows_ns),
-                ui_input: to_us(engine.profiling.ui.input_ns),
                 frame_delta: to_us(engine.profiling.render.frame_delta_ns),
             },
             domain_us: domain_from_tick(&engine.profiling),
@@ -263,7 +258,6 @@ pub fn galfus_get_profiling(out_ptr: *mut *const u8, out_length: *mut usize) -> 
                 command_percent: engine.profiling.utilization.command_percent,
                 input_percent: engine.profiling.utilization.input_percent,
                 render_percent: engine.profiling.utilization.render_percent,
-                ui_percent: engine.profiling.utilization.ui_percent,
                 graph_percent: engine.profiling.utilization.graph_percent,
             },
             cache: ProfilingCache {

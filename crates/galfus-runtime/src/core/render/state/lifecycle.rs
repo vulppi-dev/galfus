@@ -67,7 +67,6 @@ impl RenderState {
             skybox_uniform_buffer: None,
             collector: DrawCollector::default(),
             skinning: crate::core::render::state::SkinningSystem::default(),
-            ui_renderers: HashMap::new(),
             two_d_source: crate::core::render::state::TwoDSourceState::default(),
             two_d_prepared: crate::core::render::state::TwoDPreparedState::default(),
             two_d_batched: crate::core::render::state::TwoDBatchedState::default(),
@@ -134,7 +133,6 @@ impl RenderState {
         self.bloom_uniform_buffer = None;
         self.skybox_uniform_buffer = None;
         self.skinning.clear();
-        self.ui_renderers.clear();
         self.two_d_source.cameras.clear();
         self.two_d_source.sprites.clear();
         self.two_d_source.shapes.clear();

@@ -11,9 +11,7 @@ pub fn detach_realm_runtime(
     realm_id: RealmId,
     realm_kind: RealmKind,
 ) {
-    if realm_kind == RealmKind::TwoD {
-        universal_state.interaction.ui.remove_realm(realm_id);
-    }
+    let _ = realm_kind;
     universal_state.scene.realm3d.entities.remove(&realm_id);
     universal_state.scene.realm2d.entities.remove(&realm_id);
     universal_state
@@ -156,7 +154,6 @@ pub fn init_realm_runtime(
     kind: RealmKind,
 ) {
     if kind == RealmKind::TwoD {
-        universal_state.interaction.ui.ensure_realm(realm_id);
         universal_state
             .scene
             .realm2d

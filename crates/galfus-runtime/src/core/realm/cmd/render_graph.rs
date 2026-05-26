@@ -1,6 +1,7 @@
 use galfus_realm_core::RealmKind;
 use serde::{Deserialize, Serialize};
 
+use crate::core::id_policy::validate_host_logical_id;
 use crate::core::realm::RealmId;
 use crate::core::resources::common::mark_realm_windows_dirty;
 use crate::core::state::EngineState;
@@ -150,6 +151,13 @@ pub fn engine_cmd_pass_definition_upsert(
     engine: &mut EngineState,
     args: &CmdPassDefinitionUpsertArgs,
 ) -> CmdResultPassDefinitionUpsert {
+    if let Err(message) = validate_host_logical_id(args.render_graph_id, "renderGraphId") {
+        let result = emit_render_graph_error(engine, message, "render-graph-upsert");
+        return CmdResultPassDefinitionUpsert {
+            success: result.success,
+            message: result.message,
+        };
+    }
     if is_reserved_graph_id(args.render_graph_id) {
         let result = emit_render_graph_error(
             engine,
@@ -352,6 +360,13 @@ pub fn engine_cmd_pass_definition_dispose(
     engine: &mut EngineState,
     args: &CmdPassDefinitionDisposeArgs,
 ) -> CmdResultPassDefinitionDispose {
+    if let Err(message) = validate_host_logical_id(args.render_graph_id, "renderGraphId") {
+        let result = emit_render_graph_error(engine, message, "render-graph-dispose");
+        return CmdResultPassDefinitionDispose {
+            success: result.success,
+            message: result.message,
+        };
+    }
     if is_reserved_graph_id(args.render_graph_id) {
         let result = emit_render_graph_error(
             engine,
@@ -521,6 +536,20 @@ pub fn engine_cmd_realm_pass_instance_bind(
     engine: &mut EngineState,
     args: &CmdRealmPassInstanceBindArgs,
 ) -> CmdResultRealmPassInstanceBind {
+    if let Err(message) = validate_host_logical_id(args.realm_id, "realmId") {
+        let result = emit_render_graph_error(engine, message, "realm-render-graph-bind");
+        return CmdResultRealmPassInstanceBind {
+            success: result.success,
+            message: result.message,
+        };
+    }
+    if let Err(message) = validate_host_logical_id(args.render_graph_id, "renderGraphId") {
+        let result = emit_render_graph_error(engine, message, "realm-render-graph-bind");
+        return CmdResultRealmPassInstanceBind {
+            success: result.success,
+            message: result.message,
+        };
+    }
     let realm_id = RealmId(args.realm_id);
     let Some(realm_kind) = engine
         .universal_state

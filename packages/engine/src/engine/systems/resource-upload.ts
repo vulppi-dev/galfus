@@ -116,6 +116,13 @@ function normalizeSparseMaterialOptions(options: Parameters<typeof normalizeMate
   return normalized;
 }
 
+function resolveMaterialSlug(kind: 'standard' | 'pbr', realmKind: 'two-d' | 'three-d'): string {
+  if (realmKind === 'two-d') {
+    return kind === 'standard' ? 'standard-2d' : 'pbr';
+  }
+  return kind;
+}
+
 /**
  * Processes resource intents and emits corresponding core resource commands.
  *
@@ -134,13 +141,15 @@ export const ResourceUploadSystem: System = (world, context) => {
     if (intent.type === 'create-material') {
       const options = normalizeSparseMaterialOptions(intent.props.options);
       const upsertType = 'cmd-material-upsert';
+      const realmKind = world.realmKind === 'two-d' ? 'two-d' : 'three-d';
+      const slug = resolveMaterialSlug(intent.props.kind, realmKind);
 
       enqueueCommand(context.worldId, upsertType, {
         materialId: intent.resourceId,
         label: intent.props.label,
-        slug: intent.props.kind,
+        slug,
         kind: 'shader',
-        realmKind: world.realmKind === 'two-d' ? 'two-d' : 'three-d',
+        realmKind,
         options
       });
     } else if (intent.type === 'dispose-material') {

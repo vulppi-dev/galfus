@@ -461,7 +461,8 @@ fn sample_shadow_primary_light(world_position: vec3<f32>, world_normal: vec3<f32
     let uv01 = vec2<f32>(ndc.x * 0.5 + 0.5, -ndc.y * 0.5 + 0.5);
     let page_x = min(u32(floor(uv01.x * f32(grid_size))), grid_size - 1u);
     let page_y = min(u32(floor(uv01.y * f32(grid_size))), grid_size - 1u);
-    let page_uv = fract(uv01 * f32(grid_size));
+    // Keep sampling away from page borders to reduce seams between virtual pages/faces.
+    let page_uv = clamp(fract(uv01 * f32(grid_size)), vec2<f32>(1e-4), vec2<f32>(1.0 - 1e-4));
 
     let table_index = ((light.shadow_index * 6u + face) * grid_size * grid_size + page_y * grid_size + page_x) % shadow_params.table_capacity;
     let page = shadow_page_table[table_index];

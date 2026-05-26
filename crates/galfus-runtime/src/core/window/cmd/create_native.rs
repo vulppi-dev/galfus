@@ -15,6 +15,7 @@ use crate::core::platform::winit::dpi::{PhysicalPosition, PhysicalSize, Position
 use crate::core::profiling::gpu::GpuProfiler;
 #[cfg(not(target_arch = "wasm32"))]
 use crate::core::state::EngineState;
+use crate::core::id_policy::validate_host_logical_id;
 #[cfg(not(target_arch = "wasm32"))]
 use crate::core::window::WindowState;
 #[cfg(not(target_arch = "wasm32"))]
@@ -30,6 +31,13 @@ pub fn engine_cmd_window_create(
     event_loop: &ActiveEventLoop,
     args: &CmdWindowCreateArgs,
 ) -> CmdResultWindowCreate {
+    if let Err(message) = validate_host_logical_id(args.window_id, "windowId") {
+        return CmdResultWindowCreate {
+            success: false,
+            message,
+            realm_id: None,
+        };
+    }
     // Ensure minimum valid size
     let window_width = args.size.x.max(100);
     let window_height = args.size.y.max(100);
