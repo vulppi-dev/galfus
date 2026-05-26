@@ -58,6 +58,8 @@ Validation:
 
 ## Phase 2: Realm2D Custom Pass Definition and Instance Lifecycle
 
+Status: `completed`
+
 Goal:
 - Formalize `pass definition + pass instance` lifecycle for `realm2d` with material-like contracts.
 
