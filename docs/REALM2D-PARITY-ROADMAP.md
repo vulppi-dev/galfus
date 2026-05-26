@@ -171,6 +171,8 @@ Validation:
 
 ## Phase 7: Demo 004 (Lighting and Shadows Validation)
 
+Status: `completed`
+
 Goal:
 - Create `demo 004` in `apps/demos` as a practical validation target for native 2D lights/shadows.
 
@@ -199,4 +201,4 @@ Validation:
 - [x] Native 2D shadows exist (`cast/receive` pipeline-level behavior).
 - [x] Dedicated 2D parity test suite exists and is stable.
 - [x] Final host contract docs for 2D are complete and implementation-aligned.
-- [ ] Demo 004 exists and validates 2D light/shadow behavior end-to-end.
+- [x] Demo 004 exists and validates 2D light/shadow behavior end-to-end.
