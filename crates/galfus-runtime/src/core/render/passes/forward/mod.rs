@@ -437,6 +437,7 @@ pub fn pass_forward(
             draw::draw_batches(
                 &mut render_pass,
                 scene,
+                &render_state.material_uniform_slots,
                 library,
                 collector,
                 bindings,

@@ -50,6 +50,7 @@ pub struct ModelRecordMeta {
     pub outline_color: glam::Vec4,
     pub geometry_id: u32,
     pub material_id: Option<u32>,
+    pub active: bool,
     pub layer_mask: u32,
     pub cast_shadow: bool,
     pub receive_shadow: bool,
@@ -68,6 +69,7 @@ pub struct LightRecordMeta {
     pub intensity_range: glam::Vec2,
     pub spot_inner_outer: glam::Vec2,
     pub kind_flags: [u32; 2],
+    pub active: bool,
     pub layer_mask: u32,
     pub cast_shadow: bool,
 }

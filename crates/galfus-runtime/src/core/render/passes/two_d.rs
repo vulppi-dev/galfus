@@ -20,7 +20,10 @@ struct TwoDDrawBatch {
 }
 
 fn material_allows_2d(record: &crate::core::resources::ShaderMaterialRecord) -> bool {
-    matches!(record.realm_kind, crate::core::resources::MaterialRealmKind::TwoD)
+    matches!(
+        record.realm_kind,
+        crate::core::resources::MaterialRealmKind::TwoD
+    )
 }
 
 fn material_uses_custom_2d_shader(record: &crate::core::resources::ShaderMaterialRecord) -> bool {
@@ -858,8 +861,7 @@ fn layer_visible_in_camera(layer: i32, layer_mask: u32) -> bool {
 mod tests {
     use super::{
         layer_visible_in_camera, material_allows_2d, material_tint_for_batch,
-        material_uses_custom_2d_shader, pass_2d_batch, pass_2d_prepare,
-        resolve_2d_draw_batches,
+        material_uses_custom_2d_shader, pass_2d_batch, pass_2d_prepare, resolve_2d_draw_batches,
     };
     use crate::core::render::RenderState;
     use crate::core::render::state::{TwoDBatchKey, TwoDBatchRange, TwoDItemKind};

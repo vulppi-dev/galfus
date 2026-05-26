@@ -1,6 +1,6 @@
+use crate::core::id_policy::validate_host_logical_id;
 use crate::core::resources::geometry::generators;
 use crate::core::state::EngineState;
-use crate::core::id_policy::validate_host_logical_id;
 use glam::Vec3;
 use serde::{Deserialize, Serialize};
 

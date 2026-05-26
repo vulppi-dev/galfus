@@ -250,9 +250,8 @@ pub fn render_frames(engine_state: &mut EngineState) {
     engine_state.profiling.gpu.compose_ns = 0;
     engine_state.profiling.gpu.total_ns = 0;
 
-    let target_size_requests = std::mem::take(
-        &mut engine_state.universal_state.targets.target_size_requests,
-    );
+    let target_size_requests =
+        std::mem::take(&mut engine_state.universal_state.targets.target_size_requests);
     apply_target_size_requests(engine_state, &target_size_requests);
 
     let (target_plan, target_diff) = {

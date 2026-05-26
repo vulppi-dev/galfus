@@ -272,10 +272,7 @@ pub fn galfus_get_profiling(out_ptr: *mut *const u8, out_length: *mut usize) -> 
                     .compute_pipeline_cache_evictions,
                 compose_bind_cache_hits: engine.profiling.render.compose_bind_cache_hits,
                 compose_bind_cache_misses: engine.profiling.render.compose_bind_cache_misses,
-                compose_bind_cache_evictions: engine
-                    .profiling
-                    .render
-                    .compose_bind_cache_evictions,
+                compose_bind_cache_evictions: engine.profiling.render.compose_bind_cache_evictions,
                 post_bind_cache_hits: engine.profiling.render.post_bind_cache_hits,
                 post_bind_cache_misses: engine.profiling.render.post_bind_cache_misses,
                 post_bind_cache_evictions: engine.profiling.render.post_bind_cache_evictions,

@@ -41,6 +41,7 @@ impl RenderState {
             detached_cameras: HashMap::new(),
             camera_order: Vec::new(),
             camera_uniform_slots: HashMap::new(),
+            material_uniform_slots: HashMap::new(),
             target_texture_binds: HashMap::new(),
             external_textures: HashMap::new(),
             external_texture_sources: HashMap::new(),
@@ -96,6 +97,7 @@ impl RenderState {
         self.detached_cameras.clear();
         self.camera_order.clear();
         self.camera_uniform_slots.clear();
+        self.material_uniform_slots.clear();
         self.scene.models.clear();
         self.scene.lights.clear();
         self.scene.materials.clear();
@@ -222,9 +224,10 @@ impl RenderState {
         let before_shader_modules = self.material_shader_modules.len();
         self.material_shader_modules
             .retain(|shader_id, _| active_shader_ids.contains(shader_id));
-        self.material_shader_module_evictions = self
-            .material_shader_module_evictions
-            .saturating_add(before_shader_modules.saturating_sub(self.material_shader_modules.len()) as u32);
+        self.material_shader_module_evictions =
+            self.material_shader_module_evictions.saturating_add(
+                before_shader_modules.saturating_sub(self.material_shader_modules.len()) as u32,
+            );
         self.trim_bind_caches_hard_limit();
     }
 
@@ -252,7 +255,12 @@ impl RenderState {
                 .post_bind_cache
                 .len()
                 .saturating_sub(Self::POST_BIND_CACHE_HARD_MAX);
-            let keys_to_remove: Vec<_> = self.post_bind_cache.keys().copied().take(overflow).collect();
+            let keys_to_remove: Vec<_> = self
+                .post_bind_cache
+                .keys()
+                .copied()
+                .take(overflow)
+                .collect();
             for key in keys_to_remove {
                 self.post_bind_cache.remove(&key);
             }

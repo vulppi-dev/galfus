@@ -1,5 +1,5 @@
-use crate::core::realm::RealmId;
 use crate::core::id_policy::validate_host_logical_id;
+use crate::core::realm::RealmId;
 use crate::core::resources::MaterialRealmKind;
 use crate::core::resources::list::ResourceEntry;
 use crate::core::state::EngineState;
@@ -93,8 +93,8 @@ pub fn engine_cmd_camera_get(
     engine: &mut EngineState,
     args: &CmdResourceGetArgs,
 ) -> CmdResultResourceGet {
-    if let Err(message) = validate_host_logical_id(args.id, "id")
-        .and_then(|_| validate_scope_ids(&args.scope))
+    if let Err(message) =
+        validate_host_logical_id(args.id, "id").and_then(|_| validate_scope_ids(&args.scope))
     {
         return CmdResultResourceGet {
             success: false,
@@ -141,8 +141,8 @@ pub fn engine_cmd_model_get(
     engine: &mut EngineState,
     args: &CmdResourceGetArgs,
 ) -> CmdResultResourceGet {
-    if let Err(message) = validate_host_logical_id(args.id, "id")
-        .and_then(|_| validate_scope_ids(&args.scope))
+    if let Err(message) =
+        validate_host_logical_id(args.id, "id").and_then(|_| validate_scope_ids(&args.scope))
     {
         return CmdResultResourceGet {
             success: false,
@@ -189,8 +189,8 @@ pub fn engine_cmd_light_get(
     engine: &mut EngineState,
     args: &CmdResourceGetArgs,
 ) -> CmdResultResourceGet {
-    if let Err(message) = validate_host_logical_id(args.id, "id")
-        .and_then(|_| validate_scope_ids(&args.scope))
+    if let Err(message) =
+        validate_host_logical_id(args.id, "id").and_then(|_| validate_scope_ids(&args.scope))
     {
         return CmdResultResourceGet {
             success: false,
@@ -237,8 +237,8 @@ pub fn engine_cmd_geometry_get(
     engine: &mut EngineState,
     args: &CmdResourceGetArgs,
 ) -> CmdResultResourceGet {
-    if let Err(message) = validate_host_logical_id(args.id, "id")
-        .and_then(|_| validate_scope_ids(&args.scope))
+    if let Err(message) =
+        validate_host_logical_id(args.id, "id").and_then(|_| validate_scope_ids(&args.scope))
     {
         return CmdResultResourceGet {
             success: false,
@@ -275,8 +275,8 @@ pub fn engine_cmd_material_get(
     engine: &mut EngineState,
     args: &CmdMaterialGetArgs,
 ) -> CmdResultResourceGet {
-    if let Err(message) = validate_host_logical_id(args.id, "id")
-        .and_then(|_| validate_scope_ids(&args.scope))
+    if let Err(message) =
+        validate_host_logical_id(args.id, "id").and_then(|_| validate_scope_ids(&args.scope))
     {
         return CmdResultResourceGet {
             success: false,
@@ -317,8 +317,8 @@ pub fn engine_cmd_texture_get(
     engine: &mut EngineState,
     args: &CmdResourceGetArgs,
 ) -> CmdResultResourceGet {
-    if let Err(message) = validate_host_logical_id(args.id, "id")
-        .and_then(|_| validate_scope_ids(&args.scope))
+    if let Err(message) =
+        validate_host_logical_id(args.id, "id").and_then(|_| validate_scope_ids(&args.scope))
     {
         return CmdResultResourceGet {
             success: false,
@@ -387,8 +387,8 @@ pub fn engine_cmd_environment_get(
     engine: &mut EngineState,
     args: &CmdResourceGetArgs,
 ) -> CmdResultResourceGet {
-    if let Err(message) = validate_host_logical_id(args.id, "id")
-        .and_then(|_| validate_scope_ids(&args.scope))
+    if let Err(message) =
+        validate_host_logical_id(args.id, "id").and_then(|_| validate_scope_ids(&args.scope))
     {
         return CmdResultResourceGet {
             success: false,
@@ -426,8 +426,8 @@ pub fn engine_cmd_material_definition_get(
     engine: &mut EngineState,
     args: &CmdResourceGetArgs,
 ) -> CmdResultResourceGet {
-    if let Err(message) = validate_host_logical_id(args.id, "id")
-        .and_then(|_| validate_scope_ids(&args.scope))
+    if let Err(message) =
+        validate_host_logical_id(args.id, "id").and_then(|_| validate_scope_ids(&args.scope))
     {
         return CmdResultResourceGet {
             success: false,
@@ -463,8 +463,8 @@ pub fn engine_cmd_material_instance_get(
     engine: &mut EngineState,
     args: &CmdMaterialInstanceGetArgs,
 ) -> CmdResultResourceGet {
-    if let Err(message) = validate_host_logical_id(args.id, "id")
-        .and_then(|_| validate_scope_ids(&args.scope))
+    if let Err(message) =
+        validate_host_logical_id(args.id, "id").and_then(|_| validate_scope_ids(&args.scope))
     {
         return CmdResultResourceGet {
             success: false,

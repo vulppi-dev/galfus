@@ -1,6 +1,4 @@
-use crate::core::resources::{
-    SHADER_MATERIAL_INPUTS_PER_MATERIAL, ShaderMaterialRecord,
-};
+use crate::core::resources::{SHADER_MATERIAL_INPUTS_PER_MATERIAL, ShaderMaterialRecord};
 use glam::Vec4;
 
 pub(crate) fn pack_schema_material(

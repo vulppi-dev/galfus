@@ -168,6 +168,7 @@ pub struct RenderState {
     pub detached_cameras: std::collections::HashMap<u32, crate::core::resources::CameraRecord>,
     pub camera_order: Vec<u32>,
     pub camera_uniform_slots: std::collections::HashMap<u32, u32>,
+    pub material_uniform_slots: std::collections::HashMap<u32, u32>,
     pub target_texture_binds:
         std::collections::HashMap<u32, crate::core::resources::TargetTextureBinding>,
     pub external_textures: std::collections::HashMap<u32, wgpu::TextureView>,

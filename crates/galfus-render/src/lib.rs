@@ -36,7 +36,8 @@ pub use library::ResourceLibrary;
 pub use material_shader::{
     CompiledMaterialShader, MaterialShaderBasePreset, MaterialShaderCapabilities,
     MaterialShaderCompileSpec, MaterialShaderRealm, MaterialShaderType, builtin_material_source,
-    builtin_material_source_2d, compile_material_shader_spec, compile_material_shader_spec_for_realm,
+    builtin_material_source_2d, compile_material_shader_spec,
+    compile_material_shader_spec_for_realm,
 };
 pub use profiler::{GpuProfiler, GpuTimingReport};
 pub use realm_planner::{
@@ -52,8 +53,8 @@ pub use realm_planner::{
     plan_auto_graph_layer_sync, plan_auto_graph_link, plan_auto_graph_surface_spec,
     plan_compose_overlays, plan_external_texture_refresh, plan_host_realm_index,
     plan_realm_environment_bindings, plan_surface_targets, plan_target_size_updates,
-    resolve_auto_graph_layout, resolve_connector_surface,
-    resolve_realm_surface, should_render_realm, update_present_size_cache, update_surface_cache,
+    resolve_auto_graph_layout, resolve_connector_surface, resolve_realm_surface,
+    should_render_realm, update_present_size_cache, update_surface_cache,
 };
 pub use realm_policy::{
     clear_alpha_for_realm_kind, graph_is_compatible_with_realm_kind,

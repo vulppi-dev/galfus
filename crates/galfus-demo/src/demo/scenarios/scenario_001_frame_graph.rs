@@ -36,6 +36,7 @@ const MATERIAL_FLOOR_ID: u32 = 12;
 const MATERIAL_DEF_CUSTOM_SIMPLE_ID: u32 = 100;
 const CAMERA_ID: u32 = 5;
 const LIGHT_ID: u32 = 6;
+const LIGHT_FILL_ID: u32 = 7;
 const ENVIRONMENT_ID: u32 = 7;
 const MODEL_CUBE_A_ID: u32 = 8;
 const MODEL_CUBE_B_ID: u32 = 9;
@@ -101,6 +102,7 @@ fn build_rotating_cube_updates(realm_id: u32, time_seconds: f32) -> Vec<EngineCm
                 Mat4::from_translation(Vec3::new(-2.0, 0.0, 0.0)) * Mat4::from_rotation_y(angle_a),
             ),
             layer_mask: None,
+            active: None,
             cast_shadow: None,
             receive_shadow: None,
             cast_outline: None,
@@ -116,6 +118,7 @@ fn build_rotating_cube_updates(realm_id: u32, time_seconds: f32) -> Vec<EngineCm
                 Mat4::from_translation(Vec3::new(0.0, 0.0, 0.0)) * Mat4::from_rotation_y(angle_b),
             ),
             layer_mask: None,
+            active: None,
             cast_shadow: None,
             receive_shadow: None,
             cast_outline: None,
@@ -131,6 +134,7 @@ fn build_rotating_cube_updates(realm_id: u32, time_seconds: f32) -> Vec<EngineCm
                 Mat4::from_translation(Vec3::new(2.0, 0.0, 0.0)) * Mat4::from_rotation_y(angle_c),
             ),
             layer_mask: None,
+            active: None,
             cast_shadow: None,
             receive_shadow: None,
             cast_outline: None,
@@ -254,7 +258,7 @@ fn fragment(input: FragmentInput) -> FragmentOutput {
             options: Some(MaterialOptions::Schema(HashMap::from([
                 ("baseColor".to_string(), Vec4::new(0.25, 0.45, 0.98, 1.0)),
                 ("emissiveColor".to_string(), Vec4::new(0.0, 0.0, 0.0, 0.0)),
-                ("specColor".to_string(), Vec4::new(1.0, 1.0, 1.0, 1.0)),
+                ("specColor".to_string(), Vec4::new(0.0, 1.0, 1.0, 1.0)),
                 ("specPower".to_string(), Vec4::new(64.0, 0.0, 0.0, 0.0)),
             ]))),
         })),
@@ -290,12 +294,29 @@ fn fragment(input: FragmentInput) -> FragmentOutput {
             kind: Some(LightKind::Point),
             position: Some(Vec4::new(3.0, 5.0, 5.0, 1.0)),
             direction: None,
-            color: Some(Vec4::new(1.0, 1.0, 1.0, 1.0)),
+            color: Some(Vec4::new(0.0, 1.0, 1.0, 1.0)),
             ground_color: None,
             intensity: Some(4.0),
             range: Some(30.0),
             spot_inner_outer: None,
             layer_mask: 1,
+            active: true,
+            cast_shadow: true,
+        })),
+        EngineCmd::CmdLight3dUpsert(CmdLight3dUpsertArgs::Create(CmdLightCreateArgs {
+            realm_id,
+            light_id: LIGHT_FILL_ID,
+            label: Some("demo-fill-light".into()),
+            kind: Some(LightKind::Point),
+            position: Some(Vec4::new(-4.0, 3.0, -2.0, 1.0)),
+            direction: None,
+            color: Some(Vec4::new(1.0, 0.0, 1.0, 1.0)),
+            ground_color: None,
+            intensity: Some(2.4),
+            range: Some(18.0),
+            spot_inner_outer: None,
+            layer_mask: 1,
+            active: true,
             cast_shadow: true,
         })),
         EngineCmd::CmdEnvironmentUpsert(CmdEnvironmentUpsertArgs::Create(
@@ -326,6 +347,7 @@ fn fragment(input: FragmentInput) -> FragmentOutput {
             material_id: Some(MATERIAL_STANDARD_ID),
             transform: Mat4::from_translation(Vec3::new(-2.0, 0.0, 0.0)),
             layer_mask: 1,
+            active: true,
             cast_shadow: true,
             receive_shadow: true,
             cast_outline: true,
@@ -339,6 +361,7 @@ fn fragment(input: FragmentInput) -> FragmentOutput {
             material_id: Some(MATERIAL_PBR_ID),
             transform: Mat4::from_translation(Vec3::new(0.0, 0.0, 0.0)),
             layer_mask: 1,
+            active: true,
             cast_shadow: true,
             receive_shadow: true,
             cast_outline: false,
@@ -352,6 +375,7 @@ fn fragment(input: FragmentInput) -> FragmentOutput {
             material_id: Some(MATERIAL_CUSTOM_SIMPLE_ID),
             transform: Mat4::from_translation(Vec3::new(2.0, 0.0, 0.0)),
             layer_mask: 1,
+            active: true,
             cast_shadow: true,
             receive_shadow: true,
             cast_outline: false,
@@ -369,6 +393,7 @@ fn fragment(input: FragmentInput) -> FragmentOutput {
                 Vec3::new(0.0, -1.0, 0.0),
             ),
             layer_mask: 1,
+            active: true,
             cast_shadow: true,
             receive_shadow: true,
             cast_outline: false,

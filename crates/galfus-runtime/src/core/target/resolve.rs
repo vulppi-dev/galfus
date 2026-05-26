@@ -465,7 +465,6 @@ fn rebuild_target_indexes(universal: &mut UniversalState) {
         &realm_output_surfaces,
         &layer_target_kinds,
     );
-
 }
 
 fn surface_state_for_target(

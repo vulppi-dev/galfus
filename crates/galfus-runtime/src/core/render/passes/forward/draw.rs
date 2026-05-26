@@ -4,6 +4,7 @@ use crate::core::resources::SurfaceType;
 pub(crate) fn draw_batches(
     render_pass: &mut wgpu::RenderPass,
     scene: &crate::core::render::state::RenderScene,
+    material_uniform_slots: &std::collections::HashMap<u32, u32>,
     library: &crate::core::render::state::ResourceLibrary,
     collector: &crate::core::render::state::DrawCollector,
     bindings: &crate::core::render::state::BindingSystem,
@@ -22,6 +23,7 @@ pub(crate) fn draw_batches(
         &collector.opaque,
         SurfaceType::Opaque,
         scene,
+        material_uniform_slots,
         bindings,
         vertex_sys,
         frame_index,
@@ -40,6 +42,7 @@ pub(crate) fn draw_batches(
         &collector.masked,
         SurfaceType::Masked,
         scene,
+        material_uniform_slots,
         bindings,
         vertex_sys,
         frame_index,
@@ -58,6 +61,7 @@ pub(crate) fn draw_batches(
         &collector.transparent,
         SurfaceType::Transparent,
         scene,
+        material_uniform_slots,
         bindings,
         vertex_sys,
         frame_index,
@@ -76,6 +80,7 @@ fn draw_group(
     items: &[crate::core::render::state::DrawItem],
     surface_type: SurfaceType,
     scene: &crate::core::render::state::RenderScene,
+    material_uniform_slots: &std::collections::HashMap<u32, u32>,
     bindings: &crate::core::render::state::BindingSystem,
     vertex_sys: &mut crate::core::resources::VertexAllocatorSystem,
     frame_index: u64,
@@ -148,8 +153,11 @@ fn draw_group(
 
         if let Some(material) = scene.materials.get(&mat_id) {
             if let Some(group) = material.bind_group.as_ref() {
-                let material_offset = bindings.material_3d_pool.get_offset(mat_id) as u32;
-                render_pass.set_bind_group(1, group, &[material_offset]);
+                if let Some(material_slot) = material_uniform_slots.get(&mat_id).copied() {
+                    let material_offset =
+                        bindings.material_3d_pool.get_offset(material_slot) as u32;
+                    render_pass.set_bind_group(1, group, &[material_offset]);
+                }
             }
             galfus_log::galfus_log_debug!(
                 log_events,

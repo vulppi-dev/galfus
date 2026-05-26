@@ -233,7 +233,8 @@ const STANDARD_2D_SOURCE: &str = r#"
 fn vertex(input: VertexInput) -> VertexOutput {
   var out: VertexOutput;
   out.clip_position = vec4<f32>(0.0);
-  out.color = vec4<f32>(1.0);
+  // Keep zero so the 2D composer injects the per-material tint from camera uniform.
+  out.color = vec4<f32>(0.0);
   out.uv = input.uv;
   return out;
 }
@@ -860,7 +861,9 @@ fn compose_material_wgsl(
         MaterialShaderType::Model => {
             validate_logical_shader_source(shader_type, snippet)?;
             let (prelude, postlude) = match realm {
-                MaterialShaderRealm::ThreeD => (model_composer_prelude(), model_composer_postlude()),
+                MaterialShaderRealm::ThreeD => {
+                    (model_composer_prelude(), model_composer_postlude())
+                }
                 MaterialShaderRealm::TwoD => (two_d_composer_prelude(), two_d_composer_postlude()),
             };
             Ok(format!(

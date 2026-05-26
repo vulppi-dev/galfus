@@ -413,7 +413,12 @@ impl ShadowManager {
 
             if let Some(transform) = self.atlas.get_uv_transform(record.atlas_handle) {
                 entries[id as usize] = ShadowPageEntry {
-                    scale_offset: glam::Vec4::new(transform.0, transform.1, transform.2, transform.3),
+                    scale_offset: glam::Vec4::new(
+                        transform.0,
+                        transform.1,
+                        transform.2,
+                        transform.3,
+                    ),
                     layer_index: transform.4,
                     _padding: [0; 3],
                 };

@@ -17,6 +17,9 @@ impl RenderState {
             let Some(record) = self.scene.lights.get(&light_id) else {
                 continue;
             };
+            if !record.active {
+                continue;
+            }
             let mut light_data = record.data;
             if record.cast_shadow {
                 light_data.shadow_index = shadow_counter;

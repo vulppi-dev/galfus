@@ -26,7 +26,6 @@ pub enum SurfaceKind {
     Offscreen,
 }
 
-
 #[cfg(test)]
 #[path = "lib_tests.rs"]
 mod tests;

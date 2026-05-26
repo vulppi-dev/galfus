@@ -1,5 +1,5 @@
-use std::time::{Duration, Instant};
 use std::collections::HashMap;
+use std::time::{Duration, Instant};
 
 use galfus_core::core;
 use galfus_core::core::GalfusResult;
@@ -68,7 +68,10 @@ pub fn run(ctx: DemoContext) -> bool {
         let t = total_ms as f32 / 1000.0;
         let updates = build_animated_updates(realm_2d, t);
         let _ = send_commands(updates);
-        assert_eq!(core::galfus_tick(total_ms as i64, FRAME_MS), GalfusResult::Success);
+        assert_eq!(
+            core::galfus_tick(total_ms as i64, FRAME_MS),
+            GalfusResult::Success
+        );
         total_ms = total_ms.saturating_add(FRAME_MS as u64);
         let _ = receive_responses();
         print_runtime_logs();
@@ -87,7 +90,10 @@ fn create_twod_realm() -> Option<u32> {
     })]);
     let mut total_ms = 0u64;
     for _ in 0..8 {
-        assert_eq!(core::galfus_tick(total_ms as i64, FRAME_MS), GalfusResult::Success);
+        assert_eq!(
+            core::galfus_tick(total_ms as i64, FRAME_MS),
+            GalfusResult::Success
+        );
         total_ms = total_ms.saturating_add(FRAME_MS as u64);
         for response in receive_responses() {
             if let galfus_core::core::cmd::CommandResponse::RealmCreate(result) = response.response

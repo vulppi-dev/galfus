@@ -62,7 +62,7 @@ pub fn pass_shadow_update(
             None => continue,
         };
 
-        if !light_record.cast_shadow {
+        if !light_record.active || !light_record.cast_shadow {
             continue;
         }
 
@@ -405,7 +405,7 @@ pub fn pass_shadow_update(
             }
 
             for (_model_id, model_record) in &render_state.scene.models {
-                if !model_record.cast_shadow {
+                if !model_record.active || !model_record.cast_shadow {
                     continue;
                 }
 

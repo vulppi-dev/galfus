@@ -424,8 +424,9 @@ impl ShaderMaterialRecord {
 #[cfg(test)]
 mod tests {
     use super::{
-        MATERIAL_DEFINITION_PBR_ID, MATERIAL_DEFINITION_STANDARD_2D_ID, MATERIAL_DEFINITION_STANDARD_ID,
-        MATERIAL_FALLBACK_ID, RenderSide, ShaderMaterialRecord, SurfaceType,
+        MATERIAL_DEFINITION_PBR_ID, MATERIAL_DEFINITION_STANDARD_2D_ID,
+        MATERIAL_DEFINITION_STANDARD_ID, MATERIAL_FALLBACK_ID, RenderSide, ShaderMaterialRecord,
+        SurfaceType,
     };
 
     #[test]

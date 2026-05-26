@@ -18,5 +18,8 @@ fn twod_realm_accepts_base_passes() {
         RENDER_PASS_FORWARD,
         RENDER_PASS_COMPOSE
     ]));
-    assert!(!graph_is_compatible([RENDER_PASS_CUSTOM_POST_FORWARD, RENDER_PASS_POST]));
+    assert!(!graph_is_compatible([
+        RENDER_PASS_CUSTOM_POST_FORWARD,
+        RENDER_PASS_POST
+    ]));
 }

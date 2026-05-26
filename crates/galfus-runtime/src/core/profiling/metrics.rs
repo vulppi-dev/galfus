@@ -61,18 +61,26 @@ fn refresh_render_cache_metrics(engine_state: &mut EngineState) {
 
     engine_state.profiling.render.render_pipeline_cache_hits = render_pipeline_hits;
     engine_state.profiling.render.render_pipeline_cache_misses = render_pipeline_misses;
-    engine_state.profiling.render.render_pipeline_cache_evictions = render_pipeline_evictions;
+    engine_state
+        .profiling
+        .render
+        .render_pipeline_cache_evictions = render_pipeline_evictions;
     engine_state.profiling.render.compute_pipeline_cache_hits = compute_pipeline_hits;
     engine_state.profiling.render.compute_pipeline_cache_misses = compute_pipeline_misses;
-    engine_state.profiling.render.compute_pipeline_cache_evictions = compute_pipeline_evictions;
+    engine_state
+        .profiling
+        .render
+        .compute_pipeline_cache_evictions = compute_pipeline_evictions;
     engine_state.profiling.render.compose_bind_cache_hits = compose_bind_cache_hits;
     engine_state.profiling.render.compose_bind_cache_misses = compose_bind_cache_misses;
     engine_state.profiling.render.compose_bind_cache_evictions = compose_bind_cache_evictions;
     engine_state.profiling.render.post_bind_cache_hits = post_bind_cache_hits;
     engine_state.profiling.render.post_bind_cache_misses = post_bind_cache_misses;
     engine_state.profiling.render.post_bind_cache_evictions = post_bind_cache_evictions;
-    engine_state.profiling.render.material_shader_module_evictions =
-        material_shader_module_evictions;
+    engine_state
+        .profiling
+        .render
+        .material_shader_module_evictions = material_shader_module_evictions;
 }
 
 fn estimate_engine_gpu_bytes(engine_state: &EngineState) -> u64 {

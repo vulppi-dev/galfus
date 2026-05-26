@@ -167,14 +167,16 @@ fn compile_material_program(
                     <= MATERIAL_PROGRAM_CACHE_MAX_UNUSED_FRAMES;
                 within_window || active_hashes.contains(&value.hash)
             });
-        let evicted = before_prune.saturating_sub(engine.universal_state.scene.material_program_cache.len());
+        let evicted =
+            before_prune.saturating_sub(engine.universal_state.scene.material_program_cache.len());
         engine.profiling.render.material_program_cache_evictions = engine
             .profiling
             .render
             .material_program_cache_evictions
             .saturating_add(evicted as u32);
     }
-    if engine.universal_state.scene.material_program_cache.len() > MATERIAL_PROGRAM_CACHE_MAX_ENTRIES_HARD
+    if engine.universal_state.scene.material_program_cache.len()
+        > MATERIAL_PROGRAM_CACHE_MAX_ENTRIES_HARD
     {
         let mut stale_keys: Vec<(u64, u64)> = engine
             .universal_state
@@ -200,7 +202,11 @@ fn compile_material_program(
             .len()
             .saturating_sub(MATERIAL_PROGRAM_CACHE_MAX_ENTRIES_HARD);
         for (key, _) in stale_keys.into_iter().take(overflow) {
-            engine.universal_state.scene.material_program_cache.remove(&key);
+            engine
+                .universal_state
+                .scene
+                .material_program_cache
+                .remove(&key);
             engine
                 .universal_state
                 .scene
@@ -850,7 +856,8 @@ pub fn engine_cmd_material_definition_dispose(
             .collect();
 
         for (material_id, realm_kind) in impacted_materials {
-            let Some(fallback_definition) = fallback_definition_for_realm(engine, realm_kind) else {
+            let Some(fallback_definition) = fallback_definition_for_realm(engine, realm_kind)
+            else {
                 continue;
             };
             let Some(record) = engine
@@ -901,7 +908,8 @@ pub fn engine_cmd_material_definition_dispose(
             .scene
             .material_program_cache
             .retain(|_, value| active_hashes.contains(&value.hash));
-        let evicted = before_prune.saturating_sub(engine.universal_state.scene.material_program_cache.len());
+        let evicted =
+            before_prune.saturating_sub(engine.universal_state.scene.material_program_cache.len());
         engine.profiling.render.material_program_cache_evictions = engine
             .profiling
             .render

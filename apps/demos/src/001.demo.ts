@@ -131,10 +131,23 @@ async function main() {
   });
   World3D.create3DLight(worldId, lightEntity, {
     kind: 'point',
-    color: [1, 1, 1],
+    color: [0, 1, 1],
     intensity: 4,
     range: 24,
     castShadow: true
+  });
+
+  const lightEntity2 = World3D.create3DEntity(worldId);
+  World3D.update3DTransform(worldId, lightEntity2, {
+    position: [-4, 3, -2],
+    rotation: [0, 0, 0, 1]
+  });
+  World3D.create3DLight(worldId, lightEntity2, {
+    kind: 'point',
+    color: [1, 0, 1],
+    intensity: 2.4,
+    range: 18,
+    castShadow: false
   });
 
   const cube1 = World3D.create3DEntity(worldId);

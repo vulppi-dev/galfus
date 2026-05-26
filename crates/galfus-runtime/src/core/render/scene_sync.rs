@@ -64,6 +64,7 @@ pub(super) fn sync_scene_from_realm_and_universal_resources(
                     outline_color: record.data.outline_color,
                     geometry_id: record.geometry_id,
                     material_id: record.material_id,
+                    active: record.active,
                     layer_mask: record.layer_mask,
                     cast_shadow: record.cast_shadow,
                     receive_shadow: record.receive_shadow,
@@ -78,6 +79,7 @@ pub(super) fn sync_scene_from_realm_and_universal_resources(
                     outline_color: node.data.outline_color,
                     geometry_id: node.geometry_id,
                     material_id: node.material_id,
+                    active: node.active,
                     layer_mask: node.layer_mask,
                     cast_shadow: node.cast_shadow,
                     receive_shadow: node.receive_shadow,
@@ -87,6 +89,7 @@ pub(super) fn sync_scene_from_realm_and_universal_resources(
                 record.data = node.data;
                 record.geometry_id = node.geometry_id;
                 record.material_id = node.material_id;
+                record.active = node.active;
                 record.layer_mask = node.layer_mask;
                 record.cast_shadow = node.cast_shadow;
                 record.receive_shadow = node.receive_shadow;
@@ -113,6 +116,7 @@ pub(super) fn sync_scene_from_realm_and_universal_resources(
                     intensity_range: record.data.intensity_range,
                     spot_inner_outer: record.data.spot_inner_outer,
                     kind_flags: record.data.kind_flags.to_array(),
+                    active: record.active,
                     layer_mask: record.layer_mask,
                     cast_shadow: record.cast_shadow,
                 };
@@ -127,11 +131,13 @@ pub(super) fn sync_scene_from_realm_and_universal_resources(
                     intensity_range: node.data.intensity_range,
                     spot_inner_outer: node.data.spot_inner_outer,
                     kind_flags: node.data.kind_flags.to_array(),
+                    active: node.active,
                     layer_mask: node.layer_mask,
                     cast_shadow: node.cast_shadow,
                 };
                 record.label = node.label.clone();
                 record.data = node.data;
+                record.active = node.active;
                 record.layer_mask = node.layer_mask;
                 record.cast_shadow = node.cast_shadow;
                 let update_plan =

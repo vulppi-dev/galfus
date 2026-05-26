@@ -1,8 +1,8 @@
 #[cfg(not(target_arch = "wasm32"))]
 use crate::core::platform::winit::dpi::{PhysicalPosition, PhysicalSize};
 
-use crate::core::state::EngineState;
 use crate::core::id_policy::validate_host_logical_id;
+use crate::core::state::EngineState;
 pub use galfus_protocol::{CmdResultWindowMeasurement, CmdWindowMeasurementArgs};
 #[cfg(not(target_arch = "wasm32"))]
 use glam::IVec2;

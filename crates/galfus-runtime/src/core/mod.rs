@@ -1,8 +1,8 @@
 pub mod audio;
 pub mod buffers;
 pub mod cmd;
-pub mod image;
 pub mod id_policy;
+pub mod image;
 pub mod input;
 mod lifecycle;
 pub mod platform;
