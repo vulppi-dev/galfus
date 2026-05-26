@@ -238,26 +238,6 @@ pub fn ensure_runtime_render_defaults(universal: &mut crate::core::realm::Univer
             state: state_2d,
             desc_hash: hash_2d,
         });
-    universal
-        .scene
-        .realm3d
-        .materials
-        .entry(crate::core::resources::MATERIAL_FALLBACK_ID)
-        .or_insert_with(|| {
-            crate::core::resources::ShaderMaterialRecord::new_standard(Some(
-                "Fallback Material".into(),
-            ))
-        });
-    universal
-        .scene
-        .realm3d
-        .materials
-        .entry(crate::core::resources::MATERIAL_STANDARD_2D_ID)
-        .or_insert_with(|| {
-            crate::core::resources::ShaderMaterialRecord::new_standard_2d(Some(
-                "Standard 2D Material".into(),
-            ))
-        });
 }
 
 pub fn render_frames(engine_state: &mut EngineState) {

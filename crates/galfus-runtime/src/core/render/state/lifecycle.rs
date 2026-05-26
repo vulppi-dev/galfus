@@ -7,7 +7,7 @@ use crate::core::render::cache::RenderCache;
 use crate::core::render::gizmos::GizmoSystem;
 #[cfg(any(not(target_arch = "wasm32"), target_arch = "wasm32"))]
 use crate::core::render::state::collector::DrawCollector;
-use crate::core::resources::{MATERIAL_FALLBACK_ID, MATERIAL_STANDARD_2D_ID, ShaderMaterialRecord};
+use crate::core::resources::{MATERIAL_FALLBACK_ID, ShaderMaterialRecord};
 #[cfg(any(not(target_arch = "wasm32"), target_arch = "wasm32"))]
 use std::collections::HashMap;
 use std::collections::HashSet;
@@ -27,10 +27,6 @@ impl RenderState {
         materials.insert(
             MATERIAL_FALLBACK_ID,
             ShaderMaterialRecord::new_standard(Some("Fallback Material".into())),
-        );
-        materials.insert(
-            MATERIAL_STANDARD_2D_ID,
-            ShaderMaterialRecord::new_standard_2d(Some("Standard 2D Material".into())),
         );
 
         Self {
@@ -106,10 +102,6 @@ impl RenderState {
         self.scene.materials.insert(
             MATERIAL_FALLBACK_ID,
             ShaderMaterialRecord::new_standard(Some("Fallback Material".into())),
-        );
-        self.scene.materials.insert(
-            MATERIAL_STANDARD_2D_ID,
-            ShaderMaterialRecord::new_standard_2d(Some("Standard 2D Material".into())),
         );
         self.scene.textures.clear();
         self.scene.forward_atlas_entries.clear();
