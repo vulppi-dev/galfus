@@ -1,6 +1,7 @@
 use glam::{Vec2, Vec4};
 use serde::{Deserialize, Serialize};
 
+use crate::core::id_policy::validate_host_logical_id;
 use crate::core::resources::common::{default_layer_mask, mark_realm_windows_dirty};
 use crate::core::resources::{LightComponent, LightKind, LightRecord};
 use crate::core::state::EngineState;
@@ -31,6 +32,8 @@ pub struct CmdLightCreateArgs {
     #[serde(default = "default_layer_mask")]
     pub layer_mask: u32,
     #[serde(default = "crate::core::resources::common::default_true")]
+    pub active: bool,
+    #[serde(default = "crate::core::resources::common::default_true")]
     pub cast_shadow: bool,
 }
 
@@ -56,6 +59,7 @@ pub struct CmdLightUpdateArgs {
     pub range: Option<f32>,
     pub spot_inner_outer: Option<Vec2>,
     pub layer_mask: Option<u32>,
+    pub active: Option<bool>,
     pub cast_shadow: Option<bool>,
 }
 
@@ -84,6 +88,18 @@ pub fn engine_cmd_light_create(
     engine: &mut EngineState,
     args: &CmdLightCreateArgs,
 ) -> CmdResultLightCreate {
+    if let Err(message) = validate_host_logical_id(args.realm_id, "realmId") {
+        return CmdResultLightCreate {
+            success: false,
+            message,
+        };
+    }
+    if let Err(message) = validate_host_logical_id(args.light_id, "lightId") {
+        return CmdResultLightCreate {
+            success: false,
+            message,
+        };
+    }
     let realm_id = crate::core::realm::RealmId(args.realm_id);
     let entities = engine
         .universal_state
@@ -132,6 +148,7 @@ pub fn engine_cmd_light_create(
         LightRecord::new(
             args.label.clone(),
             component,
+            args.active,
             args.layer_mask,
             args.cast_shadow,
         ),
@@ -140,12 +157,13 @@ pub fn engine_cmd_light_create(
     galfus_log::galfus_log_debug!(
         engine,
         "realm3d.state",
-        "light-created realm={} light={} kind={:?} intensity={} range={} layer_mask={} cast_shadow={}",
+        "light-created realm={} light={} kind={:?} intensity={} range={} active={} layer_mask={} cast_shadow={}",
         args.realm_id,
         args.light_id,
         kind,
         intensity,
         range,
+        args.active,
         args.layer_mask,
         args.cast_shadow
     );
@@ -160,6 +178,18 @@ pub fn engine_cmd_light_update(
     engine: &mut EngineState,
     args: &CmdLightUpdateArgs,
 ) -> CmdResultLightUpdate {
+    if let Err(message) = validate_host_logical_id(args.realm_id, "realmId") {
+        return CmdResultLightUpdate {
+            success: false,
+            message,
+        };
+    }
+    if let Err(message) = validate_host_logical_id(args.light_id, "lightId") {
+        return CmdResultLightUpdate {
+            success: false,
+            message,
+        };
+    }
     let realm_id = crate::core::realm::RealmId(args.realm_id);
     let Some(entities) = engine
         .universal_state
@@ -234,6 +264,9 @@ pub fn engine_cmd_light_update(
     if let Some(layer_mask) = args.layer_mask {
         record.layer_mask = layer_mask;
     }
+    if let Some(active) = args.active {
+        record.active = active;
+    }
 
     record.data.update_matrices();
     record.mark_dirty();
@@ -249,6 +282,18 @@ pub fn engine_cmd_light_dispose(
     engine: &mut EngineState,
     args: &CmdLight3dDisposeArgs,
 ) -> CmdResultLightDispose {
+    if let Err(message) = validate_host_logical_id(args.realm_id, "realmId") {
+        return CmdResultLightDispose {
+            success: false,
+            message,
+        };
+    }
+    if let Err(message) = validate_host_logical_id(args.light_id, "lightId") {
+        return CmdResultLightDispose {
+            success: false,
+            message,
+        };
+    }
     let realm_id = crate::core::realm::RealmId(args.realm_id);
     let Some(entities) = engine
         .universal_state

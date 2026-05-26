@@ -34,11 +34,19 @@ pub extern "C" fn galfus_upload_buffer(
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn galfus_tick(time: u64, delta_time: u32) -> u32 {
+pub extern "C" fn galfus_tick(time: i64, delta_time: u32) -> u32 {
     galfus_core::galfus_tick(time, delta_time) as u32
 }
 
 #[unsafe(no_mangle)]
 pub extern "C" fn galfus_get_profiling(out_ptr: *mut *const u8, out_length: *mut usize) -> u32 {
     galfus_core::galfus_get_profiling(out_ptr, out_length) as u32
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn tick_signature_uses_i64() {
+        let _fn_ptr: extern "C" fn(i64, u32) -> u32 = super::galfus_tick;
+    }
 }

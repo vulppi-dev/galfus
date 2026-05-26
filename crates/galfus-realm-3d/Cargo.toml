@@ -6,5 +6,6 @@ license.workspace = true
 
 [dependencies]
 bytemuck = "1.25"
+glam = { version = "0.30", features = ["serde", "bytemuck", "encase"] }
 galfus-realm-core = { path = "../galfus-realm-core" }
 galfus-types = { path = "../galfus-types" }

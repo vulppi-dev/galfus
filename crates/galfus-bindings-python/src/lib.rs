@@ -56,7 +56,7 @@ fn galfus_upload_buffer(id: i64, upload_type: u32, data: &[u8]) -> u32 {
 
 #[pyfunction]
 fn galfus_tick(time: i64, delta_time: u32) -> u32 {
-    galfus_core::galfus_tick(time as u64, delta_time) as u32
+    galfus_core::galfus_tick(time, delta_time) as u32
 }
 
 #[pyfunction]
@@ -77,4 +77,12 @@ fn galfus(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_function(wrap_pyfunction!(galfus_tick, module)?)?;
     module.add_function(wrap_pyfunction!(galfus_get_profiling, module)?)?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn tick_signature_uses_i64() {
+        let _fn_ptr: fn(i64, u32) -> u32 = super::galfus_tick;
+    }
 }

@@ -1,8 +1,7 @@
 use galfus_realm_core::{
-    RENDER_PASS_2D_BATCH, RENDER_PASS_2D_COMPOSE, RENDER_PASS_2D_DRAW, RENDER_PASS_2D_PREPARE,
-    RENDER_PASS_BLOOM, RENDER_PASS_COMPOSE, RENDER_PASS_FORWARD, RENDER_PASS_LIGHT_CULL,
-    RENDER_PASS_OUTLINE, RENDER_PASS_POST, RENDER_PASS_SHADOW, RENDER_PASS_SKYBOX,
-    RENDER_PASS_SSAO, RENDER_PASS_SSAO_BLUR,
+    RENDER_PASS_BATCH, RENDER_PASS_BLOOM, RENDER_PASS_COMPOSE, RENDER_PASS_FORWARD,
+    RENDER_PASS_LIGHT_CULL, RENDER_PASS_OUTLINE, RENDER_PASS_POST, RENDER_PASS_PREPARE,
+    RENDER_PASS_SHADOW, RENDER_PASS_SKYBOX, RENDER_PASS_SSAO, RENDER_PASS_SSAO_BLUR,
 };
 use std::collections::HashMap;
 
@@ -11,13 +10,13 @@ use crate::{
     RenderGraphNode, RenderGraphResource, RenderGraphResourceKind,
 };
 
-pub fn ui_fallback_graph() -> RenderGraphDesc {
+pub fn realm2d_fallback_graph() -> RenderGraphDesc {
     RenderGraphDesc {
         graph_id: LogicalId::Str("ui_fallback".into()),
         nodes: vec![
             RenderGraphNode {
                 node_id: LogicalId::Str("2d_prepare".into()),
-                pass_id: RENDER_PASS_2D_PREPARE.into(),
+                pass_id: RENDER_PASS_PREPARE.into(),
                 inputs: Vec::new(),
                 outputs: vec![LogicalId::Str("2d_scene".into())],
                 require: Vec::new(),
@@ -28,7 +27,7 @@ pub fn ui_fallback_graph() -> RenderGraphDesc {
             },
             RenderGraphNode {
                 node_id: LogicalId::Str("2d_batch".into()),
-                pass_id: RENDER_PASS_2D_BATCH.into(),
+                pass_id: RENDER_PASS_BATCH.into(),
                 inputs: vec![LogicalId::Str("2d_scene".into())],
                 outputs: vec![LogicalId::Str("2d_batches".into())],
                 require: Vec::new(),
@@ -39,7 +38,7 @@ pub fn ui_fallback_graph() -> RenderGraphDesc {
             },
             RenderGraphNode {
                 node_id: LogicalId::Str("2d_draw".into()),
-                pass_id: RENDER_PASS_2D_DRAW.into(),
+                pass_id: RENDER_PASS_FORWARD.into(),
                 inputs: vec![LogicalId::Str("2d_batches".into())],
                 outputs: vec![LogicalId::Str("2d_color".into())],
                 require: Vec::new(),
@@ -50,7 +49,7 @@ pub fn ui_fallback_graph() -> RenderGraphDesc {
             },
             RenderGraphNode {
                 node_id: LogicalId::Str("2d_compose".into()),
-                pass_id: RENDER_PASS_2D_COMPOSE.into(),
+                pass_id: RENDER_PASS_COMPOSE.into(),
                 inputs: vec![LogicalId::Str("2d_color".into())],
                 outputs: vec![LogicalId::Str("swapchain".into())],
                 require: Vec::new(),

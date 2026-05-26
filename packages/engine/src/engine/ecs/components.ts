@@ -44,6 +44,7 @@ export interface CameraProps {
   near?: number;
   far?: number;
   order?: number;
+  layerMask?: number;
   viewPosition?: ViewPosition;
   orthoScale?: number;
 }

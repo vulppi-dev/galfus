@@ -1,4 +1,5 @@
 use crate::core::audio::AudioSourceParams;
+use crate::core::id_policy::validate_host_logical_id;
 use crate::core::state::EngineState;
 use galfus_audio::{
     AudioModelTransform, dispose_source, insert_source, plan_bound_source_updates, update_source,
@@ -15,6 +16,24 @@ pub fn engine_cmd_audio_source_create(
     engine: &mut EngineState,
     args: &CmdAudioSourceCreateArgs,
 ) -> CmdResultAudioSourceCreate {
+    if let Err(message) = validate_host_logical_id(args.source_id, "sourceId") {
+        return CmdResultAudioSourceCreate {
+            success: false,
+            message,
+        };
+    }
+    if let Err(message) = validate_host_logical_id(args.realm_id, "realmId") {
+        return CmdResultAudioSourceCreate {
+            success: false,
+            message,
+        };
+    }
+    if let Err(message) = validate_host_logical_id(args.model_id, "modelId") {
+        return CmdResultAudioSourceCreate {
+            success: false,
+            message,
+        };
+    }
     if !engine.audio_available {
         return CmdResultAudioSourceCreate {
             success: false,
@@ -53,6 +72,28 @@ pub fn engine_cmd_audio_source_update(
     engine: &mut EngineState,
     args: &CmdAudioSourceUpdateArgs,
 ) -> CmdResultAudioSourceUpdate {
+    if let Err(message) = validate_host_logical_id(args.source_id, "sourceId") {
+        return CmdResultAudioSourceUpdate {
+            success: false,
+            message,
+        };
+    }
+    if let Some(realm_id) = args.realm_id
+        && let Err(message) = validate_host_logical_id(realm_id, "realmId")
+    {
+        return CmdResultAudioSourceUpdate {
+            success: false,
+            message,
+        };
+    }
+    if let Some(model_id) = args.model_id
+        && let Err(message) = validate_host_logical_id(model_id, "modelId")
+    {
+        return CmdResultAudioSourceUpdate {
+            success: false,
+            message,
+        };
+    }
     if !engine.audio_available {
         return CmdResultAudioSourceUpdate {
             success: false,
@@ -95,6 +136,12 @@ pub fn engine_cmd_audio_source_transport(
     engine: &mut EngineState,
     args: &CmdAudioSourceTransportArgs,
 ) -> CmdResultAudioSourceTransport {
+    if let Err(message) = validate_host_logical_id(args.source_id, "sourceId") {
+        return CmdResultAudioSourceTransport {
+            success: false,
+            message,
+        };
+    }
     if !engine.audio_available {
         return CmdResultAudioSourceTransport {
             success: false,
@@ -110,6 +157,12 @@ pub fn engine_cmd_audio_source_transport(
                 };
             };
             let timeline_id = args.timeline_id.unwrap_or(0);
+            if let Err(message) = validate_host_logical_id(resource_id, "resourceId") {
+                return CmdResultAudioSourceTransport {
+                    success: false,
+                    message,
+                };
+            }
             let mode = args.mode.clone().unwrap_or(AudioPlayModeDto::Once);
             let intensity = args.intensity.unwrap_or(1.0).clamp(0.0, 1.0);
             match engine.audio.source_play(
@@ -161,6 +214,12 @@ pub fn engine_cmd_audio_source_dispose(
     engine: &mut EngineState,
     args: &CmdAudioSourceDisposeArgs,
 ) -> CmdResultAudioSourceDispose {
+    if let Err(message) = validate_host_logical_id(args.source_id, "sourceId") {
+        return CmdResultAudioSourceDispose {
+            success: false,
+            message,
+        };
+    }
     if !engine.audio_available {
         return CmdResultAudioSourceDispose {
             success: false,

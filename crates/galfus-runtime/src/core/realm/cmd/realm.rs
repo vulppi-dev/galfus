@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+use crate::core::id_policy::validate_host_logical_id;
 use crate::core::realm::{
     RealmId, RealmKind, RealmState, detach_realm_runtime, dispose_realm_layers,
     dispose_surface_links, init_realm_runtime, remove_connectors_for_realms,
@@ -118,6 +119,12 @@ pub fn engine_cmd_realm_dispose(
     engine: &mut EngineState,
     args: &CmdRealmDisposeArgs,
 ) -> CmdResultRealmDispose {
+    if let Err(message) = validate_host_logical_id(args.realm_id, "realmId") {
+        return CmdResultRealmDispose {
+            success: false,
+            message,
+        };
+    }
     let realm_id = RealmId(args.realm_id);
     let Some(entry) = engine.universal_state.composition.realms.remove(realm_id) else {
         return CmdResultRealmDispose {
@@ -158,6 +165,14 @@ fn realm_kind_to_dto(kind: RealmKind) -> RealmKindDto {
 }
 
 pub fn engine_cmd_realm_get(engine: &mut EngineState, args: &CmdRealmGetArgs) -> CmdResultRealmGet {
+    if let Err(message) = validate_host_logical_id(args.realm_id, "realmId") {
+        return CmdResultRealmGet {
+            success: false,
+            message,
+            realm_id: args.realm_id,
+            ..Default::default()
+        };
+    }
     let realm_id = RealmId(args.realm_id);
     let Some(entry) = engine
         .universal_state
@@ -186,6 +201,17 @@ pub fn engine_cmd_realm_list(
     engine: &mut EngineState,
     args: &CmdRealmListArgs,
 ) -> CmdResultRealmList {
+    if let Some(ids) = args.ids.as_ref() {
+        for id in ids {
+            if let Err(message) = validate_host_logical_id(*id, "realmId") {
+                return CmdResultRealmList {
+                    success: false,
+                    message,
+                    items: Vec::new(),
+                };
+            }
+        }
+    }
     let items = engine
         .universal_state
         .composition

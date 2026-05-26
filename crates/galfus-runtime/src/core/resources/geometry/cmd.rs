@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+use crate::core::id_policy::validate_host_logical_id;
 use crate::core::render::UniversalGeometryRecord;
 use crate::core::resources::vertex::GeometryPrimitiveType;
 use crate::core::state::EngineState;
@@ -127,6 +128,12 @@ pub fn engine_cmd_geometry_create(
     engine: &mut EngineState,
     args: &CmdGeometryCreateArgs,
 ) -> CmdResultGeometryCreate {
+    if let Err(message) = validate_host_logical_id(args.geometry_id, "geometryId") {
+        return CmdResultGeometryCreate {
+            success: false,
+            message,
+        };
+    }
     if let Err(message) = validate_entries(&args.entries) {
         return CmdResultGeometryCreate {
             success: false,
@@ -162,6 +169,12 @@ pub fn engine_cmd_geometry_update(
     engine: &mut EngineState,
     args: &CmdGeometryUpdateArgs,
 ) -> CmdResultGeometryUpdate {
+    if let Err(message) = validate_host_logical_id(args.geometry_id, "geometryId") {
+        return CmdResultGeometryUpdate {
+            success: false,
+            message,
+        };
+    }
     if args.entries.is_none() {
         if let Some(record) = engine
             .universal_state
@@ -219,6 +232,12 @@ pub fn engine_cmd_geometry_dispose(
     engine: &mut EngineState,
     args: &CmdGeometryDisposeArgs,
 ) -> CmdResultGeometryDispose {
+    if let Err(message) = validate_host_logical_id(args.geometry_id, "geometryId") {
+        return CmdResultGeometryDispose {
+            success: false,
+            message,
+        };
+    }
     let removed = engine
         .universal_state
         .scene

@@ -65,7 +65,25 @@ impl RenderState {
         let bindings = self.bindings.as_mut().expect("bindings must exist");
         let library = self.library.as_ref().expect("library must exist");
 
-        for (id, record) in &mut self.scene.materials {
+        let mut material_ids: Vec<u32> = self.scene.materials.keys().copied().collect();
+        material_ids.sort_unstable();
+
+        let previous_slots = std::mem::take(&mut self.material_uniform_slots);
+        self.material_uniform_slots = material_ids
+            .iter()
+            .copied()
+            .enumerate()
+            .map(|(slot, id)| (id, slot as u32))
+            .collect();
+
+        for id in material_ids {
+            let Some(record) = self.scene.materials.get_mut(&id) else {
+                continue;
+            };
+            let Some(slot) = self.material_uniform_slots.get(&id).copied() else {
+                continue;
+            };
+            let slot_changed = previous_slots.get(&id).copied() != Some(slot);
             let mut atlas_changed = false;
             for slot in 0..SHADER_MATERIAL_TEXTURE_SLOTS {
                 let tex_id = record.texture_ids[slot];
@@ -133,14 +151,14 @@ impl RenderState {
                 }
             }
 
-            if record.is_dirty || atlas_changed {
+            if record.is_dirty || atlas_changed || slot_changed {
                 let material_params = match record.preset {
                     crate::core::resources::ShaderMaterialPreset::Standard => record.data_standard,
                     crate::core::resources::ShaderMaterialPreset::Pbr => {
                         pbr_to_material3d(&record.data_pbr)
                     }
                 };
-                bindings.material_3d_pool.write(*id, &material_params);
+                bindings.material_3d_pool.write(slot, &material_params);
                 if record.is_dirty {
                     let inputs_offset = match record.preset {
                         crate::core::resources::ShaderMaterialPreset::Standard => {

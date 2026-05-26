@@ -8,17 +8,17 @@ const MAX_SKYBOX_SUNS: usize = 4;
 #[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable)]
 struct SkyboxUniform {
-    inv_view_proj: [[f32; 4]; 4],
-    camera_pos: [f32; 4],
-    intensity: [f32; 4],
-    ground_color: [f32; 4],
-    horizon_color: [f32; 4],
-    sky_color: [f32; 4],
-    params: [f32; 4],
-    sun_dirs: [[f32; 4]; MAX_SKYBOX_SUNS],
-    sun_colors: [[f32; 4]; MAX_SKYBOX_SUNS],
-    sun_sizes: [[f32; 4]; MAX_SKYBOX_SUNS],
-    sun_meta: [f32; 4],
+    inv_view_proj: glam::Mat4,
+    camera_pos: glam::Vec4,
+    intensity: glam::Vec4,
+    ground_color: glam::Vec4,
+    horizon_color: glam::Vec4,
+    sky_color: glam::Vec4,
+    params: glam::Vec4,
+    sun_dirs: [glam::Vec4; MAX_SKYBOX_SUNS],
+    sun_colors: [glam::Vec4; MAX_SKYBOX_SUNS],
+    sun_sizes: [glam::Vec4; MAX_SKYBOX_SUNS],
+    sun_meta: glam::Vec4,
 }
 
 pub fn skybox_uniform_buffer_size() -> u64 {
@@ -74,14 +74,14 @@ fn collect_skybox_suns(
     camera_record: &crate::core::resources::CameraRecord,
     directional_lights: &[SkyboxDirectionalLightSun],
 ) -> (
-    [[f32; 4]; MAX_SKYBOX_SUNS],
-    [[f32; 4]; MAX_SKYBOX_SUNS],
-    [[f32; 4]; MAX_SKYBOX_SUNS],
+    [glam::Vec4; MAX_SKYBOX_SUNS],
+    [glam::Vec4; MAX_SKYBOX_SUNS],
+    [glam::Vec4; MAX_SKYBOX_SUNS],
     u32,
 ) {
-    let mut dirs = [[0.0; 4]; MAX_SKYBOX_SUNS];
-    let mut colors = [[0.0; 4]; MAX_SKYBOX_SUNS];
-    let mut sizes = [[0.0; 4]; MAX_SKYBOX_SUNS];
+    let mut dirs = [glam::Vec4::ZERO; MAX_SKYBOX_SUNS];
+    let mut colors = [glam::Vec4::ZERO; MAX_SKYBOX_SUNS];
+    let mut sizes = [glam::Vec4::ZERO; MAX_SKYBOX_SUNS];
     let mut count = 0_u32;
 
     if directional_lights.is_empty() {
@@ -109,16 +109,16 @@ fn collect_skybox_suns(
         }
         let intensity = light_record.data.intensity_range.x.max(0.0);
         let idx = count as usize;
-        dirs[idx] = [direction.x, direction.y, direction.z, 0.0];
-        colors[idx] = [
+        dirs[idx] = direction.extend(0.0);
+        colors[idx] = glam::Vec4::new(
             light_record.data.color.x.max(0.0),
             light_record.data.color.y.max(0.0),
             light_record.data.color.z.max(0.0),
             intensity,
-        ];
+        );
         let solid = sun.solid_size.max(0.001);
         let gradient = sun.gradient_size.max(solid + 0.001);
-        sizes[idx] = [solid, gradient, 0.0, 0.0];
+        sizes[idx] = glam::Vec4::new(solid, gradient, 0.0, 0.0);
         count += 1;
     }
 
@@ -262,37 +262,22 @@ pub fn pass_skybox(
         };
 
         let uniform = SkyboxUniform {
-            inv_view_proj: inv_view_proj.to_cols_array_2d(),
-            camera_pos: [camera_pos.x, camera_pos.y, camera_pos.z, 1.0],
-            intensity: [skybox.intensity, 0.0, 0.0, 0.0],
-            ground_color: [
-                skybox.ground_color.x,
-                skybox.ground_color.y,
-                skybox.ground_color.z,
-                1.0,
-            ],
-            horizon_color: [
-                skybox.horizon_color.x,
-                skybox.horizon_color.y,
-                skybox.horizon_color.z,
-                1.0,
-            ],
-            sky_color: [
-                skybox.sky_color.x,
-                skybox.sky_color.y,
-                skybox.sky_color.z,
-                1.0,
-            ],
-            params: [
+            inv_view_proj,
+            camera_pos: camera_pos.extend(1.0),
+            intensity: glam::Vec4::new(skybox.intensity, 0.0, 0.0, 0.0),
+            ground_color: skybox.ground_color.extend(1.0),
+            horizon_color: skybox.horizon_color.extend(1.0),
+            sky_color: skybox.sky_color.extend(1.0),
+            params: glam::Vec4::new(
                 skybox.rotation,
                 mode_value,
                 horizon_ground_threshold,
                 horizon_sky_threshold,
-            ],
+            ),
             sun_dirs,
             sun_colors,
             sun_sizes,
-            sun_meta: [sun_count as f32, 0.0, 0.0, 0.0],
+            sun_meta: glam::Vec4::new(sun_count as f32, 0.0, 0.0, 0.0),
         };
         queue.write_buffer(uniform_buffer, 0, bytemuck::bytes_of(&uniform));
 

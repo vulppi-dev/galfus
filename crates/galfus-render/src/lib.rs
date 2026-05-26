@@ -15,7 +15,6 @@ mod samplers;
 mod shader_dsl;
 mod shaders;
 mod target;
-mod ui_actions;
 mod validation;
 mod window_state_map;
 
@@ -29,15 +28,16 @@ pub use graph::{
     RenderGraphValue, ensure_default_render_graphs, fallback_render_graph_id,
     is_reserved_render_graph_id, render_graph_desc_hash, resolve_render_graph_id, validate_graph,
 };
-pub use graph_fallbacks::{fallback_graph, ui_fallback_graph};
+pub use graph_fallbacks::{fallback_graph, realm2d_fallback_graph};
 pub use layouts::{
     EffectBuffers, Layouts, PipelineLayouts, create_effect_buffers, create_pipeline_layouts,
 };
 pub use library::ResourceLibrary;
 pub use material_shader::{
     CompiledMaterialShader, MaterialShaderBasePreset, MaterialShaderCapabilities,
-    MaterialShaderCompileSpec, MaterialShaderType, builtin_material_source,
-    compile_material_shader_spec,
+    MaterialShaderCompileSpec, MaterialShaderRealm, MaterialShaderType, builtin_material_source,
+    builtin_material_source_2d, compile_material_shader_spec,
+    compile_material_shader_spec_for_realm,
 };
 pub use profiler::{GpuProfiler, GpuTimingReport};
 pub use realm_planner::{
@@ -53,8 +53,8 @@ pub use realm_planner::{
     plan_auto_graph_layer_sync, plan_auto_graph_link, plan_auto_graph_surface_spec,
     plan_compose_overlays, plan_external_texture_refresh, plan_host_realm_index,
     plan_realm_environment_bindings, plan_surface_targets, plan_target_size_updates,
-    plan_target_ui_realm_index, resolve_auto_graph_layout, resolve_connector_surface,
-    resolve_realm_surface, should_render_realm, update_present_size_cache, update_surface_cache,
+    resolve_auto_graph_layout, resolve_connector_surface, resolve_realm_surface,
+    should_render_realm, update_present_size_cache, update_surface_cache,
 };
 pub use realm_policy::{
     clear_alpha_for_realm_kind, graph_is_compatible_with_realm_kind,
@@ -76,5 +76,4 @@ pub use target::{
     RenderTarget, ensure_render_target, ensure_surface_target, estimate_texture_bytes,
     texture_format_texel_bytes,
 };
-pub use ui_actions::{UiPlatformAction, collect_platform_actions};
 pub use window_state_map::WindowStateMap;

@@ -1509,6 +1509,7 @@ dependencies = [
  "bytemuck",
  "galfus-realm-core",
  "galfus-types",
+ "glam 0.30.10",
 ]
 
 [[package]]

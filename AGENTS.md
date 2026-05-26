@@ -49,4 +49,6 @@
 - Unused functions must also be removed.
 - Internal Rust properties use `snake_case`; serde converts them to `camelCase` on the host side.
 - Resources must follow this pattern: logical IDs are controlled by the host, while all other management and control requirements remain in the core, including physical ID generation, pooling, etc.
-- The host is responsible for ensuring that logical IDs are unique and valid; the core assumes this is true and performs no extra validation.
+- Host logical IDs must never use the core-reserved range (last `65535` possible values of the ID type).
+- For `u32`, this reserved range is `4294901761..=4294967295` (`u32::MAX - 65535 + 1 ..= u32::MAX`).
+- The core validates host logical IDs against this policy and rejects commands that use reserved IDs.

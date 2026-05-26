@@ -3,6 +3,7 @@ use super::types::{
     CmdResultAudioResourceUpsert, audio_disabled_message,
 };
 use crate::core::buffers::state::UploadType;
+use crate::core::id_policy::validate_host_logical_id;
 use crate::core::state::EngineState;
 use galfus_audio::upsert_stream_chunk;
 
@@ -10,6 +11,16 @@ pub fn engine_cmd_audio_resource_upsert(
     engine: &mut EngineState,
     args: &CmdAudioResourceUpsertArgs,
 ) -> CmdResultAudioResourceUpsert {
+    if let Err(message) = validate_host_logical_id(args.resource_id, "resourceId") {
+        return CmdResultAudioResourceUpsert {
+            success: false,
+            message,
+            pending: false,
+            received_bytes: 0,
+            total_bytes: 0,
+            complete: false,
+        };
+    }
     if !engine.audio_available {
         return CmdResultAudioResourceUpsert {
             success: false,
@@ -172,6 +183,12 @@ pub fn engine_cmd_audio_resource_dispose(
     engine: &mut EngineState,
     args: &CmdAudioResourceDisposeArgs,
 ) -> CmdResultAudioResourceDispose {
+    if let Err(message) = validate_host_logical_id(args.resource_id, "resourceId") {
+        return CmdResultAudioResourceDispose {
+            success: false,
+            message,
+        };
+    }
     if !engine.audio_available {
         return CmdResultAudioResourceDispose {
             success: false,

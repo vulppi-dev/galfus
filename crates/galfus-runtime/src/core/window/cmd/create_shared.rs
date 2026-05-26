@@ -299,6 +299,7 @@ mod tests {
                 spot_inner_outer: None,
                 layer_mask: 1,
                 cast_shadow: false,
+                active: true,
             },
         );
         assert!(light_res.success);
@@ -317,6 +318,7 @@ mod tests {
                 receive_shadow: false,
                 cast_outline: false,
                 outline_color: Vec4::ZERO,
+                active: true,
             },
         );
         assert!(model_res.success);

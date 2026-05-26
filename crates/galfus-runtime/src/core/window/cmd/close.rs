@@ -1,3 +1,4 @@
+use crate::core::id_policy::validate_host_logical_id;
 use crate::core::state::EngineState;
 pub use galfus_protocol::{CmdResultWindowClose, CmdWindowCloseArgs};
 
@@ -5,6 +6,12 @@ pub fn engine_cmd_window_close(
     engine: &mut EngineState,
     args: &CmdWindowCloseArgs,
 ) -> CmdResultWindowClose {
+    if let Err(message) = validate_host_logical_id(args.window_id, "windowId") {
+        return CmdResultWindowClose {
+            success: false,
+            message,
+        };
+    }
     // Check if window exists
     if !engine.window.states.contains_key(&args.window_id) {
         return CmdResultWindowClose {

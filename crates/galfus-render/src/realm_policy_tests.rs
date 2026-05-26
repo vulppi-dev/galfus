@@ -1,6 +1,6 @@
 use super::{clear_alpha_for_realm_kind, graph_is_compatible_with_realm_kind};
 use crate::{LogicalId, RenderGraphNode, RenderGraphPlan};
-use galfus_realm_core::{RENDER_PASS_FORWARD, RENDER_PASS_UI, RealmKind};
+use galfus_realm_core::{RENDER_PASS_PREPARE, RENDER_PASS_SHADOW, RealmKind};
 
 #[test]
 fn realm_policy_maps_clear_alpha_by_kind() {
@@ -10,10 +10,10 @@ fn realm_policy_maps_clear_alpha_by_kind() {
 
 #[test]
 fn realm_policy_validates_passes_by_kind() {
-    let ui_plan = RenderGraphPlan {
+    let twod_plan = RenderGraphPlan {
         nodes: vec![RenderGraphNode {
-            node_id: LogicalId::Str(RENDER_PASS_UI.into()),
-            pass_id: RENDER_PASS_UI.into(),
+            node_id: LogicalId::Str(RENDER_PASS_PREPARE.into()),
+            pass_id: RENDER_PASS_PREPARE.into(),
             inputs: Vec::new(),
             outputs: Vec::new(),
             require: Vec::new(),
@@ -24,10 +24,10 @@ fn realm_policy_validates_passes_by_kind() {
         }],
         order: vec![0],
     };
-    let forward_plan = RenderGraphPlan {
+    let threed_plan = RenderGraphPlan {
         nodes: vec![RenderGraphNode {
-            node_id: LogicalId::Str(RENDER_PASS_FORWARD.into()),
-            pass_id: RENDER_PASS_FORWARD.into(),
+            node_id: LogicalId::Str(RENDER_PASS_SHADOW.into()),
+            pass_id: RENDER_PASS_SHADOW.into(),
             inputs: Vec::new(),
             outputs: Vec::new(),
             require: Vec::new(),
@@ -40,15 +40,15 @@ fn realm_policy_validates_passes_by_kind() {
     };
 
     assert!(graph_is_compatible_with_realm_kind(
-        &ui_plan,
+        &twod_plan,
         RealmKind::TwoD
     ));
     assert!(!graph_is_compatible_with_realm_kind(
-        &forward_plan,
+        &threed_plan,
         RealmKind::TwoD
     ));
     assert!(graph_is_compatible_with_realm_kind(
-        &forward_plan,
+        &threed_plan,
         RealmKind::ThreeD
     ));
 }

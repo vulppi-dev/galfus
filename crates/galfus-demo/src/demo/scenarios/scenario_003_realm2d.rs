@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
 use galfus_core::core;
@@ -12,7 +13,7 @@ use galfus_core::core::resources::{
     CmdCamera2dCreateArgs, CmdCamera2dUpdateArgs, CmdMaterialCreateArgs,
     CmdPrimitiveGeometryCreateArgs, CmdShape2dCreateArgs, CmdShape2dUpdateArgs,
     CmdSprite2dCreateArgs, CmdSprite2dUpdateArgs, MaterialKind, MaterialOptions, MaterialRealmKind,
-    PrimitiveShape, RenderSide, StandardOptions, SurfaceType,
+    PrimitiveShape,
 };
 use galfus_core::core::system::LogLevel;
 use galfus_core::core::target::{
@@ -67,7 +68,10 @@ pub fn run(ctx: DemoContext) -> bool {
         let t = total_ms as f32 / 1000.0;
         let updates = build_animated_updates(realm_2d, t);
         let _ = send_commands(updates);
-        assert_eq!(core::galfus_tick(total_ms, FRAME_MS), GalfusResult::Success);
+        assert_eq!(
+            core::galfus_tick(total_ms as i64, FRAME_MS),
+            GalfusResult::Success
+        );
         total_ms = total_ms.saturating_add(FRAME_MS as u64);
         let _ = receive_responses();
         print_runtime_logs();
@@ -86,7 +90,10 @@ fn create_twod_realm() -> Option<u32> {
     })]);
     let mut total_ms = 0u64;
     for _ in 0..8 {
-        assert_eq!(core::galfus_tick(total_ms, FRAME_MS), GalfusResult::Success);
+        assert_eq!(
+            core::galfus_tick(total_ms as i64, FRAME_MS),
+            GalfusResult::Success
+        );
         total_ms = total_ms.saturating_add(FRAME_MS as u64);
         for response in receive_responses() {
             if let galfus_core::core::cmd::CommandResponse::RealmCreate(result) = response.response
@@ -116,28 +123,24 @@ fn build_scene(realm_id: u32) -> Vec<EngineCmd> {
         EngineCmd::CmdMaterialUpsert(CmdMaterialUpsertArgs::Create(CmdMaterialCreateArgs {
             material_id: MATERIAL_RED_ID,
             label: Some("demo3-mat-red".into()),
-            slug: "standard".into(),
+            slug: "standard-2d".into(),
             kind: MaterialKind::Shader,
             realm_kind: MaterialRealmKind::TwoD,
-            options: Some(MaterialOptions::Standard(StandardOptions {
-                base_color: Some(Vec4::new(0.95, 0.25, 0.35, 1.0)),
-                render_side: Some(RenderSide::DoubleSide),
-                surface_type: Some(SurfaceType::Opaque),
-                ..Default::default()
-            })),
+            options: Some(MaterialOptions::Schema(HashMap::from([(
+                "baseColor".to_string(),
+                Vec4::new(0.95, 0.25, 0.35, 1.0),
+            )]))),
         })),
         EngineCmd::CmdMaterialUpsert(CmdMaterialUpsertArgs::Create(CmdMaterialCreateArgs {
             material_id: MATERIAL_BLUE_ID,
             label: Some("demo3-mat-blue".into()),
-            slug: "standard".into(),
+            slug: "standard-2d".into(),
             kind: MaterialKind::Shader,
             realm_kind: MaterialRealmKind::TwoD,
-            options: Some(MaterialOptions::Standard(StandardOptions {
-                base_color: Some(Vec4::new(0.25, 0.45, 0.95, 1.0)),
-                render_side: Some(RenderSide::DoubleSide),
-                surface_type: Some(SurfaceType::Opaque),
-                ..Default::default()
-            })),
+            options: Some(MaterialOptions::Schema(HashMap::from([(
+                "baseColor".to_string(),
+                Vec4::new(0.25, 0.45, 0.95, 1.0),
+            )]))),
         })),
         EngineCmd::CmdCamera2dUpsert(CmdCamera2dUpsertArgs::Create(CmdCamera2dCreateArgs {
             realm_id,

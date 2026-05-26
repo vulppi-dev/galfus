@@ -76,7 +76,7 @@ pub struct ShadowPageRecord {
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct ShadowPageEntry {
     /// [scale.x, scale.y, offset.x, offset.y]
-    pub scale_offset: [f32; 4],
+    pub scale_offset: glam::Vec4,
     /// Index into the texture array
     pub layer_index: u32,
     /// Padding for 16-byte alignment
@@ -86,7 +86,7 @@ pub struct ShadowPageEntry {
 impl Default for ShadowPageEntry {
     fn default() -> Self {
         Self {
-            scale_offset: [0.0; 4],
+            scale_offset: glam::Vec4::ZERO,
             layer_index: u32::MAX,
             _padding: [0; 3],
         }
@@ -413,7 +413,12 @@ impl ShadowManager {
 
             if let Some(transform) = self.atlas.get_uv_transform(record.atlas_handle) {
                 entries[id as usize] = ShadowPageEntry {
-                    scale_offset: [transform.0, transform.1, transform.2, transform.3],
+                    scale_offset: glam::Vec4::new(
+                        transform.0,
+                        transform.1,
+                        transform.2,
+                        transform.3,
+                    ),
                     layer_index: transform.4,
                     _padding: [0; 3],
                 };

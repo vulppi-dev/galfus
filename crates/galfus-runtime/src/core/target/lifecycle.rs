@@ -81,19 +81,13 @@ pub fn dispose_target(universal_state: &mut UniversalState, target_id: TargetId)
         .focus_targets
         .retain(|_, focus_target_id| *focus_target_id != target_id);
     universal_state
-        .interaction
-        .ui
+        .targets
         .external_textures
         .remove(&(target_id.0 as u32));
     universal_state
-        .interaction
-        .ui
+        .targets
         .target_size_requests
         .remove(&target_id.0);
-    universal_state
-        .targets
-        .target_ui_realm_index
-        .remove(&target_id);
     universal_state
         .scene
         .render_resources
@@ -148,19 +142,13 @@ pub fn dispose_window_targets(
         .target_texture_binds
         .retain(|_, binding| !targets_to_remove.contains(&binding.target_id));
     universal_state
-        .interaction
-        .ui
+        .targets
         .external_textures
         .retain(|target_id, _| !targets_to_remove.contains(&TargetId(*target_id as u64)));
     universal_state
-        .interaction
-        .ui
+        .targets
         .target_size_requests
         .retain(|target_id, _| !targets_to_remove.contains(&TargetId(*target_id)));
-    universal_state
-        .targets
-        .target_ui_realm_index
-        .retain(|target_id, _| !targets_to_remove.contains(target_id));
     universal_state
         .interaction
         .input_routing

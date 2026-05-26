@@ -179,8 +179,8 @@ impl RenderGraphState {
         Self::new_with_fallback(crate::fallback_graph())
     }
 
-    pub fn new_ui() -> Self {
-        Self::new_with_fallback(crate::ui_fallback_graph())
+    pub fn new_realm2d() -> Self {
+        Self::new_with_fallback(crate::realm2d_fallback_graph())
     }
 
     pub fn new_with_fallback(fallback_desc: RenderGraphDesc) -> Self {
@@ -242,11 +242,11 @@ pub fn ensure_default_render_graphs(
             desc_hash: hash_3d,
         });
 
-    let fallback_2d = crate::ui_fallback_graph();
+    let fallback_2d = crate::realm2d_fallback_graph();
     let hash_2d = render_graph_desc_hash(&fallback_2d);
     let state_2d = cache
         .entry(hash_2d)
-        .or_insert_with(RenderGraphState::new_ui)
+        .or_insert_with(RenderGraphState::new_realm2d)
         .clone();
     graphs
         .entry(DEFAULT_2D_RENDER_GRAPH_ID)

@@ -75,6 +75,13 @@ Pointer input is global stream only. Legacy target/layer routed relay is removed
 
 Host owns logical IDs and guarantees validity/uniqueness. Core owns physical handles, caches and runtime resources.
 
+Reserved logical IDs for core:
+
+- The last `65535` possible IDs of each logical ID type are exclusive to core bootstrap/default resources.
+- For `u32`: reserved range is `4294901761..=4294967295` (`u32::MAX - 65535 + 1 ..= u32::MAX`).
+- Host must not create, update, bind, query by explicit ID, or dispose resources/instances using IDs in the reserved range.
+- Core validates incoming logical IDs and rejects commands that violate this rule.
+
 ## Documentation sync rule
 
 When changing composition, graph, or material contracts, update these docs in the same phase:

@@ -1,6 +1,7 @@
 use galfus_realm_core::RealmKind;
 use serde::{Deserialize, Serialize};
 
+use crate::core::id_policy::validate_host_logical_id;
 use crate::core::realm::RealmId;
 use crate::core::resources::common::mark_realm_windows_dirty;
 use crate::core::state::EngineState;
@@ -8,38 +9,40 @@ use crate::core::system::push_error_event;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct CmdRenderGraphUpsertArgs {
+pub struct CmdPassDefinitionUpsertArgs {
+    // Host logical ID for the pass-definition graph.
     pub render_graph_id: u32,
+    // Definition payload: immutable execution description for pass instances.
     pub graph: crate::core::render::graph::RenderGraphDesc,
 }
 
 #[derive(Debug, Default, Deserialize, Serialize, Clone)]
 #[serde(default, rename_all = "camelCase")]
-pub struct CmdResultRenderGraphUpsert {
+pub struct CmdResultPassDefinitionUpsert {
     pub success: bool,
     pub message: String,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct CmdRenderGraphDisposeArgs {
+pub struct CmdPassDefinitionDisposeArgs {
     pub render_graph_id: u32,
 }
 
 #[derive(Debug, Default, Deserialize, Serialize, Clone)]
 #[serde(default, rename_all = "camelCase")]
-pub struct CmdResultRenderGraphDispose {
+pub struct CmdResultPassDefinitionDispose {
     pub success: bool,
     pub message: String,
 }
 
 #[derive(Debug, Default, Deserialize, Serialize, Clone)]
 #[serde(default, rename_all = "camelCase")]
-pub struct CmdRenderGraphListArgs {}
+pub struct CmdPassDefinitionListArgs {}
 
 #[derive(Debug, Default, Deserialize, Serialize, Clone)]
 #[serde(default, rename_all = "camelCase")]
-pub struct RenderGraphEntry {
+pub struct PassDefinitionEntry {
     pub render_graph_id: u32,
     pub graph_kind: String,
     pub desc_hash: u64,
@@ -50,22 +53,24 @@ pub struct RenderGraphEntry {
 
 #[derive(Debug, Default, Deserialize, Serialize, Clone)]
 #[serde(default, rename_all = "camelCase")]
-pub struct CmdResultRenderGraphList {
+pub struct CmdResultPassDefinitionList {
     pub success: bool,
     pub message: String,
-    pub render_graphs: Vec<RenderGraphEntry>,
+    pub render_graphs: Vec<PassDefinitionEntry>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct CmdRealmRenderGraphBindArgs {
+pub struct CmdRealmPassInstanceBindArgs {
+    // Instance owner.
     pub realm_id: u32,
+    // Definition reference used by this realm instance.
     pub render_graph_id: u32,
 }
 
 #[derive(Debug, Default, Deserialize, Serialize, Clone)]
 #[serde(default, rename_all = "camelCase")]
-pub struct CmdResultRealmRenderGraphBind {
+pub struct CmdResultRealmPassInstanceBind {
     pub success: bool,
     pub message: String,
 }
@@ -142,10 +147,17 @@ struct CmdResultSimple {
     message: String,
 }
 
-pub fn engine_cmd_render_graph_upsert(
+pub fn engine_cmd_pass_definition_upsert(
     engine: &mut EngineState,
-    args: &CmdRenderGraphUpsertArgs,
-) -> CmdResultRenderGraphUpsert {
+    args: &CmdPassDefinitionUpsertArgs,
+) -> CmdResultPassDefinitionUpsert {
+    if let Err(message) = validate_host_logical_id(args.render_graph_id, "renderGraphId") {
+        let result = emit_render_graph_error(engine, message, "render-graph-upsert");
+        return CmdResultPassDefinitionUpsert {
+            success: result.success,
+            message: result.message,
+        };
+    }
     if is_reserved_graph_id(args.render_graph_id) {
         let result = emit_render_graph_error(
             engine,
@@ -155,7 +167,7 @@ pub fn engine_cmd_render_graph_upsert(
             ),
             "render-graph-upsert",
         );
-        return CmdResultRenderGraphUpsert {
+        return CmdResultPassDefinitionUpsert {
             success: result.success,
             message: result.message,
         };
@@ -189,7 +201,7 @@ pub fn engine_cmd_render_graph_upsert(
                         format!("Invalid render graph {}: {}", args.render_graph_id, err),
                         "render-graph-upsert",
                     );
-                    return CmdResultRenderGraphUpsert {
+                    return CmdResultPassDefinitionUpsert {
                         success: result.success,
                         message: result.message,
                     };
@@ -204,7 +216,7 @@ pub fn engine_cmd_render_graph_upsert(
                 ),
                 "render-graph-upsert",
             );
-            return CmdResultRenderGraphUpsert {
+            return CmdResultPassDefinitionUpsert {
                 success: result.success,
                 message: result.message,
             };
@@ -240,7 +252,7 @@ pub fn engine_cmd_render_graph_upsert(
             ),
             "render-graph-upsert",
         );
-        return CmdResultRenderGraphUpsert {
+        return CmdResultPassDefinitionUpsert {
             success: result.success,
             message: result.message,
         };
@@ -267,7 +279,7 @@ pub fn engine_cmd_render_graph_upsert(
             ),
             "render-graph-upsert",
         );
-        return CmdResultRenderGraphUpsert {
+        return CmdResultPassDefinitionUpsert {
             success: result.success,
             message: result.message,
         };
@@ -294,7 +306,7 @@ pub fn engine_cmd_render_graph_upsert(
                 ),
                 "render-graph-upsert",
             );
-            return CmdResultRenderGraphUpsert {
+            return CmdResultPassDefinitionUpsert {
                 success: result.success,
                 message: result.message,
             };
@@ -334,7 +346,7 @@ pub fn engine_cmd_render_graph_upsert(
         mark_realm_windows_dirty(engine, realm_id.0);
     }
 
-    CmdResultRenderGraphUpsert {
+    CmdResultPassDefinitionUpsert {
         success: true,
         message: if existed {
             "Render graph updated successfully".into()
@@ -344,10 +356,17 @@ pub fn engine_cmd_render_graph_upsert(
     }
 }
 
-pub fn engine_cmd_render_graph_dispose(
+pub fn engine_cmd_pass_definition_dispose(
     engine: &mut EngineState,
-    args: &CmdRenderGraphDisposeArgs,
-) -> CmdResultRenderGraphDispose {
+    args: &CmdPassDefinitionDisposeArgs,
+) -> CmdResultPassDefinitionDispose {
+    if let Err(message) = validate_host_logical_id(args.render_graph_id, "renderGraphId") {
+        let result = emit_render_graph_error(engine, message, "render-graph-dispose");
+        return CmdResultPassDefinitionDispose {
+            success: result.success,
+            message: result.message,
+        };
+    }
     if is_reserved_graph_id(args.render_graph_id) {
         let result = emit_render_graph_error(
             engine,
@@ -357,7 +376,7 @@ pub fn engine_cmd_render_graph_dispose(
             ),
             "render-graph-dispose",
         );
-        return CmdResultRenderGraphDispose {
+        return CmdResultPassDefinitionDispose {
             success: result.success,
             message: result.message,
         };
@@ -378,7 +397,7 @@ pub fn engine_cmd_render_graph_dispose(
             ),
             "render-graph-dispose",
         );
-        return CmdResultRenderGraphDispose {
+        return CmdResultPassDefinitionDispose {
             success: result.success,
             message: result.message,
         };
@@ -432,7 +451,7 @@ pub fn engine_cmd_render_graph_dispose(
                 }
             }
         }
-        CmdResultRenderGraphDispose {
+        CmdResultPassDefinitionDispose {
             success: true,
             message: "Render graph disposed successfully".into(),
         }
@@ -442,17 +461,17 @@ pub fn engine_cmd_render_graph_dispose(
             format!("Render graph {} not found", args.render_graph_id),
             "render-graph-dispose",
         );
-        CmdResultRenderGraphDispose {
+        CmdResultPassDefinitionDispose {
             success: result.success,
             message: result.message,
         }
     }
 }
 
-pub fn engine_cmd_render_graph_list(
+pub fn engine_cmd_pass_definition_list(
     engine: &mut EngineState,
-    _args: &CmdRenderGraphListArgs,
-) -> CmdResultRenderGraphList {
+    _args: &CmdPassDefinitionListArgs,
+) -> CmdResultPassDefinitionList {
     let mut render_graph_ids: Vec<u32> = engine
         .universal_state
         .render_catalog
@@ -496,7 +515,7 @@ pub fn engine_cmd_render_graph_list(
             .map(|realm_id| realm_id.0)
             .collect();
         bound_realm_ids.sort_unstable();
-        render_graphs.push(RenderGraphEntry {
+        render_graphs.push(PassDefinitionEntry {
             render_graph_id,
             graph_kind: graph_kind.as_str().into(),
             desc_hash: graph.desc_hash,
@@ -506,17 +525,31 @@ pub fn engine_cmd_render_graph_list(
         });
     }
 
-    CmdResultRenderGraphList {
+    CmdResultPassDefinitionList {
         success: true,
         message: "Render graph list fetched successfully".into(),
         render_graphs,
     }
 }
 
-pub fn engine_cmd_realm_render_graph_bind(
+pub fn engine_cmd_realm_pass_instance_bind(
     engine: &mut EngineState,
-    args: &CmdRealmRenderGraphBindArgs,
-) -> CmdResultRealmRenderGraphBind {
+    args: &CmdRealmPassInstanceBindArgs,
+) -> CmdResultRealmPassInstanceBind {
+    if let Err(message) = validate_host_logical_id(args.realm_id, "realmId") {
+        let result = emit_render_graph_error(engine, message, "realm-render-graph-bind");
+        return CmdResultRealmPassInstanceBind {
+            success: result.success,
+            message: result.message,
+        };
+    }
+    if let Err(message) = validate_host_logical_id(args.render_graph_id, "renderGraphId") {
+        let result = emit_render_graph_error(engine, message, "realm-render-graph-bind");
+        return CmdResultRealmPassInstanceBind {
+            success: result.success,
+            message: result.message,
+        };
+    }
     let realm_id = RealmId(args.realm_id);
     let Some(realm_kind) = engine
         .universal_state
@@ -531,7 +564,7 @@ pub fn engine_cmd_realm_render_graph_bind(
             format!("Realm {} not found", args.realm_id),
             "realm-render-graph-bind",
         );
-        return CmdResultRealmRenderGraphBind {
+        return CmdResultRealmPassInstanceBind {
             success: result.success,
             message: result.message,
         };
@@ -559,7 +592,7 @@ pub fn engine_cmd_realm_render_graph_bind(
             ),
             "realm-render-graph-bind",
         );
-        return CmdResultRealmRenderGraphBind {
+        return CmdResultRealmPassInstanceBind {
             success: result.success,
             message: result.message,
         };
@@ -574,7 +607,7 @@ pub fn engine_cmd_realm_render_graph_bind(
             ),
             "realm-render-graph-bind",
         );
-        return CmdResultRealmRenderGraphBind {
+        return CmdResultRealmPassInstanceBind {
             success: result.success,
             message: result.message,
         };
@@ -592,7 +625,7 @@ pub fn engine_cmd_realm_render_graph_bind(
             format!("Realm {} not found", args.realm_id),
             "realm-render-graph-bind",
         );
-        return CmdResultRealmRenderGraphBind {
+        return CmdResultRealmPassInstanceBind {
             success: result.success,
             message: result.message,
         };
@@ -601,8 +634,46 @@ pub fn engine_cmd_realm_render_graph_bind(
     realm.value.render_graph_id = Some(args.render_graph_id);
     mark_realm_windows_dirty(engine, args.realm_id);
 
-    CmdResultRealmRenderGraphBind {
+    CmdResultRealmPassInstanceBind {
         success: true,
         message: "Realm render graph binding updated successfully".into(),
     }
+}
+
+pub type CmdRenderGraphUpsertArgs = CmdPassDefinitionUpsertArgs;
+pub type CmdResultRenderGraphUpsert = CmdResultPassDefinitionUpsert;
+pub type CmdRenderGraphDisposeArgs = CmdPassDefinitionDisposeArgs;
+pub type CmdResultRenderGraphDispose = CmdResultPassDefinitionDispose;
+pub type CmdRenderGraphListArgs = CmdPassDefinitionListArgs;
+pub type RenderGraphEntry = PassDefinitionEntry;
+pub type CmdResultRenderGraphList = CmdResultPassDefinitionList;
+pub type CmdRealmRenderGraphBindArgs = CmdRealmPassInstanceBindArgs;
+pub type CmdResultRealmRenderGraphBind = CmdResultRealmPassInstanceBind;
+
+pub fn engine_cmd_render_graph_upsert(
+    engine: &mut EngineState,
+    args: &CmdRenderGraphUpsertArgs,
+) -> CmdResultRenderGraphUpsert {
+    engine_cmd_pass_definition_upsert(engine, args)
+}
+
+pub fn engine_cmd_render_graph_dispose(
+    engine: &mut EngineState,
+    args: &CmdRenderGraphDisposeArgs,
+) -> CmdResultRenderGraphDispose {
+    engine_cmd_pass_definition_dispose(engine, args)
+}
+
+pub fn engine_cmd_render_graph_list(
+    engine: &mut EngineState,
+    args: &CmdRenderGraphListArgs,
+) -> CmdResultRenderGraphList {
+    engine_cmd_pass_definition_list(engine, args)
+}
+
+pub fn engine_cmd_realm_render_graph_bind(
+    engine: &mut EngineState,
+    args: &CmdRealmRenderGraphBindArgs,
+) -> CmdResultRealmRenderGraphBind {
+    engine_cmd_realm_pass_instance_bind(engine, args)
 }

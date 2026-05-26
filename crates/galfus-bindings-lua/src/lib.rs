@@ -53,7 +53,7 @@ fn galfus_upload_buffer(_: &Lua, (id, upload_type, data): (i64, u32, LuaString))
 }
 
 fn galfus_tick(_: &Lua, (time, delta_time): (i64, u32)) -> LuaResult<u32> {
-    Ok(galfus_core::galfus_tick(time as u64, delta_time) as u32)
+    Ok(galfus_core::galfus_tick(time, delta_time) as u32)
 }
 
 fn galfus_get_profiling(lua: &Lua, _: ()) -> LuaResult<(LuaString, u32)> {
@@ -77,4 +77,14 @@ pub fn galfus(lua: &Lua) -> LuaResult<LuaTable> {
     exports.set("tick", lua.create_function(galfus_tick)?)?;
     exports.set("get_profiling", lua.create_function(galfus_get_profiling)?)?;
     Ok(exports)
+}
+
+#[cfg(test)]
+mod tests {
+    use mlua::prelude::*;
+
+    #[test]
+    fn tick_signature_uses_i64() {
+        let _fn_ptr: fn(&Lua, (i64, u32)) -> LuaResult<u32> = super::galfus_tick;
+    }
 }

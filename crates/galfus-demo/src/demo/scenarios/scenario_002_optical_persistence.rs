@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
 use galfus_core::core;
@@ -12,7 +13,7 @@ use galfus_core::core::resources::{
     CmdMaterialCreateArgs, CmdMaterialDefinitionCreateArgs, CmdModelCreateArgs, CmdModelUpdateArgs,
     CmdPrimitiveGeometryCreateArgs, EnvironmentConfig, LightKind, MaterialKind, MaterialOptions,
     MaterialRealmKind, MaterialShaderCapabilities, MaterialShaderType, PostProcessConfig,
-    PrimitiveShape, RenderSide, StandardOptions,
+    PrimitiveShape,
 };
 use galfus_core::core::target::{
     CmdTargetLayerUpsertArgs, CmdTargetUpsertArgs, DimensionValue, TargetKind, TargetLayerLayout,
@@ -81,6 +82,7 @@ pub fn run(ctx: DemoContext) -> bool {
                         * Mat4::from_rotation_x(t * 1.7),
                 ),
                 layer_mask: None,
+                active: None,
                 cast_shadow: None,
                 receive_shadow: None,
                 cast_outline: None,
@@ -101,6 +103,7 @@ pub fn run(ctx: DemoContext) -> bool {
                         * Mat4::from_rotation_x(t * 1.3),
                 ),
                 layer_mask: None,
+                active: None,
                 cast_shadow: None,
                 receive_shadow: None,
                 cast_outline: None,
@@ -108,7 +111,10 @@ pub fn run(ctx: DemoContext) -> bool {
             })),
         ];
         let _ = send_commands(updates);
-        assert_eq!(core::galfus_tick(total_ms, FRAME_MS), GalfusResult::Success);
+        assert_eq!(
+            core::galfus_tick(total_ms as i64, FRAME_MS),
+            GalfusResult::Success
+        );
         total_ms = total_ms.saturating_add(FRAME_MS as u64);
         let _ = receive_responses();
         print_runtime_logs();
@@ -137,6 +143,7 @@ fn build_scene(realm_id: u32) -> Vec<EngineCmd> {
                 definition_id: MATERIAL_DEF_GHOST_ID,
                 slug: "demo2-ghost".into(),
                 label: Some("demo2-ghost-definition".into()),
+                realm_kind: MaterialRealmKind::ThreeD,
                 preset: None,
                 shader_type: Some(MaterialShaderType::Model),
                 shader_source: Some(
@@ -188,6 +195,7 @@ fn fragment(input: FragmentInput) -> FragmentOutput {
                 definition_id: MATERIAL_DEF_FRESNEL_ID,
                 slug: "demo2-fresnel".into(),
                 label: Some("demo2-fresnel-definition".into()),
+                realm_kind: MaterialRealmKind::ThreeD,
                 preset: None,
                 shader_type: Some(MaterialShaderType::Model),
                 shader_source: Some(
@@ -227,11 +235,10 @@ fn fragment(input: FragmentInput) -> FragmentOutput {
             slug: "demo2-ghost".into(),
             kind: MaterialKind::Shader,
             realm_kind: MaterialRealmKind::ThreeD,
-            options: Some(MaterialOptions::Standard(StandardOptions {
-                base_color: Some(Vec4::new(0.2, 0.7, 1.0, 1.0)),
-                render_side: Some(RenderSide::Back),
-                ..Default::default()
-            })),
+            options: Some(MaterialOptions::Schema(HashMap::from([(
+                "baseColor".to_string(),
+                Vec4::new(0.2, 0.7, 1.0, 1.0),
+            )]))),
         })),
         EngineCmd::CmdMaterialUpsert(CmdMaterialUpsertArgs::Create(CmdMaterialCreateArgs {
             material_id: MATERIAL_FRESNEL_ID,
@@ -239,11 +246,10 @@ fn fragment(input: FragmentInput) -> FragmentOutput {
             slug: "demo2-fresnel".into(),
             kind: MaterialKind::Shader,
             realm_kind: MaterialRealmKind::ThreeD,
-            options: Some(MaterialOptions::Standard(StandardOptions {
-                base_color: Some(Vec4::new(1.0, 0.3, 0.2, 1.0)),
-                render_side: Some(RenderSide::Back),
-                ..Default::default()
-            })),
+            options: Some(MaterialOptions::Schema(HashMap::from([(
+                "baseColor".to_string(),
+                Vec4::new(1.0, 0.3, 0.2, 1.0),
+            )]))),
         })),
         EngineCmd::CmdMaterialUpsert(CmdMaterialUpsertArgs::Create(CmdMaterialCreateArgs {
             material_id: MATERIAL_FLOOR_ID,
@@ -251,13 +257,11 @@ fn fragment(input: FragmentInput) -> FragmentOutput {
             slug: "standard".into(),
             kind: MaterialKind::Shader,
             realm_kind: MaterialRealmKind::ThreeD,
-            options: Some(MaterialOptions::Standard(StandardOptions {
-                base_color: Some(Vec4::new(0.08, 0.08, 0.10, 1.0)),
-                spec_color: Some(Vec4::new(0.02, 0.02, 0.02, 1.0)),
-                spec_power: Some(6.0),
-                render_side: Some(RenderSide::DoubleSide),
-                ..Default::default()
-            })),
+            options: Some(MaterialOptions::Schema(HashMap::from([
+                ("baseColor".to_string(), Vec4::new(0.08, 0.08, 0.10, 1.0)),
+                ("specColor".to_string(), Vec4::new(0.02, 0.02, 0.02, 1.0)),
+                ("specPower".to_string(), Vec4::new(6.0, 0.0, 0.0, 0.0)),
+            ]))),
         })),
         EngineCmd::CmdCamera3dUpsert(CmdCamera3dUpsertArgs::Create(CmdCameraCreateArgs {
             realm_id,
@@ -290,6 +294,7 @@ fn fragment(input: FragmentInput) -> FragmentOutput {
             range: Some(24.0),
             spot_inner_outer: None,
             layer_mask: 1,
+            active: true,
             cast_shadow: true,
         })),
         EngineCmd::CmdEnvironmentUpsert(CmdEnvironmentUpsertArgs::Create(
@@ -315,6 +320,7 @@ fn fragment(input: FragmentInput) -> FragmentOutput {
             material_id: Some(MATERIAL_GHOST_ID),
             transform: Mat4::from_translation(Vec3::new(-2.0, 0.8, 0.0)),
             layer_mask: 1,
+            active: true,
             cast_shadow: true,
             receive_shadow: true,
             cast_outline: false,
@@ -328,6 +334,7 @@ fn fragment(input: FragmentInput) -> FragmentOutput {
             material_id: Some(MATERIAL_FRESNEL_ID),
             transform: Mat4::from_translation(Vec3::new(2.0, 0.8, 0.0)),
             layer_mask: 1,
+            active: true,
             cast_shadow: true,
             receive_shadow: true,
             cast_outline: false,
@@ -342,6 +349,7 @@ fn fragment(input: FragmentInput) -> FragmentOutput {
             transform: Mat4::from_scale(Vec3::new(12.0, 1.0, 12.0))
                 * Mat4::from_translation(Vec3::new(0.0, -0.01, 0.0)),
             layer_mask: 1,
+            active: true,
             cast_shadow: false,
             receive_shadow: true,
             cast_outline: false,

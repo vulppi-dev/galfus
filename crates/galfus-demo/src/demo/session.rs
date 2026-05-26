@@ -38,7 +38,7 @@ fn wait_for_window_ready(window_id: u32, title: &str) -> WindowBinding {
 
     while start.elapsed() < WINDOW_READY_TIMEOUT {
         assert_eq!(
-            core::galfus_tick(total_ms, WINDOW_READY_DELTA_MS),
+            core::galfus_tick(total_ms as i64, WINDOW_READY_DELTA_MS),
             GalfusResult::Success
         );
         total_ms = total_ms.saturating_add(WINDOW_READY_DELTA_MS as u64);

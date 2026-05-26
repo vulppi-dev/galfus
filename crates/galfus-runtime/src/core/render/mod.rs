@@ -222,13 +222,13 @@ pub fn ensure_runtime_render_defaults(universal: &mut crate::core::realm::Univer
             desc_hash: hash_3d,
         });
 
-    let fallback_2d = crate::core::render::graph::ui_fallback_graph();
+    let fallback_2d = crate::core::render::graph::realm2d_fallback_graph();
     let hash_2d = crate::core::render::graph::render_graph_desc_hash(&fallback_2d);
     let state_2d = universal
         .render_catalog
         .render_graph_plan_cache_2d
         .entry(hash_2d)
-        .or_insert_with(crate::core::render::graph::RenderGraphState::new_ui)
+        .or_insert_with(crate::core::render::graph::RenderGraphState::new_realm2d)
         .clone();
     universal
         .render_catalog
@@ -237,26 +237,6 @@ pub fn ensure_runtime_render_defaults(universal: &mut crate::core::realm::Univer
         .or_insert(crate::core::render::graph::RenderGraphRecord {
             state: state_2d,
             desc_hash: hash_2d,
-        });
-    universal
-        .scene
-        .realm3d
-        .materials
-        .entry(crate::core::resources::MATERIAL_FALLBACK_ID)
-        .or_insert_with(|| {
-            crate::core::resources::ShaderMaterialRecord::new_standard(Some(
-                "Fallback Material".into(),
-            ))
-        });
-    universal
-        .scene
-        .realm3d
-        .materials
-        .entry(crate::core::resources::MATERIAL_STANDARD_2D_ID)
-        .or_insert_with(|| {
-            crate::core::resources::ShaderMaterialRecord::new_standard_2d(Some(
-                "Standard 2D Material".into(),
-            ))
         });
 }
 
@@ -270,13 +250,8 @@ pub fn render_frames(engine_state: &mut EngineState) {
     engine_state.profiling.gpu.compose_ns = 0;
     engine_state.profiling.gpu.total_ns = 0;
 
-    let target_size_requests = std::mem::take(
-        &mut engine_state
-            .universal_state
-            .interaction
-            .ui
-            .target_size_requests,
-    );
+    let target_size_requests =
+        std::mem::take(&mut engine_state.universal_state.targets.target_size_requests);
     apply_target_size_requests(engine_state, &target_size_requests);
 
     let (target_plan, target_diff) = {
@@ -518,6 +493,14 @@ pub fn render_frames(engine_state: &mut EngineState) {
                     should_render_realm(realm_entry, engine_state.runtime.frame_index())
                 })
                 .unwrap_or(false);
+            let realm_kind = engine_state
+                .universal_state
+                .composition
+                .realms
+                .entries
+                .get(&realm_id)
+                .map(|entry| entry.value.kind)
+                .unwrap_or(crate::core::realm::RealmKind::ThreeD);
             if !should_render {
                 FrameReport::push_unique(&mut frame_report.throttled_realms, realm_id.0);
                 continue;
@@ -687,6 +670,7 @@ pub fn render_frames(engine_state: &mut EngineState) {
                 &plan,
                 render_state,
                 realm_id,
+                realm_kind,
                 targets,
                 target_layers,
                 surfaces,

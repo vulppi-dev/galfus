@@ -40,12 +40,16 @@ pub enum RenderSide {
     DoubleSide = 2,
 }
 
-pub const MATERIAL_FALLBACK_ID: u32 = 0;
-pub const MATERIAL_STANDARD_2D_ID: u32 = 3;
-pub const MATERIAL_DEFINITION_STANDARD_ID: u32 = 1;
-pub const MATERIAL_DEFINITION_PBR_ID: u32 = 2;
+pub const MATERIAL_FALLBACK_ID: u32 = crate::core::id_policy::CORE_RESERVED_LOGICAL_ID_START;
+pub const MATERIAL_DEFINITION_STANDARD_ID: u32 =
+    crate::core::id_policy::CORE_RESERVED_LOGICAL_ID_START + 1;
+pub const MATERIAL_DEFINITION_PBR_ID: u32 =
+    crate::core::id_policy::CORE_RESERVED_LOGICAL_ID_START + 2;
+pub const MATERIAL_DEFINITION_STANDARD_2D_ID: u32 =
+    crate::core::id_policy::CORE_RESERVED_LOGICAL_ID_START + 3;
 pub const MATERIAL_DEFINITION_STANDARD_SLUG: &str = "standard";
 pub const MATERIAL_DEFINITION_PBR_SLUG: &str = "pbr";
+pub const MATERIAL_DEFINITION_STANDARD_2D_SLUG: &str = "standard-2d";
 pub const SHADER_MATERIAL_INPUTS_PER_MATERIAL: u32 = 8;
 pub const SHADER_MATERIAL_TEXTURE_SLOTS: usize = 8;
 pub const SHADER_MATERIAL_INVALID_SLOT: u32 = u32::MAX;
@@ -84,12 +88,11 @@ impl Default for MaterialShaderType {
 pub enum MaterialRealmKind {
     TwoD,
     ThreeD,
-    Both,
 }
 
 impl Default for MaterialRealmKind {
     fn default() -> Self {
-        Self::Both
+        Self::ThreeD
     }
 }
 
@@ -98,6 +101,7 @@ pub struct MaterialDefinitionRecord {
     pub definition_id: u32,
     pub slug: String,
     pub label: Option<String>,
+    pub realm_kind: MaterialRealmKind,
     pub base_preset: ShaderMaterialPreset,
     pub shader_type: MaterialShaderType,
     pub shader_source: Option<String>,
@@ -290,12 +294,17 @@ pub struct ShaderMaterialRecord {
 impl ShaderMaterialRecord {
     fn builtin_compiled(
         preset: ShaderMaterialPreset,
+        realm_kind: MaterialRealmKind,
     ) -> (Option<String>, u64, Option<String>, Option<String>) {
         let render_preset = match preset {
             ShaderMaterialPreset::Standard => galfus_render::MaterialShaderBasePreset::Standard,
             ShaderMaterialPreset::Pbr => galfus_render::MaterialShaderBasePreset::Pbr,
         };
-        let shader_source = galfus_render::builtin_material_source(render_preset).to_string();
+        let shader_source = if realm_kind == MaterialRealmKind::TwoD {
+            galfus_render::builtin_material_source_2d().to_string()
+        } else {
+            galfus_render::builtin_material_source(render_preset).to_string()
+        };
         let spec = galfus_render::MaterialShaderCompileSpec {
             base_preset: render_preset,
             shader_type: galfus_render::MaterialShaderType::Model,
@@ -303,7 +312,11 @@ impl ShaderMaterialRecord {
             shader_params_schema: HashMap::new(),
             capabilities: Default::default(),
         };
-        match galfus_render::compile_material_shader_spec(&spec) {
+        let realm = match realm_kind {
+            MaterialRealmKind::ThreeD => galfus_render::MaterialShaderRealm::ThreeD,
+            MaterialRealmKind::TwoD => galfus_render::MaterialShaderRealm::TwoD,
+        };
+        match galfus_render::compile_material_shader_spec_for_realm(&spec, realm) {
             Ok(compiled) => (
                 Some(shader_source),
                 compiled.hash,
@@ -316,7 +329,7 @@ impl ShaderMaterialRecord {
 
     pub fn new_standard(label: Option<String>) -> Self {
         let (shader_source, compiled_shader_hash, compiled_shader_source, compile_error) =
-            Self::builtin_compiled(ShaderMaterialPreset::Standard);
+            Self::builtin_compiled(ShaderMaterialPreset::Standard, MaterialRealmKind::ThreeD);
         let mut inputs = vec![Vec4::ZERO; SHADER_MATERIAL_INPUTS_PER_MATERIAL as usize];
         inputs[0] = Vec4::ONE;
         inputs[1] = Vec4::ONE;
@@ -348,6 +361,12 @@ impl ShaderMaterialRecord {
 
     pub fn new_standard_2d(label: Option<String>) -> Self {
         let mut record = Self::new_standard(label);
+        let (shader_source, compiled_shader_hash, compiled_shader_source, compile_error) =
+            Self::builtin_compiled(ShaderMaterialPreset::Standard, MaterialRealmKind::TwoD);
+        record.shader_source = shader_source;
+        record.compiled_shader_hash = compiled_shader_hash;
+        record.compiled_shader_source = compiled_shader_source;
+        record.compile_error = compile_error;
         // 2D bootstrap defaults: alpha blending friendly and double-sided by default.
         record.surface_type = SurfaceType::Transparent;
         record.render_side = RenderSide::DoubleSide;
@@ -357,7 +376,7 @@ impl ShaderMaterialRecord {
 
     pub fn new_pbr(label: Option<String>) -> Self {
         let (shader_source, compiled_shader_hash, compiled_shader_source, compile_error) =
-            Self::builtin_compiled(ShaderMaterialPreset::Pbr);
+            Self::builtin_compiled(ShaderMaterialPreset::Pbr, MaterialRealmKind::ThreeD);
         let mut inputs = vec![Vec4::ZERO; SHADER_MATERIAL_INPUTS_PER_MATERIAL as usize];
         inputs[0] = Vec4::ONE;
         inputs[1] = Vec4::ZERO;
@@ -404,12 +423,32 @@ impl ShaderMaterialRecord {
 
 #[cfg(test)]
 mod tests {
-    use super::{RenderSide, ShaderMaterialRecord, SurfaceType};
+    use super::{
+        MATERIAL_DEFINITION_PBR_ID, MATERIAL_DEFINITION_STANDARD_2D_ID,
+        MATERIAL_DEFINITION_STANDARD_ID, MATERIAL_FALLBACK_ID, RenderSide, ShaderMaterialRecord,
+        SurfaceType,
+    };
 
     #[test]
     fn standard_2d_bootstrap_defaults() {
         let record = ShaderMaterialRecord::new_standard_2d(Some("Standard 2D Material".into()));
         assert_eq!(record.surface_type, SurfaceType::Transparent);
         assert_eq!(record.render_side, RenderSide::DoubleSide);
+    }
+
+    #[test]
+    fn core_material_ids_use_reserved_range() {
+        assert!(crate::core::id_policy::is_core_reserved_logical_id(
+            MATERIAL_FALLBACK_ID
+        ));
+        assert!(crate::core::id_policy::is_core_reserved_logical_id(
+            MATERIAL_DEFINITION_STANDARD_ID
+        ));
+        assert!(crate::core::id_policy::is_core_reserved_logical_id(
+            MATERIAL_DEFINITION_PBR_ID
+        ));
+        assert!(crate::core::id_policy::is_core_reserved_logical_id(
+            MATERIAL_DEFINITION_STANDARD_2D_ID
+        ));
     }
 }

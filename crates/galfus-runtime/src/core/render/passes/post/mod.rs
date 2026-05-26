@@ -7,12 +7,12 @@ use bytemuck::{Pod, Zeroable};
 #[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable)]
 struct PostProcessUniform {
-    params0: [f32; 4],
-    params1: [f32; 4],
-    params2: [f32; 4],
-    params3: [f32; 4],
-    params4: [f32; 4],
-    params5: [f32; 4],
+    params0: glam::Vec4,
+    params1: glam::Vec4,
+    params2: glam::Vec4,
+    params3: glam::Vec4,
+    params4: glam::Vec4,
+    params5: glam::Vec4,
 }
 
 impl PostProcessUniform {
@@ -38,42 +38,42 @@ impl PostProcessUniform {
         let outline_quality = config.outline_quality.clamp(0.0, 1.0);
 
         Self {
-            params0: [
+            params0: glam::Vec4::new(
                 config.filter_exposure,
                 config.filter_gamma.max(0.001),
                 config.filter_saturation,
                 config.filter_contrast,
-            ],
-            params1: [
+            ),
+            params1: glam::Vec4::new(
                 config.filter_vignette,
                 config.filter_grain,
                 config.filter_chromatic_aberration,
                 config.filter_blur,
-            ],
-            params2: [
+            ),
+            params2: glam::Vec4::new(
                 config.outline_strength,
                 outline_threshold,
                 config.filter_posterize_steps,
                 flags as f32,
-            ],
-            params3: [
+            ),
+            params3: glam::Vec4::new(
                 frame_index as f32,
                 config.filter_sharpen,
                 config.outline_width,
                 outline_quality,
-            ],
-            params4: [
+            ),
+            params4: glam::Vec4::new(
                 config.ssao_strength,
                 config.ssao_power,
                 config.filter_tonemap_mode as f32,
                 0.0,
-            ],
-            params5: [
+            ),
+            params5: glam::Vec4::new(
                 config.bloom_threshold,
                 config.bloom_knee,
                 config.bloom_intensity,
                 config.bloom_scatter,
-            ],
+            ),
         }
     }
 }

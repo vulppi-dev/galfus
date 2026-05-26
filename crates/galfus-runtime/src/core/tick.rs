@@ -11,9 +11,10 @@ use super::GalfusResult;
 use super::singleton::with_engine_singleton;
 
 /// Main engine tick - processes events and updates state
-pub fn galfus_tick(time: u64, delta_time: u32) -> GalfusResult {
+pub fn galfus_tick(time: i64, delta_time: u32) -> GalfusResult {
     match with_engine_singleton(|engine| {
-        engine.state.runtime.begin_tick(time, delta_time);
+        let time_ms = u64::try_from(time).unwrap_or(0);
+        engine.state.runtime.begin_tick(time_ms, delta_time);
         engine.state.runtime.clear_events();
 
         // Reset profiling counters
@@ -87,10 +88,6 @@ pub fn galfus_tick(time: u64, delta_time: u32) -> GalfusResult {
         // MARK: Event Loop Pump
         engine.state.profiling.input.event_loop_pump_ns =
             engine.platform.pump_events(&mut engine.state);
-        // vNext input policy: keep only global pointer stream.
-        // Target-routed pointer relay is disabled.
-        engine.state.profiling.ui.input_ns = 0;
-
         let events_after = engine.state.runtime.event_count();
         engine.state.profiling.input.total_events_dispatched = events_after - events_before;
 

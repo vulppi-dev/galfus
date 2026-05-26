@@ -13,7 +13,7 @@ pub struct ForwardAtlasEntryMeta {
     pub id: u32,
     pub label: Option<String>,
     pub layer: u32,
-    pub uv_scale_bias: [f32; 4],
+    pub uv_scale_bias: glam::Vec4,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -43,13 +43,14 @@ pub struct EntityRecordUpdatePlan {
 #[derive(Debug, Clone, PartialEq)]
 pub struct ModelRecordMeta {
     pub transform: [f32; 16],
-    pub translation: [f32; 4],
-    pub rotation: [f32; 4],
-    pub scale: [f32; 4],
+    pub translation: glam::Vec4,
+    pub rotation: glam::Vec4,
+    pub scale: glam::Vec4,
     pub flags: [u32; 4],
-    pub outline_color: [f32; 4],
+    pub outline_color: glam::Vec4,
     pub geometry_id: u32,
     pub material_id: Option<u32>,
+    pub active: bool,
     pub layer_mask: u32,
     pub cast_shadow: bool,
     pub receive_shadow: bool,
@@ -58,16 +59,17 @@ pub struct ModelRecordMeta {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct LightRecordMeta {
-    pub position: [f32; 4],
-    pub direction: [f32; 4],
-    pub color: [f32; 4],
-    pub ground_color: [f32; 4],
+    pub position: glam::Vec4,
+    pub direction: glam::Vec4,
+    pub color: glam::Vec4,
+    pub ground_color: glam::Vec4,
     pub view: [f32; 16],
     pub projection: [f32; 16],
     pub view_projection: [f32; 16],
-    pub intensity_range: [f32; 2],
-    pub spot_inner_outer: [f32; 2],
+    pub intensity_range: glam::Vec2,
+    pub spot_inner_outer: glam::Vec2,
     pub kind_flags: [u32; 2],
+    pub active: bool,
     pub layer_mask: u32,
     pub cast_shadow: bool,
 }

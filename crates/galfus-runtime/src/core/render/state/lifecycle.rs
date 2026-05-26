@@ -7,7 +7,7 @@ use crate::core::render::cache::RenderCache;
 use crate::core::render::gizmos::GizmoSystem;
 #[cfg(any(not(target_arch = "wasm32"), target_arch = "wasm32"))]
 use crate::core::render::state::collector::DrawCollector;
-use crate::core::resources::{MATERIAL_FALLBACK_ID, MATERIAL_STANDARD_2D_ID, ShaderMaterialRecord};
+use crate::core::resources::{MATERIAL_FALLBACK_ID, ShaderMaterialRecord};
 #[cfg(any(not(target_arch = "wasm32"), target_arch = "wasm32"))]
 use std::collections::HashMap;
 use std::collections::HashSet;
@@ -17,6 +17,8 @@ impl RenderState {
     const VERTEX_COMPACT_THRESHOLD: f32 = 0.25;
     const VERTEX_COMPACT_SLACK_RATIO: f32 = 0.3;
     const VERTEX_COMPACT_MIN_DEAD_BYTES: u64 = 256 * 1024;
+    const COMPOSE_BIND_CACHE_HARD_MAX: usize = 512;
+    const POST_BIND_CACHE_HARD_MAX: usize = 512;
 
     /// Create a new RenderState with empty systems
     #[cfg(any(not(target_arch = "wasm32"), target_arch = "wasm32"))]
@@ -25,10 +27,6 @@ impl RenderState {
         materials.insert(
             MATERIAL_FALLBACK_ID,
             ShaderMaterialRecord::new_standard(Some("Fallback Material".into())),
-        );
-        materials.insert(
-            MATERIAL_STANDARD_2D_ID,
-            ShaderMaterialRecord::new_standard_2d(Some("Standard 2D Material".into())),
         );
 
         Self {
@@ -43,6 +41,7 @@ impl RenderState {
             detached_cameras: HashMap::new(),
             camera_order: Vec::new(),
             camera_uniform_slots: HashMap::new(),
+            material_uniform_slots: HashMap::new(),
             target_texture_binds: HashMap::new(),
             external_textures: HashMap::new(),
             external_texture_sources: HashMap::new(),
@@ -65,7 +64,6 @@ impl RenderState {
             skybox_uniform_buffer: None,
             collector: DrawCollector::default(),
             skinning: crate::core::render::state::SkinningSystem::default(),
-            ui_renderers: HashMap::new(),
             two_d_source: crate::core::render::state::TwoDSourceState::default(),
             two_d_prepared: crate::core::render::state::TwoDPreparedState::default(),
             two_d_batched: crate::core::render::state::TwoDBatchedState::default(),
@@ -80,6 +78,9 @@ impl RenderState {
             compose_bind_cache_misses: 0,
             post_bind_cache_hits: 0,
             post_bind_cache_misses: 0,
+            compose_bind_cache_evictions: 0,
+            post_bind_cache_evictions: 0,
+            material_shader_module_evictions: 0,
             textures_sync_hash: 0,
             atlas_sync_hash: 0,
             target_binds_sync_hash: 0,
@@ -96,16 +97,13 @@ impl RenderState {
         self.detached_cameras.clear();
         self.camera_order.clear();
         self.camera_uniform_slots.clear();
+        self.material_uniform_slots.clear();
         self.scene.models.clear();
         self.scene.lights.clear();
         self.scene.materials.clear();
         self.scene.materials.insert(
             MATERIAL_FALLBACK_ID,
             ShaderMaterialRecord::new_standard(Some("Fallback Material".into())),
-        );
-        self.scene.materials.insert(
-            MATERIAL_STANDARD_2D_ID,
-            ShaderMaterialRecord::new_standard_2d(Some("Standard 2D Material".into())),
         );
         self.scene.textures.clear();
         self.scene.forward_atlas_entries.clear();
@@ -129,7 +127,6 @@ impl RenderState {
         self.bloom_uniform_buffer = None;
         self.skybox_uniform_buffer = None;
         self.skinning.clear();
-        self.ui_renderers.clear();
         self.two_d_source.cameras.clear();
         self.two_d_source.sprites.clear();
         self.two_d_source.shapes.clear();
@@ -148,6 +145,9 @@ impl RenderState {
         self.compose_bind_cache_misses = 0;
         self.post_bind_cache_hits = 0;
         self.post_bind_cache_misses = 0;
+        self.compose_bind_cache_evictions = 0;
+        self.post_bind_cache_evictions = 0;
+        self.material_shader_module_evictions = 0;
         self.textures_sync_hash = 0;
         self.atlas_sync_hash = 0;
         self.target_binds_sync_hash = 0;
@@ -194,6 +194,9 @@ impl RenderState {
         self.compose_bind_cache_misses = 0;
         self.post_bind_cache_hits = 0;
         self.post_bind_cache_misses = 0;
+        self.compose_bind_cache_evictions = 0;
+        self.post_bind_cache_evictions = 0;
+        self.material_shader_module_evictions = 0;
         self.two_d_texture_bind_cache.clear();
         self.two_d_pass_resources = None;
         self.cache.reset_frame_stats();
@@ -218,7 +221,52 @@ impl RenderState {
                 }
             })
             .collect();
+        let before_shader_modules = self.material_shader_modules.len();
         self.material_shader_modules
             .retain(|shader_id, _| active_shader_ids.contains(shader_id));
+        self.material_shader_module_evictions =
+            self.material_shader_module_evictions.saturating_add(
+                before_shader_modules.saturating_sub(self.material_shader_modules.len()) as u32,
+            );
+        self.trim_bind_caches_hard_limit();
+    }
+
+    fn trim_bind_caches_hard_limit(&mut self) {
+        if self.compose_bind_cache.len() > Self::COMPOSE_BIND_CACHE_HARD_MAX {
+            let overflow = self
+                .compose_bind_cache
+                .len()
+                .saturating_sub(Self::COMPOSE_BIND_CACHE_HARD_MAX);
+            let keys_to_remove: Vec<_> = self
+                .compose_bind_cache
+                .keys()
+                .copied()
+                .take(overflow)
+                .collect();
+            for key in keys_to_remove {
+                self.compose_bind_cache.remove(&key);
+            }
+            self.compose_bind_cache_evictions = self
+                .compose_bind_cache_evictions
+                .saturating_add(overflow as u32);
+        }
+        if self.post_bind_cache.len() > Self::POST_BIND_CACHE_HARD_MAX {
+            let overflow = self
+                .post_bind_cache
+                .len()
+                .saturating_sub(Self::POST_BIND_CACHE_HARD_MAX);
+            let keys_to_remove: Vec<_> = self
+                .post_bind_cache
+                .keys()
+                .copied()
+                .take(overflow)
+                .collect();
+            for key in keys_to_remove {
+                self.post_bind_cache.remove(&key);
+            }
+            self.post_bind_cache_evictions = self
+                .post_bind_cache_evictions
+                .saturating_add(overflow as u32);
+        }
     }
 }

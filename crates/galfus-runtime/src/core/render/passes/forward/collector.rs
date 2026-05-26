@@ -8,7 +8,6 @@ fn material_allows_3d(record: &crate::core::resources::ShaderMaterialRecord) -> 
     matches!(
         record.realm_kind,
         crate::core::resources::MaterialRealmKind::ThreeD
-            | crate::core::resources::MaterialRealmKind::Both
     )
 }
 
@@ -32,6 +31,9 @@ pub(crate) fn collect_objects(
     let mut shaded_models = 0u32;
 
     for (model_id, model_record) in &scene.models {
+        if !model_record.active {
+            continue;
+        }
         if (model_record.layer_mask & camera_record.layer_mask) == 0 {
             skipped_layer_mask += 1;
             continue;

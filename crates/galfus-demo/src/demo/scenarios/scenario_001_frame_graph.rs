@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
 use galfus_core::core;
@@ -11,8 +12,7 @@ use galfus_core::core::resources::{
     CameraKind, CmdCameraCreateArgs, CmdEnvironmentCreateArgs, CmdLightCreateArgs,
     CmdMaterialCreateArgs, CmdMaterialDefinitionCreateArgs, CmdModelCreateArgs, CmdModelUpdateArgs,
     CmdPrimitiveGeometryCreateArgs, EnvironmentConfig, LightKind, MaterialKind, MaterialOptions,
-    MaterialRealmKind, MaterialShaderType, PostProcessConfig, PrimitiveShape, RenderSide,
-    StandardOptions,
+    MaterialRealmKind, MaterialShaderType, PostProcessConfig, PrimitiveShape,
 };
 use galfus_core::core::target::{
     CmdTargetLayerUpsertArgs, CmdTargetUpsertArgs, DimensionValue, TargetKind, TargetLayerLayout,
@@ -36,6 +36,7 @@ const MATERIAL_FLOOR_ID: u32 = 12;
 const MATERIAL_DEF_CUSTOM_SIMPLE_ID: u32 = 100;
 const CAMERA_ID: u32 = 5;
 const LIGHT_ID: u32 = 6;
+const LIGHT_FILL_ID: u32 = 7;
 const ENVIRONMENT_ID: u32 = 7;
 const MODEL_CUBE_A_ID: u32 = 8;
 const MODEL_CUBE_B_ID: u32 = 9;
@@ -73,7 +74,10 @@ pub fn run(ctx: DemoContext) -> bool {
         let time_seconds = total_ms as f32 / 1000.0;
         let updates = build_rotating_cube_updates(realm_3d, time_seconds);
         let _ = send_commands(updates);
-        assert_eq!(core::galfus_tick(total_ms, FRAME_MS), GalfusResult::Success);
+        assert_eq!(
+            core::galfus_tick(total_ms as i64, FRAME_MS),
+            GalfusResult::Success
+        );
         total_ms = total_ms.saturating_add(FRAME_MS as u64);
         let _ = receive_responses();
         print_runtime_logs();
@@ -98,6 +102,7 @@ fn build_rotating_cube_updates(realm_id: u32, time_seconds: f32) -> Vec<EngineCm
                 Mat4::from_translation(Vec3::new(-2.0, 0.0, 0.0)) * Mat4::from_rotation_y(angle_a),
             ),
             layer_mask: None,
+            active: None,
             cast_shadow: None,
             receive_shadow: None,
             cast_outline: None,
@@ -113,6 +118,7 @@ fn build_rotating_cube_updates(realm_id: u32, time_seconds: f32) -> Vec<EngineCm
                 Mat4::from_translation(Vec3::new(0.0, 0.0, 0.0)) * Mat4::from_rotation_y(angle_b),
             ),
             layer_mask: None,
+            active: None,
             cast_shadow: None,
             receive_shadow: None,
             cast_outline: None,
@@ -128,6 +134,7 @@ fn build_rotating_cube_updates(realm_id: u32, time_seconds: f32) -> Vec<EngineCm
                 Mat4::from_translation(Vec3::new(2.0, 0.0, 0.0)) * Mat4::from_rotation_y(angle_c),
             ),
             layer_mask: None,
+            active: None,
             cast_shadow: None,
             receive_shadow: None,
             cast_outline: None,
@@ -194,11 +201,10 @@ fn build_realm3d_scene(realm_id: u32) -> Vec<EngineCmd> {
             slug: "standard".into(),
             kind: MaterialKind::Shader,
             realm_kind: MaterialRealmKind::ThreeD,
-            options: Some(MaterialOptions::Standard(StandardOptions {
-                base_color: Some(Vec4::new(1.0, 0.2, 0.8, 1.0)),
-                render_side: Some(RenderSide::Back),
-                ..Default::default()
-            })),
+            options: Some(MaterialOptions::Schema(HashMap::from([(
+                "baseColor".to_string(),
+                Vec4::new(1.0, 0.2, 0.8, 1.0),
+            )]))),
         })),
         EngineCmd::CmdMaterialUpsert(CmdMaterialUpsertArgs::Create(CmdMaterialCreateArgs {
             material_id: MATERIAL_PBR_ID,
@@ -206,21 +212,18 @@ fn build_realm3d_scene(realm_id: u32) -> Vec<EngineCmd> {
             slug: "pbr".into(),
             kind: MaterialKind::Shader,
             realm_kind: MaterialRealmKind::ThreeD,
-            options: Some(MaterialOptions::Pbr(
-                galfus_core::core::resources::PbrOptions {
-                    base_color: Some(Vec4::new(1.0, 1.0, 0.2, 1.0)),
-                    metallic: Some(0.55),
-                    roughness: Some(0.35),
-                    render_side: Some(RenderSide::Back),
-                    ..Default::default()
-                },
-            )),
+            options: Some(MaterialOptions::Schema(HashMap::from([
+                ("baseColor".to_string(), Vec4::new(1.0, 1.0, 0.2, 1.0)),
+                ("metallic".to_string(), Vec4::new(0.55, 0.0, 0.0, 0.0)),
+                ("roughness".to_string(), Vec4::new(0.35, 0.0, 0.0, 0.0)),
+            ]))),
         })),
         EngineCmd::CmdMaterialDefinitionUpsert(CmdMaterialDefinitionUpsertArgs::Create(
             CmdMaterialDefinitionCreateArgs {
                 definition_id: MATERIAL_DEF_CUSTOM_SIMPLE_ID,
                 slug: "demo-custom-simple".into(),
                 label: Some("demo-def-custom-simple".into()),
+                realm_kind: MaterialRealmKind::ThreeD,
                 preset: None,
                 shader_type: Some(MaterialShaderType::Model),
                 shader_source: Some(r#"
@@ -252,14 +255,12 @@ fn fragment(input: FragmentInput) -> FragmentOutput {
             slug: "demo-custom-simple".into(),
             kind: MaterialKind::Shader,
             realm_kind: MaterialRealmKind::ThreeD,
-            options: Some(MaterialOptions::Standard(StandardOptions {
-                base_color: Some(Vec4::new(0.25, 0.45, 0.98, 1.0)),
-                emissive_color: Some(Vec4::new(0.0, 0.0, 0.0, 0.0)),
-                spec_color: Some(Vec4::new(1.0, 1.0, 1.0, 1.0)),
-                spec_power: Some(64.0),
-                render_side: Some(RenderSide::Back),
-                ..Default::default()
-            })),
+            options: Some(MaterialOptions::Schema(HashMap::from([
+                ("baseColor".to_string(), Vec4::new(0.25, 0.45, 0.98, 1.0)),
+                ("emissiveColor".to_string(), Vec4::new(0.0, 0.0, 0.0, 0.0)),
+                ("specColor".to_string(), Vec4::new(0.0, 1.0, 1.0, 1.0)),
+                ("specPower".to_string(), Vec4::new(64.0, 0.0, 0.0, 0.0)),
+            ]))),
         })),
         EngineCmd::CmdMaterialUpsert(CmdMaterialUpsertArgs::Create(CmdMaterialCreateArgs {
             material_id: MATERIAL_FLOOR_ID,
@@ -267,13 +268,11 @@ fn fragment(input: FragmentInput) -> FragmentOutput {
             slug: "standard".into(),
             kind: MaterialKind::Shader,
             realm_kind: MaterialRealmKind::ThreeD,
-            options: Some(MaterialOptions::Standard(StandardOptions {
-                base_color: Some(Vec4::new(0.24, 0.24, 0.26, 1.0)),
-                spec_color: Some(Vec4::new(0.05, 0.05, 0.05, 1.0)),
-                spec_power: Some(8.0),
-                render_side: Some(RenderSide::DoubleSide),
-                ..Default::default()
-            })),
+            options: Some(MaterialOptions::Schema(HashMap::from([
+                ("baseColor".to_string(), Vec4::new(0.24, 0.24, 0.26, 1.0)),
+                ("specColor".to_string(), Vec4::new(0.05, 0.05, 0.05, 1.0)),
+                ("specPower".to_string(), Vec4::new(8.0, 0.0, 0.0, 0.0)),
+            ]))),
         })),
         EngineCmd::CmdCamera3dUpsert(CmdCamera3dUpsertArgs::Create(CmdCameraCreateArgs {
             realm_id,
@@ -295,12 +294,29 @@ fn fragment(input: FragmentInput) -> FragmentOutput {
             kind: Some(LightKind::Point),
             position: Some(Vec4::new(3.0, 5.0, 5.0, 1.0)),
             direction: None,
-            color: Some(Vec4::new(1.0, 1.0, 1.0, 1.0)),
+            color: Some(Vec4::new(0.0, 1.0, 1.0, 1.0)),
             ground_color: None,
             intensity: Some(4.0),
             range: Some(30.0),
             spot_inner_outer: None,
             layer_mask: 1,
+            active: true,
+            cast_shadow: true,
+        })),
+        EngineCmd::CmdLight3dUpsert(CmdLight3dUpsertArgs::Create(CmdLightCreateArgs {
+            realm_id,
+            light_id: LIGHT_FILL_ID,
+            label: Some("demo-fill-light".into()),
+            kind: Some(LightKind::Point),
+            position: Some(Vec4::new(-4.0, 3.0, -2.0, 1.0)),
+            direction: None,
+            color: Some(Vec4::new(1.0, 0.0, 1.0, 1.0)),
+            ground_color: None,
+            intensity: Some(2.4),
+            range: Some(18.0),
+            spot_inner_outer: None,
+            layer_mask: 1,
+            active: true,
             cast_shadow: true,
         })),
         EngineCmd::CmdEnvironmentUpsert(CmdEnvironmentUpsertArgs::Create(
@@ -331,6 +347,7 @@ fn fragment(input: FragmentInput) -> FragmentOutput {
             material_id: Some(MATERIAL_STANDARD_ID),
             transform: Mat4::from_translation(Vec3::new(-2.0, 0.0, 0.0)),
             layer_mask: 1,
+            active: true,
             cast_shadow: true,
             receive_shadow: true,
             cast_outline: true,
@@ -344,6 +361,7 @@ fn fragment(input: FragmentInput) -> FragmentOutput {
             material_id: Some(MATERIAL_PBR_ID),
             transform: Mat4::from_translation(Vec3::new(0.0, 0.0, 0.0)),
             layer_mask: 1,
+            active: true,
             cast_shadow: true,
             receive_shadow: true,
             cast_outline: false,
@@ -357,6 +375,7 @@ fn fragment(input: FragmentInput) -> FragmentOutput {
             material_id: Some(MATERIAL_CUSTOM_SIMPLE_ID),
             transform: Mat4::from_translation(Vec3::new(2.0, 0.0, 0.0)),
             layer_mask: 1,
+            active: true,
             cast_shadow: true,
             receive_shadow: true,
             cast_outline: false,
@@ -374,6 +393,7 @@ fn fragment(input: FragmentInput) -> FragmentOutput {
                 Vec3::new(0.0, -1.0, 0.0),
             ),
             layer_mask: 1,
+            active: true,
             cast_shadow: true,
             receive_shadow: true,
             cast_outline: false,

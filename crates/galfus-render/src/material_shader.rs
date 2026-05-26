@@ -15,6 +15,13 @@ pub enum MaterialShaderType {
     Particle,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum MaterialShaderRealm {
+    ThreeD,
+    TwoD,
+}
+
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MaterialShaderCompileSpec {
@@ -62,9 +69,7 @@ fn shade_standard(
   let ndotl = max(dot(n, l), 0.0);
   let spec_power = mix(64.0, 4.0, roughness);
   let specular = pow(max(dot(n, h), 0.0), spec_power) * (1.0 - metallic);
-  let ambient = base_color * 0.08;
-  let light_color = get_primary_light_color();
-  return ambient + (base_color * ndotl + vec3<f32>(specular)) * light_color * shadow_visibility;
+  return (base_color * ndotl + vec3<f32>(specular)) * shadow_visibility;
 }
 
 fn vertex(input: VertexInput) -> VertexOutput {
@@ -82,9 +87,29 @@ fn fragment(input: FragmentInput) -> FragmentOutput {
   let tint = select(vec3<f32>(1.0, 0.7, 0.6), base_color, has_material_input(0u));
   let normal = normalize(input.world_normal);
   let view_dir = normalize(camera.position.xyz - input.world_position);
-  let light_dir = get_primary_light_direction(input.world_position);
-  let shadow_visibility = sample_shadow_primary_light(input.world_position, normal);
-  let lit = shade_standard(tint, normal, light_dir, view_dir, shadow_visibility, 0.05, 0.0);
+  var lit = tint * 0.08;
+  let max_lights = min(
+    visible_counts[light_params.camera_index],
+    light_params.max_lights_per_camera
+  );
+  var i = 0u;
+  loop {
+    if (i >= max_lights) { break; }
+    let visible_index = light_params.camera_index * light_params.max_lights_per_camera + i;
+    let light_index = visible_indices[visible_index];
+    if (light_index < arrayLength(&lights)) {
+      let light = lights[light_index];
+      let light_dir = light_direction(light, input.world_position);
+      let shadow_visibility = select(
+        1.0,
+        sample_shadow_for_light(light_index, input.world_position, normal),
+        input.receive_shadow > 0.5
+      );
+      let direct = shade_standard(tint, normal, light_dir, view_dir, shadow_visibility, 0.05, 0.0);
+      lit += direct * light_radiance(light);
+    }
+    i = i + 1u;
+  }
   out.color = vec4<f32>(lit, 1.0);
   out.emissive = vec4<f32>(0.0);
   return out;
@@ -147,9 +172,7 @@ fn shade_pbr(
   let specular = numerator / denominator;
   let kd = (vec3<f32>(1.0) - f) * (1.0 - metallic);
   let diffuse = kd * base_color / PI;
-  let radiance = get_primary_light_color() * ndotl * shadow_visibility;
-  let ambient = base_color * 0.03;
-  return ambient + (diffuse + specular) * radiance;
+  return (diffuse + specular) * ndotl * shadow_visibility;
 }
 
 fn vertex(input: VertexInput) -> VertexOutput {
@@ -170,9 +193,29 @@ fn fragment(input: FragmentInput) -> FragmentOutput {
   let roughness = clamp(metal_rough.y, 0.04, 1.0);
   let normal = normalize(input.world_normal);
   let view_dir = normalize(camera.position.xyz - input.world_position);
-  let light_dir = get_primary_light_direction(input.world_position);
-  let shadow_visibility = sample_shadow_primary_light(input.world_position, normal);
-  let lit = shade_pbr(tint, normal, light_dir, view_dir, shadow_visibility, metallic, roughness);
+  var lit = tint * 0.03;
+  let max_lights = min(
+    visible_counts[light_params.camera_index],
+    light_params.max_lights_per_camera
+  );
+  var i = 0u;
+  loop {
+    if (i >= max_lights) { break; }
+    let visible_index = light_params.camera_index * light_params.max_lights_per_camera + i;
+    let light_index = visible_indices[visible_index];
+    if (light_index < arrayLength(&lights)) {
+      let light = lights[light_index];
+      let light_dir = light_direction(light, input.world_position);
+      let shadow_visibility = select(
+        1.0,
+        sample_shadow_for_light(light_index, input.world_position, normal),
+        input.receive_shadow > 0.5
+      );
+      let direct = shade_pbr(tint, normal, light_dir, view_dir, shadow_visibility, metallic, roughness);
+      lit += direct * light_radiance(light);
+    }
+    i = i + 1u;
+  }
   out.color = vec4<f32>(lit, 1.0);
   out.emissive = vec4<f32>(0.0);
   return out;
@@ -184,6 +227,27 @@ pub fn builtin_material_source(preset: MaterialShaderBasePreset) -> &'static str
         MaterialShaderBasePreset::Standard => STANDARD_SOURCE,
         MaterialShaderBasePreset::Pbr => PBR_SOURCE,
     }
+}
+
+const STANDARD_2D_SOURCE: &str = r#"
+fn vertex(input: VertexInput) -> VertexOutput {
+  var out: VertexOutput;
+  out.clip_position = vec4<f32>(0.0);
+  // Keep zero so the 2D composer injects the per-material tint from camera uniform.
+  out.color = vec4<f32>(0.0);
+  out.uv = input.uv;
+  return out;
+}
+
+fn fragment(input: FragmentInput) -> FragmentOutput {
+  var out: FragmentOutput;
+  out.color = sample_material(input.uv) * input.color;
+  return out;
+}
+"#;
+
+pub fn builtin_material_source_2d() -> &'static str {
+    STANDARD_2D_SOURCE
 }
 
 const FORBIDDEN_SHADER_TOKENS: [&str; 16] = [
@@ -394,6 +458,7 @@ struct FragmentInput {
     world_position: vec3<f32>,
     world_normal: vec3<f32>,
     uv: vec2<f32>,
+    receive_shadow: f32,
 }
 
 struct FragmentOutput {
@@ -413,6 +478,7 @@ struct VertexStageOutput {
     @location(0) world_position: vec3<f32>,
     @location(1) world_normal: vec3<f32>,
     @location(2) uv: vec2<f32>,
+    @location(3) receive_shadow: f32,
 };
 
 struct FragmentStageOutput {
@@ -441,15 +507,28 @@ fn resolve_point_light_face(dir: vec3<f32>) -> u32 {
     }
     return select(5u, 4u, dir.z >= 0.0);
 }
-fn sample_shadow_primary_light(world_position: vec3<f32>, world_normal: vec3<f32>) -> f32 {
-    if (arrayLength(&lights) == 0u) { return 1.0; }
-    let light = lights[0u];
-    if ((light.kind_flags.y & 1u) == 0u || light.shadow_index == 0xFFFFFFFFu) { return 1.0; }
 
-    let n = normalize(world_normal);
-    let l = normalize(light.position.xyz - world_position);
-    let to_frag = world_position - light.position.xyz;
-    let face = resolve_point_light_face(to_frag);
+fn resolve_secondary_point_light_face(dir: vec3<f32>, primary_face: u32) -> u32 {
+    let ad = abs(dir);
+    if (primary_face == 0u || primary_face == 1u) {
+        if (ad.y >= ad.z) { return select(3u, 2u, dir.y >= 0.0); }
+        return select(5u, 4u, dir.z >= 0.0);
+    }
+    if (primary_face == 2u || primary_face == 3u) {
+        if (ad.x >= ad.z) { return select(1u, 0u, dir.x >= 0.0); }
+        return select(5u, 4u, dir.z >= 0.0);
+    }
+    if (ad.x >= ad.y) { return select(1u, 0u, dir.x >= 0.0); }
+    return select(3u, 2u, dir.y >= 0.0);
+}
+
+fn sample_shadow_for_point_face(
+    light: Light,
+    world_position: vec3<f32>,
+    world_normal: vec3<f32>,
+    light_dir: vec3<f32>,
+    face: u32
+) -> f32 {
     let vp = point_light_vp[light.shadow_index * 6u + face];
     let clip = vp * vec4<f32>(world_position, 1.0);
     if (abs(clip.w) < 1e-6) { return 1.0; }
@@ -461,7 +540,8 @@ fn sample_shadow_primary_light(world_position: vec3<f32>, world_normal: vec3<f32
     let uv01 = vec2<f32>(ndc.x * 0.5 + 0.5, -ndc.y * 0.5 + 0.5);
     let page_x = min(u32(floor(uv01.x * f32(grid_size))), grid_size - 1u);
     let page_y = min(u32(floor(uv01.y * f32(grid_size))), grid_size - 1u);
-    let page_uv = fract(uv01 * f32(grid_size));
+    // Keep sampling away from page borders to reduce seams between virtual pages/faces.
+    let page_uv = clamp(fract(uv01 * f32(grid_size)), vec2<f32>(2e-4), vec2<f32>(1.0 - 2e-4));
 
     let table_index = ((light.shadow_index * 6u + face) * grid_size * grid_size + page_y * grid_size + page_x) % shadow_params.table_capacity;
     let page = shadow_page_table[table_index];
@@ -469,10 +549,51 @@ fn sample_shadow_primary_light(world_position: vec3<f32>, world_normal: vec3<f32
 
     let atlas_uv = page.scale_offset.xy * page_uv + page.scale_offset.zw;
     let depth_ref = clamp(ndc.z, 0.0, 1.0);
-    let slope = 1.0 - max(dot(n, l), 0.0);
+    let n = normalize(world_normal);
+    let slope = 1.0 - max(dot(n, light_dir), 0.0);
     let bias = (shadow_params.point_bias_min + shadow_params.point_bias_slope * slope) * 0.05;
     let compare_ref = clamp(depth_ref + bias, 0.0, 1.0);
     return sample_shadow_compare_atlas(atlas_uv, page.layer_index, compare_ref);
+}
+fn light_direction(light: Light, world_position: vec3<f32>) -> vec3<f32> {
+    if (light.kind_flags.x == 0u) {
+        return normalize(-light.direction.xyz);
+    }
+    return normalize(light.position.xyz - world_position);
+}
+
+fn light_radiance(light: Light) -> vec3<f32> {
+    return light.color.rgb * max(light.intensity_range.x, 0.0);
+}
+
+fn sample_shadow_for_light(light_index: u32, world_position: vec3<f32>, world_normal: vec3<f32>) -> f32 {
+    if (light_index >= arrayLength(&lights)) { return 1.0; }
+    let light = lights[light_index];
+    if (
+        light.kind_flags.x != 1u ||
+        (light.kind_flags.y & 1u) == 0u ||
+        light.shadow_index == 0xFFFFFFFFu ||
+        shadow_params.table_capacity == 0u
+    ) { return 1.0; }
+
+    let l = light_direction(light, world_position);
+    let to_frag = world_position - light.position.xyz;
+    let primary_face = resolve_point_light_face(to_frag);
+    let primary_visibility =
+        sample_shadow_for_point_face(light, world_position, world_normal, l, primary_face);
+
+    // Near cube-face transition lines, sample a secondary face and keep the more occluding result.
+    let ad = abs(to_frag);
+    let major = max(ad.x, max(ad.y, ad.z));
+    let minor = ad.x + ad.y + ad.z - major - min(ad.x, min(ad.y, ad.z));
+    if (major > 0.0 && (major - minor) / major < 0.05) {
+        let secondary_face = resolve_secondary_point_light_face(to_frag, primary_face);
+        let secondary_visibility =
+            sample_shadow_for_point_face(light, world_position, world_normal, l, secondary_face);
+        return min(primary_visibility, secondary_visibility);
+    }
+
+    return primary_visibility;
 }
 fn sample_scene_color(uv: vec2<f32>) -> vec4<f32> {
     return textureSample(frame_scene_color, frame_linear_sampler, uv);
@@ -590,25 +711,6 @@ fn sample_material(tex_slot: u32, sampler_index: u32, uv: vec2<f32>) -> vec4<f32
     return sample_texture_slot(tex_slot, sampler_index, uv_transformed);
 }
 
-fn get_primary_light_direction(world_position: vec3<f32>) -> vec3<f32> {
-    if (arrayLength(&lights) == 0u) {
-        return normalize(vec3<f32>(0.45, 0.8, 0.25));
-    }
-    let light = lights[0u];
-    if (light.kind_flags.x == 0u) {
-        return normalize(-light.direction.xyz);
-    }
-    return normalize(light.position.xyz - world_position);
-}
-
-fn get_primary_light_color() -> vec3<f32> {
-    if (arrayLength(&lights) == 0u) {
-        return vec3<f32>(1.0);
-    }
-    let light = lights[0u];
-    return light.color.rgb * max(light.intensity_range.x, 0.0);
-}
-
 "#
 }
 
@@ -637,6 +739,7 @@ fn vs_main(input: VertexStageInput) -> VertexStageOutput {
     out.world_position = logical_output.world_position;
     out.world_normal = logical_output.world_normal;
     out.uv = logical_output.uv;
+    out.receive_shadow = select(0.0, 1.0, (model.flags.x & 1u) != 0u);
     return out;
 }
 
@@ -646,6 +749,7 @@ fn fs_main(input: VertexStageOutput) -> FragmentStageOutput {
         input.world_position,
         normalize(input.world_normal),
         input.uv,
+        input.receive_shadow,
     );
     let logical_output = fragment(logical_input);
 
@@ -657,15 +761,116 @@ fn fs_main(input: VertexStageOutput) -> FragmentStageOutput {
 "#
 }
 
-fn compose_material_wgsl(shader_type: MaterialShaderType, snippet: &str) -> Result<String, String> {
+fn two_d_composer_prelude() -> &'static str {
+    r#"
+struct CameraUniform {
+    view_projection: mat4x4<f32>,
+    tint: vec4<f32>,
+}
+
+@group(0) @binding(0)
+var<uniform> camera: CameraUniform;
+@group(1) @binding(0)
+var base_tex: texture_2d<f32>;
+@group(1) @binding(1)
+var base_sampler: sampler;
+
+struct VertexInput {
+    position: vec3<f32>,
+    normal: vec3<f32>,
+    uv: vec2<f32>,
+    instance_index: u32,
+}
+
+struct VertexOutput {
+    clip_position: vec4<f32>,
+    color: vec4<f32>,
+    uv: vec2<f32>,
+}
+
+struct FragmentInput {
+    color: vec4<f32>,
+    uv: vec2<f32>,
+}
+
+struct FragmentOutput {
+    color: vec4<f32>,
+}
+
+fn sample_material(uv: vec2<f32>) -> vec4<f32> {
+    return textureSample(base_tex, base_sampler, uv);
+}
+
+struct VertexStageInput {
+    @location(0) position: vec3<f32>,
+    @location(4) uv: vec2<f32>,
+    @builtin(instance_index) instance_index: u32,
+}
+
+struct VertexStageOutput {
+    @builtin(position) clip_position: vec4<f32>,
+    @location(0) color: vec4<f32>,
+    @location(1) uv: vec2<f32>,
+}
+"#
+}
+
+fn two_d_composer_postlude() -> &'static str {
+    r#"
+@vertex
+fn vs_main(input: VertexStageInput) -> VertexStageOutput {
+    let logical_input = VertexInput(
+        input.position,
+        vec3<f32>(0.0, 0.0, 1.0),
+        input.uv,
+        input.instance_index,
+    );
+    var logical_output = vertex(logical_input);
+    if all(logical_output.clip_position == vec4<f32>(0.0)) {
+        logical_output.clip_position = camera.view_projection * vec4<f32>(input.position, 1.0);
+    }
+    if all(logical_output.color == vec4<f32>(0.0)) {
+        logical_output.color = camera.tint;
+    }
+    if all(logical_output.uv == vec2<f32>(0.0)) {
+        logical_output.uv = input.uv;
+    }
+
+    var out: VertexStageOutput;
+    out.clip_position = logical_output.clip_position;
+    out.color = logical_output.color;
+    out.uv = logical_output.uv;
+    return out;
+}
+
+@fragment
+fn fs_main(input: VertexStageOutput) -> @location(0) vec4<f32> {
+    let logical_input = FragmentInput(input.color, input.uv);
+    let logical_output = fragment(logical_input);
+    return logical_output.color;
+}
+"#
+}
+
+fn compose_material_wgsl(
+    realm: MaterialShaderRealm,
+    shader_type: MaterialShaderType,
+    snippet: &str,
+) -> Result<String, String> {
     match shader_type {
         MaterialShaderType::Model => {
             validate_logical_shader_source(shader_type, snippet)?;
+            let (prelude, postlude) = match realm {
+                MaterialShaderRealm::ThreeD => {
+                    (model_composer_prelude(), model_composer_postlude())
+                }
+                MaterialShaderRealm::TwoD => (two_d_composer_prelude(), two_d_composer_postlude()),
+            };
             Ok(format!(
                 "// generated_common_prelude\n{}\n// source\n{}\n// generated_postlude\n{}",
-                model_composer_prelude(),
+                prelude,
                 snippet.trim(),
-                model_composer_postlude()
+                postlude
             ))
         }
         MaterialShaderType::Particle => {
@@ -678,10 +883,17 @@ fn compose_material_wgsl(shader_type: MaterialShaderType, snippet: &str) -> Resu
 pub fn compile_material_shader_spec(
     spec: &MaterialShaderCompileSpec,
 ) -> Result<CompiledMaterialShader, String> {
+    compile_material_shader_spec_for_realm(spec, MaterialShaderRealm::ThreeD)
+}
+
+pub fn compile_material_shader_spec_for_realm(
+    spec: &MaterialShaderCompileSpec,
+    realm: MaterialShaderRealm,
+) -> Result<CompiledMaterialShader, String> {
     if spec.shader_source.trim().is_empty() {
         return Err("shader_source is required and cannot be empty".to_string());
     }
-    let source = compose_material_wgsl(spec.shader_type, &spec.shader_source)?;
+    let source = compose_material_wgsl(realm, spec.shader_type, &spec.shader_source)?;
 
     if let Err(err) = naga::front::wgsl::parse_str(&source) {
         return Err(format!(
@@ -692,6 +904,7 @@ pub fn compile_material_shader_spec(
 
     let mut hasher = DefaultHasher::new();
     spec.base_preset.hash(&mut hasher);
+    realm.hash(&mut hasher);
     spec.shader_type.hash(&mut hasher);
     source.hash(&mut hasher);
     let mut params: Vec<_> = spec.shader_params_schema.iter().collect();
@@ -723,6 +936,14 @@ mod tests {
         assert_ne!(compiled.hash, 0);
         assert!(compiled.source.contains("fn shade_standard("));
         assert!(!compiled.source.contains("fn shade_pbr("));
+        assert!(compiled.source.contains("sample_shadow_for_light("));
+        assert!(
+            compiled
+                .source
+                .contains("visible_counts[light_params.camera_index]")
+        );
+        assert!(!compiled.source.contains("sample_shadow_primary_light("));
+        assert!(!compiled.source.contains("get_primary_light_direction("));
     }
 
     #[test]
@@ -739,6 +960,8 @@ mod tests {
         assert_ne!(compiled.hash, 0);
         assert!(compiled.source.contains("fn shade_pbr("));
         assert!(!compiled.source.contains("fn shade_standard("));
+        assert!(compiled.source.contains("input.receive_shadow > 0.5"));
+        assert!(compiled.source.contains("visible_indices[visible_index]"));
     }
 
     #[test]
@@ -812,5 +1035,22 @@ fn fragment(input: FragmentInput) -> FragmentOutput {
         let a = compile_material_shader_spec(&spec).expect("first compile");
         let b = compile_material_shader_spec(&spec).expect("second compile");
         assert_eq!(a.hash, b.hash);
+    }
+
+    #[test]
+    fn compiles_standard_2d_realm() {
+        let spec = MaterialShaderCompileSpec {
+            base_preset: MaterialShaderBasePreset::Standard,
+            shader_type: MaterialShaderType::Model,
+            shader_source: builtin_material_source_2d().to_string(),
+            shader_params_schema: HashMap::new(),
+            capabilities: Default::default(),
+        };
+        let compiled = compile_material_shader_spec_for_realm(&spec, MaterialShaderRealm::TwoD)
+            .expect("2d standard should compile");
+        assert!(compiled.source.contains("struct CameraUniform"));
+        assert!(compiled.source.contains("fn sample_material("));
+        assert!(compiled.source.contains("@vertex"));
+        assert!(compiled.source.contains("@fragment"));
     }
 }

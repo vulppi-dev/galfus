@@ -1,6 +1,7 @@
 pub mod audio;
 pub mod buffers;
 pub mod cmd;
+pub mod id_policy;
 pub mod image;
 pub mod input;
 mod lifecycle;
@@ -19,7 +20,6 @@ pub mod target;
 pub mod test_support;
 mod tick;
 pub mod time;
-pub mod ui;
 pub mod window;
 
 // Re-exports for public API

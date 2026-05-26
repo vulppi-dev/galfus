@@ -27,7 +27,7 @@ type WasmBindings = {
   galfus_receive_events: () => WasmBufferResult;
   galfus_receive_queue: () => WasmBufferResult;
   galfus_send_queue: (data: Uint8Array) => number;
-  galfus_tick: (timeMs: number, deltaMs: number) => number;
+  galfus_tick: (timeMs: bigint, deltaMs: number) => number;
   galfus_upload_buffer: (id: bigint, uploadType: number, data: Uint8Array) => number;
 };
 
@@ -103,7 +103,7 @@ const transportImpl: EngineTransport = {
   },
   galfusTick: (timeMs, deltaMs) => {
     ensureInitialized();
-    return bindings.galfus_tick(timeMs, deltaMs);
+    return bindings.galfus_tick(BigInt(Math.trunc(timeMs)), deltaMs);
   },
   galfusGetProfiling: () => {
     ensureInitialized();

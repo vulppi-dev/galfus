@@ -27,8 +27,8 @@ pub fn get_pipeline<'a>(
     };
 
     let cull_mode = match render_side {
-        RenderSide::Front => Some(wgpu::Face::Front),
-        RenderSide::Back => Some(wgpu::Face::Back),
+        RenderSide::Front => Some(wgpu::Face::Back),
+        RenderSide::Back => Some(wgpu::Face::Front),
         RenderSide::DoubleSide => None,
     };
 

@@ -1,3 +1,4 @@
+use crate::core::id_policy::validate_host_logical_id;
 use crate::core::resources::geometry::generators;
 use crate::core::state::EngineState;
 use glam::Vec3;
@@ -165,6 +166,12 @@ pub fn engine_cmd_primitive_geometry_create(
     engine: &mut EngineState,
     args: &CmdPrimitiveGeometryCreateArgs,
 ) -> CmdResultPrimitiveGeometryCreate {
+    if let Err(message) = validate_host_logical_id(args.geometry_id, "geometryId") {
+        return CmdResultPrimitiveGeometryCreate {
+            success: false,
+            message,
+        };
+    }
     let options = match (args.shape, &args.options) {
         (PrimitiveShape::Cube, Some(PrimitiveOptions::Cube(opts))) => {
             PrimitiveOptions::Cube(opts.clone())

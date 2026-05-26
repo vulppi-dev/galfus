@@ -26,7 +26,7 @@ fn material_list_without_filter_returns_all_materials() {
         &CmdMaterialCreateArgs {
             material_id: 3102,
             label: Some("mat-2d".into()),
-            slug: "standard".into(),
+            slug: "standard-2d".into(),
             kind: MaterialKind::Shader,
             realm_kind: MaterialRealmKind::TwoD,
             options: None,
@@ -68,26 +68,13 @@ fn material_list_with_realm_kind_filter_returns_compatible_materials() {
         &CmdMaterialCreateArgs {
             material_id: 3202,
             label: Some("mat-2d-only".into()),
-            slug: "standard".into(),
+            slug: "standard-2d".into(),
             kind: MaterialKind::Shader,
             realm_kind: MaterialRealmKind::TwoD,
             options: None,
         },
     );
     assert!(create_2d.success, "{}", create_2d.message);
-
-    let create_both = engine_cmd_material_create(
-        &mut engine,
-        &CmdMaterialCreateArgs {
-            material_id: 3203,
-            label: Some("mat-both".into()),
-            slug: "standard".into(),
-            kind: MaterialKind::Shader,
-            realm_kind: MaterialRealmKind::Both,
-            options: None,
-        },
-    );
-    assert!(create_both.success, "{}", create_both.message);
 
     let list_2d = engine_cmd_material_list(
         &mut engine,
@@ -99,7 +86,6 @@ fn material_list_with_realm_kind_filter_returns_compatible_materials() {
     assert!(list_2d.success);
     assert!(!list_2d.materials.iter().any(|entry| entry.id == 3201));
     assert!(list_2d.materials.iter().any(|entry| entry.id == 3202));
-    assert!(list_2d.materials.iter().any(|entry| entry.id == 3203));
 
     let list_3d = engine_cmd_material_list(
         &mut engine,
@@ -111,5 +97,4 @@ fn material_list_with_realm_kind_filter_returns_compatible_materials() {
     assert!(list_3d.success);
     assert!(list_3d.materials.iter().any(|entry| entry.id == 3201));
     assert!(!list_3d.materials.iter().any(|entry| entry.id == 3202));
-    assert!(list_3d.materials.iter().any(|entry| entry.id == 3203));
 }

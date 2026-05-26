@@ -7,16 +7,16 @@ use crate::core::render::passes::clear_color_target;
 #[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable)]
 struct SsaoUniform {
-    proj: [[f32; 4]; 4],
-    inv_proj: [[f32; 4]; 4],
-    params0: [f32; 4],
-    params1: [f32; 4],
+    proj: glam::Mat4,
+    inv_proj: glam::Mat4,
+    params0: glam::Vec4,
+    params1: glam::Vec4,
 }
 
 #[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable)]
 struct SsaoBlurUniform {
-    params0: [f32; 4],
+    params0: glam::Vec4,
 }
 
 fn update_ssao_uniform(
@@ -41,15 +41,15 @@ fn update_ssao_uniform(
     let texel_y = 1.0 / size.height.max(1) as f32;
 
     let uniform = SsaoUniform {
-        proj: proj.to_cols_array_2d(),
-        inv_proj: inv_proj.to_cols_array_2d(),
-        params0: [
+        proj,
+        inv_proj,
+        params0: glam::Vec4::new(
             config.ssao_radius.max(0.001),
             config.ssao_bias.max(0.0),
             config.ssao_power.max(0.1),
             0.0,
-        ],
-        params1: [texel_x, texel_y, 0.0, frame_index as f32],
+        ),
+        params1: glam::Vec4::new(texel_x, texel_y, 0.0, frame_index as f32),
     };
 
     queue.write_buffer(buffer, 0, bytemuck::bytes_of(&uniform));
@@ -74,12 +74,12 @@ fn update_ssao_blur_uniform(
     let texel_y = 1.0 / size.height.max(1) as f32;
 
     let uniform = SsaoBlurUniform {
-        params0: [
+        params0: glam::Vec4::new(
             texel_x,
             texel_y,
             config.ssao_blur_depth_threshold.max(0.0001),
             config.ssao_blur_radius.clamp(0.0, 6.0),
-        ],
+        ),
     };
 
     queue.write_buffer(buffer, 0, bytemuck::bytes_of(&uniform));

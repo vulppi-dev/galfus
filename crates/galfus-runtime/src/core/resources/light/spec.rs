@@ -131,6 +131,7 @@ impl LightComponent {
 pub struct LightRecord {
     pub label: Option<String>,
     pub data: LightComponent,
+    pub active: bool,
     pub layer_mask: u32,
     pub cast_shadow: bool,
     pub is_dirty: bool,
@@ -140,12 +141,14 @@ impl LightRecord {
     pub fn new(
         label: Option<String>,
         data: LightComponent,
+        active: bool,
         layer_mask: u32,
         cast_shadow: bool,
     ) -> Self {
         Self {
             label,
             data,
+            active,
             layer_mask,
             cast_shadow,
             is_dirty: true,

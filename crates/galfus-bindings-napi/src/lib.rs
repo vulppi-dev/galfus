@@ -65,7 +65,7 @@ pub fn galfus_upload_buffer(id: i64, upload_type: u32, data: Buffer) -> u32 {
 
 #[napi]
 pub fn galfus_tick(time: i64, delta_time: u32) -> u32 {
-    galfus_core::galfus_tick(time as u64, delta_time) as u32
+    galfus_core::galfus_tick(time, delta_time) as u32
 }
 
 #[napi]
@@ -73,4 +73,12 @@ pub fn galfus_get_profiling() -> Result<BufferResult> {
     Ok(take_buffer_result(|out_ptr, out_length| {
         galfus_core::galfus_get_profiling(out_ptr, out_length) as u32
     }))
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn tick_signature_uses_i64() {
+        let _fn_ptr: fn(i64, u32) -> u32 = super::galfus_tick;
+    }
 }

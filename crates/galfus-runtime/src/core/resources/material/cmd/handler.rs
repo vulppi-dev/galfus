@@ -1,15 +1,26 @@
 use super::types::*;
-use super::utils::{pack_pbr_material, pack_standard_material};
+use super::utils::pack_schema_material;
+use crate::core::cmd::EngineEvent;
+use crate::core::id_policy::validate_host_logical_id;
 use crate::core::resources::{
-    MATERIAL_DEFINITION_PBR_ID, MATERIAL_DEFINITION_PBR_SLUG, MATERIAL_DEFINITION_STANDARD_ID,
+    MATERIAL_DEFINITION_PBR_ID, MATERIAL_DEFINITION_PBR_SLUG, MATERIAL_DEFINITION_STANDARD_2D_ID,
+    MATERIAL_DEFINITION_STANDARD_2D_SLUG, MATERIAL_DEFINITION_STANDARD_ID,
     MATERIAL_DEFINITION_STANDARD_SLUG, MATERIAL_FALLBACK_ID, MaterialDefinitionRecord,
     MaterialInstanceRecord, MaterialRealmKind, MaterialShaderType, ShaderMaterialPreset,
     ShaderMaterialRecord,
 };
 use crate::core::state::EngineState;
+use crate::core::system::SystemEvent;
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::hash::{DefaultHasher, Hash, Hasher};
+
+fn default_capabilities_for_realm(capabilities: Option<Vec<String>>) -> Vec<String> {
+    if let Some(value) = capabilities {
+        return value;
+    }
+    Vec::new()
+}
 
 fn to_render_preset(preset: ShaderMaterialPreset) -> galfus_render::MaterialShaderBasePreset {
     match preset {
@@ -29,8 +40,19 @@ fn definition_is_broken(definition: &MaterialDefinitionRecord) -> bool {
     definition.compile_error.is_some() || definition.compiled_shader_source.is_none()
 }
 
+fn validate_preset_realm(
+    preset: ShaderMaterialPreset,
+    realm_kind: MaterialRealmKind,
+) -> Result<(), String> {
+    if preset == ShaderMaterialPreset::Pbr && realm_kind == MaterialRealmKind::TwoD {
+        return Err("PBR preset is only supported for ThreeD realm".to_string());
+    }
+    Ok(())
+}
+
 fn compile_material_program(
     engine: &mut EngineState,
+    realm_kind: MaterialRealmKind,
     preset: ShaderMaterialPreset,
     shader_type: MaterialShaderType,
     shader_source: String,
@@ -38,6 +60,7 @@ fn compile_material_program(
 ) -> Result<galfus_render::CompiledMaterialShader, String> {
     const MATERIAL_PROGRAM_CACHE_MAX_UNUSED_FRAMES: u64 = 600;
     const MATERIAL_PROGRAM_CACHE_MAX_ENTRIES_SOFT: usize = 512;
+    const MATERIAL_PROGRAM_CACHE_MAX_ENTRIES_HARD: usize = 1024;
 
     let spec = galfus_render::MaterialShaderCompileSpec {
         base_preset: to_render_preset(preset),
@@ -46,9 +69,14 @@ fn compile_material_program(
         shader_params_schema,
         capabilities: Default::default(),
     };
+    let realm = match realm_kind {
+        MaterialRealmKind::ThreeD => galfus_render::MaterialShaderRealm::ThreeD,
+        MaterialRealmKind::TwoD => galfus_render::MaterialShaderRealm::TwoD,
+    };
 
     let cache_key = {
         let mut hasher = DefaultHasher::new();
+        realm.hash(&mut hasher);
         to_render_preset(preset).hash(&mut hasher);
         to_render_shader_type(shader_type).hash(&mut hasher);
         spec.shader_source.hash(&mut hasher);
@@ -94,7 +122,7 @@ fn compile_material_program(
         shader_type
     );
 
-    let compiled = galfus_render::compile_material_shader_spec(&spec)?;
+    let compiled = galfus_render::compile_material_shader_spec_for_realm(&spec, realm)?;
     let frame_index = engine.runtime.frame_index();
     engine
         .universal_state
@@ -119,9 +147,10 @@ fn compile_material_program(
             }
         })
         .collect();
-    if engine.universal_state.scene.material_program_cache.len()
-        > MATERIAL_PROGRAM_CACHE_MAX_ENTRIES_SOFT
-    {
+    let should_prune = engine.universal_state.scene.material_program_cache.len()
+        > MATERIAL_PROGRAM_CACHE_MAX_ENTRIES_SOFT;
+    if should_prune {
+        let before_prune = engine.universal_state.scene.material_program_cache.len();
         engine
             .universal_state
             .scene
@@ -138,18 +167,69 @@ fn compile_material_program(
                     <= MATERIAL_PROGRAM_CACHE_MAX_UNUSED_FRAMES;
                 within_window || active_hashes.contains(&value.hash)
             });
-        engine
+        let evicted =
+            before_prune.saturating_sub(engine.universal_state.scene.material_program_cache.len());
+        engine.profiling.render.material_program_cache_evictions = engine
+            .profiling
+            .render
+            .material_program_cache_evictions
+            .saturating_add(evicted as u32);
+    }
+    if engine.universal_state.scene.material_program_cache.len()
+        > MATERIAL_PROGRAM_CACHE_MAX_ENTRIES_HARD
+    {
+        let mut stale_keys: Vec<(u64, u64)> = engine
             .universal_state
             .scene
-            .material_program_cache_last_used_frame
-            .retain(|key, _| {
-                engine
+            .material_program_cache
+            .iter()
+            .map(|(key, _)| {
+                let last_used = engine
                     .universal_state
                     .scene
-                    .material_program_cache
-                    .contains_key(key)
-            });
+                    .material_program_cache_last_used_frame
+                    .get(key)
+                    .copied()
+                    .unwrap_or(0);
+                (*key, last_used)
+            })
+            .collect();
+        stale_keys.sort_by_key(|(_, last_used)| *last_used);
+        let overflow = engine
+            .universal_state
+            .scene
+            .material_program_cache
+            .len()
+            .saturating_sub(MATERIAL_PROGRAM_CACHE_MAX_ENTRIES_HARD);
+        for (key, _) in stale_keys.into_iter().take(overflow) {
+            engine
+                .universal_state
+                .scene
+                .material_program_cache
+                .remove(&key);
+            engine
+                .universal_state
+                .scene
+                .material_program_cache_last_used_frame
+                .remove(&key);
+        }
+        engine.profiling.render.material_program_cache_evictions = engine
+            .profiling
+            .render
+            .material_program_cache_evictions
+            .saturating_add(overflow as u32);
     }
+    engine
+        .universal_state
+        .scene
+        .material_program_cache_last_used_frame
+        .retain(|key, _| {
+            engine
+                .universal_state
+                .scene
+                .material_program_cache
+                .contains_key(key)
+        });
     Ok(compiled)
 }
 
@@ -183,11 +263,6 @@ fn ensure_fallback_material_instance(engine: &mut EngineState) {
         .remove(&MATERIAL_FALLBACK_ID)
         .unwrap_or_else(|| ShaderMaterialRecord::new_standard(Some("Fallback Material".into())));
     sync_material_from_definition(&mut fallback, &standard_definition);
-    pack_standard_material(
-        MATERIAL_FALLBACK_ID,
-        &StandardOptions::default(),
-        &mut fallback,
-    );
     fallback.bind_group = None;
     resources.materials.insert(MATERIAL_FALLBACK_ID, fallback);
 
@@ -227,6 +302,11 @@ fn bootstrap_builtin_material_definitions(engine: &mut EngineState) {
             .scene
             .material_definitions
             .contains_key(&MATERIAL_DEFINITION_PBR_ID)
+        && engine
+            .universal_state
+            .scene
+            .material_definitions
+            .contains_key(&MATERIAL_DEFINITION_STANDARD_2D_ID)
     {
         return;
     }
@@ -236,17 +316,26 @@ fn bootstrap_builtin_material_definitions(engine: &mut EngineState) {
             MATERIAL_DEFINITION_STANDARD_ID,
             MATERIAL_DEFINITION_STANDARD_SLUG,
             ShaderMaterialPreset::Standard,
+            MaterialRealmKind::ThreeD,
             Some("builtin-standard".to_string()),
         ),
         (
             MATERIAL_DEFINITION_PBR_ID,
             MATERIAL_DEFINITION_PBR_SLUG,
             ShaderMaterialPreset::Pbr,
+            MaterialRealmKind::ThreeD,
             Some("builtin-pbr".to_string()),
+        ),
+        (
+            MATERIAL_DEFINITION_STANDARD_2D_ID,
+            MATERIAL_DEFINITION_STANDARD_2D_SLUG,
+            ShaderMaterialPreset::Standard,
+            MaterialRealmKind::TwoD,
+            Some("builtin-standard-2d".to_string()),
         ),
     ];
 
-    for (definition_id, slug, preset, label) in candidates {
+    for (definition_id, slug, preset, realm_kind, label) in candidates {
         if engine
             .universal_state
             .scene
@@ -255,15 +344,23 @@ fn bootstrap_builtin_material_definitions(engine: &mut EngineState) {
         {
             continue;
         }
+        let shader_source = if realm_kind == MaterialRealmKind::TwoD {
+            galfus_render::builtin_material_source_2d().to_string()
+        } else {
+            builtin_shader_source(preset).to_string()
+        };
+        let shader_capabilities = default_capabilities_for_realm(None);
         let compile_result = compile_material_program(
             engine,
+            realm_kind,
             preset,
             MaterialShaderType::Model,
-            builtin_shader_source(preset).to_string(),
+            shader_source.clone(),
             HashMap::new(),
-        );
+        )
+        .map(|compiled| (compiled.source, compiled.hash));
         let (compiled_source, compiled_hash, compile_error) = match compile_result {
-            Ok(compiled) => (Some(compiled.source), compiled.hash, None),
+            Ok((source, hash)) => (Some(source), hash, None),
             Err(error) => (None, 0, Some(error)),
         };
         engine.universal_state.scene.material_definitions.insert(
@@ -272,11 +369,12 @@ fn bootstrap_builtin_material_definitions(engine: &mut EngineState) {
                 definition_id,
                 slug: slug.to_string(),
                 label,
+                realm_kind,
                 base_preset: preset,
                 shader_type: MaterialShaderType::Model,
-                shader_source: Some(builtin_shader_source(preset).to_string()),
+                shader_source: Some(shader_source),
                 shader_params_schema: HashMap::new(),
-                shader_capabilities: Vec::new(),
+                shader_capabilities,
                 compiled_shader_hash: compiled_hash,
                 compiled_shader_source: compiled_source,
                 compile_error,
@@ -284,6 +382,10 @@ fn bootstrap_builtin_material_definitions(engine: &mut EngineState) {
         );
     }
     ensure_fallback_material_instance(engine);
+}
+
+pub fn ensure_material_bootstrap_defaults(engine: &mut EngineState) {
+    bootstrap_builtin_material_definitions(engine);
 }
 
 fn definition_by_slug(engine: &mut EngineState, slug: &str) -> Option<MaterialDefinitionRecord> {
@@ -314,6 +416,7 @@ fn sync_material_from_definition(
     record: &mut ShaderMaterialRecord,
     definition: &MaterialDefinitionRecord,
 ) {
+    record.realm_kind = definition.realm_kind;
     record.base_preset = definition.base_preset;
     record.preset = definition.base_preset;
     record.shader_type = definition.shader_type;
@@ -325,10 +428,27 @@ fn sync_material_from_definition(
     record.compile_error = definition.compile_error.clone();
 }
 
+fn fallback_definition_for_realm(
+    engine: &mut EngineState,
+    realm_kind: MaterialRealmKind,
+) -> Option<MaterialDefinitionRecord> {
+    let fallback_id = match realm_kind {
+        MaterialRealmKind::TwoD => MATERIAL_DEFINITION_STANDARD_2D_ID,
+        MaterialRealmKind::ThreeD => MATERIAL_DEFINITION_STANDARD_ID,
+    };
+    definition_by_id(engine, fallback_id)
+}
+
 pub fn engine_cmd_material_definition_create(
     engine: &mut EngineState,
     args: &CmdMaterialDefinitionCreateArgs,
 ) -> CmdResultMaterialDefinition {
+    if let Err(message) = validate_host_logical_id(args.definition_id, "definitionId") {
+        return CmdResultMaterialDefinition {
+            success: false,
+            message,
+        };
+    }
     bootstrap_builtin_material_definitions(engine);
 
     if engine
@@ -357,7 +477,11 @@ pub fn engine_cmd_material_definition_create(
         (Some(preset), None, None) => Ok((
             *preset,
             MaterialShaderType::Model,
-            builtin_shader_source(*preset).to_string(),
+            if args.realm_kind == MaterialRealmKind::TwoD {
+                galfus_render::builtin_material_source_2d().to_string()
+            } else {
+                builtin_shader_source(*preset).to_string()
+            },
         )),
         (None, Some(shader_type), Some(shader_source)) => {
             if shader_source.trim().is_empty() {
@@ -384,6 +508,12 @@ pub fn engine_cmd_material_definition_create(
             };
         }
     };
+    if let Err(message) = validate_preset_realm(preset, args.realm_kind) {
+        return CmdResultMaterialDefinition {
+            success: false,
+            message,
+        };
+    }
     galfus_log::galfus_log_debug!(
         engine,
         "material.definition.compile.start",
@@ -394,25 +524,32 @@ pub fn engine_cmd_material_definition_create(
         shader_type
     );
 
+    let shader_capabilities = default_capabilities_for_realm(
+        args.capabilities
+            .as_ref()
+            .map(|value| value.semantics.clone()),
+    );
     let compile_result = compile_material_program(
         engine,
+        args.realm_kind,
         preset,
         shader_type,
         shader_source.clone(),
         args.shader_params_schema.clone().unwrap_or_default(),
-    );
+    )
+    .map(|compiled| (compiled.source, compiled.hash));
 
     let (compiled_source, compiled_hash, compile_error, compile_failed_msg) = match compile_result {
-        Ok(compiled) => {
+        Ok((source, hash)) => {
             galfus_log::galfus_log_debug!(
                 engine,
                 "material.definition.compile.ok",
                 "definition={} slug={} hash={}",
                 args.definition_id,
                 args.slug,
-                compiled.hash
+                hash
             );
-            (Some(compiled.source), compiled.hash, None, None)
+            (Some(source), hash, None, None)
         }
         Err(error) => {
             galfus_log::galfus_log_error!(
@@ -437,15 +574,12 @@ pub fn engine_cmd_material_definition_create(
             definition_id: args.definition_id,
             slug: args.slug.clone(),
             label: args.label.clone(),
+            realm_kind: args.realm_kind,
             base_preset: preset,
             shader_type,
             shader_source: Some(shader_source),
             shader_params_schema: args.shader_params_schema.clone().unwrap_or_default(),
-            shader_capabilities: args
-                .capabilities
-                .as_ref()
-                .map(|value| value.semantics.clone())
-                .unwrap_or_default(),
+            shader_capabilities,
             compiled_shader_hash: compiled_hash,
             compiled_shader_source: compiled_source,
             compile_error,
@@ -467,6 +601,21 @@ pub fn engine_cmd_material_definition_update(
     engine: &mut EngineState,
     args: &CmdMaterialDefinitionUpdateArgs,
 ) -> CmdResultMaterialDefinition {
+    if args.definition_id == MATERIAL_DEFINITION_STANDARD_ID
+        || args.definition_id == MATERIAL_DEFINITION_PBR_ID
+        || args.definition_id == MATERIAL_DEFINITION_STANDARD_2D_ID
+    {
+        return CmdResultMaterialDefinition {
+            success: false,
+            message: "Builtin material definitions are immutable".to_string(),
+        };
+    }
+    if let Err(message) = validate_host_logical_id(args.definition_id, "definitionId") {
+        return CmdResultMaterialDefinition {
+            success: false,
+            message,
+        };
+    }
     bootstrap_builtin_material_definitions(engine);
     let Some(current) = definition_by_id(engine, args.definition_id) else {
         return CmdResultMaterialDefinition {
@@ -492,12 +641,14 @@ pub fn engine_cmd_material_definition_update(
         || args.shader_type.is_some()
         || args.shader_source.is_some()
         || args.shader_params_schema.is_some();
+    let realm_kind = args.realm_kind.unwrap_or(current.realm_kind);
 
-    let shader_capabilities = args
-        .capabilities
-        .as_ref()
-        .map(|value| value.semantics.clone())
-        .unwrap_or_else(|| current.shader_capabilities.clone());
+    let shader_capabilities = default_capabilities_for_realm(
+        args.capabilities
+            .as_ref()
+            .map(|value| value.semantics.clone())
+            .or_else(|| Some(current.shader_capabilities.clone())),
+    );
 
     if !compile_requested {
         if let Some(record) = engine
@@ -510,6 +661,7 @@ pub fn engine_cmd_material_definition_update(
                 record.label = Some(label.clone());
             }
             record.slug = slug;
+            record.realm_kind = realm_kind;
             record.shader_capabilities = shader_capabilities;
         }
         ensure_fallback_material_instance(engine);
@@ -523,7 +675,11 @@ pub fn engine_cmd_material_definition_update(
         (Some(preset), None, None) => Ok((
             *preset,
             MaterialShaderType::Model,
-            builtin_shader_source(*preset).to_string(),
+            if realm_kind == MaterialRealmKind::TwoD {
+                galfus_render::builtin_material_source_2d().to_string()
+            } else {
+                builtin_shader_source(*preset).to_string()
+            },
         )),
         (None, Some(shader_type), Some(shader_source)) => {
             if shader_source.trim().is_empty() {
@@ -566,6 +722,12 @@ pub fn engine_cmd_material_definition_update(
         .shader_params_schema
         .clone()
         .unwrap_or_else(|| current.shader_params_schema.clone());
+    if let Err(message) = validate_preset_realm(preset, realm_kind) {
+        return CmdResultMaterialDefinition {
+            success: false,
+            message,
+        };
+    }
 
     galfus_log::galfus_log_debug!(
         engine,
@@ -579,23 +741,25 @@ pub fn engine_cmd_material_definition_update(
 
     let compile_result = compile_material_program(
         engine,
+        realm_kind,
         preset,
         shader_type,
         shader_source.clone(),
         shader_params_schema.clone(),
-    );
+    )
+    .map(|compiled| (compiled.source, compiled.hash));
 
     let (compiled_source, compiled_hash, compile_error, compile_failed_msg) = match compile_result {
-        Ok(compiled) => {
+        Ok((source, hash)) => {
             galfus_log::galfus_log_debug!(
                 engine,
                 "material.definition.compile.ok",
                 "definition={} slug={} hash={}",
                 args.definition_id,
                 slug,
-                compiled.hash
+                hash
             );
-            (Some(compiled.source), compiled.hash, None, None)
+            (Some(source), hash, None, None)
         }
         Err(error) => {
             galfus_log::galfus_log_error!(
@@ -621,6 +785,7 @@ pub fn engine_cmd_material_definition_update(
             record.label = Some(label.clone());
         }
         record.slug = slug;
+        record.realm_kind = realm_kind;
         record.base_preset = preset;
         record.shader_type = shader_type;
         record.shader_source = Some(shader_source);
@@ -648,10 +813,17 @@ pub fn engine_cmd_material_definition_dispose(
 ) -> CmdResultMaterialDefinition {
     if args.definition_id == MATERIAL_DEFINITION_STANDARD_ID
         || args.definition_id == MATERIAL_DEFINITION_PBR_ID
+        || args.definition_id == MATERIAL_DEFINITION_STANDARD_2D_ID
     {
         return CmdResultMaterialDefinition {
             success: false,
             message: "Builtin material definitions cannot be disposed".to_string(),
+        };
+    }
+    if let Err(message) = validate_host_logical_id(args.definition_id, "definitionId") {
+        return CmdResultMaterialDefinition {
+            success: false,
+            message,
         };
     }
 
@@ -662,6 +834,61 @@ pub fn engine_cmd_material_definition_dispose(
         .remove(&args.definition_id)
         .is_some()
     {
+        let impacted_materials: Vec<(u32, MaterialRealmKind)> = engine
+            .universal_state
+            .scene
+            .material_instances
+            .iter()
+            .filter_map(|(material_id, instance)| {
+                if instance.definition_id == args.definition_id {
+                    let realm_kind = engine
+                        .universal_state
+                        .scene
+                        .realm3d
+                        .materials
+                        .get(material_id)
+                        .map(|record| record.realm_kind)?;
+                    Some((*material_id, realm_kind))
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        for (material_id, realm_kind) in impacted_materials {
+            let Some(fallback_definition) = fallback_definition_for_realm(engine, realm_kind)
+            else {
+                continue;
+            };
+            let Some(record) = engine
+                .universal_state
+                .scene
+                .realm3d
+                .materials
+                .get_mut(&material_id)
+            else {
+                continue;
+            };
+            sync_material_from_definition(record, &fallback_definition);
+            record.mark_structural_dirty();
+            if let Some(instance) = engine
+                .universal_state
+                .scene
+                .material_instances
+                .get_mut(&material_id)
+            {
+                instance.definition_id = fallback_definition.definition_id;
+            }
+            engine.runtime.push_event(EngineEvent::System(
+                SystemEvent::MaterialInstanceFallbackApplied {
+                    material_id,
+                    previous_definition_id: args.definition_id,
+                    fallback_definition_id: fallback_definition.definition_id,
+                    reason: "definition-disposed".to_string(),
+                },
+            ));
+        }
+
         let active_hashes: HashSet<u64> = engine
             .universal_state
             .scene
@@ -675,11 +902,19 @@ pub fn engine_cmd_material_definition_dispose(
                 }
             })
             .collect();
+        let before_prune = engine.universal_state.scene.material_program_cache.len();
         engine
             .universal_state
             .scene
             .material_program_cache
             .retain(|_, value| active_hashes.contains(&value.hash));
+        let evicted =
+            before_prune.saturating_sub(engine.universal_state.scene.material_program_cache.len());
+        engine.profiling.render.material_program_cache_evictions = engine
+            .profiling
+            .render
+            .material_program_cache_evictions
+            .saturating_add(evicted as u32);
         engine
             .universal_state
             .scene
@@ -710,6 +945,12 @@ pub fn engine_cmd_material_instance_create(
     engine: &mut EngineState,
     args: &CmdMaterialInstanceCreateArgs,
 ) -> CmdResultMaterialInstance {
+    if let Err(message) = validate_host_logical_id(args.material_id, "materialId") {
+        return CmdResultMaterialInstance {
+            success: false,
+            message,
+        };
+    }
     let Some(definition) = definition_by_slug(engine, &args.slug) else {
         return CmdResultMaterialInstance {
             success: false,
@@ -731,7 +972,7 @@ pub fn engine_cmd_material_instance_create(
         label: args.label.clone(),
         slug: args.slug.clone(),
         kind: MaterialKind::Shader,
-        realm_kind: MaterialRealmKind::Both,
+        realm_kind: definition.realm_kind,
         options: args.options.clone(),
     };
 
@@ -762,6 +1003,12 @@ pub fn engine_cmd_material_instance_update(
     engine: &mut EngineState,
     args: &CmdMaterialInstanceUpdateArgs,
 ) -> CmdResultMaterialInstance {
+    if let Err(message) = validate_host_logical_id(args.material_id, "materialId") {
+        return CmdResultMaterialInstance {
+            success: false,
+            message,
+        };
+    }
     if let Some(slug) = args.slug.as_ref() {
         let Some(definition) = definition_by_slug(engine, slug) else {
             return CmdResultMaterialInstance {
@@ -798,6 +1045,12 @@ pub fn engine_cmd_material_instance_dispose(
     engine: &mut EngineState,
     args: &CmdMaterialInstanceDisposeArgs,
 ) -> CmdResultMaterialInstance {
+    if let Err(message) = validate_host_logical_id(args.material_id, "materialId") {
+        return CmdResultMaterialInstance {
+            success: false,
+            message,
+        };
+    }
     if engine
         .universal_state
         .scene
@@ -828,6 +1081,12 @@ pub fn engine_cmd_material_create(
     engine: &mut EngineState,
     args: &CmdMaterialCreateArgs,
 ) -> CmdResultMaterialCreate {
+    if let Err(message) = validate_host_logical_id(args.material_id, "materialId") {
+        return CmdResultMaterialCreate {
+            success: false,
+            message,
+        };
+    }
     bootstrap_builtin_material_definitions(engine);
 
     let Some(definition) = definition_by_slug(engine, &args.slug) else {
@@ -842,6 +1101,15 @@ pub fn engine_cmd_material_create(
             message: format!(
                 "Material definition slug '{}' is broken and cannot be used",
                 args.slug
+            ),
+        };
+    }
+    if args.realm_kind != definition.realm_kind {
+        return CmdResultMaterialCreate {
+            success: false,
+            message: format!(
+                "Material realm kind mismatch: definition '{}' is {:?} but request is {:?}",
+                args.slug, definition.realm_kind, args.realm_kind
             ),
         };
     }
@@ -872,26 +1140,14 @@ pub fn engine_cmd_material_create(
         }
         ShaderMaterialPreset::Pbr => ShaderMaterialRecord::new_pbr(args.label.clone()),
     };
-    record.realm_kind = args.realm_kind;
+    record.realm_kind = definition.realm_kind;
     sync_material_from_definition(&mut record, &definition);
 
-    match definition.base_preset {
-        ShaderMaterialPreset::Standard => {
-            let opts = match &args.options {
-                Some(MaterialOptions::Standard(opts)) => opts.clone(),
-                None => StandardOptions::default(),
-                _ => StandardOptions::default(),
-            };
-            pack_standard_material(args.material_id, &opts, &mut record);
+    match (&definition.base_preset, &args.options) {
+        (_, Some(MaterialOptions::Schema(schema_params))) => {
+            pack_schema_material(args.material_id, schema_params, &mut record);
         }
-        ShaderMaterialPreset::Pbr => {
-            let opts = match &args.options {
-                Some(MaterialOptions::Pbr(opts)) => opts.clone(),
-                None => PbrOptions::default(),
-                _ => PbrOptions::default(),
-            };
-            pack_pbr_material(args.material_id, &opts, &mut record);
-        }
+        _ => {}
     }
 
     record.bind_group = None;
@@ -923,6 +1179,12 @@ pub fn engine_cmd_material_update(
     engine: &mut EngineState,
     args: &CmdMaterialUpdateArgs,
 ) -> CmdResultMaterialUpdate {
+    if let Err(message) = validate_host_logical_id(args.material_id, "materialId") {
+        return CmdResultMaterialUpdate {
+            success: false,
+            message,
+        };
+    }
     let mut target_slug: Option<String> = args.slug.clone();
 
     let instance_definition_id = engine
@@ -986,16 +1248,24 @@ pub fn engine_cmd_material_update(
     if let Some(label) = &args.label {
         record.label = Some(label.clone());
     }
-    if let Some(realm_kind) = args.realm_kind {
-        record.realm_kind = realm_kind;
+    if let Some(realm_kind) = args.realm_kind
+        && realm_kind != definition.realm_kind
+    {
+        return CmdResultMaterialUpdate {
+            success: false,
+            message: format!(
+                "Material realm kind mismatch: definition '{}' is {:?} but request is {:?}",
+                slug, definition.realm_kind, realm_kind
+            ),
+        };
     }
+    record.realm_kind = definition.realm_kind;
 
     if let Some(opts) = &args.options {
         match opts {
-            MaterialOptions::Standard(opts) => {
-                pack_standard_material(args.material_id, opts, record)
+            MaterialOptions::Schema(schema_params) => {
+                pack_schema_material(args.material_id, schema_params, record)
             }
-            MaterialOptions::Pbr(opts) => pack_pbr_material(args.material_id, opts, record),
         }
     }
     record.mark_structural_dirty();
@@ -1023,6 +1293,12 @@ pub fn engine_cmd_material_dispose(
     engine: &mut EngineState,
     args: &CmdMaterialDisposeArgs,
 ) -> CmdResultMaterialDispose {
+    if let Err(message) = validate_host_logical_id(args.material_id, "materialId") {
+        return CmdResultMaterialDispose {
+            success: false,
+            message,
+        };
+    }
     if args.material_id == MATERIAL_FALLBACK_ID {
         return CmdResultMaterialDispose {
             success: false,

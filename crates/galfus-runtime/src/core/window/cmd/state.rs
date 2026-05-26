@@ -6,6 +6,7 @@ use crate::core::image::ImageDecoder;
 use crate::core::platform::winit;
 
 use crate::core::cmd::EngineEvent;
+use crate::core::id_policy::validate_host_logical_id;
 use crate::core::state::EngineState;
 #[cfg(not(target_arch = "wasm32"))]
 use crate::core::system::push_error_event;
@@ -132,6 +133,13 @@ pub fn engine_cmd_window_state(
     engine: &mut EngineState,
     args: &CmdWindowStateArgs,
 ) -> CmdResultWindowState {
+    if let Err(message) = validate_host_logical_id(args.window_id, "windowId") {
+        return CmdResultWindowState {
+            success: false,
+            message,
+            ..Default::default()
+        };
+    }
     let Some(window_state) = engine.window.states.get(&args.window_id) else {
         return CmdResultWindowState {
             success: false,
@@ -236,6 +244,13 @@ pub fn engine_cmd_window_state(
     _engine: &mut EngineState,
     args: &CmdWindowStateArgs,
 ) -> CmdResultWindowState {
+    if let Err(message) = validate_host_logical_id(args.window_id, "windowId") {
+        return CmdResultWindowState {
+            success: false,
+            message,
+            ..Default::default()
+        };
+    }
     let has_mutation = args.title.is_some()
         || args.state.is_some()
         || args.icon_buffer_id.is_some()

@@ -8,8 +8,8 @@ use crate::core::render::state::{
 #[repr(C)]
 #[derive(Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
 struct TwoDCameraRaw {
-    view_projection: [[f32; 4]; 4],
-    tint: [f32; 4],
+    view_projection: glam::Mat4,
+    tint: glam::Vec4,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -19,27 +19,17 @@ struct TwoDDrawBatch {
     count: u32,
 }
 
-const CAP_REALM_2D: &str = "realm:2d";
-const CAP_LAYOUT_2D_V1: &str = "layout:2d-v1";
-
 fn material_allows_2d(record: &crate::core::resources::ShaderMaterialRecord) -> bool {
     matches!(
         record.realm_kind,
         crate::core::resources::MaterialRealmKind::TwoD
-            | crate::core::resources::MaterialRealmKind::Both
     )
 }
 
-fn material_supports_2d_layout(record: &crate::core::resources::ShaderMaterialRecord) -> bool {
-    let has_realm_2d = record
-        .shader_capabilities
-        .iter()
-        .any(|capability| capability == CAP_REALM_2D);
-    let has_layout_2d_v1 = record
-        .shader_capabilities
-        .iter()
-        .any(|capability| capability == CAP_LAYOUT_2D_V1);
-    has_realm_2d && has_layout_2d_v1
+fn material_uses_custom_2d_shader(record: &crate::core::resources::ShaderMaterialRecord) -> bool {
+    material_allows_2d(record)
+        && record.compile_error.is_none()
+        && record.compiled_shader_source.is_some()
 }
 
 fn resolve_2d_draw_batches<FMat, FGeom>(
@@ -568,7 +558,7 @@ fn fs_main(in: VsOut) -> @location(0) vec4<f32> {
                     crate::core::resources::RenderSide::DoubleSide => None,
                 };
                 let shader_id = if let Some(record) = material {
-                    if material_supports_2d_layout(record) {
+                    if material_uses_custom_2d_shader(record) {
                         if let Some(source) = record.compiled_shader_source.as_ref() {
                             let resolved_id = if record.compiled_shader_hash == 0 {
                                 1
@@ -786,8 +776,8 @@ fn fs_main(in: VsOut) -> @location(0) vec4<f32> {
                 for item in items {
                     let item_vp = camera_vp * item.transform;
                     let camera_raw = TwoDCameraRaw {
-                        view_projection: item_vp.to_cols_array_2d(),
-                        tint: material_tint.to_array(),
+                        view_projection: item_vp,
+                        tint: material_tint,
                     };
                     let offset = (camera_slot_index as u64) * camera_dynamic_stride;
                     queue.write_buffer(
@@ -870,9 +860,8 @@ fn layer_visible_in_camera(layer: i32, layer_mask: u32) -> bool {
 #[cfg(test)]
 mod tests {
     use super::{
-        CAP_LAYOUT_2D_V1, CAP_REALM_2D, layer_visible_in_camera, material_allows_2d,
-        material_supports_2d_layout, material_tint_for_batch, pass_2d_batch, pass_2d_prepare,
-        resolve_2d_draw_batches,
+        layer_visible_in_camera, material_allows_2d, material_tint_for_batch,
+        material_uses_custom_2d_shader, pass_2d_batch, pass_2d_prepare, resolve_2d_draw_batches,
     };
     use crate::core::render::RenderState;
     use crate::core::render::state::{TwoDBatchKey, TwoDBatchRange, TwoDItemKind};
@@ -1126,15 +1115,18 @@ mod tests {
     }
 
     #[test]
-    fn material_layout_2d_support_requires_realm_and_layout_caps() {
+    fn material_custom_2d_shader_requires_realm_and_compiled_shader() {
         let mut material = crate::core::resources::ShaderMaterialRecord::new_standard(None);
-        assert!(!material_supports_2d_layout(&material));
-        material.shader_capabilities.push(CAP_REALM_2D.to_string());
-        assert!(!material_supports_2d_layout(&material));
-        material
-            .shader_capabilities
-            .push(CAP_LAYOUT_2D_V1.to_string());
-        assert!(material_supports_2d_layout(&material));
+        assert!(!material_uses_custom_2d_shader(&material));
+        material.realm_kind = crate::core::resources::MaterialRealmKind::TwoD;
+        assert!(material_uses_custom_2d_shader(&material));
+        material.compiled_shader_source = None;
+        assert!(!material_uses_custom_2d_shader(&material));
+        material.compiled_shader_source = Some("@vertex fn vs_main(){}".to_string());
+        material.compile_error = None;
+        assert!(material_uses_custom_2d_shader(&material));
+        material.compile_error = Some("broken".to_string());
+        assert!(!material_uses_custom_2d_shader(&material));
     }
 
     #[test]
@@ -1144,7 +1136,7 @@ mod tests {
         assert!(!material_allows_2d(&material));
         material.realm_kind = crate::core::resources::MaterialRealmKind::TwoD;
         assert!(material_allows_2d(&material));
-        material.realm_kind = crate::core::resources::MaterialRealmKind::Both;
+        material.realm_kind = crate::core::resources::MaterialRealmKind::TwoD;
         assert!(material_allows_2d(&material));
     }
 

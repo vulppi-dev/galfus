@@ -117,10 +117,10 @@ pub fn hash_target_texture_binds(binds: &[TargetTextureBindingMeta]) -> u64 {
 
 pub fn plan_camera_projection_update(
     previous_kind_flags: [u32; 2],
-    previous_near_far: [f32; 2],
+    previous_near_far: glam::Vec2,
     previous_ortho_scale: f32,
     next_kind_flags: [u32; 2],
-    next_near_far: [f32; 2],
+    next_near_far: glam::Vec2,
     next_ortho_scale: f32,
     previous_projection_size: [u32; 2],
 ) -> CameraProjectionPlan {

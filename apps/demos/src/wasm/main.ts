@@ -72,11 +72,9 @@ function setupDemo001(worldId: World3DId): DemoUpdate {
     kind: 'standard',
     label: 'Demo001Standard',
     options: {
-      type: 'standard',
+      type: 'schema',
       content: {
-        baseColor: [0.92, 0.35, 0.32, 1],
-        renderSide: 'back',
-        surfaceType: 'opaque'
+        baseColor: [0.92, 0.35, 0.32, 1]
       }
     }
   });
@@ -84,15 +82,13 @@ function setupDemo001(worldId: World3DId): DemoUpdate {
     kind: 'pbr',
     label: 'Demo001Pbr',
     options: {
-      type: 'pbr',
+      type: 'schema',
       content: {
         baseColor: [0.25, 0.86, 0.62, 1],
-        metallic: 0.55,
-        roughness: 0.35,
-        ao: 1,
-        normalScale: 1,
-        renderSide: 'back',
-        surfaceType: 'opaque'
+        metallic: [0.55, 0, 0, 0],
+        roughness: [0.35, 0, 0, 0],
+        ao: [1, 0, 0, 0],
+        normalScale: [1, 0, 0, 0]
       }
     }
   });
@@ -100,14 +96,12 @@ function setupDemo001(worldId: World3DId): DemoUpdate {
     kind: 'standard',
     label: 'Demo001CustomSimplePlaceholder',
     options: {
-      type: 'standard',
+      type: 'schema',
       content: {
         baseColor: [0.25, 0.45, 0.98, 1],
         emissiveColor: [0, 0, 0, 0],
         specColor: [1, 1, 1, 1],
-        specPower: 64,
-        renderSide: 'back',
-        surfaceType: 'opaque'
+        specPower: [64, 0, 0, 0]
       }
     }
   });
@@ -115,13 +109,11 @@ function setupDemo001(worldId: World3DId): DemoUpdate {
     kind: 'standard',
     label: 'Demo001Floor',
     options: {
-      type: 'standard',
+      type: 'schema',
       content: {
         baseColor: [0.24, 0.24, 0.26, 1],
         specColor: [0.05, 0.05, 0.05, 1],
-        specPower: 8,
-        renderSide: 'double-side',
-        surfaceType: 'opaque'
+        specPower: [8, 0, 0, 0]
       }
     }
   });
@@ -199,7 +191,7 @@ function setupDemo001(worldId: World3DId): DemoUpdate {
 function setupDemo002(worldId: World3DId): DemoUpdate {
   World3D.configure3DEnvironment(worldId, {
     clearColor: [0.01, 0.01, 0.02, 1],
-    post: { bloomEnabled: true, bloomStrength: 0.35, bloomThreshold: 0.75, bloomRadius: 0.25 }
+    post: { bloomEnabled: true, bloomIntensity: 0.35, bloomThreshold: 0.75, bloomScatter: 0.25 }
   });
   const cubeGeometryId = World3D.create3DGeometry(worldId, {
     type: 'primitive',
@@ -208,32 +200,29 @@ function setupDemo002(worldId: World3DId): DemoUpdate {
   const matA = World3D.create3DMaterial(worldId, {
     kind: 'standard',
     options: {
-      type: 'standard',
+      type: 'schema',
       content: {
-        baseColor: [0.1, 0.85, 1.0, 0.65],
-        surfaceType: 'transparent',
-        renderSide: 'double-side'
+        baseColor: [0.1, 0.85, 1.0, 0.65]
       }
     }
   });
   const matB = World3D.create3DMaterial(worldId, {
     kind: 'standard',
     options: {
-      type: 'standard',
-      content: { baseColor: [0.95, 0.4, 0.2, 1.0], surfaceType: 'opaque' }
+      type: 'schema',
+      content: { baseColor: [0.95, 0.4, 0.2, 1.0] }
     }
   });
   const matC = World3D.create3DMaterial(worldId, {
     kind: 'pbr',
     options: {
-      type: 'pbr',
+      type: 'schema',
       content: {
         baseColor: [0.3, 0.45, 1.0, 1.0],
-        metallic: 0.35,
-        roughness: 0.25,
-        ao: 1.0,
-        normalScale: 1.0,
-        surfaceType: 'opaque'
+        metallic: [0.35, 0, 0, 0],
+        roughness: [0.25, 0, 0, 0],
+        ao: [1.0, 0, 0, 0],
+        normalScale: [1.0, 0, 0, 0]
       }
     }
   });
@@ -291,22 +280,18 @@ function setupDemo003(worldId: World2DId): DemoUpdate {
   const red = World2D.create2DMaterial(worldId, {
     kind: 'standard',
     options: {
-      type: 'standard',
+      type: 'schema',
       content: {
-        baseColor: [0.95, 0.25, 0.35, 1],
-        renderSide: 'double-side',
-        surfaceType: 'opaque'
+        baseColor: [0.95, 0.25, 0.35, 1]
       }
     }
   });
   const blue = World2D.create2DMaterial(worldId, {
     kind: 'standard',
     options: {
-      type: 'standard',
+      type: 'schema',
       content: {
-        baseColor: [0.25, 0.45, 0.95, 1],
-        renderSide: 'double-side',
-        surfaceType: 'opaque'
+        baseColor: [0.25, 0.45, 0.95, 1]
       }
     }
   });

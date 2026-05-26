@@ -1,7 +1,6 @@
 use serde::{Deserialize, Serialize};
 
 use crate::core::input::events::ElementState;
-use galfus_protocol::{UiViewportClass, UiViewportCommand};
 
 /// System-level events
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -88,28 +87,6 @@ pub enum SystemEvent {
         total_bytes: u64,
     },
 
-    /// Async UI image decode finished
-    UiImageReady {
-        image_id: u32,
-        success: bool,
-        message: String,
-    },
-    /// Async UI image decode started
-    UiImageProcessingStarted { image_id: u32, total_bytes: u64 },
-    /// Async UI image decode progress
-    UiImageProcessingProgress {
-        image_id: u32,
-        processed_bytes: u64,
-        total_bytes: u64,
-    },
-    /// Async UI image decode finished
-    UiImageProcessingFinished {
-        image_id: u32,
-        success: bool,
-        message: String,
-        total_bytes: u64,
-    },
-
     /// Async audio decode finished
     AudioReady {
         resource_id: u32,
@@ -123,68 +100,6 @@ pub enum SystemEvent {
         received_bytes: u64,
         total_bytes: u64,
         complete: bool,
-    },
-
-    /// UI requested opening a URL; host decides policy and execution.
-    #[serde(rename_all = "camelCase")]
-    UiOpenUrl {
-        window_id: u32,
-        realm_id: u32,
-        url: String,
-        new_tab: bool,
-    },
-
-    /// UI requested writing text to host clipboard.
-    #[serde(rename_all = "camelCase")]
-    UiClipboardSetText {
-        window_id: u32,
-        realm_id: u32,
-        text: String,
-    },
-
-    /// UI requested host copy command.
-    #[serde(rename_all = "camelCase")]
-    UiClipboardRequestCopy { window_id: u32, realm_id: u32 },
-
-    /// UI requested host cut command.
-    #[serde(rename_all = "camelCase")]
-    UiClipboardRequestCut { window_id: u32, realm_id: u32 },
-
-    /// UI requested host paste command.
-    #[serde(rename_all = "camelCase")]
-    UiClipboardRequestPaste { window_id: u32, realm_id: u32 },
-
-    /// UI requested screenshot capture for the current viewport.
-    #[serde(rename_all = "camelCase")]
-    UiScreenshotRequest { window_id: u32, realm_id: u32 },
-
-    /// UI viewport sync event kept for host compatibility during vNext transition.
-    #[serde(rename_all = "camelCase")]
-    UiViewportSync {
-        window_id: u32,
-        realm_id: u32,
-        viewport_id: u64,
-        parent_viewport_id: Option<u64>,
-        class: UiViewportClass,
-        title: Option<String>,
-    },
-
-    /// UI viewport command not handled natively by this runtime (or for non-root viewport).
-    #[serde(rename_all = "camelCase")]
-    UiViewportCommand {
-        window_id: u32,
-        realm_id: u32,
-        viewport_id: u64,
-        command: UiViewportCommand,
-    },
-
-    /// Runtime fallback mode for additional viewports when native multi-viewport is unavailable.
-    #[serde(rename_all = "camelCase")]
-    UiViewportFallbackEmbedded {
-        window_id: u32,
-        realm_id: u32,
-        viewport_id: u64,
-        parent_viewport_id: Option<u64>,
     },
 
     /// Input event matched by an input-target-listener.
@@ -213,5 +128,13 @@ pub enum SystemEvent {
         realm_id: Option<u32>,
         window_id: Option<u32>,
         revision: u64,
+    },
+
+    #[serde(rename_all = "camelCase")]
+    MaterialInstanceFallbackApplied {
+        material_id: u32,
+        previous_definition_id: u32,
+        fallback_definition_id: u32,
+        reason: String,
     },
 }

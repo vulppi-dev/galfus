@@ -1,6 +1,7 @@
 use glam::{Mat4, Vec2};
 use serde::{Deserialize, Serialize};
 
+use crate::core::id_policy::validate_host_logical_id;
 use crate::core::realm::RealmId;
 use crate::core::resources::common::{default_layer_mask, mark_realm_windows_dirty};
 use crate::core::resources::{CameraComponent, CameraKind, CameraNode, ViewPosition};
@@ -157,6 +158,12 @@ pub fn engine_cmd_camera_create(
     engine: &mut EngineState,
     args: &CmdCameraCreateArgs,
 ) -> CmdResultCameraCreate {
+    if let Err(message) = validate_host_logical_id(args.realm_id, "realmId") {
+        return camera_create_error(engine, message, "camera3d-upsert");
+    }
+    if let Err(message) = validate_host_logical_id(args.camera_id, "cameraId") {
+        return camera_create_error(engine, message, "camera3d-upsert");
+    }
     let realm_id = RealmId(args.realm_id);
     let projection_size = projection_size_for_realm(engine, realm_id);
     let entities = engine
@@ -217,6 +224,18 @@ pub fn engine_cmd_camera_update(
     engine: &mut EngineState,
     args: &CmdCameraUpdateArgs,
 ) -> CmdResultCameraUpdate {
+    if let Err(message) = validate_host_logical_id(args.realm_id, "realmId") {
+        return CmdResultCameraUpdate {
+            success: false,
+            message,
+        };
+    }
+    if let Err(message) = validate_host_logical_id(args.camera_id, "cameraId") {
+        return CmdResultCameraUpdate {
+            success: false,
+            message,
+        };
+    }
     let realm_id = RealmId(args.realm_id);
     let projection_size = projection_size_for_realm(engine, realm_id);
     let Some(entities) = engine
@@ -289,6 +308,18 @@ pub fn engine_cmd_camera_dispose(
     engine: &mut EngineState,
     args: &CmdCamera3dDisposeArgs,
 ) -> CmdResultCameraDispose {
+    if let Err(message) = validate_host_logical_id(args.realm_id, "realmId") {
+        return CmdResultCameraDispose {
+            success: false,
+            message,
+        };
+    }
+    if let Err(message) = validate_host_logical_id(args.camera_id, "cameraId") {
+        return CmdResultCameraDispose {
+            success: false,
+            message,
+        };
+    }
     let realm_id = RealmId(args.realm_id);
     let Some(entities) = engine
         .universal_state

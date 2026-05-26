@@ -53,12 +53,18 @@ pub struct RenderProfiling {
     pub frame_delta_ns: u64,
     pub render_pipeline_cache_hits: u32,
     pub render_pipeline_cache_misses: u32,
+    pub render_pipeline_cache_evictions: u32,
     pub compute_pipeline_cache_hits: u32,
     pub compute_pipeline_cache_misses: u32,
+    pub compute_pipeline_cache_evictions: u32,
     pub compose_bind_cache_hits: u32,
     pub compose_bind_cache_misses: u32,
+    pub compose_bind_cache_evictions: u32,
     pub post_bind_cache_hits: u32,
     pub post_bind_cache_misses: u32,
+    pub post_bind_cache_evictions: u32,
+    pub material_shader_module_evictions: u32,
+    pub material_program_cache_evictions: u32,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -68,11 +74,6 @@ pub struct GpuProfiling {
     pub forward_ns: u64,
     pub compose_ns: u64,
     pub total_ns: u64,
-}
-
-#[derive(Debug, Clone, Default)]
-pub struct UiProfiling {
-    pub input_ns: u64,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -96,7 +97,6 @@ pub struct UtilizationProfiling {
     pub command_percent: f32,
     pub input_percent: f32,
     pub render_percent: f32,
-    pub ui_percent: f32,
     pub graph_percent: f32,
 }
 
@@ -115,7 +115,6 @@ pub struct TickProfiling {
     pub input: InputProfiling,
     pub render: RenderProfiling,
     pub gpu: GpuProfiling,
-    pub ui: UiProfiling,
     pub graph: GraphProfiling,
     pub memory: MemoryProfiling,
     pub utilization: UtilizationProfiling,
@@ -144,25 +143,29 @@ impl TickProfiling {
         self.render.frame_delta_ns = (delta_time_ms as u64).saturating_mul(1_000_000);
         self.render.render_pipeline_cache_hits = 0;
         self.render.render_pipeline_cache_misses = 0;
+        self.render.render_pipeline_cache_evictions = 0;
         self.render.compute_pipeline_cache_hits = 0;
         self.render.compute_pipeline_cache_misses = 0;
+        self.render.compute_pipeline_cache_evictions = 0;
         self.render.compose_bind_cache_hits = 0;
         self.render.compose_bind_cache_misses = 0;
+        self.render.compose_bind_cache_evictions = 0;
         self.render.post_bind_cache_hits = 0;
         self.render.post_bind_cache_misses = 0;
+        self.render.post_bind_cache_evictions = 0;
+        self.render.material_shader_module_evictions = 0;
+        self.render.material_program_cache_evictions = 0;
         self.gpu.shadow_ns = 0;
         self.gpu.light_cull_ns = 0;
         self.gpu.forward_ns = 0;
         self.gpu.compose_ns = 0;
         self.gpu.total_ns = 0;
-        self.ui.input_ns = 0;
         self.graph.realm_graph_ns = 0;
         self.graph.target_graph_ns = 0;
         self.utilization.gpu_frame_percent = 0.0;
         self.utilization.command_percent = 0.0;
         self.utilization.input_percent = 0.0;
         self.utilization.render_percent = 0.0;
-        self.utilization.ui_percent = 0.0;
         self.utilization.graph_percent = 0.0;
         self.sampled_this_frame = self.should_sample(frame_index);
     }
@@ -208,7 +211,6 @@ impl TickProfiling {
             / frame_delta_ns)
             * 100.0;
         self.utilization.render_percent = (self.render.total_ns as f32 / frame_delta_ns) * 100.0;
-        self.utilization.ui_percent = (self.ui.input_ns as f32 / frame_delta_ns) * 100.0;
         self.utilization.graph_percent =
             ((self.graph.realm_graph_ns + self.graph.target_graph_ns) as f32 / frame_delta_ns)
                 * 100.0;
