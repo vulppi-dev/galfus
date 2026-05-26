@@ -7,10 +7,11 @@ import {
   initEngine,
   tick
 } from '@galfus/engine';
+import type { CmdMaterialDefinitionCreateArgs, CmdMaterialInstanceCreateArgs } from '@galfus/engine/types';
 import { quat } from '@galfus/engine/math';
 import { transportBunFfi } from '@galfus/transport-bun';
 
-const RUN_DURATION_MS = 6_000;
+const RUN_DURATION_MS = 8_000;
 const FRAME_TARGET_MS = 16;
 
 async function main() {
@@ -31,12 +32,8 @@ async function main() {
   Mount.mountWorld(worldId, { target: { kind: 'window', windowId } });
 
   World3D.configure3DEnvironment(worldId, {
-    clearColor: [0.01, 0.01, 0.02, 1],
+    clearColor: [0, 0, 0, 1],
     post: {
-      bloomEnabled: true,
-      bloomIntensity: 0.35,
-      bloomThreshold: 0.75,
-      bloomScatter: 0.25,
       outlineEnabled: false
     }
   });
@@ -46,45 +43,119 @@ async function main() {
     shape: 'cube',
     label: 'Demo002Cube'
   });
+  const floorGeometryId = World3D.create3DGeometry(worldId, {
+    type: 'primitive',
+    shape: 'plane',
+    label: 'Demo002Floor'
+  });
 
-  const ghostMaterialId = World3D.create3DMaterial(worldId, {
+  const ghostDefinitionId = 210;
+  const fresnelDefinitionId = 211;
+  const ghostMaterialId = 212;
+  const fresnelMaterialId = 213;
+  const floorMaterialId = World3D.create3DMaterial(worldId, {
     kind: 'standard',
-    label: 'Demo002Ghost',
+    label: 'Demo002Floor',
     options: {
       type: 'schema',
       content: {
-        baseColor: [0.1, 0.85, 1.0, 0.65],
-        emissiveColor: [0.08, 0.2, 0.4, 1.0]
+        baseColor: [0.08, 0.08, 0.1, 1.0],
+        specColor: [0.02, 0.02, 0.02, 1.0],
+        specPower: [6.0, 0.0, 0.0, 0.0]
       }
     }
   });
 
-  const fresnelMaterialId = World3D.create3DMaterial(worldId, {
-    kind: 'standard',
-    label: 'Demo002FresnelApprox',
-    options: {
-      type: 'schema',
-      content: {
-        baseColor: [0.95, 0.4, 0.2, 1.0],
-        emissiveColor: [0.2, 0.05, 0.02, 1.0]
-      }
-    }
-  });
+  World3D.upsert3DMaterialDefinition(worldId, {
+    definitionId: ghostDefinitionId,
+    slug: 'demo2-ghost',
+    label: 'demo2-ghost-definition',
+    realmKind: 'three-d',
+    shaderType: 'model',
+    shaderSource: `
+fn project_world_to_screen_uv(world_position: vec3<f32>) -> vec2<f32> {
+  let clip = camera.view_projection * vec4<f32>(world_position, 1.0);
+  let inv_w = select(0.0, 1.0 / clip.w, abs(clip.w) > 1e-6);
+  let ndc = clip.xy * inv_w;
+  return vec2<f32>(ndc.x * 0.5 + 0.5, -ndc.y * 0.5 + 0.5);
+}
 
-  const pbrMaterialId = World3D.create3DMaterial(worldId, {
-    kind: 'pbr',
-    label: 'Demo002Pbr',
-    options: {
-      type: 'schema',
-      content: {
-        baseColor: [0.3, 0.45, 1.0, 1.0],
-        metallic: [0.35, 0, 0, 0],
-        roughness: [0.25, 0, 0, 0],
-        ao: [1.0, 0, 0, 0],
-        normalScale: [1.0, 0, 0, 0]
-      }
-    }
-  });
+fn vertex(input: VertexInput) -> VertexOutput {
+  var out: VertexOutput;
+  out.world_position = input.position;
+  out.world_normal = input.normal;
+  out.uv = input.uv;
+  out.clip_position = vec4<f32>(0.0);
+  return out;
+}
+
+fn fragment(input: FragmentInput) -> FragmentOutput {
+  var out: FragmentOutput;
+  let base = vec3<f32>(0.08, 0.48, 0.88);
+  let screen_uv = project_world_to_screen_uv(input.world_position);
+  let ghost_uv = screen_uv + vec2<f32>(0.012, 0.0);
+  let history = sample_history0(ghost_uv).rgb;
+  let trail_decay = 0.965;
+  let history_weight = 0.62;
+  let persisted = history * trail_decay;
+  let ghost_tint = vec3<f32>(0.18, 0.9, 1.0);
+  let ghost = persisted * ghost_tint * history_weight;
+  let composed = max(base, base + ghost);
+
+  out.color = vec4<f32>(composed, 1.0);
+  out.emissive = vec4<f32>(ghost_tint * 0.08, 1.0);
+  return out;
+}
+`,
+    capabilities: { semantics: ['history0'] },
+    shaderParamsSchema: {}
+  } satisfies CmdMaterialDefinitionCreateArgs);
+
+  World3D.upsert3DMaterialDefinition(worldId, {
+    definitionId: fresnelDefinitionId,
+    slug: 'demo2-fresnel',
+    label: 'demo2-fresnel-definition',
+    realmKind: 'three-d',
+    shaderType: 'model',
+    shaderSource: `
+fn vertex(input: VertexInput) -> VertexOutput {
+  var out: VertexOutput;
+  out.world_position = input.position;
+  out.world_normal = input.normal;
+  out.uv = input.uv;
+  out.clip_position = vec4<f32>(0.0);
+  return out;
+}
+
+fn fragment(input: FragmentInput) -> FragmentOutput {
+  var out: FragmentOutput;
+  let t = frame.time;
+  let base = vec3<f32>(0.95, 0.28, 0.18);
+  let view_dir = normalize(camera.position.xyz - input.world_position);
+  let fresnel = pow(1.0 - max(dot(normalize(input.world_normal), view_dir), 0.0), 2.4);
+  let pulse = 0.5 + 0.5 * sin(t * 5.0);
+  let rim = fresnel * (0.35 + 0.45 * pulse);
+  let color = mix(base, vec3<f32>(1.0, 0.92, 0.82), rim);
+  out.color = vec4<f32>(color, 1.0);
+  out.emissive = vec4<f32>(vec3<f32>(1.0, 0.45, 0.28) * (0.08 + 0.55 * rim), 1.0);
+  return out;
+}
+`,
+    shaderParamsSchema: {}
+  } satisfies CmdMaterialDefinitionCreateArgs);
+
+  World3D.upsert3DMaterialInstance(worldId, {
+    materialId: ghostMaterialId,
+    slug: 'demo2-ghost',
+    label: 'demo2-mat-ghost',
+    options: { type: 'schema', content: { baseColor: [0.2, 0.7, 1.0, 1.0] } }
+  } satisfies CmdMaterialInstanceCreateArgs);
+  World3D.upsert3DMaterialInstance(worldId, {
+    materialId: fresnelMaterialId,
+    slug: 'demo2-fresnel',
+    label: 'demo2-mat-fresnel',
+    options: { type: 'schema', content: { baseColor: [1.0, 0.3, 0.2, 1.0] } }
+  } satisfies CmdMaterialInstanceCreateArgs);
 
   const cameraEntity = World3D.create3DEntity(worldId);
   World3D.create3DCamera(worldId, cameraEntity, {
@@ -100,25 +171,25 @@ async function main() {
 
   const lightEntity = World3D.create3DEntity(worldId);
   World3D.create3DLight(worldId, lightEntity, {
-    kind: 'directional',
+    kind: 'point',
     color: [1, 1, 1],
-    intensity: 3.2,
+    intensity: 3.5,
+    range: 24,
     castShadow: true,
-    direction: [-0.45, -1, -0.35]
   });
   World3D.update3DTransform(worldId, lightEntity, {
-    position: [0, 4, 0]
+    position: [3, 4, 4]
   });
 
   const cubeGhost = World3D.create3DEntity(worldId);
   const cubeFresnel = World3D.create3DEntity(worldId);
-  const cubePbr = World3D.create3DEntity(worldId);
+  const floor = World3D.create3DEntity(worldId);
 
   World3D.create3DModel(worldId, cubeGhost, {
     geometryId: cubeGeometryId,
     materialId: ghostMaterialId,
-    castShadow: false,
-    receiveShadow: false
+    castShadow: true,
+    receiveShadow: true
   });
   World3D.create3DModel(worldId, cubeFresnel, {
     geometryId: cubeGeometryId,
@@ -126,9 +197,14 @@ async function main() {
     castShadow: true,
     receiveShadow: true
   });
-  World3D.create3DModel(worldId, cubePbr, {
-    geometryId: cubeGeometryId,
-    materialId: pbrMaterialId,
+  World3D.update3DTransform(worldId, floor, {
+    position: [0.0, -0.15, 0.0],
+    rotation: [-0.7071068, 0, 0, 0.7071068],
+    scale: [12, 12, 1]
+  });
+  World3D.create3DModel(worldId, floor, {
+    geometryId: floorGeometryId,
+    materialId: floorMaterialId,
     castShadow: true,
     receiveShadow: true
   });
@@ -143,23 +219,16 @@ async function main() {
     totalMs += dtMs;
     const t = totalMs / 1000;
 
-    const ySpin = t * 1.8;
-    const radius = 1.8;
-    const qA = quat.fromEuler(quat.create(), 0, (ySpin * 180) / Math.PI, 0);
-    const qB = quat.fromEuler(quat.create(), 0, ((ySpin + 1.2) * 180) / Math.PI, 0);
-    const qC = quat.fromEuler(quat.create(), 0, ((ySpin + 2.4) * 180) / Math.PI, 0);
+    const qA = quat.fromEuler(quat.create(), (t * 1.7 * 180) / Math.PI, (t * 2.8 * 180) / Math.PI, 0);
+    const qB = quat.fromEuler(quat.create(), (t * 1.3 * 180) / Math.PI, (-(t * 2.2) * 180) / Math.PI, 0);
 
     World3D.update3DTransform(worldId, cubeGhost, {
-      position: [Math.cos(t * 1.3) * radius, 0.0, Math.sin(t * 1.3) * radius],
+      position: [-2.0 + Math.sin(t * 2.4) * 1.8, 0.8 + Math.sin(t * 3.0) * 0.28, 0.0],
       rotation: [qA[0], qA[1], qA[2], qA[3]]
     });
     World3D.update3DTransform(worldId, cubeFresnel, {
-      position: [Math.cos(t * 1.3 + 2.09) * radius, 0.0, Math.sin(t * 1.3 + 2.09) * radius],
+      position: [2.0 + Math.sin(t * 2.0) * 1.2, 0.8 + Math.sin(t * 2.6) * 0.2, 0.0],
       rotation: [qB[0], qB[1], qB[2], qB[3]]
-    });
-    World3D.update3DTransform(worldId, cubePbr, {
-      position: [Math.cos(t * 1.3 + 4.18) * radius, 0.0, Math.sin(t * 1.3 + 4.18) * radius],
-      rotation: [qC[0], qC[1], qC[2], qC[3]]
     });
 
     tick(totalMs, dtMs);

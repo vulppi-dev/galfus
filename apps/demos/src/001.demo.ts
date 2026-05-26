@@ -7,9 +7,10 @@ import {
   initEngine,
   tick
 } from '@galfus/engine';
+import type { CmdMaterialDefinitionCreateArgs, CmdMaterialInstanceCreateArgs } from '@galfus/engine/types';
 import { transportBunFfi } from '@galfus/transport-bun';
 
-const RUN_DURATION_MS = 50_000;
+const RUN_DURATION_MS = 6_000;
 const FRAME_TARGET_MS = 16;
 const SHADOW_CONFIG = {
   tileResolution: 1024,
@@ -66,7 +67,7 @@ async function main() {
     options: {
       type: 'schema',
       content: {
-        baseColor: [0.92, 0.35, 0.32, 1]
+        baseColor: [1.0, 0.2, 0.8, 1.0]
       }
     }
   });
@@ -77,37 +78,68 @@ async function main() {
     options: {
       type: 'schema',
       content: {
-        baseColor: [0.25, 0.86, 0.62, 1],
+        baseColor: [1.0, 1.0, 0.2, 1.0],
         metallic: [0.55, 0, 0, 0],
         roughness: [0.35, 0, 0, 0],
-        ao: [1, 0, 0, 0],
-        normalScale: [1, 0, 0, 0]
+        ao: [1.0, 0, 0, 0],
+        normalScale: [1.0, 0, 0, 0]
       }
     }
   });
 
-  const customSimpleMaterialId = World3D.create3DMaterial(worldId, {
-    kind: 'standard',
-    label: 'Demo001CustomSimplePlaceholder',
+  const customSimpleDefinitionId = 100;
+  World3D.upsert3DMaterialDefinition(worldId, {
+    definitionId: customSimpleDefinitionId,
+    slug: 'demo-custom-simple',
+    label: 'demo-def-custom-simple',
+    realmKind: 'three-d',
+    shaderType: 'model',
+    shaderSource: `
+fn vertex(input: VertexInput) -> VertexOutput {
+  var out: VertexOutput;
+  out.world_position = vec3<f32>(0.0);
+  out.world_normal = vec3<f32>(0.0);
+  out.uv = vec2<f32>(0.0);
+  out.clip_position = vec4<f32>(0.0);
+  return out;
+}
+
+fn fragment(input: FragmentInput) -> FragmentOutput {
+  var out: FragmentOutput;
+  let fresnel = pow(1.0 - max(dot(normalize(input.world_normal), vec3<f32>(0.0, 0.0, 1.0)), 0.0), 3.0);
+  out.color = vec4<f32>(mix(vec3<f32>(0.2, 0.35, 0.95), vec3<f32>(0.8, 0.9, 1.0), fresnel), 1.0);
+  out.emissive = vec4<f32>(0.0, 0.0, 0.0, 1.0);
+  return out;
+}
+`,
+    shaderParamsSchema: {}
+  } satisfies CmdMaterialDefinitionCreateArgs);
+
+  const customSimpleMaterialId = 4;
+  World3D.upsert3DMaterialInstance(worldId, {
+    materialId: customSimpleMaterialId,
+    slug: 'demo-custom-simple',
+    label: 'demo-mat-custom-simple',
     options: {
       type: 'schema',
       content: {
-        baseColor: [0.25, 0.45, 0.98, 1],
-        emissiveColor: [0, 0, 0, 0],
-        specColor: [1, 1, 1, 1],
-        specPower: [64, 0, 0, 0]
+        baseColor: [0.25, 0.45, 0.98, 1.0],
+        emissiveColor: [0.0, 0.0, 0.0, 0.0],
+        specColor: [0.0, 1.0, 1.0, 1.0],
+        specPower: [64.0, 0.0, 0.0, 0.0]
       }
     }
-  });
+  } satisfies CmdMaterialInstanceCreateArgs);
+
   const floorMaterialId = World3D.create3DMaterial(worldId, {
     kind: 'standard',
     label: 'Demo001Floor',
     options: {
       type: 'schema',
       content: {
-        baseColor: [0.24, 0.24, 0.26, 1],
-        specColor: [0.05, 0.05, 0.05, 1],
-        specPower: [8, 0, 0, 0]
+        baseColor: [0.24, 0.24, 0.26, 1.0],
+        specColor: [0.05, 0.05, 0.05, 1.0],
+        specPower: [8.0, 0.0, 0.0, 0.0]
       }
     }
   });
@@ -133,7 +165,7 @@ async function main() {
     kind: 'point',
     color: [0, 1, 1],
     intensity: 4,
-    range: 24,
+    range: 30,
     castShadow: true
   });
 
@@ -147,7 +179,7 @@ async function main() {
     color: [1, 0, 1],
     intensity: 2.4,
     range: 18,
-    castShadow: false
+    castShadow: true
   });
 
   const cube1 = World3D.create3DEntity(worldId);

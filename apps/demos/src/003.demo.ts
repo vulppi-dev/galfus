@@ -10,7 +10,7 @@ import {
 import { quat } from '@galfus/engine/math';
 import { transportBunFfi } from '@galfus/transport-bun';
 
-const RUN_DURATION_MS = 6_000;
+const RUN_DURATION_MS = 8_000;
 const FRAME_TARGET_MS = 16;
 
 async function main() {
