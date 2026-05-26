@@ -595,13 +595,6 @@ pub fn engine_cmd_material_definition_update(
     engine: &mut EngineState,
     args: &CmdMaterialDefinitionUpdateArgs,
 ) -> CmdResultMaterialDefinition {
-    if let Err(message) = validate_host_logical_id(args.definition_id, "definitionId") {
-        return CmdResultMaterialDefinition {
-            success: false,
-            message,
-        };
-    }
-    bootstrap_builtin_material_definitions(engine);
     if args.definition_id == MATERIAL_DEFINITION_STANDARD_ID
         || args.definition_id == MATERIAL_DEFINITION_PBR_ID
         || args.definition_id == MATERIAL_DEFINITION_STANDARD_2D_ID
@@ -611,6 +604,13 @@ pub fn engine_cmd_material_definition_update(
             message: "Builtin material definitions are immutable".to_string(),
         };
     }
+    if let Err(message) = validate_host_logical_id(args.definition_id, "definitionId") {
+        return CmdResultMaterialDefinition {
+            success: false,
+            message,
+        };
+    }
+    bootstrap_builtin_material_definitions(engine);
     let Some(current) = definition_by_id(engine, args.definition_id) else {
         return CmdResultMaterialDefinition {
             success: false,
@@ -805,12 +805,6 @@ pub fn engine_cmd_material_definition_dispose(
     engine: &mut EngineState,
     args: &CmdMaterialDefinitionDisposeArgs,
 ) -> CmdResultMaterialDefinition {
-    if let Err(message) = validate_host_logical_id(args.definition_id, "definitionId") {
-        return CmdResultMaterialDefinition {
-            success: false,
-            message,
-        };
-    }
     if args.definition_id == MATERIAL_DEFINITION_STANDARD_ID
         || args.definition_id == MATERIAL_DEFINITION_PBR_ID
         || args.definition_id == MATERIAL_DEFINITION_STANDARD_2D_ID
@@ -818,6 +812,12 @@ pub fn engine_cmd_material_definition_dispose(
         return CmdResultMaterialDefinition {
             success: false,
             message: "Builtin material definitions cannot be disposed".to_string(),
+        };
+    }
+    if let Err(message) = validate_host_logical_id(args.definition_id, "definitionId") {
+        return CmdResultMaterialDefinition {
+            success: false,
+            message,
         };
     }
 
