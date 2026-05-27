@@ -1,7 +1,8 @@
 use galfus_realm_core::{
     RENDER_PASS_BATCH, RENDER_PASS_BLOOM, RENDER_PASS_COMPOSE, RENDER_PASS_FORWARD,
     RENDER_PASS_LIGHT_CULL, RENDER_PASS_OUTLINE, RENDER_PASS_POST, RENDER_PASS_PREPARE,
-    RENDER_PASS_SHADOW, RENDER_PASS_SKYBOX, RENDER_PASS_SSAO, RENDER_PASS_SSAO_BLUR,
+    RENDER_PASS_SHADOW_2D, RENDER_PASS_SHADOW_3D, RENDER_PASS_SKYBOX, RENDER_PASS_SSAO,
+    RENDER_PASS_SSAO_BLUR,
 };
 use std::collections::HashMap;
 
@@ -14,6 +15,17 @@ pub fn realm2d_fallback_graph() -> RenderGraphDesc {
     RenderGraphDesc {
         graph_id: LogicalId::Str("ui_fallback".into()),
         nodes: vec![
+            RenderGraphNode {
+                node_id: LogicalId::Str("2d_shadow".into()),
+                pass_id: RENDER_PASS_SHADOW_2D.into(),
+                inputs: Vec::new(),
+                outputs: vec![LogicalId::Str("2d_shadow_atlas".into())],
+                require: Vec::new(),
+                priority: 5,
+                enabled: true,
+                params: HashMap::new(),
+                shader: None,
+            },
             RenderGraphNode {
                 node_id: LogicalId::Str("2d_prepare".into()),
                 pass_id: RENDER_PASS_PREPARE.into(),
@@ -62,6 +74,12 @@ pub fn realm2d_fallback_graph() -> RenderGraphDesc {
         edges: Vec::new(),
         resources: vec![
             RenderGraphResource {
+                res_id: LogicalId::Str("2d_shadow_atlas".into()),
+                kind: RenderGraphResourceKind::Texture,
+                lifetime: RenderGraphLifetime::Frame,
+                alias_group: None,
+            },
+            RenderGraphResource {
                 res_id: LogicalId::Str("2d_scene".into()),
                 kind: RenderGraphResourceKind::Buffer,
                 lifetime: RenderGraphLifetime::Frame,
@@ -96,7 +114,7 @@ pub fn fallback_graph() -> RenderGraphDesc {
         nodes: vec![
             RenderGraphNode {
                 node_id: LogicalId::Str("shadow_pass".into()),
-                pass_id: RENDER_PASS_SHADOW.into(),
+                pass_id: RENDER_PASS_SHADOW_3D.into(),
                 inputs: Vec::new(),
                 outputs: vec![LogicalId::Str("shadow_atlas".into())],
                 require: Vec::new(),

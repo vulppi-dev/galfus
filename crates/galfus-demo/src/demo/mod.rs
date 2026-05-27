@@ -9,6 +9,7 @@ pub enum DemoKind {
     FrameGraph001,
     FrameGraph002Persistence,
     Realm2D003,
+    Realm2D004LightsShadows,
 }
 
 impl DemoKind {
@@ -21,6 +22,8 @@ impl DemoKind {
                 Some(Self::FrameGraph002Persistence)
             }
             "3" | "003" | "demo003" | "demo_003" | "realm2d" | "2d" => Some(Self::Realm2D003),
+            "4" | "004" | "demo004" | "demo_004" | "realm2d004" | "2dls" | "lights2d"
+            | "shadows2d" => Some(Self::Realm2D004LightsShadows),
             _ => None,
         }
     }
@@ -30,6 +33,9 @@ impl DemoKind {
             Self::FrameGraph001 => "Galfus Demo 001 - FrameGraph".to_string(),
             Self::FrameGraph002Persistence => "Galfus Demo 002 - Optical Persistence".to_string(),
             Self::Realm2D003 => "Galfus Demo 003 - Realm2D".to_string(),
+            Self::Realm2D004LightsShadows => {
+                "Galfus Demo 004 - Realm2D Lights and Shadows".to_string()
+            }
         }
     }
 }
@@ -62,3 +68,28 @@ pub fn run_demo(demo: DemoKind, ctx: DemoContext) -> bool {
 
 pub use io::send_commands;
 pub use session::create_window;
+
+#[cfg(test)]
+mod tests {
+    use super::DemoKind;
+
+    #[test]
+    fn demo_004_aliases_select_realm2d_lights_shadows() {
+        assert_eq!(
+            DemoKind::from_str("4"),
+            Some(DemoKind::Realm2D004LightsShadows)
+        );
+        assert_eq!(
+            DemoKind::from_str("004"),
+            Some(DemoKind::Realm2D004LightsShadows)
+        );
+        assert_eq!(
+            DemoKind::from_str("demo004"),
+            Some(DemoKind::Realm2D004LightsShadows)
+        );
+        assert_eq!(
+            DemoKind::from_str("shadows2d"),
+            Some(DemoKind::Realm2D004LightsShadows)
+        );
+    }
+}

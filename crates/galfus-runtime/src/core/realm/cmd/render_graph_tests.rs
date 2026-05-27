@@ -6,7 +6,7 @@ use crate::core::render::graph::{
 };
 use crate::core::state::EngineState;
 use crate::core::system::SystemEvent;
-use galfus_realm_core::{RENDER_PASS_FORWARD, RENDER_PASS_PREPARE, RENDER_PASS_SHADOW};
+use galfus_realm_core::{RENDER_PASS_FORWARD, RENDER_PASS_PREPARE, RENDER_PASS_SHADOW_3D};
 use std::collections::HashMap;
 
 fn valid_graph(graph_name: &str, resource_name: &str) -> RenderGraphDesc {
@@ -14,7 +14,7 @@ fn valid_graph(graph_name: &str, resource_name: &str) -> RenderGraphDesc {
         graph_id: LogicalId::Str(graph_name.into()),
         nodes: vec![RenderGraphNode {
             node_id: LogicalId::Str(format!("{graph_name}-shadow")),
-            pass_id: RENDER_PASS_SHADOW.into(),
+            pass_id: RENDER_PASS_SHADOW_3D.into(),
             inputs: Vec::new(),
             outputs: vec![LogicalId::Str(resource_name.into())],
             require: Vec::new(),
@@ -135,7 +135,7 @@ fn render_graph_upsert_and_list_includes_desc_hash_and_passes() {
     assert_eq!(entry.desc_hash, expected_hash);
     assert_eq!(entry.graph_kind, "3d");
     assert_eq!(entry.pass_count, 1);
-    assert_eq!(entry.pass_ids, vec![RENDER_PASS_SHADOW.to_string()]);
+    assert_eq!(entry.pass_ids, vec![RENDER_PASS_SHADOW_3D.to_string()]);
     assert_eq!(entry.bound_realm_ids, Vec::<u32>::new());
     assert_eq!(
         engine

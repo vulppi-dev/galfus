@@ -30,6 +30,8 @@ struct TwoDLightRaw {
     color: glam::Vec4,
     intensity_range: glam::Vec2,
     kind_flags: glam::UVec2,
+    shadow_index: u32,
+    _padding: [u32; 3],
 }
 
 const TWO_D_MAX_LIGHTS_PER_CAMERA: usize = 64;
@@ -111,8 +113,17 @@ fn collect_visible_2d_lights(
 ) -> Vec<TwoDLightRaw> {
     let mut visible_lights = Vec::with_capacity(TWO_D_MAX_LIGHTS_PER_CAMERA);
     let camera_position = camera.transform.w_axis.truncate();
-    for light in render_state.scene.lights.values() {
+    let mut light_ids: Vec<u32> = render_state.scene.lights.keys().copied().collect();
+    light_ids.sort_unstable();
+    let mut shadow_counter = 0u32;
+    for light_id in light_ids {
+        let Some(light) = render_state.scene.lights.get(&light_id) else {
+            continue;
+        };
         if !light.active || (light.layer_mask & camera.layer_mask) == 0 {
+            if light.active && light.cast_shadow {
+                shadow_counter = shadow_counter.saturating_add(1);
+            }
             continue;
         }
         let light_kind = light.data.kind_flags.x;
@@ -122,14 +133,26 @@ fn collect_visible_2d_lights(
             let range = light.data.intensity_range.y.max(0.0001);
             let delta = light.data.position.truncate() - camera_position;
             if delta.length_squared() > (range * range * 4.0) {
+                if light.cast_shadow {
+                    shadow_counter = shadow_counter.saturating_add(1);
+                }
                 continue;
             }
         }
+        let shadow_index = if light.cast_shadow {
+            let current = shadow_counter;
+            shadow_counter = shadow_counter.saturating_add(1);
+            current
+        } else {
+            0xFFFF_FFFF
+        };
         visible_lights.push(TwoDLightRaw {
             position: light.data.position,
             color: light.data.color,
             intensity_range: light.data.intensity_range,
             kind_flags: light.data.kind_flags,
+            shadow_index,
+            _padding: [0; 3],
         });
         if visible_lights.len() >= TWO_D_MAX_LIGHTS_PER_CAMERA {
             break;
@@ -138,56 +161,10 @@ fn collect_visible_2d_lights(
     visible_lights
 }
 
-fn compute_item_shadow_factor(
-    item: &crate::core::render::state::TwoDPreparedItem,
-    visible_lights: &[TwoDLightRaw],
-    casters: &[crate::core::render::state::TwoDPreparedItem],
-) -> f32 {
-    if !item.receive_shadow || visible_lights.is_empty() || casters.is_empty() {
-        return 1.0;
-    }
-    let item_pos = item.transform.w_axis.truncate();
-    let mut factor = 1.0f32;
-    for light in visible_lights {
-        let light_pos = light.position.truncate();
-        let seg = item_pos - light_pos;
-        let seg_len_sq = seg.length_squared();
-        if seg_len_sq <= 1e-6 {
-            continue;
-        }
-        let mut blocked = false;
-        for caster in casters {
-            if !caster.cast_shadow || caster.item_id == item.item_id || caster.layer != item.layer {
-                continue;
-            }
-            let caster_pos = caster.transform.w_axis.truncate();
-            let t = ((caster_pos - light_pos).dot(seg) / seg_len_sq).clamp(0.0, 1.0);
-            let closest = light_pos + seg * t;
-            let radius = caster
-                .transform
-                .to_scale_rotation_translation()
-                .0
-                .truncate()
-                .abs()
-                .max_element()
-                * 0.35
-                + 0.15;
-            if (caster_pos - closest).length_squared() <= radius * radius {
-                blocked = true;
-                break;
-            }
-        }
-        if blocked {
-            factor *= 0.65;
-        }
-    }
-    factor.clamp(0.15, 1.0)
-}
-
 fn ensure_two_d_pass_resources(
     render_state: &mut RenderState,
     device: &wgpu::Device,
-    queue: &wgpu::Queue,
+    _queue: &wgpu::Queue,
     required_slots: usize,
 ) {
     let min_alignment = device.limits().min_uniform_buffer_offset_alignment as u64;
@@ -201,7 +178,7 @@ fn ensure_two_d_pass_resources(
                 entries: &[
                     wgpu::BindGroupLayoutEntry {
                         binding: 0,
-                        visibility: wgpu::ShaderStages::VERTEX,
+                        visibility: wgpu::ShaderStages::VERTEX | wgpu::ShaderStages::FRAGMENT,
                         ty: wgpu::BindingType::Buffer {
                             ty: wgpu::BufferBindingType::Uniform,
                             has_dynamic_offset: true,
@@ -245,6 +222,52 @@ fn ensure_two_d_pass_resources(
                             has_dynamic_offset: false,
                             min_binding_size: None,
                         },
+                        count: None,
+                    },
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 6,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Buffer {
+                            ty: wgpu::BufferBindingType::Uniform,
+                            has_dynamic_offset: false,
+                            min_binding_size: None,
+                        },
+                        count: None,
+                    },
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 7,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Texture {
+                            sample_type: wgpu::TextureSampleType::Depth,
+                            view_dimension: wgpu::TextureViewDimension::D2Array,
+                            multisampled: false,
+                        },
+                        count: None,
+                    },
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 8,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Buffer {
+                            ty: wgpu::BufferBindingType::Storage { read_only: true },
+                            has_dynamic_offset: false,
+                            min_binding_size: None,
+                        },
+                        count: None,
+                    },
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 9,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Buffer {
+                            ty: wgpu::BufferBindingType::Storage { read_only: true },
+                            has_dynamic_offset: false,
+                            min_binding_size: None,
+                        },
+                        count: None,
+                    },
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 10,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Sampler(wgpu::SamplerBindingType::Comparison),
                         count: None,
                     },
                 ],
@@ -306,6 +329,60 @@ fn ensure_two_d_pass_resources(
                         binding: 5,
                         resource: light_storage_buffer.as_entire_binding(),
                     },
+                    wgpu::BindGroupEntry {
+                        binding: 6,
+                        resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
+                            buffer: render_state
+                                .shadow
+                                .as_ref()
+                                .expect("shadow manager")
+                                .params_pool
+                                .buffer(),
+                            offset: 0,
+                            size: None,
+                        }),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 7,
+                        resource: wgpu::BindingResource::TextureView(
+                            render_state
+                                .shadow
+                                .as_ref()
+                                .expect("shadow manager")
+                                .atlas
+                                .view(),
+                        ),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 8,
+                        resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
+                            buffer: render_state
+                                .shadow
+                                .as_ref()
+                                .expect("shadow manager")
+                                .page_table
+                                .buffer(),
+                            offset: 0,
+                            size: None,
+                        }),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 9,
+                        resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
+                            buffer: render_state
+                                .shadow
+                                .as_ref()
+                                .expect("shadow manager")
+                                .point_light_vp
+                                .buffer(),
+                            offset: 0,
+                            size: None,
+                        }),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 10,
+                        resource: wgpu::BindingResource::Sampler(&library.samplers.comparison),
+                    },
                 ],
             });
         let fallback_depth = device.create_texture(&wgpu::TextureDescriptor {
@@ -319,28 +396,9 @@ fn ensure_two_d_pass_resources(
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
             format: wgpu::TextureFormat::Depth32Float,
-            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::RENDER_ATTACHMENT,
             view_formats: &[],
         });
-        queue.write_texture(
-            wgpu::TexelCopyTextureInfo {
-                texture: &fallback_depth,
-                mip_level: 0,
-                origin: wgpu::Origin3d::ZERO,
-                aspect: wgpu::TextureAspect::All,
-            },
-            bytemuck::bytes_of(&1.0f32),
-            wgpu::TexelCopyBufferLayout {
-                offset: 0,
-                bytes_per_row: Some(4),
-                rows_per_image: Some(1),
-            },
-            wgpu::Extent3d {
-                width: 1,
-                height: 1,
-                depth_or_array_layers: 1,
-            },
-        );
         let fallback_depth_view =
             fallback_depth.create_view(&wgpu::TextureViewDescriptor::default());
         crate::core::render::state::TwoDPassResources {
@@ -408,6 +466,60 @@ fn ensure_two_d_pass_resources(
                     wgpu::BindGroupEntry {
                         binding: 5,
                         resource: new_light_buffer.as_entire_binding(),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 6,
+                        resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
+                            buffer: render_state
+                                .shadow
+                                .as_ref()
+                                .expect("shadow manager")
+                                .params_pool
+                                .buffer(),
+                            offset: 0,
+                            size: None,
+                        }),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 7,
+                        resource: wgpu::BindingResource::TextureView(
+                            render_state
+                                .shadow
+                                .as_ref()
+                                .expect("shadow manager")
+                                .atlas
+                                .view(),
+                        ),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 8,
+                        resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
+                            buffer: render_state
+                                .shadow
+                                .as_ref()
+                                .expect("shadow manager")
+                                .page_table
+                                .buffer(),
+                            offset: 0,
+                            size: None,
+                        }),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 9,
+                        resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
+                            buffer: render_state
+                                .shadow
+                                .as_ref()
+                                .expect("shadow manager")
+                                .point_light_vp
+                                .buffer(),
+                            offset: 0,
+                            size: None,
+                        }),
+                    },
+                    wgpu::BindGroupEntry {
+                        binding: 10,
+                        resource: wgpu::BindingResource::Sampler(&library.samplers.comparison),
                     },
                 ],
             });
@@ -576,6 +688,18 @@ struct CameraUniform {
 var<uniform> camera: CameraUniform;
 @group(0) @binding(2)
 var linear_clamp_sampler: sampler;
+struct MaterialParams {
+    input_indices: vec4<u32>,
+    inputs_offset_count: vec2<u32>,
+    surface_flags: vec2<u32>,
+    texture_slots: array<vec4<u32>, 2>,
+    sampler_indices: array<vec4<u32>, 2>,
+    tex_sources: array<vec4<u32>, 2>,
+    atlas_layers: array<vec4<u32>, 2>,
+    atlas_scale_bias: array<vec4<f32>, 8>,
+};
+@group(1) @binding(1) var<uniform> material: MaterialParams;
+@group(1) @binding(2) var<storage, read> material_inputs: array<vec4<f32>>;
 @group(1) @binding(3)
 var material_tex0: texture_2d<f32>;
 
@@ -584,15 +708,93 @@ struct Light2D {
     color: vec4<f32>,
     intensity_range: vec2<f32>,
     kind_flags: vec2<u32>,
+    shadow_index: u32,
+    _pad0: vec3<u32>,
 }
 @group(0) @binding(5)
 var<storage, read> lights_2d: array<Light2D>;
+struct ShadowParams {
+    virtual_grid_size: f32,
+    pcf_range: i32,
+    table_capacity: u32,
+    point_vp_base: u32,
+    bias_min: f32,
+    bias_slope: f32,
+    point_bias_min: f32,
+    point_bias_slope: f32,
+    normal_bias: f32,
+    _pad0: f32,
+    _pad1: f32,
+}
+struct ShadowPageEntry {
+    scale_offset: vec4<f32>,
+    layer_index: u32,
+    _pad0: vec3<u32>,
+}
+@group(0) @binding(6) var<uniform> shadow_params: ShadowParams;
+@group(0) @binding(7) var shadow_atlas: texture_depth_2d_array;
+@group(0) @binding(8) var<storage, read> shadow_page_table: array<ShadowPageEntry>;
+@group(0) @binding(9) var<storage, read> point_light_vp: array<mat4x4<f32>>;
+@group(0) @binding(10) var shadow_sampler: sampler_comparison;
 
 struct VsOut {
     @builtin(position) position: vec4<f32>,
     @location(0) color: vec4<f32>,
     @location(1) uv: vec2<f32>,
+    @location(2) world_pos: vec3<f32>,
 };
+
+fn resolve_point_face(dir: vec3<f32>) -> u32 {
+    let ad = abs(dir);
+    if (ad.x >= ad.y && ad.x >= ad.z) {
+        return select(1u, 0u, dir.x >= 0.0);
+    }
+    if (ad.y >= ad.x && ad.y >= ad.z) {
+        return select(3u, 2u, dir.y >= 0.0);
+    }
+    return select(5u, 4u, dir.z >= 0.0);
+}
+
+fn sample_shadow_for_light(l: Light2D, world_pos: vec3<f32>) -> f32 {
+    if ((l.kind_flags.y & 1u) == 0u || l.shadow_index == 0xFFFFFFFFu || shadow_params.table_capacity == 0u) {
+        return 1.0;
+    }
+    var face: u32 = 0u;
+    if (l.kind_flags.x == 1u) {
+        let lp = l.position.xyz;
+        let dir = world_pos - lp;
+        face = resolve_point_face(dir);
+    }
+    let vp = point_light_vp[shadow_params.point_vp_base + l.shadow_index * 6u + face];
+    let clip = vp * vec4<f32>(world_pos, 1.0);
+    if (abs(clip.w) <= 1e-6) {
+        return 1.0;
+    }
+    let ndc = clip.xyz / clip.w;
+    if (ndc.x < -1.0 || ndc.x > 1.0 || ndc.y < -1.0 || ndc.y > 1.0) {
+        return 1.0;
+    }
+    let uv = ndc.xy * 0.5 + vec2<f32>(0.5, 0.5);
+    let grid_size = max(u32(shadow_params.virtual_grid_size), 1u);
+    let px = min(u32(uv.x * f32(grid_size)), grid_size - 1u);
+    let py = min(u32(uv.y * f32(grid_size)), grid_size - 1u);
+    let table_index = (l.shadow_index * 6u + face) * grid_size * grid_size + py * grid_size + px;
+    if (table_index >= shadow_params.table_capacity) {
+        return 1.0;
+    }
+    let page = shadow_page_table[table_index];
+    if (page.layer_index == 0xFFFFFFFFu) {
+        return 1.0;
+    }
+    let local_uv = fract(uv * f32(grid_size));
+    let atlas_uv = page.scale_offset.xy * local_uv + page.scale_offset.zw;
+    let slope = sqrt(max(1.0 - ndc.z * ndc.z, 0.0));
+    let point_bias = (shadow_params.point_bias_min + shadow_params.point_bias_slope * slope) * 0.05;
+    let generic_bias = (shadow_params.bias_min + shadow_params.bias_slope * slope) * 0.05;
+    let bias = select(generic_bias, point_bias, l.kind_flags.x == 1u);
+    let compare_ref = clamp(ndc.z - bias, 0.0, 1.0);
+    return textureSampleCompare(shadow_atlas, shadow_sampler, atlas_uv, i32(page.layer_index), compare_ref);
+}
 
 @vertex
 fn vs_main(
@@ -604,6 +806,7 @@ fn vs_main(
     out.position = camera.view_projection * world_pos;
     out.color = camera.tint;
     out.uv = uv0;
+    out.world_pos = world_pos.xyz;
     return out;
 }
 
@@ -612,14 +815,22 @@ fn fs_main(in: VsOut) -> @location(0) vec4<f32> {
     var lit = vec3<f32>(0.12, 0.12, 0.12);
     let light_count = min(camera.light_offset_count.y, 64u);
     for (var i: u32 = 0u; i < light_count; i = i + 1u) {
-        let l = lights_2d[i];
-        let to_light = l.position.xy - camera.model_position.xy;
+        let l = lights_2d[camera.light_offset_count.x + i];
+        let to_light = l.position.xy - in.world_pos.xy;
         let dist = length(to_light);
         let range = max(l.intensity_range.y, 0.0001);
         let attenuation = max(1.0 - (dist / range), 0.0);
-        lit += l.color.rgb * attenuation * l.intensity_range.x;
+        let receives_shadow = camera.shadow_params.y > 0.5;
+        let visibility = select(1.0, sample_shadow_for_light(l, in.world_pos), receives_shadow);
+        lit += l.color.rgb * attenuation * l.intensity_range.x * visibility;
     }
-    let base = textureSample(material_tex0, linear_clamp_sampler, in.uv) * in.color;
+    let base_color = select(
+        vec4<f32>(1.0, 1.0, 1.0, 1.0),
+        material_inputs[material.inputs_offset_count.x],
+        material.inputs_offset_count.y > 0u
+    );
+    let tex = textureSample(material_tex0, linear_clamp_sampler, in.uv);
+    let base = base_color * tex * in.color;
     return vec4<f32>(base.rgb * lit * camera.shadow_params.x, base.a);
 }
 "#
@@ -698,7 +909,7 @@ fn fs_main(in: VsOut) -> @location(0) vec4<f32> {
         entries: &[
             wgpu::BindGroupEntry {
                 binding: 0,
-                resource: wgpu::BindingResource::TextureView(target_view),
+                resource: wgpu::BindingResource::TextureView(&library.fallback_view),
             },
             wgpu::BindGroupEntry {
                 binding: 1,
@@ -778,15 +989,6 @@ fn fs_main(in: VsOut) -> @location(0) vec4<f32> {
         for (camera_index, camera) in cameras.iter().enumerate() {
             let camera_vp = build_2d_view_projection(Some(camera), target_size);
             let visible_lights = &camera_visible_lights[camera_index];
-            let camera_casters: Vec<_> = render_state
-                .two_d_batched
-                .items
-                .iter()
-                .filter(|item| {
-                    layer_visible_in_camera(item.layer, camera.layer_mask) && item.cast_shadow
-                })
-                .cloned()
-                .collect();
             if !visible_lights.is_empty() {
                 queue.write_buffer(
                     &light_storage_buffer,
@@ -1015,22 +1217,24 @@ fn fs_main(in: VsOut) -> @location(0) vec4<f32> {
                 pass.insert_debug_marker(&marker);
                 pass.set_bind_group(0, &global_bind_group, &[0]);
                 pass.set_bind_group(2, &frame_semantics_bind_group, &[]);
-                if let Some(material) = material {
-                    if let Some(group) = material.bind_group.as_ref() {
-                        if let Some(material_slot) = render_state
-                            .material_uniform_slots
-                            .get(&batch.key.material_id)
-                            .copied()
-                        {
-                            let Some(bindings) = render_state.bindings.as_ref() else {
-                                continue;
-                            };
-                            let material_offset =
-                                bindings.material_3d_pool.get_offset(material_slot) as u32;
-                            pass.set_bind_group(1, group, &[material_offset]);
-                        }
-                    }
-                }
+                let Some(material) = material else {
+                    continue;
+                };
+                let Some(group) = material.bind_group.as_ref() else {
+                    continue;
+                };
+                let Some(material_slot) = render_state
+                    .material_uniform_slots
+                    .get(&batch.key.material_id)
+                    .copied()
+                else {
+                    continue;
+                };
+                let Some(bindings) = render_state.bindings.as_ref() else {
+                    continue;
+                };
+                let material_offset = bindings.material_3d_pool.get_offset(material_slot) as u32;
+                pass.set_bind_group(1, group, &[material_offset]);
 
                 let start = batch.start as usize;
                 let end = start.saturating_add(batch.count as usize);
@@ -1044,14 +1248,17 @@ fn fs_main(in: VsOut) -> @location(0) vec4<f32> {
                     material_tint_for_batch(&render_state.scene, batch.key.material_id);
                 for item in items {
                     let item_vp = camera_vp * item.transform;
-                    let shadow_factor =
-                        compute_item_shadow_factor(item, visible_lights, &camera_casters);
                     let camera_raw = TwoDCameraRaw {
                         view_projection: item_vp,
                         tint: material_tint,
                         model_position: item.transform.w_axis,
                         light_offset_count: glam::UVec4::new(0, visible_lights.len() as u32, 0, 0),
-                        shadow_params: glam::Vec4::new(shadow_factor, 0.0, 0.0, 0.0),
+                        shadow_params: glam::Vec4::new(
+                            1.0,
+                            if item.receive_shadow { 1.0 } else { 0.0 },
+                            0.0,
+                            0.0,
+                        ),
                     };
                     let offset = (camera_slot_index as u64) * camera_dynamic_stride;
                     queue.write_buffer(
@@ -1134,7 +1341,7 @@ fn layer_visible_in_camera(layer: i32, layer_mask: u32) -> bool {
 #[cfg(test)]
 mod tests {
     use super::{
-        TwoDLightRaw, compute_item_shadow_factor, layer_visible_in_camera, material_allows_2d,
+        collect_visible_2d_lights, layer_visible_in_camera, material_allows_2d,
         material_tint_for_batch, material_uses_custom_2d_shader, pass_2d_batch, pass_2d_prepare,
         resolve_2d_draw_batches,
     };
@@ -1436,38 +1643,6 @@ mod tests {
     }
 
     #[test]
-    fn shadow_factor_darkens_receiver_when_blocked() {
-        let receiver = crate::core::render::state::TwoDPreparedItem {
-            item_id: 2,
-            kind: TwoDItemKind::Sprite,
-            transform: glam::Mat4::from_translation(glam::vec3(1.0, 0.0, 0.0)),
-            geometry_id: 1,
-            material_id: Some(1),
-            layer: 0,
-            cast_shadow: false,
-            receive_shadow: true,
-        };
-        let caster = crate::core::render::state::TwoDPreparedItem {
-            item_id: 1,
-            kind: TwoDItemKind::Sprite,
-            transform: glam::Mat4::from_translation(glam::vec3(0.5, 0.0, 0.0)),
-            geometry_id: 1,
-            material_id: Some(1),
-            layer: 0,
-            cast_shadow: true,
-            receive_shadow: false,
-        };
-        let lights = vec![TwoDLightRaw {
-            position: glam::Vec4::new(0.0, 0.0, 0.0, 1.0),
-            color: glam::Vec4::ONE,
-            intensity_range: glam::Vec2::new(1.0, 5.0),
-            kind_flags: glam::UVec2::new(crate::core::resources::LightKind::Point.to_u32(), 0),
-        }];
-        let factor = compute_item_shadow_factor(&receiver, &lights, &[caster]);
-        assert!(factor < 1.0);
-    }
-
-    #[test]
     fn layer_visibility_respects_bit_mask_and_bounds() {
         let layer_mask = (1_u32 << 1) | (1_u32 << 4);
         assert!(layer_visible_in_camera(1, layer_mask));
@@ -1475,6 +1650,99 @@ mod tests {
         assert!(!layer_visible_in_camera(0, layer_mask));
         assert!(!layer_visible_in_camera(-1, layer_mask));
         assert!(!layer_visible_in_camera(32, layer_mask));
+    }
+
+    #[test]
+    fn prepare_2d_keeps_cast_and_receive_shadow_flags() {
+        let mut render_state = RenderState::new(wgpu::TextureFormat::Rgba16Float);
+        render_state.two_d_source.sprites.insert(
+            1,
+            Sprite2dRecord {
+                label: None,
+                transform: glam::Mat4::IDENTITY,
+                geometry_id: 1,
+                material_id: Some(1),
+                layer: 0,
+                cast_shadow: true,
+                receive_shadow: false,
+            },
+        );
+        render_state.two_d_source.shapes.insert(
+            2,
+            Shape2dRecord {
+                label: None,
+                transform: glam::Mat4::IDENTITY,
+                geometry_id: 1,
+                material_id: Some(1),
+                layer: 0,
+                cast_shadow: false,
+                receive_shadow: true,
+            },
+        );
+        pass_2d_prepare(&mut render_state);
+        assert_eq!(render_state.two_d_prepared.items.len(), 2);
+        assert_eq!(render_state.two_d_prepared.items[0].item_id, 1);
+        assert!(render_state.two_d_prepared.items[0].cast_shadow);
+        assert!(!render_state.two_d_prepared.items[0].receive_shadow);
+        assert_eq!(render_state.two_d_prepared.items[1].item_id, 2);
+        assert!(!render_state.two_d_prepared.items[1].cast_shadow);
+        assert!(render_state.two_d_prepared.items[1].receive_shadow);
+    }
+
+    #[test]
+    fn visible_2d_lights_shadow_indices_follow_sorted_shadow_casters() {
+        let mut render_state = RenderState::new(wgpu::TextureFormat::Rgba16Float);
+        render_state.scene.lights.insert(
+            10,
+            crate::core::resources::LightRecord::new(
+                None,
+                crate::core::resources::LightComponent::new(
+                    glam::Vec4::new(100.0, 100.0, 0.0, 1.0),
+                    glam::Vec4::new(0.0, -1.0, 0.0, 0.0),
+                    glam::Vec4::ONE,
+                    glam::Vec4::ZERO,
+                    1.0,
+                    1.0,
+                    glam::Vec2::ZERO,
+                    crate::core::resources::LightKind::Point,
+                    true,
+                ),
+                true,
+                u32::MAX,
+                true,
+            ),
+        );
+        render_state.scene.lights.insert(
+            20,
+            crate::core::resources::LightRecord::new(
+                None,
+                crate::core::resources::LightComponent::new(
+                    glam::Vec4::new(0.0, 0.0, 0.0, 1.0),
+                    glam::Vec4::new(0.0, -1.0, 0.0, 0.0),
+                    glam::Vec4::ONE,
+                    glam::Vec4::ZERO,
+                    1.0,
+                    10.0,
+                    glam::Vec2::ZERO,
+                    crate::core::resources::LightKind::Point,
+                    true,
+                ),
+                true,
+                u32::MAX,
+                true,
+            ),
+        );
+        let camera = crate::core::render::state::TwoDPreparedCamera {
+            camera_id: 1,
+            transform: glam::Mat4::IDENTITY,
+            near_far: glam::Vec2::new(0.01, 100.0),
+            ortho_scale: 2.0,
+            layer_mask: u32::MAX,
+            order: 0,
+        };
+        let visible = collect_visible_2d_lights(&render_state, &camera);
+        assert_eq!(visible.len(), 1);
+        assert_eq!(visible[0].shadow_index, 1);
     }
 }
 

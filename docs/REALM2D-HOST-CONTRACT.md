@@ -1,6 +1,6 @@
-# Realm2D Host Contract (Final)
+# Realm2D Host Contract
 
-This document defines the finalized host-facing contract for `realm2d`.
+This document defines the host-facing contract for `realm2d` in the current runtime.
 
 ## 1. Scope
 
@@ -11,8 +11,8 @@ This document defines the finalized host-facing contract for `realm2d`.
 - shader materials through material definition + material instance lifecycle
 - native 2D forward rendering with:
   - complete material bind/layout semantics
-  - native 2D lighting (culling + light buffer + per-light shading)
-  - native 2D shadows (`cast_shadow`/`receive_shadow`)
+  - native 2D lighting (camera-visible selection + light buffer + per-light shading)
+  - native 2D shadow integration through shadow atlas sampling (`cast_shadow`/`receive_shadow`)
 
 ## 2. Preset vs Custom
 
@@ -63,7 +63,7 @@ The core enforces realm compatibility:
 
 - `realm_kind` mismatch between requested material and definition is rejected.
 - definitions incompatible with requested realm are rejected.
-- pass-definition/pass-instance binding for `realm2d` rejects incompatible graph registry/pass sets.
+- pass-definition/pass-instance binding for `realm2d` rejects incompatible graph registry/pass sets when the graph contract requires realm-specific resources.
 
 ## 5. 2D Lighting and Shadows Contract
 
@@ -86,7 +86,12 @@ Runtime behavior:
 
 - non-casters do not occlude
 - non-receivers are not darkened by shadow factor
-- shadowing is applied in the 2D forward shading path
+- shadowing is applied in the 2D forward shading path using atlas-backed sampling for point lights with valid shadow pages
+
+Current limits:
+
+- directional/spot shadow sampling is not part of the `realm2d` forward shader contract yet
+- runtime quality depends on shadow page availability and configured shadow atlas resolution
 
 ## 6. IDs and Reserved Range
 
@@ -112,4 +117,4 @@ Common explicit failures:
 
 - Definition and instance operations are deterministic and validated.
 - Fallback rebinding preserves instance continuity.
-- `realm2d` and `realm3d` keep architectural parity for material and pass lifecycle contracts, with realm-specific compatibility enforced.
+- `realm2d` and `realm3d` keep parity on material and lifecycle contracts, with realm-specific compatibility enforcement.

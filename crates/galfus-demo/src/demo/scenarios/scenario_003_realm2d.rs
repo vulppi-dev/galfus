@@ -161,6 +161,8 @@ fn build_scene(realm_id: u32) -> Vec<EngineCmd> {
             geometry_id: GEOMETRY_QUAD_A_ID,
             material_id: Some(MATERIAL_RED_ID),
             layer: 1,
+            cast_shadow: true,
+            receive_shadow: true,
         })),
         EngineCmd::CmdSprite2dUpsert(CmdSprite2dUpsertArgs::Create(CmdSprite2dCreateArgs {
             realm_id,
@@ -171,6 +173,8 @@ fn build_scene(realm_id: u32) -> Vec<EngineCmd> {
             geometry_id: GEOMETRY_QUAD_B_ID,
             material_id: Some(MATERIAL_BLUE_ID),
             layer: 2,
+            cast_shadow: true,
+            receive_shadow: true,
         })),
         EngineCmd::CmdShape2dUpsert(CmdShape2dUpsertArgs::Create(CmdShape2dCreateArgs {
             realm_id,
@@ -181,6 +185,8 @@ fn build_scene(realm_id: u32) -> Vec<EngineCmd> {
             geometry_id: GEOMETRY_QUAD_A_ID,
             material_id: Some(MATERIAL_RED_ID),
             layer: 0,
+            cast_shadow: true,
+            receive_shadow: true,
         })),
     ]
 }
@@ -202,6 +208,8 @@ fn build_animated_updates(realm_id: u32, time_seconds: f32) -> Vec<EngineCmd> {
             geometry_id: None,
             material_id: None,
             layer: None,
+            cast_shadow: None,
+            receive_shadow: None,
         })),
         EngineCmd::CmdSprite2dUpsert(CmdSprite2dUpsertArgs::Update(CmdSprite2dUpdateArgs {
             realm_id,
@@ -214,6 +222,8 @@ fn build_animated_updates(realm_id: u32, time_seconds: f32) -> Vec<EngineCmd> {
             geometry_id: None,
             material_id: None,
             layer: None,
+            cast_shadow: None,
+            receive_shadow: None,
         })),
         EngineCmd::CmdShape2dUpsert(CmdShape2dUpsertArgs::Update(CmdShape2dUpdateArgs {
             realm_id,
@@ -227,6 +237,8 @@ fn build_animated_updates(realm_id: u32, time_seconds: f32) -> Vec<EngineCmd> {
             geometry_id: None,
             material_id: None,
             layer: None,
+            cast_shadow: None,
+            receive_shadow: None,
         })),
         EngineCmd::CmdCamera2dUpsert(CmdCamera2dUpsertArgs::Update(CmdCamera2dUpdateArgs {
             realm_id,

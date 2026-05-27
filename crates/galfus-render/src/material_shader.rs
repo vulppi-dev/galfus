@@ -366,6 +366,7 @@ struct ShadowParams {
     virtual_grid_size: f32,
     pcf_range: i32,
     table_capacity: u32,
+    point_vp_base: u32,
     bias_min: f32,
     bias_slope: f32,
     point_bias_min: f32,
@@ -373,7 +374,6 @@ struct ShadowParams {
     normal_bias: f32,
     _padding0: f32,
     _padding1: f32,
-    _padding2: f32,
 }
 
 struct Model {
@@ -529,7 +529,7 @@ fn sample_shadow_for_point_face(
     light_dir: vec3<f32>,
     face: u32
 ) -> f32 {
-    let vp = point_light_vp[light.shadow_index * 6u + face];
+    let vp = point_light_vp[shadow_params.point_vp_base + light.shadow_index * 6u + face];
     let clip = vp * vec4<f32>(world_position, 1.0);
     if (abs(clip.w) < 1e-6) { return 1.0; }
 

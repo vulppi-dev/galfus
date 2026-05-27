@@ -4,8 +4,8 @@ use crate::core::render::passes;
 use galfus_realm_core::{
     RENDER_PASS_BATCH, RENDER_PASS_BLOOM, RENDER_PASS_COMPOSE, RENDER_PASS_CUSTOM_POST_FORWARD,
     RENDER_PASS_CUSTOM_PRE_FORWARD, RENDER_PASS_FORWARD, RENDER_PASS_LIGHT_CULL,
-    RENDER_PASS_OUTLINE, RENDER_PASS_POST, RENDER_PASS_PREPARE, RENDER_PASS_SHADOW,
-    RENDER_PASS_SKYBOX, RENDER_PASS_SSAO, RENDER_PASS_SSAO_BLUR, RealmKind,
+    RENDER_PASS_OUTLINE, RENDER_PASS_POST, RENDER_PASS_PREPARE, RENDER_PASS_SHADOW_2D,
+    RENDER_PASS_SHADOW_3D, RENDER_PASS_SKYBOX, RENDER_PASS_SSAO, RENDER_PASS_SSAO_BLUR, RealmKind,
 };
 use std::hash::{DefaultHasher, Hash, Hasher};
 
@@ -616,14 +616,37 @@ pub(super) fn execute_graph_to_view(
             node.node_id
         );
         match node.pass_id.as_str() {
-            RENDER_PASS_SHADOW => {
+            RENDER_PASS_SHADOW_3D | RENDER_PASS_SHADOW_2D => {
                 #[cfg(not(target_arch = "wasm32"))]
                 let shadow_start = std::time::Instant::now();
                 #[cfg(target_arch = "wasm32")]
                 let shadow_start = now_ns();
-                passes::pass_shadow_update(render_state, device, queue, encoder, frame_index);
+                match realm_kind {
+                    RealmKind::ThreeD => {
+                        passes::pass_shadow_3d_update(
+                            render_state,
+                            device,
+                            queue,
+                            encoder,
+                            frame_index,
+                        );
+                    }
+                    RealmKind::TwoD => {
+                        passes::pass_shadow_2d_update(
+                            render_state,
+                            device,
+                            queue,
+                            encoder,
+                            frame_index,
+                        );
+                    }
+                }
                 if let Some(shadow) = &mut render_state.shadow {
-                    shadow.sync_table();
+                    let realm_tag = match realm_kind {
+                        RealmKind::ThreeD => 0,
+                        RealmKind::TwoD => 1,
+                    };
+                    shadow.sync_table_for_realm(realm_tag);
                 }
                 #[cfg(not(target_arch = "wasm32"))]
                 {
