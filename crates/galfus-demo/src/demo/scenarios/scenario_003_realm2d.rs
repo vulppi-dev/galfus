@@ -21,9 +21,9 @@ use galfus_core::core::target::{
 use glam::{Mat4, Vec2, Vec3, Vec4};
 
 use crate::demo::DemoContext;
+use crate::demo::DemoRunOptions;
 use crate::demo::io::{receive_responses, send_commands};
 use crate::demo::scenarios::run_with_window_loop;
-use crate::demo::DemoRunOptions;
 
 const FRAME_MS: u32 = 16;
 const WINDOW_TARGET_ID: u64 = 1;

@@ -146,7 +146,9 @@ fn pass_shadow_update_impl(
             };
             let vp_index = shadow_light_id * 6 + vp_face;
             let realm_tag = 0;
-            shadow_manager.point_light_vp.write(vp_index, &light_view_proj);
+            shadow_manager
+                .point_light_vp
+                .write(vp_index, &light_view_proj);
 
             // For point lights (kind=1), always render all pages for all 6 faces
             // For other lights, identify pages based on camera frustum
@@ -449,7 +451,10 @@ fn pass_shadow_update_impl(
                 }
 
                 if let Ok(Some(index_info)) = vertex_sys.index_info(model_record.geometry_id) {
-                    if vertex_sys.bind(&mut rpass, model_record.geometry_id).is_ok() {
+                    if vertex_sys
+                        .bind(&mut rpass, model_record.geometry_id)
+                        .is_ok()
+                    {
                         let inst_idx = shadow_instance_cursor;
                         collector.shadow_instance_data.push(model_record.data);
                         shadow_instance_cursor += 1;

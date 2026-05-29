@@ -15,7 +15,8 @@ use crate::core::resources::shadow::ShadowManager;
 use crate::core::resources::{
     Camera2dRecord, CameraNode, EnvironmentConfig, ForwardAtlasEntry, GeometryPrimitiveType,
     LightRecord, MaterialDefinitionRecord, MaterialInstanceRecord, ModelRecord,
-    ShaderMaterialRecord, Shape2dRecord, Sprite2dRecord, TargetTextureBinding, TextureRecord,
+    Realm2dShadowConfig, ShaderMaterialRecord, Shape2dRecord, Sprite2dRecord, TargetTextureBinding,
+    TextureRecord,
 };
 
 pub use self::binding::BindingSystem;
@@ -49,6 +50,7 @@ pub struct TwoDSourceState {
     pub cameras: std::collections::HashMap<u32, Camera2dRecord>,
     pub sprites: std::collections::HashMap<u32, Sprite2dRecord>,
     pub shapes: std::collections::HashMap<u32, Shape2dRecord>,
+    pub shadow_config: Realm2dShadowConfig,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -143,6 +145,8 @@ pub struct RenderResourceState {
 pub struct SceneRuntimeState {
     pub realm3d: Realm3dState,
     pub realm2d: Realm2dState,
+    pub realm2d_shadow_configs:
+        std::collections::HashMap<crate::core::realm::RealmId, Realm2dShadowConfig>,
     pub render_resources: RenderResourceState,
     pub material_definitions: std::collections::HashMap<u32, MaterialDefinitionRecord>,
     pub material_instances: std::collections::HashMap<u32, MaterialInstanceRecord>,

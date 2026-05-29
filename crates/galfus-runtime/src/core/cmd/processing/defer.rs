@@ -48,6 +48,7 @@ pub(super) fn command_type_for_cmd(cmd: &EngineCmd) -> &'static str {
         EngineCmd::CmdModel3dUpsert(_) => "model3d-upsert",
         EngineCmd::CmdSprite2dUpsert(_) => "sprite2d-upsert",
         EngineCmd::CmdShape2dUpsert(_) => "shape2d-upsert",
+        EngineCmd::CmdRealm2dShadowConfigUpdate(_) => "realm2d-shadow-config-update",
         EngineCmd::CmdPoseUpdate(_) => "pose-update",
         EngineCmd::CmdModel3dDispose(_) => "model3d-dispose",
         EngineCmd::CmdSprite2dDispose(_) => "sprite2d-dispose",

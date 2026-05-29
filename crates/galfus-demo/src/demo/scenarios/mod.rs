@@ -1,8 +1,8 @@
+mod runtime;
 mod scenario_001_frame_graph;
 mod scenario_002_optical_persistence;
 mod scenario_003_realm2d;
 mod scenario_004_realm2d_lights_shadows;
-mod runtime;
 
 use crate::demo::{DemoContext, DemoKind, DemoRunOptions};
 pub(crate) use runtime::run_with_window_loop;

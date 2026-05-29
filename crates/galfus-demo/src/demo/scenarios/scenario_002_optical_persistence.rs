@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use galfus_core::core::cmd::EngineEvent;
 use galfus_core::core::cmd::{
     CmdCamera3dUpsertArgs, CmdEnvironmentUpsertArgs, CmdLight3dUpsertArgs,
@@ -15,11 +14,12 @@ use galfus_core::core::target::{
     CmdTargetLayerUpsertArgs, CmdTargetUpsertArgs, DimensionValue, TargetKind, TargetLayerLayout,
 };
 use glam::{Mat4, Vec2, Vec3, Vec4};
+use std::collections::HashMap;
 
 use crate::demo::DemoContext;
+use crate::demo::DemoRunOptions;
 use crate::demo::io::send_commands;
 use crate::demo::scenarios::run_with_window_loop;
-use crate::demo::DemoRunOptions;
 
 const FRAME_MS: u32 = 16;
 
@@ -285,6 +285,8 @@ fn fragment(input: FragmentInput) -> FragmentOutput {
             spot_inner_outer: None,
             layer_mask: 1,
             shadow_layer_mask: None,
+            shadow_softness: None,
+            shadow_penumbra_length_scale: None,
             active: true,
             cast_shadow: true,
         })),

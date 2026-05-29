@@ -782,9 +782,10 @@ struct Light2D {
     position: vec4<f32>,
     color: vec4<f32>,
     intensity_range: vec2<f32>,
+    shadow_softness_penumbra: vec2<f32>,
     kind_flags: vec2<u32>,
     shadow_layer_mask: u32,
-    _pad0: vec3<u32>,
+    _pad0: u32,
 }
 @group(0) @binding(5) var<storage, read> lights_2d: array<Light2D>;
 struct Occluder2D {
@@ -889,7 +890,7 @@ fn load_scene_depth(pixel: vec2<i32>) -> f32 {
     return textureLoad(frame_scene_depth, pixel, 0);
 }
 
-fn segment_intersects_occluder_2d(light_pos: vec2<f32>, light_z: f32, frag_pos: vec2<f32>, occ: Occluder2D) -> f32 {
+fn segment_intersects_occluder_2d(light_pos: vec2<f32>, light_z: f32, frag_pos: vec2<f32>, l: Light2D, occ: Occluder2D) -> f32 {
     let dir = frag_pos - light_pos;
     let seg_len = length(dir);
     if (seg_len <= 1e-4) {
@@ -900,33 +901,77 @@ fn segment_intersects_occluder_2d(light_pos: vec2<f32>, light_z: f32, frag_pos: 
     let rel_o = light_pos - occ.center.xy;
     let o_local = vec2<f32>(dot(rel_o, occ.axis_x.xy), dot(rel_o, occ.axis_y.xy));
     let d_local = vec2<f32>(dot(dir_n, occ.axis_x.xy), dot(dir_n, occ.axis_y.xy));
-    let half_ext = max(occ.extents_height.xy, vec2<f32>(1e-5));
+    let half_ext_hard = max(occ.extents_height.xy, vec2<f32>(1e-5));
+    let penumbra_width = max(l.shadow_softness_penumbra.x, 1e-4);
+    let half_ext_soft = half_ext_hard + vec2<f32>(penumbra_width);
 
-    var t_min = 0.0;
-    var t_max = seg_len;
+    var t_min_hard = 0.0;
+    var t_max_hard = seg_len;
+    var t_min_soft = 0.0;
+    var t_max_soft = seg_len;
+    var hard_valid = true;
+    var soft_valid = true;
     for (var axis: u32 = 0u; axis < 2u; axis = axis + 1u) {
         let o = select(o_local.x, o_local.y, axis == 1u);
         let d = select(d_local.x, d_local.y, axis == 1u);
-        let slab = select(half_ext.x, half_ext.y, axis == 1u);
+        let slab_hard = select(half_ext_hard.x, half_ext_hard.y, axis == 1u);
+        let slab_soft = select(half_ext_soft.x, half_ext_soft.y, axis == 1u);
         if (abs(d) <= 1e-6) {
-            if (o < -slab || o > slab) {
-                return 0.0;
+            if (o < -slab_hard || o > slab_hard) {
+                hard_valid = false;
+            }
+            if (o < -slab_soft || o > slab_soft) {
+                soft_valid = false;
             }
             continue;
         }
-        let t1 = (-slab - o) / d;
-        let t2 = ( slab - o) / d;
-        let near_t = min(t1, t2);
-        let far_t = max(t1, t2);
-        t_min = max(t_min, near_t);
-        t_max = min(t_max, far_t);
-        if (t_min > t_max) {
-            return 0.0;
+        let t1_h = (-slab_hard - o) / d;
+        let t2_h = ( slab_hard - o) / d;
+        let near_h = min(t1_h, t2_h);
+        let far_h = max(t1_h, t2_h);
+        t_min_hard = max(t_min_hard, near_h);
+        t_max_hard = min(t_max_hard, far_h);
+        if (t_min_hard > t_max_hard) {
+            hard_valid = false;
+        }
+
+        let t1_s = (-slab_soft - o) / d;
+        let t2_s = ( slab_soft - o) / d;
+        let near_s = min(t1_s, t2_s);
+        let far_s = max(t1_s, t2_s);
+        t_min_soft = max(t_min_soft, near_s);
+        t_max_soft = min(t_max_soft, far_s);
+        if (t_min_soft > t_max_soft) {
+            soft_valid = false;
         }
     }
-    let dist_to_caster = max(t_min, 0.0);
+    if (!soft_valid) {
+        return 0.0;
+    }
+
+    let dist_to_caster_hard = max(t_min_hard, 0.0);
+    let dist_to_caster_soft = max(t_min_soft, 0.0);
     let projected_len = occ.extents_height.z * seg_len / max(light_z - occ.extents_height.z, 1e-4);
-    return select(0.0, 1.0, dist_to_caster <= seg_len && (seg_len - dist_to_caster) <= max(projected_len, 0.0));
+    let penumbra_len = max(projected_len * max(l.shadow_softness_penumbra.y, 0.0), penumbra_width * 1.5);
+    let remaining = projected_len - (seg_len - dist_to_caster_soft);
+    let longitudinal = smoothstep(-penumbra_len, penumbra_len, remaining);
+
+    var lateral = 0.0;
+
+    if (hard_valid) {
+        lateral = 1.0;
+
+        if (!(dist_to_caster_hard <= seg_len && (seg_len - dist_to_caster_hard) <= max(projected_len, 0.0))) {
+            lateral = 0.0;
+        }
+    } else {
+        let soft_hit_local = o_local + d_local * dist_to_caster_soft;
+        let over = abs(soft_hit_local) - half_ext_hard;
+        let edge_distance = max(max(over.x, over.y), 0.0);
+        lateral = 1.0 - smoothstep(0.0, penumbra_width, edge_distance);
+    }
+
+    return clamp(longitudinal * lateral, 0.0, 1.0);
 }
 
 fn sample_occluder_visibility(l: Light2D, world_pos: vec3<f32>) -> f32 {
@@ -943,7 +988,7 @@ fn sample_occluder_visibility(l: Light2D, world_pos: vec3<f32>) -> f32 {
         if ((occ.shadow_layer_mask & receiver_mask) == 0u) {
             continue;
         }
-        blocked = max(blocked, segment_intersects_occluder_2d(light_pos, max(l.position.z, 1e-4), frag_pos, occ));
+        blocked = max(blocked, segment_intersects_occluder_2d(light_pos, max(l.position.z, 1e-4), frag_pos, l, occ));
         if (blocked > 0.5) {
             break;
         }
@@ -952,7 +997,7 @@ fn sample_occluder_visibility(l: Light2D, world_pos: vec3<f32>) -> f32 {
 }
 
 fn apply_2d_lighting(base_color: vec4<f32>, world_pos: vec3<f32>) -> vec4<f32> {
-    var lit = vec3<f32>(0.06, 0.06, 0.06);
+    var lit = vec3<f32>(camera.shadow_params.z, camera.shadow_params.z, camera.shadow_params.z);
     let light_count = min(camera.light_offset_count.y, 64u);
     for (var i: u32 = 0u; i < light_count; i = i + 1u) {
         let l = lights_2d[camera.light_offset_count.x + i];

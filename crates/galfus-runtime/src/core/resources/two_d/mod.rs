@@ -7,6 +7,34 @@ use crate::core::resources::common::mark_realm_windows_dirty;
 use crate::core::state::EngineState;
 use crate::core::system::push_error_event;
 
+#[derive(Debug, Clone, Copy, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Realm2dShadowConfig {
+    pub softness: f32,
+    pub penumbra_length_scale: f32,
+    pub ambient: f32,
+}
+
+impl Default for Realm2dShadowConfig {
+    fn default() -> Self {
+        Self {
+            softness: 0.08,
+            penumbra_length_scale: 0.18,
+            ambient: 0.06,
+        }
+    }
+}
+
+impl Realm2dShadowConfig {
+    pub fn sanitized(self) -> Self {
+        Self {
+            softness: self.softness.max(0.0),
+            penumbra_length_scale: self.penumbra_length_scale.max(0.0),
+            ambient: self.ambient.max(0.0),
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Camera2dRecord {
     pub label: Option<String>,
@@ -200,6 +228,15 @@ pub struct CmdShape2dDisposeArgs {
     pub shape_id: u32,
 }
 
+#[derive(Debug, Deserialize, Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct CmdRealm2dShadowConfigUpdateArgs {
+    pub realm_id: u32,
+    pub softness: Option<f32>,
+    pub penumbra_length_scale: Option<f32>,
+    pub ambient: Option<f32>,
+}
+
 #[derive(Debug, Default, Deserialize, Serialize, Clone)]
 #[serde(default, rename_all = "camelCase")]
 pub struct CmdResultTwoDUpsert {
@@ -228,6 +265,10 @@ fn default_shadow_height() -> f32 {
 
 fn default_shadow_layer_mask() -> u32 {
     u32::MAX
+}
+
+fn default_realm2d_shadow_config() -> Realm2dShadowConfig {
+    Realm2dShadowConfig::default()
 }
 
 fn ensure_realm_is_2d(
@@ -809,6 +850,55 @@ pub fn engine_cmd_shape2d_dispose(
     CmdResultTwoDDispose {
         success: true,
         message: "Shape2D disposed successfully".to_string(),
+    }
+}
+
+pub fn engine_cmd_realm2d_shadow_config_update(
+    engine: &mut EngineState,
+    args: &CmdRealm2dShadowConfigUpdateArgs,
+) -> CmdResultTwoDUpsert {
+    if let Err(message) = validate_host_logical_id(args.realm_id, "realmId") {
+        return upsert_error(
+            engine,
+            "realm2d-shadow-config",
+            "realm2d-shadow-config-update",
+            message,
+        );
+    }
+    let realm_id = RealmId(args.realm_id);
+    if let Err(message) = ensure_realm_is_2d(engine, realm_id, "realm2d-shadow-config-update") {
+        return upsert_error(
+            engine,
+            "realm2d-shadow-config",
+            "realm2d-shadow-config-update",
+            message,
+        );
+    }
+
+    let current = engine
+        .universal_state
+        .scene
+        .realm2d_shadow_configs
+        .get(&realm_id)
+        .copied()
+        .unwrap_or_else(default_realm2d_shadow_config);
+    let next = Realm2dShadowConfig {
+        softness: args.softness.unwrap_or(current.softness),
+        penumbra_length_scale: args
+            .penumbra_length_scale
+            .unwrap_or(current.penumbra_length_scale),
+        ambient: args.ambient.unwrap_or(current.ambient),
+    }
+    .sanitized();
+    engine
+        .universal_state
+        .scene
+        .realm2d_shadow_configs
+        .insert(realm_id, next);
+    mark_realm_windows_dirty(engine, args.realm_id);
+    CmdResultTwoDUpsert {
+        success: true,
+        message: "Realm2D shadow config updated successfully".to_string(),
     }
 }
 

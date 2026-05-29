@@ -33,6 +33,10 @@ pub struct CmdLightCreateArgs {
     pub layer_mask: u32,
     #[serde(default)]
     pub shadow_layer_mask: Option<u32>,
+    #[serde(default)]
+    pub shadow_softness: Option<f32>,
+    #[serde(default)]
+    pub shadow_penumbra_length_scale: Option<f32>,
     #[serde(default = "crate::core::resources::common::default_true")]
     pub active: bool,
     #[serde(default = "crate::core::resources::common::default_true")]
@@ -62,6 +66,8 @@ pub struct CmdLightUpdateArgs {
     pub spot_inner_outer: Option<Vec2>,
     pub layer_mask: Option<u32>,
     pub shadow_layer_mask: Option<u32>,
+    pub shadow_softness: Option<f32>,
+    pub shadow_penumbra_length_scale: Option<f32>,
     pub active: Option<bool>,
     pub cast_shadow: Option<bool>,
 }
@@ -146,17 +152,17 @@ pub fn engine_cmd_light_create(
         kind,
         args.cast_shadow,
     );
-    entities.lights.insert(
-        args.light_id,
-        LightRecord::new(
-            args.label.clone(),
-            component,
-            args.active,
-            args.layer_mask,
-            args.shadow_layer_mask.unwrap_or(args.layer_mask),
-            args.cast_shadow,
-        ),
+    let mut record = LightRecord::new(
+        args.label.clone(),
+        component,
+        args.active,
+        args.layer_mask,
+        args.shadow_layer_mask.unwrap_or(args.layer_mask),
+        args.cast_shadow,
     );
+    record.shadow_softness = args.shadow_softness.map(|v| v.max(0.0));
+    record.shadow_penumbra_length_scale = args.shadow_penumbra_length_scale.map(|v| v.max(0.0));
+    entities.lights.insert(args.light_id, record);
     mark_realm_windows_dirty(engine, args.realm_id);
     galfus_log::galfus_log_debug!(
         engine,
@@ -273,6 +279,12 @@ pub fn engine_cmd_light_update(
     }
     if let Some(shadow_layer_mask) = args.shadow_layer_mask {
         record.shadow_layer_mask = shadow_layer_mask;
+    }
+    if let Some(shadow_softness) = args.shadow_softness {
+        record.shadow_softness = Some(shadow_softness.max(0.0));
+    }
+    if let Some(shadow_penumbra_length_scale) = args.shadow_penumbra_length_scale {
+        record.shadow_penumbra_length_scale = Some(shadow_penumbra_length_scale.max(0.0));
     }
     if let Some(active) = args.active {
         record.active = active;

@@ -561,10 +561,7 @@ mod tests {
             y: 0,
         };
         assert_eq!(ShadowManager::compute_table_index(16, 2, key), Some(9));
-        let overflow = ShadowPageKey {
-            light_id: 2,
-            ..key
-        };
+        let overflow = ShadowPageKey { light_id: 2, ..key };
         assert_eq!(ShadowManager::compute_table_index(16, 2, overflow), None);
     }
 }

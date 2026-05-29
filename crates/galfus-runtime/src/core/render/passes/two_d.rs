@@ -30,9 +30,10 @@ struct TwoDLightRaw {
     position: glam::Vec4,
     color: glam::Vec4,
     intensity_range: glam::Vec2,
+    shadow_softness_penumbra: glam::Vec2,
     kind_flags: glam::UVec2,
     shadow_layer_mask: u32,
-    _padding: [u32; 3],
+    _padding: [u32; 1],
 }
 
 #[repr(C)]
@@ -63,7 +64,7 @@ fn material_allows_2d(record: &crate::core::resources::ShaderMaterialRecord) -> 
     )
 }
 
-fn material_uses_custom_2d_shader(record: &crate::core::resources::ShaderMaterialRecord) -> bool {
+fn material_uses_compiled_2d_shader(record: &crate::core::resources::ShaderMaterialRecord) -> bool {
     material_allows_2d(record)
         && record.compile_error.is_none()
         && record.compiled_shader_source.is_some()
@@ -123,6 +124,7 @@ fn align_up(value: u64, alignment: u64) -> u64 {
 fn collect_visible_2d_lights(
     render_state: &RenderState,
     camera: &crate::core::render::state::TwoDPreparedCamera,
+    shadow_config: crate::core::resources::Realm2dShadowConfig,
 ) -> Vec<TwoDLightRaw> {
     let mut visible_lights = Vec::with_capacity(TWO_D_MAX_LIGHTS_PER_CAMERA);
     let camera_position = camera.transform.w_axis.truncate();
@@ -149,9 +151,15 @@ fn collect_visible_2d_lights(
             position: light.data.position,
             color: light.data.color,
             intensity_range: light.data.intensity_range,
+            shadow_softness_penumbra: glam::Vec2::new(
+                light.shadow_softness.unwrap_or(shadow_config.softness),
+                light
+                    .shadow_penumbra_length_scale
+                    .unwrap_or(shadow_config.penumbra_length_scale),
+            ),
             kind_flags: light.data.kind_flags,
             shadow_layer_mask: light.shadow_layer_mask,
-            _padding: [0; 3],
+            _padding: [0; 1],
         });
         if visible_lights.len() >= TWO_D_MAX_LIGHTS_PER_CAMERA {
             break;
@@ -186,7 +194,12 @@ fn collect_shadow_occluders(
             center: glam::Vec4::new(origin.x, origin.y, 0.0, 0.0),
             axis_x: glam::Vec4::new(axis_x.x, axis_x.y, 0.0, 0.0),
             axis_y: glam::Vec4::new(axis_y.x, axis_y.y, 0.0, 0.0),
-            extents_height: glam::Vec4::new(axis_x_len * 0.5, axis_y_len * 0.5, item.shadow_height, 0.0),
+            extents_height: glam::Vec4::new(
+                axis_x_len * 0.5,
+                axis_y_len * 0.5,
+                item.shadow_height,
+                0.0,
+            ),
             shadow_layer_mask: item.shadow_layer_mask,
             _padding: [0; 3],
         });
@@ -392,8 +405,8 @@ fn ensure_two_d_pass_resources(
         });
         let new_occluder_buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("2D Occluder Storage Buffer"),
-            size: (std::mem::size_of::<TwoDOccluderRaw>() * resources.occluder_capacity_slots.max(1))
-                as u64,
+            size: (std::mem::size_of::<TwoDOccluderRaw>()
+                * resources.occluder_capacity_slots.max(1)) as u64,
             usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
@@ -588,183 +601,6 @@ pub fn pass_2d_draw(
     target_size: glam::UVec2,
     frame_index: u64,
 ) {
-    const SHADER_ID_2D_BUILTIN: u64 = 0x0200_0001;
-    if !render_state
-        .material_shader_modules
-        .contains_key(&SHADER_ID_2D_BUILTIN)
-    {
-        render_state.material_shader_modules.insert(
-            SHADER_ID_2D_BUILTIN,
-            device.create_shader_module(wgpu::ShaderModuleDescriptor {
-                label: Some("2D Builtin Shader"),
-                source: wgpu::ShaderSource::Wgsl(
-                    r#"
-struct CameraUniform {
-    view_projection: mat4x4<f32>,
-    model_matrix: mat4x4<f32>,
-    tint: vec4<f32>,
-    model_position: vec4<f32>,
-    light_offset_count: vec4<u32>,
-    shadow_params: vec4<f32>,
-};
-
-@group(0) @binding(0)
-var<uniform> camera: CameraUniform;
-@group(0) @binding(2)
-var linear_clamp_sampler: sampler;
-struct MaterialParams {
-    input_indices: vec4<u32>,
-    inputs_offset_count: vec2<u32>,
-    surface_flags: vec2<u32>,
-    texture_slots: array<vec4<u32>, 2>,
-    sampler_indices: array<vec4<u32>, 2>,
-    tex_sources: array<vec4<u32>, 2>,
-    atlas_layers: array<vec4<u32>, 2>,
-    atlas_scale_bias: array<vec4<f32>, 8>,
-};
-@group(1) @binding(1) var<uniform> material: MaterialParams;
-@group(1) @binding(2) var<storage, read> material_inputs: array<vec4<f32>>;
-@group(1) @binding(3)
-var material_tex0: texture_2d<f32>;
-
-struct Light2D {
-    position: vec4<f32>,
-    color: vec4<f32>,
-    intensity_range: vec2<f32>,
-    kind_flags: vec2<u32>,
-    shadow_layer_mask: u32,
-    _pad0: vec3<u32>,
-}
-@group(0) @binding(5)
-var<storage, read> lights_2d: array<Light2D>;
-struct Occluder2D {
-    center: vec4<f32>,
-    axis_x: vec4<f32>,
-    axis_y: vec4<f32>,
-    extents_height: vec4<f32>,
-    shadow_layer_mask: u32,
-    _pad0: vec3<u32>,
-}
-@group(0) @binding(6)
-var<storage, read> occluders_2d: array<Occluder2D>;
-
-struct VsOut {
-    @builtin(position) position: vec4<f32>,
-    @location(0) color: vec4<f32>,
-    @location(1) uv: vec2<f32>,
-    @location(2) world_pos: vec3<f32>,
-};
-
-fn segment_intersects_occluder_2d(light_pos: vec2<f32>, light_z: f32, frag_pos: vec2<f32>, occ: Occluder2D) -> f32 {
-    let dir = frag_pos - light_pos;
-    let seg_len = length(dir);
-    if (seg_len <= 1e-4) {
-        return 0.0;
-    }
-    let inv_len = 1.0 / seg_len;
-    let dir_n = dir * inv_len;
-    let rel_o = light_pos - occ.center.xy;
-    let o_local = vec2<f32>(dot(rel_o, occ.axis_x.xy), dot(rel_o, occ.axis_y.xy));
-    let d_local = vec2<f32>(dot(dir_n, occ.axis_x.xy), dot(dir_n, occ.axis_y.xy));
-    let half_ext = max(occ.extents_height.xy, vec2<f32>(1e-5));
-
-    var t_min = 0.0;
-    var t_max = seg_len;
-    for (var axis: u32 = 0u; axis < 2u; axis = axis + 1u) {
-        let o = select(o_local.x, o_local.y, axis == 1u);
-        let d = select(d_local.x, d_local.y, axis == 1u);
-        let slab = select(half_ext.x, half_ext.y, axis == 1u);
-        if (abs(d) <= 1e-6) {
-            if (o < -slab || o > slab) {
-                return 0.0;
-            }
-            continue;
-        }
-        let t1 = (-slab - o) / d;
-        let t2 = ( slab - o) / d;
-        let near_t = min(t1, t2);
-        let far_t = max(t1, t2);
-        t_min = max(t_min, near_t);
-        t_max = min(t_max, far_t);
-        if (t_min > t_max) {
-            return 0.0;
-        }
-    }
-    let dist_to_caster = max(t_min, 0.0);
-    let projected_len = occ.extents_height.z * seg_len / max(light_z - occ.extents_height.z, 1e-4);
-    return select(0.0, 1.0, dist_to_caster <= seg_len && (seg_len - dist_to_caster) <= max(projected_len, 0.0));
-}
-
-fn sample_occluder_visibility(l: Light2D, world_pos: vec3<f32>) -> f32 {
-    if ((l.kind_flags.y & 1u) == 0u) {
-        return 1.0;
-    }
-    let light_pos = l.position.xy;
-    let frag_pos = world_pos.xy;
-    let occluder_count = min(camera.light_offset_count.w, 256u);
-    let receiver_mask = camera.light_offset_count.z;
-    var blocked = 0.0;
-    for (var i: u32 = 0u; i < occluder_count; i = i + 1u) {
-        let occ = occluders_2d[i];
-        if ((occ.shadow_layer_mask & receiver_mask) == 0u) {
-            continue;
-        }
-        blocked = max(blocked, segment_intersects_occluder_2d(light_pos, max(l.position.z, 1e-4), frag_pos, occ));
-        if (blocked > 0.5) {
-            break;
-        }
-    }
-    return 1.0 - blocked;
-}
-
-@vertex
-fn vs_main(
-    @location(0) position: vec3<f32>,
-    @location(4) uv0: vec2<f32>,
-) -> VsOut {
-    let world_pos = camera.model_matrix * vec4<f32>(position, 1.0);
-    var out: VsOut;
-    out.position = camera.view_projection * world_pos;
-    out.color = camera.tint;
-    out.uv = uv0;
-    out.world_pos = world_pos.xyz;
-    return out;
-}
-
-@fragment
-fn fs_main(in: VsOut) -> @location(0) vec4<f32> {
-    var lit = vec3<f32>(0.06, 0.06, 0.06);
-    let light_count = min(camera.light_offset_count.y, 64u);
-    for (var i: u32 = 0u; i < light_count; i = i + 1u) {
-        let l = lights_2d[camera.light_offset_count.x + i];
-        if ((l.shadow_layer_mask & camera.light_offset_count.z) == 0u) {
-            continue;
-        }
-        let to_light = l.position.xy - in.world_pos.xy;
-        let dist = length(to_light);
-        let range = max(l.intensity_range.y, 0.0001);
-        let t = clamp(1.0 - (dist / range), 0.0, 1.0);
-        let attenuation = t * t * (3.0 - 2.0 * t);
-        let receives_shadow = camera.shadow_params.y > 0.5;
-        let occluder_visibility = sample_occluder_visibility(l, in.world_pos);
-        let visibility = select(1.0, occluder_visibility, receives_shadow);
-        lit += l.color.rgb * attenuation * l.intensity_range.x * visibility;
-    }
-    let base_color = select(
-        vec4<f32>(1.0, 1.0, 1.0, 1.0),
-        material_inputs[material.inputs_offset_count.x],
-        material.inputs_offset_count.y > 0u
-    );
-    let tex = textureSample(material_tex0, linear_clamp_sampler, in.uv);
-    let base = base_color * tex * in.color;
-    return vec4<f32>(base.rgb * lit * camera.shadow_params.x, base.a);
-}
-"#
-                    .into(),
-                ),
-            }),
-        );
-    }
     let cameras = if render_state.two_d_prepared.cameras.is_empty() {
         vec![crate::core::render::state::TwoDPreparedCamera {
             camera_id: 0,
@@ -888,7 +724,13 @@ fn fs_main(in: VsOut) -> @location(0) vec4<f32> {
     };
     let camera_visible_lights: Vec<Vec<TwoDLightRaw>> = cameras
         .iter()
-        .map(|camera| collect_visible_2d_lights(render_state, camera))
+        .map(|camera| {
+            collect_visible_2d_lights(
+                render_state,
+                camera,
+                render_state.two_d_source.shadow_config,
+            )
+        })
         .collect();
     let camera_shadow_occluders: Vec<Vec<TwoDOccluderRaw>> = cameras
         .iter()
@@ -983,36 +825,32 @@ fn fs_main(in: VsOut) -> @location(0) vec4<f32> {
                     crate::core::resources::RenderSide::Back => Some(wgpu::Face::Front),
                     crate::core::resources::RenderSide::DoubleSide => None,
                 };
-                let shader_id = if let Some(record) = material {
-                    if material_uses_custom_2d_shader(record) {
-                        if let Some(source) = record.compiled_shader_source.as_ref() {
-                            let resolved_id = if record.compiled_shader_hash == 0 {
-                                1
-                            } else {
-                                record.compiled_shader_hash
-                            };
-                            if !render_state
-                                .material_shader_modules
-                                .contains_key(&resolved_id)
-                            {
-                                render_state.material_shader_modules.insert(
-                                    resolved_id,
-                                    device.create_shader_module(wgpu::ShaderModuleDescriptor {
-                                        label: Some("2D Material Shader"),
-                                        source: wgpu::ShaderSource::Wgsl(source.clone().into()),
-                                    }),
-                                );
-                            }
-                            resolved_id
-                        } else {
-                            SHADER_ID_2D_BUILTIN
-                        }
-                    } else {
-                        SHADER_ID_2D_BUILTIN
-                    }
-                } else {
-                    SHADER_ID_2D_BUILTIN
+                let Some(record) = material else {
+                    continue;
                 };
+                if !material_uses_compiled_2d_shader(record) {
+                    continue;
+                }
+                let Some(source) = record.compiled_shader_source.as_ref() else {
+                    continue;
+                };
+                let shader_id = if record.compiled_shader_hash == 0 {
+                    1
+                } else {
+                    record.compiled_shader_hash
+                };
+                if !render_state
+                    .material_shader_modules
+                    .contains_key(&shader_id)
+                {
+                    render_state.material_shader_modules.insert(
+                        shader_id,
+                        device.create_shader_module(wgpu::ShaderModuleDescriptor {
+                            label: Some("2D Material Shader"),
+                            source: wgpu::ShaderSource::Wgsl(source.clone().into()),
+                        }),
+                    );
+                }
                 let Some(shader_module) = render_state.material_shader_modules.get(&shader_id)
                 else {
                     continue;
@@ -1037,7 +875,7 @@ fn fs_main(in: VsOut) -> @location(0) vec4<f32> {
                             .cache
                             .get_or_create(pipeline_key, frame_index, || {
                                 device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-                                    label: Some("2D Builtin Pipeline"),
+                                    label: Some("2D Material Pipeline"),
                                     layout: Some(&pipeline_layout),
                                     vertex: wgpu::VertexState {
                                         module: shader_module,
@@ -1204,7 +1042,7 @@ fn fs_main(in: VsOut) -> @location(0) vec4<f32> {
                         shadow_params: glam::Vec4::new(
                             1.0,
                             if item.receive_shadow { 1.0 } else { 0.0 },
-                            0.0,
+                            render_state.two_d_source.shadow_config.ambient,
                             0.0,
                         ),
                     };
@@ -1290,7 +1128,7 @@ fn layer_visible_in_camera(layer: i32, layer_mask: u32) -> bool {
 mod tests {
     use super::{
         collect_visible_2d_lights, layer_visible_in_camera, material_allows_2d,
-        material_tint_for_batch, material_uses_custom_2d_shader, pass_2d_batch, pass_2d_prepare,
+        material_tint_for_batch, material_uses_compiled_2d_shader, pass_2d_batch, pass_2d_prepare,
         resolve_2d_draw_batches,
     };
     use crate::core::render::RenderState;
@@ -1595,18 +1433,18 @@ mod tests {
     }
 
     #[test]
-    fn material_custom_2d_shader_requires_realm_and_compiled_shader() {
+    fn material_compiled_2d_shader_requires_realm_and_compiled_source() {
         let mut material = crate::core::resources::ShaderMaterialRecord::new_standard(None);
-        assert!(!material_uses_custom_2d_shader(&material));
+        assert!(!material_uses_compiled_2d_shader(&material));
         material.realm_kind = crate::core::resources::MaterialRealmKind::TwoD;
-        assert!(material_uses_custom_2d_shader(&material));
+        assert!(material_uses_compiled_2d_shader(&material));
         material.compiled_shader_source = None;
-        assert!(!material_uses_custom_2d_shader(&material));
+        assert!(!material_uses_compiled_2d_shader(&material));
         material.compiled_shader_source = Some("@vertex fn vs_main(){}".to_string());
         material.compile_error = None;
-        assert!(material_uses_custom_2d_shader(&material));
+        assert!(material_uses_compiled_2d_shader(&material));
         material.compile_error = Some("broken".to_string());
-        assert!(!material_uses_custom_2d_shader(&material));
+        assert!(!material_uses_compiled_2d_shader(&material));
     }
 
     #[test]
@@ -1674,7 +1512,7 @@ mod tests {
     }
 
     #[test]
-    fn visible_2d_lights_shadow_indices_follow_sorted_shadow_casters() {
+    fn visible_2d_lights_are_filtered_by_camera_proximity() {
         let mut render_state = RenderState::new(wgpu::TextureFormat::Rgba16Float);
         render_state.scene.lights.insert(
             10,
@@ -1726,7 +1564,11 @@ mod tests {
             layer_mask: u32::MAX,
             order: 0,
         };
-        let visible = collect_visible_2d_lights(&render_state, &camera);
+        let visible = collect_visible_2d_lights(
+            &render_state,
+            &camera,
+            render_state.two_d_source.shadow_config,
+        );
         assert_eq!(visible.len(), 1);
         assert_eq!(visible[0].position, glam::Vec4::new(0.0, 0.0, 0.0, 1.0));
     }
