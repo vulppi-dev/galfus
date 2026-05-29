@@ -77,6 +77,9 @@ pub struct TwoDPreparedItem {
     pub layer: i32,
     pub cast_shadow: bool,
     pub receive_shadow: bool,
+    pub occluder_only: bool,
+    pub shadow_height: f32,
+    pub shadow_layer_mask: u32,
 }
 
 #[derive(Debug, Default, Clone)]
@@ -120,10 +123,12 @@ pub struct TwoDPassResources {
     pub pipeline_layout: wgpu::PipelineLayout,
     pub camera_dynamic_buffer: wgpu::Buffer,
     pub light_storage_buffer: wgpu::Buffer,
+    pub occluder_storage_buffer: wgpu::Buffer,
     pub global_bind_group: wgpu::BindGroup,
     pub camera_dynamic_stride: u64,
     pub camera_dynamic_capacity_slots: usize,
     pub light_capacity_slots: usize,
+    pub occluder_capacity_slots: usize,
     pub fallback_depth_view: wgpu::TextureView,
 }
 

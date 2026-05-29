@@ -26,6 +26,9 @@ pub struct Sprite2dRecord {
     pub layer: i32,
     pub cast_shadow: bool,
     pub receive_shadow: bool,
+    pub occluder_only: bool,
+    pub shadow_height: f32,
+    pub shadow_layer_mask: u32,
 }
 
 #[derive(Debug, Clone)]
@@ -37,6 +40,9 @@ pub struct Shape2dRecord {
     pub layer: i32,
     pub cast_shadow: bool,
     pub receive_shadow: bool,
+    pub occluder_only: bool,
+    pub shadow_height: f32,
+    pub shadow_layer_mask: u32,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -98,6 +104,12 @@ pub struct CmdSprite2dCreateArgs {
     pub cast_shadow: bool,
     #[serde(default = "crate::core::resources::common::default_true")]
     pub receive_shadow: bool,
+    #[serde(default)]
+    pub occluder_only: bool,
+    #[serde(default = "default_shadow_height")]
+    pub shadow_height: f32,
+    #[serde(default = "default_shadow_layer_mask")]
+    pub shadow_layer_mask: u32,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -113,6 +125,9 @@ pub struct CmdSprite2dUpdateArgs {
     pub layer: Option<i32>,
     pub cast_shadow: Option<bool>,
     pub receive_shadow: Option<bool>,
+    pub occluder_only: Option<bool>,
+    pub shadow_height: Option<f32>,
+    pub shadow_layer_mask: Option<u32>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -145,6 +160,12 @@ pub struct CmdShape2dCreateArgs {
     pub cast_shadow: bool,
     #[serde(default = "crate::core::resources::common::default_true")]
     pub receive_shadow: bool,
+    #[serde(default)]
+    pub occluder_only: bool,
+    #[serde(default = "default_shadow_height")]
+    pub shadow_height: f32,
+    #[serde(default = "default_shadow_layer_mask")]
+    pub shadow_layer_mask: u32,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -160,6 +181,9 @@ pub struct CmdShape2dUpdateArgs {
     pub layer: Option<i32>,
     pub cast_shadow: Option<bool>,
     pub receive_shadow: Option<bool>,
+    pub occluder_only: Option<bool>,
+    pub shadow_height: Option<f32>,
+    pub shadow_layer_mask: Option<u32>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -196,6 +220,14 @@ fn default_ortho_scale() -> f32 {
 
 fn default_layer_mask() -> u32 {
     1
+}
+
+fn default_shadow_height() -> f32 {
+    1.0
+}
+
+fn default_shadow_layer_mask() -> u32 {
+    u32::MAX
 }
 
 fn ensure_realm_is_2d(
@@ -464,6 +496,9 @@ pub fn engine_cmd_sprite2d_upsert(
                     layer: create.layer,
                     cast_shadow: create.cast_shadow,
                     receive_shadow: create.receive_shadow,
+                    occluder_only: create.occluder_only,
+                    shadow_height: create.shadow_height.max(0.0),
+                    shadow_layer_mask: create.shadow_layer_mask,
                 },
             );
             mark_realm_windows_dirty(engine, create.realm_id);
@@ -534,6 +569,15 @@ pub fn engine_cmd_sprite2d_upsert(
             }
             if let Some(receive_shadow) = update.receive_shadow {
                 record.receive_shadow = receive_shadow;
+            }
+            if let Some(occluder_only) = update.occluder_only {
+                record.occluder_only = occluder_only;
+            }
+            if let Some(shadow_height) = update.shadow_height {
+                record.shadow_height = shadow_height.max(0.0);
+            }
+            if let Some(shadow_layer_mask) = update.shadow_layer_mask {
+                record.shadow_layer_mask = shadow_layer_mask;
             }
             mark_realm_windows_dirty(engine, update.realm_id);
             CmdResultTwoDUpsert {
@@ -634,6 +678,9 @@ pub fn engine_cmd_shape2d_upsert(
                     layer: create.layer,
                     cast_shadow: create.cast_shadow,
                     receive_shadow: create.receive_shadow,
+                    occluder_only: create.occluder_only,
+                    shadow_height: create.shadow_height.max(0.0),
+                    shadow_layer_mask: create.shadow_layer_mask,
                 },
             );
             mark_realm_windows_dirty(engine, create.realm_id);
@@ -704,6 +751,15 @@ pub fn engine_cmd_shape2d_upsert(
             }
             if let Some(receive_shadow) = update.receive_shadow {
                 record.receive_shadow = receive_shadow;
+            }
+            if let Some(occluder_only) = update.occluder_only {
+                record.occluder_only = occluder_only;
+            }
+            if let Some(shadow_height) = update.shadow_height {
+                record.shadow_height = shadow_height.max(0.0);
+            }
+            if let Some(shadow_layer_mask) = update.shadow_layer_mask {
+                record.shadow_layer_mask = shadow_layer_mask;
             }
             mark_realm_windows_dirty(engine, update.realm_id);
             CmdResultTwoDUpsert {
@@ -844,6 +900,9 @@ mod tests {
                 layer: 0,
                 cast_shadow: true,
                 receive_shadow: true,
+                occluder_only: false,
+                shadow_height: 1.0,
+                shadow_layer_mask: u32::MAX,
             }),
         );
         assert!(!result.success);

@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::time::{Duration, Instant};
 
 use galfus_core::core;
 use galfus_core::core::GalfusResult;
@@ -16,16 +15,18 @@ use galfus_core::core::resources::{
     MaterialRealmKind, PrimitiveShape,
 };
 use galfus_core::core::system::LogLevel;
+use galfus_core::core::system::CmdSystemLogLevelSetArgs;
 use galfus_core::core::target::{
     CmdTargetLayerUpsertArgs, CmdTargetUpsertArgs, DimensionValue, TargetKind, TargetLayerLayout,
 };
 use glam::{Mat4, Vec2, Vec3, Vec4};
 
 use crate::demo::DemoContext;
-use crate::demo::io::{receive_events, receive_responses, send_commands};
+use crate::demo::io::{receive_responses, send_commands};
+use crate::demo::scenarios::run_with_window_loop;
+use crate::demo::DemoRunOptions;
 
 const FRAME_MS: u32 = 16;
-const RUN_DURATION: Duration = Duration::from_secs(8);
 const WINDOW_TARGET_ID: u64 = 1;
 
 const GEOMETRY_QUAD_ID: u32 = 401;
@@ -40,8 +41,14 @@ const CASTER_B_ID: u32 = 409;
 const FLOOR_ID: u32 = 410;
 const LIGHT_A_ID: u32 = 411;
 const LIGHT_B_ID: u32 = 412;
+const BACKDROP_ID: u32 = 413;
 
-pub fn run(ctx: DemoContext) -> bool {
+pub fn run(ctx: DemoContext, options: DemoRunOptions) -> bool {
+    let _ = send_commands(vec![EngineCmd::CmdSystemLogLevelSet(
+        CmdSystemLogLevelSetArgs {
+            level: LogLevel::Debug,
+        },
+    )]);
     let _ = send_commands(vec![EngineCmd::CmdRealmDispose(CmdRealmDisposeArgs {
         realm_id: ctx.realm_id,
     })]);
@@ -68,24 +75,16 @@ pub fn run(ctx: DemoContext) -> bool {
 
     let _ = send_commands(setup);
 
-    let mut total_ms: u64 = 0;
-    let start = Instant::now();
-
-    while start.elapsed() < RUN_DURATION {
-        let t = total_ms as f32 / 1000.0;
-        let updates = build_animated_updates(realm_2d, t);
-        let _ = send_commands(updates);
-        assert_eq!(
-            core::galfus_tick(total_ms as i64, FRAME_MS),
-            GalfusResult::Success
-        );
-        total_ms = total_ms.saturating_add(FRAME_MS as u64);
-        let _ = receive_responses();
-        print_runtime_logs();
-        std::thread::sleep(Duration::from_millis(FRAME_MS as u64));
-    }
-
-    false
+    run_with_window_loop(
+        ctx.window_id,
+        FRAME_MS,
+        options.timeout,
+        |t| {
+            let updates = build_animated_updates(realm_2d, t);
+            let _ = send_commands(updates);
+        },
+        print_runtime_logs,
+    )
 }
 
 fn create_twod_realm() -> Option<u32> {
@@ -140,7 +139,7 @@ fn build_scene(realm_id: u32) -> Vec<EngineCmd> {
             realm_kind: MaterialRealmKind::TwoD,
             options: Some(MaterialOptions::Schema(HashMap::from([(
                 "baseColor".to_string(),
-                Vec4::new(0.95, 0.33, 0.22, 1.0),
+                Vec4::new(0.02, 0.02, 0.02, 1.0),
             )]))),
         })),
         EngineCmd::CmdMaterialUpsert(CmdMaterialUpsertArgs::Create(CmdMaterialCreateArgs {
@@ -166,6 +165,21 @@ fn build_scene(realm_id: u32) -> Vec<EngineCmd> {
         })),
         EngineCmd::CmdShape2dUpsert(CmdShape2dUpsertArgs::Create(CmdShape2dCreateArgs {
             realm_id,
+            shape_id: BACKDROP_ID,
+            label: Some("demo4-backdrop".into()),
+            transform: Mat4::from_translation(Vec3::new(0.0, 0.0, -0.2))
+                * Mat4::from_scale(Vec3::new(7.0, 4.5, 1.0)),
+            geometry_id: GEOMETRY_QUAD_ID,
+            material_id: Some(MATERIAL_FLOOR_ID),
+            layer: 0,
+            cast_shadow: false,
+            receive_shadow: true,
+            occluder_only: false,
+            shadow_height: 0.0,
+            shadow_layer_mask: u32::MAX,
+        })),
+        EngineCmd::CmdShape2dUpsert(CmdShape2dUpsertArgs::Create(CmdShape2dCreateArgs {
+            realm_id,
             shape_id: FLOOR_ID,
             label: Some("demo4-floor".into()),
             transform: Mat4::from_translation(Vec3::new(0.0, -1.45, 0.0))
@@ -175,6 +189,9 @@ fn build_scene(realm_id: u32) -> Vec<EngineCmd> {
             layer: 0,
             cast_shadow: false,
             receive_shadow: true,
+            occluder_only: false,
+            shadow_height: 0.0,
+            shadow_layer_mask: u32::MAX,
         })),
         EngineCmd::CmdSprite2dUpsert(CmdSprite2dUpsertArgs::Create(CmdSprite2dCreateArgs {
             realm_id,
@@ -187,6 +204,9 @@ fn build_scene(realm_id: u32) -> Vec<EngineCmd> {
             layer: 1,
             cast_shadow: false,
             receive_shadow: true,
+            occluder_only: false,
+            shadow_height: 0.0,
+            shadow_layer_mask: u32::MAX,
         })),
         EngineCmd::CmdSprite2dUpsert(CmdSprite2dUpsertArgs::Create(CmdSprite2dCreateArgs {
             realm_id,
@@ -199,6 +219,9 @@ fn build_scene(realm_id: u32) -> Vec<EngineCmd> {
             layer: 1,
             cast_shadow: false,
             receive_shadow: true,
+            occluder_only: false,
+            shadow_height: 0.0,
+            shadow_layer_mask: u32::MAX,
         })),
         EngineCmd::CmdShape2dUpsert(CmdShape2dUpsertArgs::Create(CmdShape2dCreateArgs {
             realm_id,
@@ -211,6 +234,9 @@ fn build_scene(realm_id: u32) -> Vec<EngineCmd> {
             layer: 1,
             cast_shadow: true,
             receive_shadow: false,
+            occluder_only: false,
+            shadow_height: 8.0,
+            shadow_layer_mask: u32::MAX,
         })),
         EngineCmd::CmdShape2dUpsert(CmdShape2dUpsertArgs::Create(CmdShape2dCreateArgs {
             realm_id,
@@ -223,20 +249,24 @@ fn build_scene(realm_id: u32) -> Vec<EngineCmd> {
             layer: 1,
             cast_shadow: true,
             receive_shadow: false,
+            occluder_only: false,
+            shadow_height: 6.0,
+            shadow_layer_mask: u32::MAX,
         })),
         EngineCmd::CmdLight3dUpsert(CmdLight3dUpsertArgs::Create(CmdLightCreateArgs {
             realm_id,
             light_id: LIGHT_A_ID,
             label: Some("demo4-light-a".into()),
             kind: Some(LightKind::Point),
-            position: Some(Vec4::new(-1.8, 1.3, 0.6, 1.0)),
+            position: Some(Vec4::new(-1.8, 1.3, 2.4, 1.0)),
             direction: None,
             color: Some(Vec4::new(0.25, 0.95, 1.0, 1.0)),
             ground_color: None,
-            intensity: Some(2.4),
-            range: Some(5.5),
+            intensity: Some(3.2),
+            range: Some(7.0),
             spot_inner_outer: None,
             layer_mask: u32::MAX,
+            shadow_layer_mask: None,
             active: true,
             cast_shadow: true,
         })),
@@ -245,14 +275,15 @@ fn build_scene(realm_id: u32) -> Vec<EngineCmd> {
             light_id: LIGHT_B_ID,
             label: Some("demo4-light-b".into()),
             kind: Some(LightKind::Point),
-            position: Some(Vec4::new(1.8, 1.0, 0.6, 1.0)),
+            position: Some(Vec4::new(1.8, 1.0, 2.2, 1.0)),
             direction: None,
             color: Some(Vec4::new(1.0, 0.45, 0.25, 1.0)),
             ground_color: None,
-            intensity: Some(2.2),
-            range: Some(5.0),
+            intensity: Some(3.0),
+            range: Some(6.8),
             spot_inner_outer: None,
             layer_mask: u32::MAX,
+            shadow_layer_mask: None,
             active: true,
             cast_shadow: true,
         })),
@@ -280,6 +311,9 @@ fn build_animated_updates(realm_id: u32, t: f32) -> Vec<EngineCmd> {
             layer: None,
             cast_shadow: None,
             receive_shadow: None,
+            occluder_only: None,
+            shadow_height: None,
+            shadow_layer_mask: None,
         })),
         EngineCmd::CmdShape2dUpsert(CmdShape2dUpsertArgs::Update(CmdShape2dUpdateArgs {
             realm_id,
@@ -298,6 +332,9 @@ fn build_animated_updates(realm_id: u32, t: f32) -> Vec<EngineCmd> {
             layer: None,
             cast_shadow: None,
             receive_shadow: None,
+            occluder_only: None,
+            shadow_height: None,
+            shadow_layer_mask: None,
         })),
         EngineCmd::CmdSprite2dUpsert(CmdSprite2dUpsertArgs::Update(CmdSprite2dUpdateArgs {
             realm_id,
@@ -312,6 +349,9 @@ fn build_animated_updates(realm_id: u32, t: f32) -> Vec<EngineCmd> {
             layer: None,
             cast_shadow: None,
             receive_shadow: None,
+            occluder_only: None,
+            shadow_height: None,
+            shadow_layer_mask: None,
         })),
         EngineCmd::CmdSprite2dUpsert(CmdSprite2dUpsertArgs::Update(CmdSprite2dUpdateArgs {
             realm_id,
@@ -326,6 +366,9 @@ fn build_animated_updates(realm_id: u32, t: f32) -> Vec<EngineCmd> {
             layer: None,
             cast_shadow: None,
             receive_shadow: None,
+            occluder_only: None,
+            shadow_height: None,
+            shadow_layer_mask: None,
         })),
         EngineCmd::CmdCamera2dUpsert(CmdCamera2dUpsertArgs::Update(CmdCamera2dUpdateArgs {
             realm_id,
@@ -373,12 +416,9 @@ fn full_layout(z_index: i32) -> TargetLayerLayout {
     }
 }
 
-fn print_runtime_logs() {
-    for event in receive_events() {
+fn print_runtime_logs(events: Vec<EngineEvent>) {
+    for event in events {
         if let EngineEvent::Log(log) = event {
-            if matches!(log.level, LogLevel::Trace | LogLevel::Debug) {
-                continue;
-            }
             println!("[runtime/{:?}][{}] {}", log.level, log.tag, log.message);
         }
     }

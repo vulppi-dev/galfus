@@ -765,6 +765,7 @@ fn two_d_composer_prelude() -> &'static str {
     r#"
 struct CameraUniform {
     view_projection: mat4x4<f32>,
+    model_matrix: mat4x4<f32>,
     tint: vec4<f32>,
     model_position: vec4<f32>,
     light_offset_count: vec4<u32>,
@@ -782,8 +783,19 @@ struct Light2D {
     color: vec4<f32>,
     intensity_range: vec2<f32>,
     kind_flags: vec2<u32>,
+    shadow_layer_mask: u32,
+    _pad0: vec3<u32>,
 }
 @group(0) @binding(5) var<storage, read> lights_2d: array<Light2D>;
+struct Occluder2D {
+    center: vec4<f32>,
+    axis_x: vec4<f32>,
+    axis_y: vec4<f32>,
+    extents_height: vec4<f32>,
+    shadow_layer_mask: u32,
+    _pad0: vec3<u32>,
+}
+@group(0) @binding(6) var<storage, read> occluders_2d: array<Occluder2D>;
 
 struct MaterialParams {
     input_indices: vec4<u32>,
@@ -832,11 +844,13 @@ struct VertexOutput {
     clip_position: vec4<f32>,
     color: vec4<f32>,
     uv: vec2<f32>,
+    world_pos: vec3<f32>,
 }
 
 struct FragmentInput {
     color: vec4<f32>,
     uv: vec2<f32>,
+    world_pos: vec3<f32>,
 }
 
 struct FragmentOutput {
@@ -875,16 +889,85 @@ fn load_scene_depth(pixel: vec2<i32>) -> f32 {
     return textureLoad(frame_scene_depth, pixel, 0);
 }
 
-fn apply_2d_lighting(base_color: vec4<f32>, model_position: vec2<f32>) -> vec4<f32> {
-    var lit = vec3<f32>(0.12, 0.12, 0.12);
+fn segment_intersects_occluder_2d(light_pos: vec2<f32>, light_z: f32, frag_pos: vec2<f32>, occ: Occluder2D) -> f32 {
+    let dir = frag_pos - light_pos;
+    let seg_len = length(dir);
+    if (seg_len <= 1e-4) {
+        return 0.0;
+    }
+    let inv_len = 1.0 / seg_len;
+    let dir_n = dir * inv_len;
+    let rel_o = light_pos - occ.center.xy;
+    let o_local = vec2<f32>(dot(rel_o, occ.axis_x.xy), dot(rel_o, occ.axis_y.xy));
+    let d_local = vec2<f32>(dot(dir_n, occ.axis_x.xy), dot(dir_n, occ.axis_y.xy));
+    let half_ext = max(occ.extents_height.xy, vec2<f32>(1e-5));
+
+    var t_min = 0.0;
+    var t_max = seg_len;
+    for (var axis: u32 = 0u; axis < 2u; axis = axis + 1u) {
+        let o = select(o_local.x, o_local.y, axis == 1u);
+        let d = select(d_local.x, d_local.y, axis == 1u);
+        let slab = select(half_ext.x, half_ext.y, axis == 1u);
+        if (abs(d) <= 1e-6) {
+            if (o < -slab || o > slab) {
+                return 0.0;
+            }
+            continue;
+        }
+        let t1 = (-slab - o) / d;
+        let t2 = ( slab - o) / d;
+        let near_t = min(t1, t2);
+        let far_t = max(t1, t2);
+        t_min = max(t_min, near_t);
+        t_max = min(t_max, far_t);
+        if (t_min > t_max) {
+            return 0.0;
+        }
+    }
+    let dist_to_caster = max(t_min, 0.0);
+    let projected_len = occ.extents_height.z * seg_len / max(light_z - occ.extents_height.z, 1e-4);
+    return select(0.0, 1.0, dist_to_caster <= seg_len && (seg_len - dist_to_caster) <= max(projected_len, 0.0));
+}
+
+fn sample_occluder_visibility(l: Light2D, world_pos: vec3<f32>) -> f32 {
+    if ((l.kind_flags.y & 1u) == 0u) {
+        return 1.0;
+    }
+    let light_pos = l.position.xy;
+    let frag_pos = world_pos.xy;
+    let occluder_count = min(camera.light_offset_count.w, 256u);
+    let receiver_mask = camera.light_offset_count.z;
+    var blocked = 0.0;
+    for (var i: u32 = 0u; i < occluder_count; i = i + 1u) {
+        let occ = occluders_2d[i];
+        if ((occ.shadow_layer_mask & receiver_mask) == 0u) {
+            continue;
+        }
+        blocked = max(blocked, segment_intersects_occluder_2d(light_pos, max(l.position.z, 1e-4), frag_pos, occ));
+        if (blocked > 0.5) {
+            break;
+        }
+    }
+    return 1.0 - blocked;
+}
+
+fn apply_2d_lighting(base_color: vec4<f32>, world_pos: vec3<f32>) -> vec4<f32> {
+    var lit = vec3<f32>(0.06, 0.06, 0.06);
     let light_count = min(camera.light_offset_count.y, 64u);
     for (var i: u32 = 0u; i < light_count; i = i + 1u) {
         let l = lights_2d[camera.light_offset_count.x + i];
-        let to_light = l.position.xy - model_position;
+        if ((l.shadow_layer_mask & camera.light_offset_count.z) == 0u) {
+            continue;
+        }
+        let to_light = l.position.xy - world_pos.xy;
         let dist = length(to_light);
         let range = max(l.intensity_range.y, 0.0001);
-        let attenuation = max(1.0 - (dist / range), 0.0);
-        lit += l.color.rgb * attenuation * l.intensity_range.x;
+        let t = clamp(1.0 - (dist / range), 0.0, 1.0);
+        let attenuation = t * t * (3.0 - 2.0 * t);
+        let receives_shadow = camera.shadow_params.y > 0.5;
+        let occluder_visibility = sample_occluder_visibility(l, world_pos);
+        let visibility = select(1.0, occluder_visibility, receives_shadow);
+        lit += l.color.rgb * attenuation * l.intensity_range.x * visibility;
     }
     return vec4<f32>(base_color.rgb * lit * camera.shadow_params.x, base_color.a);
 }
@@ -899,6 +982,7 @@ struct VertexStageOutput {
     @builtin(position) clip_position: vec4<f32>,
     @location(0) color: vec4<f32>,
     @location(1) uv: vec2<f32>,
+    @location(2) world_pos: vec3<f32>,
 }
 "#
 }
@@ -915,7 +999,7 @@ fn vs_main(input: VertexStageInput) -> VertexStageOutput {
     );
     var logical_output = vertex(logical_input);
     if all(logical_output.clip_position == vec4<f32>(0.0)) {
-        logical_output.clip_position = camera.view_projection * vec4<f32>(input.position, 1.0);
+        logical_output.clip_position = camera.view_projection * (camera.model_matrix * vec4<f32>(input.position, 1.0));
     }
     if all(logical_output.color == vec4<f32>(0.0)) {
         logical_output.color = camera.tint;
@@ -923,19 +1007,23 @@ fn vs_main(input: VertexStageInput) -> VertexStageOutput {
     if all(logical_output.uv == vec2<f32>(0.0)) {
         logical_output.uv = input.uv;
     }
+    if all(logical_output.world_pos == vec3<f32>(0.0)) {
+        logical_output.world_pos = (camera.model_matrix * vec4<f32>(input.position, 1.0)).xyz;
+    }
 
     var out: VertexStageOutput;
     out.clip_position = logical_output.clip_position;
     out.color = logical_output.color;
     out.uv = logical_output.uv;
+    out.world_pos = logical_output.world_pos;
     return out;
 }
 
 @fragment
 fn fs_main(input: VertexStageOutput) -> @location(0) vec4<f32> {
-    let logical_input = FragmentInput(input.color, input.uv);
+    let logical_input = FragmentInput(input.color, input.uv, input.world_pos);
     let logical_output = fragment(logical_input);
-    return apply_2d_lighting(logical_output.color, camera.model_position.xy);
+    return apply_2d_lighting(logical_output.color, input.world_pos);
 }
 "#
 }

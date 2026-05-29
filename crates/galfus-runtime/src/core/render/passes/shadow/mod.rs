@@ -4,28 +4,6 @@ use crate::core::resources::geometry::Frustum;
 use crate::core::resources::{CameraComponent, VertexStream};
 use glam::Vec4Swizzles;
 
-#[derive(Clone, Copy, PartialEq, Eq)]
-enum ShadowRealmMode {
-    ThreeD,
-    TwoD,
-}
-
-impl ShadowRealmMode {
-    fn realm_tag(self) -> u32 {
-        match self {
-            ShadowRealmMode::ThreeD => 0,
-            ShadowRealmMode::TwoD => 1,
-        }
-    }
-
-    fn point_vp_base(self) -> u32 {
-        match self {
-            ShadowRealmMode::ThreeD => 0,
-            ShadowRealmMode::TwoD => 2048,
-        }
-    }
-}
-
 pub fn pass_shadow_3d_update(
     render_state: &mut RenderState,
     device: &wgpu::Device,
@@ -33,31 +11,18 @@ pub fn pass_shadow_3d_update(
     encoder: &mut wgpu::CommandEncoder,
     frame_index: u64,
 ) {
-    pass_shadow_update_impl(
-        render_state,
-        device,
-        queue,
-        encoder,
-        frame_index,
-        ShadowRealmMode::ThreeD,
-    );
+    pass_shadow_update_impl(render_state, device, queue, encoder, frame_index);
 }
 
 pub fn pass_shadow_2d_update(
-    render_state: &mut RenderState,
-    device: &wgpu::Device,
-    queue: &wgpu::Queue,
-    encoder: &mut wgpu::CommandEncoder,
-    frame_index: u64,
+    _render_state: &mut RenderState,
+    _device: &wgpu::Device,
+    _queue: &wgpu::Queue,
+    _encoder: &mut wgpu::CommandEncoder,
+    _frame_index: u64,
 ) {
-    pass_shadow_update_impl(
-        render_state,
-        device,
-        queue,
-        encoder,
-        frame_index,
-        ShadowRealmMode::TwoD,
-    );
+    // Realm2D now uses analytic occlusion for shadow projection and does not
+    // depend on shadow-map atlas/page-table updates.
 }
 
 fn pass_shadow_update_impl(
@@ -66,13 +31,12 @@ fn pass_shadow_update_impl(
     _queue: &wgpu::Queue,
     encoder: &mut wgpu::CommandEncoder,
     frame_index: u64,
-    mode: ShadowRealmMode,
 ) {
     let shadow_manager = match render_state.shadow.as_mut() {
         Some(s) => s,
         None => return,
     };
-    shadow_manager.set_realm_point_vp_base(mode.point_vp_base());
+    shadow_manager.set_realm_point_vp_base(0);
 
     // If the manager is dirty, it means something in the scene changed (light or model).
     // We must mark all currently cached pages as dirty so they get re-rendered if used.
@@ -106,7 +70,7 @@ fn pass_shadow_update_impl(
         .values()
         .next()
         .map(|camera| camera.data.view_projection.inverse());
-    if mode == ShadowRealmMode::ThreeD && primary_camera_inv.is_none() {
+    if primary_camera_inv.is_none() {
         return;
     }
     let camera_inv_view_proj = primary_camera_inv.unwrap_or(glam::Mat4::IDENTITY);
@@ -180,7 +144,8 @@ fn pass_shadow_update_impl(
             } else {
                 0
             };
-            let vp_index = mode.point_vp_base() + shadow_light_id * 6 + vp_face;
+            let vp_index = shadow_light_id * 6 + vp_face;
+            let realm_tag = 0;
             shadow_manager.point_light_vp.write(vp_index, &light_view_proj);
 
             // For point lights (kind=1), always render all pages for all 6 faces
@@ -202,7 +167,7 @@ fn pass_shadow_update_impl(
 
             for (x, y) in required {
                 if let Some(handle) = shadow_manager.request_page(
-                    mode.realm_tag(),
+                    realm_tag,
                     shadow_light_id,
                     face_index as u32,
                     x,
@@ -210,7 +175,7 @@ fn pass_shadow_update_impl(
                     frame_index,
                 ) {
                     let key = crate::core::resources::shadow::ShadowPageKey {
-                        realm_tag: mode.realm_tag(),
+                        realm_tag,
                         light_id: shadow_light_id,
                         face: face_index as u32,
                         x,
@@ -233,7 +198,7 @@ fn pass_shadow_update_impl(
         }
     }
 
-    shadow_manager.prune_inactive_dense_lights(mode.realm_tag(), shadow_counter);
+    shadow_manager.prune_inactive_dense_lights(0, shadow_counter);
 
     if pages_to_render.is_empty() {
         return;
@@ -469,90 +434,26 @@ fn pass_shadow_update_impl(
                 rpass.set_bind_group(1, model_bind_group, &[]);
             }
 
-            if mode == ShadowRealmMode::ThreeD {
-                for (_model_id, model_record) in &render_state.scene.models {
-                    if !model_record.active || !model_record.cast_shadow {
+            for (_model_id, model_record) in &render_state.scene.models {
+                if !model_record.active || !model_record.cast_shadow {
+                    continue;
+                }
+
+                if !page.is_point
+                    && let Some(aabb) = vertex_sys.aabb(model_record.geometry_id)
+                {
+                    let world_aabb = aabb.transform(&model_record.data.transform);
+                    if !frustum.intersects_aabb(world_aabb.min, world_aabb.max) {
                         continue;
-                    }
-
-                    if !page.is_point
-                        && let Some(aabb) = vertex_sys.aabb(model_record.geometry_id)
-                    {
-                        let world_aabb = aabb.transform(&model_record.data.transform);
-                        if !frustum.intersects_aabb(world_aabb.min, world_aabb.max) {
-                            continue;
-                        }
-                    }
-
-                    if let Ok(Some(index_info)) = vertex_sys.index_info(model_record.geometry_id) {
-                        if vertex_sys
-                            .bind(&mut rpass, model_record.geometry_id)
-                            .is_ok()
-                        {
-                            let inst_idx = shadow_instance_cursor;
-                            collector.shadow_instance_data.push(model_record.data);
-                            shadow_instance_cursor += 1;
-
-                            rpass.draw_indexed(0..index_info.count, 0, inst_idx..(inst_idx + 1));
-                        }
                     }
                 }
-            } else {
-                for sprite_record in render_state.two_d_source.sprites.values() {
-                    if !sprite_record.cast_shadow {
-                        continue;
-                    }
-                    if !page.is_point
-                        && let Some(aabb) = vertex_sys.aabb(sprite_record.geometry_id)
-                    {
-                        let world_aabb = aabb.transform(&sprite_record.transform);
-                        if !frustum.intersects_aabb(world_aabb.min, world_aabb.max) {
-                            continue;
-                        }
-                    }
-                    if let Ok(Some(index_info)) = vertex_sys.index_info(sprite_record.geometry_id)
-                        && vertex_sys
-                            .bind(&mut rpass, sprite_record.geometry_id)
-                            .is_ok()
-                    {
+
+                if let Ok(Some(index_info)) = vertex_sys.index_info(model_record.geometry_id) {
+                    if vertex_sys.bind(&mut rpass, model_record.geometry_id).is_ok() {
                         let inst_idx = shadow_instance_cursor;
-                        collector.shadow_instance_data.push(
-                            crate::core::resources::ModelComponent::new(
-                                sprite_record.transform,
-                                false,
-                                glam::Vec4::ZERO,
-                            ),
-                        );
+                        collector.shadow_instance_data.push(model_record.data);
                         shadow_instance_cursor += 1;
-                        rpass.draw_indexed(0..index_info.count, 0, inst_idx..(inst_idx + 1));
-                    }
-                }
-                for shape_record in render_state.two_d_source.shapes.values() {
-                    if !shape_record.cast_shadow {
-                        continue;
-                    }
-                    if !page.is_point
-                        && let Some(aabb) = vertex_sys.aabb(shape_record.geometry_id)
-                    {
-                        let world_aabb = aabb.transform(&shape_record.transform);
-                        if !frustum.intersects_aabb(world_aabb.min, world_aabb.max) {
-                            continue;
-                        }
-                    }
-                    if let Ok(Some(index_info)) = vertex_sys.index_info(shape_record.geometry_id)
-                        && vertex_sys
-                            .bind(&mut rpass, shape_record.geometry_id)
-                            .is_ok()
-                    {
-                        let inst_idx = shadow_instance_cursor;
-                        collector.shadow_instance_data.push(
-                            crate::core::resources::ModelComponent::new(
-                                shape_record.transform,
-                                false,
-                                glam::Vec4::ZERO,
-                            ),
-                        );
-                        shadow_instance_cursor += 1;
+
                         rpass.draw_indexed(0..index_info.count, 0, inst_idx..(inst_idx + 1));
                     }
                 }

@@ -31,6 +31,8 @@ pub struct CmdLightCreateArgs {
     pub spot_inner_outer: Option<Vec2>,
     #[serde(default = "default_layer_mask")]
     pub layer_mask: u32,
+    #[serde(default)]
+    pub shadow_layer_mask: Option<u32>,
     #[serde(default = "crate::core::resources::common::default_true")]
     pub active: bool,
     #[serde(default = "crate::core::resources::common::default_true")]
@@ -59,6 +61,7 @@ pub struct CmdLightUpdateArgs {
     pub range: Option<f32>,
     pub spot_inner_outer: Option<Vec2>,
     pub layer_mask: Option<u32>,
+    pub shadow_layer_mask: Option<u32>,
     pub active: Option<bool>,
     pub cast_shadow: Option<bool>,
 }
@@ -150,6 +153,7 @@ pub fn engine_cmd_light_create(
             component,
             args.active,
             args.layer_mask,
+            args.shadow_layer_mask.unwrap_or(args.layer_mask),
             args.cast_shadow,
         ),
     );
@@ -263,6 +267,12 @@ pub fn engine_cmd_light_update(
     }
     if let Some(layer_mask) = args.layer_mask {
         record.layer_mask = layer_mask;
+        if args.shadow_layer_mask.is_none() {
+            record.shadow_layer_mask = layer_mask;
+        }
+    }
+    if let Some(shadow_layer_mask) = args.shadow_layer_mask {
+        record.shadow_layer_mask = shadow_layer_mask;
     }
     if let Some(active) = args.active {
         record.active = active;
